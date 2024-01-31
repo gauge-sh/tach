@@ -3,7 +3,7 @@ from modguard.base import guard
 
 
 
-@guard(deny=['tests.test_guard'])
+@guard(deny=['func_two'])
 def func_one():
     pass
 
