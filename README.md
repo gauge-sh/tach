@@ -45,7 +45,7 @@ Modguard will now flag any incorrect usages of your interface.
 > # From the root of your project
 > guard .
 1 error found.
-utils/helpers.py:L45-60 E001 Restricted usage of 'private_function'
+utils/helpers.py:L45-60 E001 Restricted usage of 'core.main.private_function' in 'utils.helpers'
 ```
 
 ### Details
