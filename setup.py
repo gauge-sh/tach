@@ -13,7 +13,6 @@ setup(
         long_description=LONG_DESCRIPTION,
         packages=find_packages(),
         install_requires=[],
-        
         keywords=['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass'],
         classifiers= [
             "Development Status :: 3 - Alpha",

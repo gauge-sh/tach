@@ -81,3 +81,4 @@ Return:
 Modguard works by analyzing the abstract syntax tree of your codebase. It will only protect against usages that are within the scope of the cli runtime, which is why we suggest always running the tool from the root of your project.
 
 ### License
+[GNU GPLv3](LICENSE)

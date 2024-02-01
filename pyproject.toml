@@ -1,0 +1,26 @@
+[project]
+name = "modguard"
+version = "0.0.1"
+authors = [
+  { name="Caelean Barnes", email="caeleanb@gmail.com" },
+  { name="Evan Doyle", email="evanmdoyle@gmail.com" },
+]
+description = "A Python tool to guard against incorrect usage of python modules."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+]
+keywords = ['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass']
+
+[project.urls]
+Homepage = "https://github.com/never-over/modguard"
+Issues = "https://github.com/never-over/modguard/issues"
+
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
