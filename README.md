@@ -1,9 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/modguard.svg)](https://badge.fury.io/py/modguard)
 
 # modguard
----
 A Python tool to guard against incorrect usage of python modules.
-
 
 ### What is modguard?
 Modguard enables you to explicitly define the public interface for a given module.
