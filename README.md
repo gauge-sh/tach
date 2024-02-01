@@ -1,3 +1,5 @@
+[![PyPI version](https://badge.fury.io/py/modguard.svg)](https://badge.fury.io/py/modguard)
+
 # modguard
 ---
 A Python tool to guard against incorrect usage of python modules.
