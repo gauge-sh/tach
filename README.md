@@ -15,7 +15,7 @@ Modguard is incredibly lightweight, and has no impact on the runtime of your cod
 ```bash
 pip install modguard
 ```
-[PyPi](#TODO)
+[PyPi](https://pypi.org/project/modguard/)
 
 ### Usage
 Add a `Boundary` to the `__init__.py` of the module you're creating an interface for.
