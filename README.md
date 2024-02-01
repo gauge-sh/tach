@@ -32,7 +32,7 @@ def some_util():
 ```
 ```bash
 > # From the root of your project
-> modguard .
+> guard .
 1 error found.
 core/utils.py:L45-60 E001 Restricted usage of 'retrieve_password'
 ```
@@ -54,6 +54,27 @@ def some_api():
 core/utils.py:L45-60 E001 Restricted usage of 'retrieve_password' in 'core.utils.some_util'
 public/api.py:L45-60 E001 Restricted usage of 'retrieve_password' in 'public.api.some_api'
 ```
+
+### Interface
+```python
+"""Decorator for protecting against unintended usage. Note that you may only specify `allow` or `deny`, but not both.
+Parameters:
+    allow (Iterable[str]): A list of str representations of python module paths that are allowed to implement the decorated object.
+
+    deny (Iterable[str]): A list of str representations of python module paths that are not allowed to implement the decorated object 
+
+Return:
+    None
+"""
+@guard(allow: Iterable[str]= [], deny: Iterable[str])
+...
+```
+
+
+
+
+### Examples
+
 
 
 ### Details
