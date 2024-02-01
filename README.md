@@ -15,7 +15,6 @@ Modguard is incredibly lightweight, and has no impact on the runtime of your cod
 ```bash
 pip install modguard
 ```
-[PyPi](https://pypi.org/project/modguard/)
 
 ### Usage
 Add a `Boundary` to the `__init__.py` of the module you're creating an interface for.
@@ -49,6 +48,7 @@ utils/helpers.py:L45-60 E001 Restricted usage of 'private_function'
 
 ### Details
 Modguard works by analyzing the abstract syntax tree of your codebase. It will only protect against usages that are within the scope of the cli runtime, which is why we suggest always running the tool from the root of your project.
+[PyPi Package](https://pypi.org/project/modguard/)
 
 ### License
 [GNU GPLv3](LICENSE)
