@@ -31,10 +31,12 @@ Implement the `public` decorator on any part of the interface that is public
 # core/main.py
 from modguard import public
 
+# Adding the decorator here signifies this function is public
 @public
 def public_function(user_id: int) -> str:
     ...
 
+# This function will now be considered private
 def private_function():
     ...
 ```
