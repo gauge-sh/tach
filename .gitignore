@@ -1,4 +1,5 @@
 # Byte-compiled / optimized / DLL files
+.pyirc
 .python-version
 __pycache__/
 *.py[cod]
