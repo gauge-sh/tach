@@ -30,9 +30,10 @@ Boundary(__name__)
 Implement the `public` decorator on any part of the interface that is public
 ```python
 # core/main.py
+from modguard import public
 
 @public
-def public_method(user_id: int) -> str:
+def public_function(user_id: int) -> str:
     ...
 
 def private_function():
