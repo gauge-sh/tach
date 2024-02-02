@@ -235,7 +235,8 @@ def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
                         errors.append(
                             ErrorInfo(
                                 location=file_path,
-                                message=f"Import {mod_path} in {file_path} is blocked by boundary {nearest_boundary.full_path}",
+                                message=f"Import {mod_path} in {file_path} is blocked"
+                                f" by boundary {nearest_boundary.full_path}",
                             )
                         )
 
