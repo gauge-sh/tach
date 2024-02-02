@@ -22,6 +22,8 @@ class BoundaryTrie:
     def insert(self, path: str):
         node = self.root
         parts = path.split(".")
+        # Don't treat empty string as a path part
+        parts = [part for part in parts if part]
 
         for part in parts:
             if part not in node.children:
@@ -34,7 +36,7 @@ class BoundaryTrie:
     def find_nearest(self, path: str) -> str:
         node = self.root
         parts = path.split(".")
-        nearest_parent_path = None
+        nearest_parent_path = node.full_path if node.is_end_of_path else None
 
         for part in parts:
             if part in node.children:

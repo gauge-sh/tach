@@ -13,6 +13,11 @@ class ErrorInfo:
 
 
 def file_to_module_path(file_path: str):
+    # Assuming that the file_path has been 'canonicalized' and does not traverse multiple directories
+    file_path = file_path.lstrip("./")
+    if file_path == ".":
+        return ""
+
     module_path = file_path.replace(os.sep, ".")
 
     if module_path.endswith(".py"):
@@ -20,7 +25,7 @@ def file_to_module_path(file_path: str):
     if module_path.endswith(".__init__"):
         module_path = module_path[:-9]
     if module_path == "__init__":
-        return "."
+        return ""
 
     return module_path
 
@@ -116,7 +121,7 @@ def build_boundary_trie(root: str) -> BoundaryTrie:
     boundary_trie = BoundaryTrie()
     # Add an 'outer boundary' containing the entire root path
     # This means a project will pass 'check' by default
-    boundary_trie.insert(root)
+    boundary_trie.insert(file_to_module_path(root))
 
     for dirpath, _, filenames in os.walk(root):
         for filename in filenames:
@@ -133,6 +138,8 @@ def check(root: str) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [ErrorInfo(location="", message=f"The path {root} is not a directory.")]
 
+    # This 'canonicalizes' the root path, resolving directory traversal
+    root = os.path.relpath(os.path.realpath(root))
     boundary_trie = build_boundary_trie(root)
 
     errors = []
@@ -144,7 +151,7 @@ def check(root: str) -> list[ErrorInfo]:
                 current_nearest_boundary = boundary_trie.find_nearest(current_mod_path)
                 assert (
                     current_nearest_boundary is not None
-                ), "Checking file outside of boundaries!"
+                ), f"Checking file ({file_path}) outside of boundaries!"
                 import_mod_paths = get_imports(file_path)
                 for mod_path in import_mod_paths:
                     nearest_boundary = boundary_trie.find_nearest(mod_path)
