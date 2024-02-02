@@ -1,6 +1,18 @@
 import argparse
 from modguard.check import check, ErrorInfo
 
+class BCOLORS:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 parser = argparse.ArgumentParser(
     prog="modguard",
     description="Verify module boundaries are correctly implemented.",
@@ -15,7 +27,8 @@ def execute():
     path = args.path
     result: list[ErrorInfo] = check(path)
     if result:
-        for error in result:
-            print("❌", error.location, ":", error.message)
+        sorted_results = sorted(result, key=lambda e: e.location)
+        for error in sorted_results:
+            print(f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.WARNING}: {error.message}")
     else:
-        print("✅ all modules safely guarded!")
+        print(f"✅ {BCOLORS.OKGREEN}All modules safely guarded!")
