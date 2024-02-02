@@ -117,6 +117,63 @@ def get_imports(file_path: str) -> list[str]:
         raise ModguardParseError(f"Syntax error in {file_path}: {e}")
 
 
+class PublicMemberVisitor(ast.NodeVisitor):
+    def __init__(self, current_mod_path: str, is_package: bool = False):
+        self.is_modguard_public_imported = False
+        self.current_mod_path = current_mod_path
+        self.is_package = is_package
+        self.public_members = []
+
+    def visit_ImportFrom(self, node):
+        if node.module == "modguard" and any(
+            alias.name == "public" for alias in node.names
+        ):
+            self.is_modguard_public_imported = True
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            if alias.name == "modguard":
+                self.is_modguard_public_imported = True
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node):
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Name) and decorator.id == "public":
+                self.public_members.append(node.name)
+            elif isinstance(decorator, ast.Attribute) and decorator.attr == "public":
+                value = decorator.value
+                if isinstance(value, ast.Name) and value.id == "modguard":
+                    self.public_members.append(node.name)
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node):
+        for decorator in node.decorator_list:
+            if isinstance(decorator, ast.Name) and decorator.id == "public":
+                self.public_members.append(node.name)
+            elif isinstance(decorator, ast.Attribute) and decorator.attr == "public":
+                value = decorator.value
+                if isinstance(value, ast.Name) and value.id == "modguard":
+                    self.public_members.append(node.name)
+        self.generic_visit(node)
+
+
+def get_public_members(file_path: str) -> list[str]:
+    with open(file_path, "r") as file:
+        file_content = file.read()
+
+    try:
+        parsed_ast = ast.parse(file_content)
+        mod_path = file_to_module_path(file_path)
+        public_member_visitor = PublicMemberVisitor(
+            is_package=file_path.endswith("__init__.py"), current_mod_path=mod_path
+        )
+        public_member_visitor.visit(parsed_ast)
+        return public_member_visitor.public_members
+    except SyntaxError as e:
+        raise ModguardParseError(f"Syntax error in {file_path}: {e}")
+
+
 def build_boundary_trie(root: str) -> BoundaryTrie:
     boundary_trie = BoundaryTrie()
     # Add an 'outer boundary' containing the entire root path
@@ -130,6 +187,15 @@ def build_boundary_trie(root: str) -> BoundaryTrie:
                 if has_boundary(file_path):
                     mod_path = file_to_module_path(file_path)
                     boundary_trie.insert(mod_path)
+
+    for dirpath, _, filenames in os.walk(root):
+        for filename in filenames:
+            if filename.endswith(".py"):
+                file_path = os.path.join(dirpath, filename)
+                mod_path = file_to_module_path(file_path)
+                public_members = get_public_members(file_path)
+                for public_member in public_members:
+                    boundary_trie.register_public_member(f"{mod_path}.{public_member}")
 
     return boundary_trie
 
@@ -155,14 +221,21 @@ def check(root: str) -> list[ErrorInfo]:
                 import_mod_paths = get_imports(file_path)
                 for mod_path in import_mod_paths:
                     nearest_boundary = boundary_trie.find_nearest(mod_path)
+                    # An imported module is allowed only in the following cases:
+                    # * The module is not contained by a boundary [generally 3rd party]
+                    # * The module's boundary is a child of the current boundary
+                    # * The module is exported as public by its boundary
                     if (
                         nearest_boundary is not None
-                        and not current_nearest_boundary.startswith(nearest_boundary)
+                        and not current_nearest_boundary.full_path.startswith(
+                            nearest_boundary.full_path
+                        )
+                        and mod_path not in nearest_boundary.public_members
                     ):
                         errors.append(
                             ErrorInfo(
                                 location=file_path,
-                                message=f"Import {mod_path} in {file_path} is blocked by boundary {nearest_boundary}",
+                                message=f"Import {mod_path} in {file_path} is blocked by boundary {nearest_boundary.full_path}",
                             )
                         )
 
