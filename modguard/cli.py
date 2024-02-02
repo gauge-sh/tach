@@ -51,7 +51,7 @@ def print_invalid_path(path: str) -> None:
 
 def print_invalid_exclude(path: str) -> None:
     print(
-            f"{BCOLORS.FAIL} {path} is not a valid directory. Provide the path of the root of your project."
+            f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is space-separated and valid."
         )
 
 
@@ -67,7 +67,7 @@ def execute():
         for exclude_path in exclude_paths:
             if not os.path.isdir(exclude_path) or not os.path.isfile(exclude_path):
                 print_invalid_exclude(exclude_path)
-            return
+        return
     result: list[ErrorInfo] = check(path)
     if result:
         print_errors(result)
