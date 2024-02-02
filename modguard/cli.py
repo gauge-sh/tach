@@ -1,4 +1,5 @@
 import argparse
+import os
 from modguard.check import check, ErrorInfo
 
 class BCOLORS:
@@ -25,6 +26,8 @@ parser.add_argument("path", type=str, help="The path of the root of your project
 def execute():
     args: argparse.Namespace = parser.parse_args()
     path = args.path
+    if not os.path.isdir(path):
+        print(f'{BCOLORS.FAIL} {path} is not a valid directory. Provide the path of the root of your project.')
     result: list[ErrorInfo] = check(path)
     if result:
         sorted_results = sorted(result, key=lambda e: e.location)
