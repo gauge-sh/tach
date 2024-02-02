@@ -50,6 +50,7 @@ utils/helpers.py:L45-60 E001 Restricted usage of 'core.main.private_function' in
 
 ### Details
 Modguard works by analyzing the abstract syntax tree of your codebase. It will only protect against usages that are within the scope of the cli runtime, which is why we suggest always running the tool from the root of your project.
+
 [PyPi Package](https://pypi.org/project/modguard/)
 
 ### License
