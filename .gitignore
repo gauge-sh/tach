@@ -1,4 +1,5 @@
 # Byte-compiled / optimized / DLL files
+.vscode/
 .pyirc
 .python-version
 __pycache__/
