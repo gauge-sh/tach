@@ -1,1 +1,1 @@
-from ..a.other import a
+from ..a import a

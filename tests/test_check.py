@@ -14,7 +14,7 @@ def test_has_boundary():
 
 
 def test_get_imports():
-    assert get_imports("dummy_dir/a/other.py") == []
+    assert get_imports("dummy_dir/a/other.py") == ["modguard.public"]
     assert get_imports("dummy_dir/a/__init__.py") == [
         "modguard.Boundary",
         "dummy_dir.a.other.a",
@@ -27,10 +27,10 @@ def test_get_imports():
 
 def test_check():
     check_results = check("dummy_dir")
-    assert len(check_results) == 2, "\n".join(
+    assert len(check_results) == 1, "\n".join(
         (result.error for result in check_results)
     )
     check_results = check(".")
-    assert len(check_results) == 2, "\n".join(
+    assert len(check_results) == 1, "\n".join(
         (result.error for result in check_results)
     )
