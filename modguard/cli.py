@@ -39,20 +39,19 @@ parser.add_argument(
 def print_errors(error_list: list[ErrorInfo]) -> None:
     sorted_results = sorted(error_list, key=lambda e: e.location)
     for error in sorted_results:
-        print(
-            f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.WARNING}: {error.message}"
-        )
+        print(f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.WARNING}: {error.message}")
 
 
 def print_invalid_path(path: str) -> None:
     print(
-            f"{BCOLORS.FAIL} {path} is not a valid directory. Provide the path of the root of your project."
-        )
+        f"{BCOLORS.FAIL} {path} is not a valid directory. Provide the path of the root of your project."
+    )
+
 
 def print_invalid_exclude(path: str) -> None:
     print(
-            f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is space-separated and valid."
-        )
+        f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is space-separated and valid."
+    )
 
 
 def execute():

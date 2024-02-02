@@ -200,7 +200,7 @@ def build_boundary_trie(root: str) -> BoundaryTrie:
     return boundary_trie
 
 
-def check(root: str, exclude_paths:list[str] = None) -> list[ErrorInfo]:
+def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [ErrorInfo(location="", message=f"The path {root} is not a directory.")]
 
