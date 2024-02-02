@@ -1,1 +1,5 @@
-a = 1
+from modguard import public
+
+
+@public
+def a(): ...
