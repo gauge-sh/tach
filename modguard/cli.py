@@ -32,7 +32,8 @@ parser.add_argument(
     required=False,
     type=str,
     nargs="*",
-    help="paths to exclude. tests/, ci/, etc.",
+    metavar="path",
+    help="paths to exclude. tests/ ci/ etc.",
 )
 
 
@@ -63,10 +64,13 @@ def execute():
     exclude_paths = args.exclude
     result: list[ErrorInfo] = []
     if exclude_paths:
+        has_error = False
         for exclude_path in exclude_paths:
-            if not os.path.isdir(exclude_path) or not os.path.isfile(exclude_path):
+            if not os.path.isdir(exclude_path) and not os.path.isfile(exclude_path):
+                has_error = True
                 print_invalid_exclude(exclude_path)
-        return
+        if has_error:
+            return
     result: list[ErrorInfo] = check(path)
     if result:
         print_errors(result)
