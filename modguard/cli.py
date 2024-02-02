@@ -4,12 +4,18 @@ from modguard.check import check
 parser = argparse.ArgumentParser(
     prog="modguard",
     description="Verify module boundaries are correctly implemented.",
-    epilog="Make sure modguard is run from the root of your repo that a directory is being specified. For example, `modguard .`",
+    epilog="Make sure modguard is run from the root of your repo that a directory is being specified. For example: `modguard .`",
 )
 
-parser.add_argument("path")
+parser.add_argument("path", type=str, help="The path of the root of your project that contains all defined boundaries.")
 
 
 def execute():
     args = parser.parse_args()
-    print(check(args.path))
+    path = args.path
+    result = check(path)
+    if result:
+        for error in result:
+            print("❌", error.location, error.message)
+    else:
+        print("✅ all modules safely guarded!")
