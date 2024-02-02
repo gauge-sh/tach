@@ -12,4 +12,4 @@ parser.add_argument("path")
 
 def execute():
     args = parser.parse_args()
-    check(args.path)
+    print(check(args.path))
