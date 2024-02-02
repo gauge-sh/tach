@@ -13,14 +13,12 @@ class ErrorInfo:
 
 
 def file_to_module_path(file_path: str):
-    # Replace os-specific path separators with '.'
     module_path = file_path.replace(os.sep, ".")
 
-    # Strip the extension and handle '__init__.py' files
     if module_path.endswith(".py"):
-        module_path = module_path[:-3]  # Remove '.py' extension
+        module_path = module_path[:-3]
     if module_path.endswith(".__init__"):
-        module_path = module_path[:-9]  # Remove '.__init__' for package directories
+        module_path = module_path[:-9]
     if module_path == "__init__":
         return "."
 
@@ -41,7 +39,7 @@ class BoundaryFinder(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Import(self, node):
-        # Check if 'modguard' is imported, and if so, we will need additional checks when 'Boundary' is called
+        # Check if 'modguard' is imported
         for alias in node.names:
             if alias.name == "modguard":
                 self.is_modguard_boundary_imported = True
@@ -95,7 +93,6 @@ class ImportVisitor(ast.NodeVisitor):
         for name_node in node.names:
             self.imports.append(f"{base_mod_path}.{name_node.asname or name_node.name}")
 
-        # Continue traversing the tree
         self.generic_visit(node)
 
 
@@ -115,12 +112,12 @@ def get_imports(file_path: str) -> list[str]:
         raise ModguardParseError(f"Syntax error in {file_path}: {e}")
 
 
-def check(root: str) -> list[ErrorInfo]:
-    if not os.path.isdir(root):
-        return [ErrorInfo(location="", error=f"The path {root} is not a directory.")]
-
+def build_boundary_trie(root: str) -> BoundaryTrie:
     boundary_trie = BoundaryTrie()
+    # Add an 'outer boundary' containing the entire root path
+    # This means a project will pass 'check' by default
     boundary_trie.insert(root)
+
     for dirpath, _, filenames in os.walk(root):
         for filename in filenames:
             if filename.endswith(".py"):
@@ -128,6 +125,15 @@ def check(root: str) -> list[ErrorInfo]:
                 if has_boundary(file_path):
                     mod_path = file_to_module_path(file_path)
                     boundary_trie.insert(mod_path)
+
+    return boundary_trie
+
+
+def check(root: str) -> list[ErrorInfo]:
+    if not os.path.isdir(root):
+        return [ErrorInfo(location="", error=f"The path {root} is not a directory.")]
+
+    boundary_trie = build_boundary_trie(root)
 
     errors = []
     for dirpath, _, filenames in os.walk(root):
