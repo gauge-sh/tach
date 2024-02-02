@@ -31,7 +31,7 @@ class BoundaryTrie:
         node.is_end_of_path = True
         node.full_path = path
 
-    def find_nearest(self, path: str):
+    def find_nearest(self, path: str) -> str:
         node = self.root
         parts = path.split(".")
         nearest_parent_path = None
