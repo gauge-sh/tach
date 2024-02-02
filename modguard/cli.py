@@ -1,5 +1,5 @@
 import argparse
-from modguard.check import check
+from modguard.check import check, ErrorInfo
 
 parser = argparse.ArgumentParser(
     prog="modguard",
@@ -11,11 +11,11 @@ parser.add_argument("path", type=str, help="The path of the root of your project
 
 
 def execute():
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
     path = args.path
-    result = check(path)
+    result: list[ErrorInfo] = check(path)
     if result:
         for error in result:
-            print("❌", error.location, error.message)
+            print("❌", error.location, ":", error.message)
     else:
         print("✅ all modules safely guarded!")

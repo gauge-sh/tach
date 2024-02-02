@@ -9,7 +9,7 @@ from .errors import ModguardParseError
 @dataclass
 class ErrorInfo:
     location: str
-    error: str
+    message: str
 
 
 def file_to_module_path(file_path: str):
@@ -131,7 +131,7 @@ def build_boundary_trie(root: str) -> BoundaryTrie:
 
 def check(root: str) -> list[ErrorInfo]:
     if not os.path.isdir(root):
-        return [ErrorInfo(location="", error=f"The path {root} is not a directory.")]
+        return [ErrorInfo(location="", message=f"The path {root} is not a directory.")]
 
     boundary_trie = build_boundary_trie(root)
 
@@ -155,7 +155,7 @@ def check(root: str) -> list[ErrorInfo]:
                         errors.append(
                             ErrorInfo(
                                 location=file_path,
-                                error=f"Import {mod_path} in {file_path} is blocked by boundary {nearest_boundary}",
+                                message=f"Import {mod_path} in {file_path} is blocked by boundary {nearest_boundary}",
                             )
                         )
 
