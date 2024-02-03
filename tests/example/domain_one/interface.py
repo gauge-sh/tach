@@ -2,5 +2,4 @@ from modguard import public
 
 
 @public
-def a():
-    ...
+def domain_one_interface(): ...
