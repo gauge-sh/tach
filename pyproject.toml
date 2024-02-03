@@ -14,7 +14,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Development Status :: 4 - Beta",
 ]
-keywords = ['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass']
+keywords = ['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass', 'domain', 'architecture']
 
 [project.urls]
 Homepage = "https://github.com/never-over/modguard"
