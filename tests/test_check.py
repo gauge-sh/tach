@@ -28,9 +28,9 @@ def test_get_imports():
 def test_check():
     check_results = check("dummy_dir")
     assert len(check_results) == 1, "\n".join(
-        (result.error for result in check_results)
+        (result.message for result in check_results)
     )
     check_results = check(".")
     assert len(check_results) == 1, "\n".join(
-        (result.error for result in check_results)
+        (result.message for result in check_results)
     )

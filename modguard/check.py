@@ -1,6 +1,7 @@
 import ast
 import os
 from dataclasses import dataclass
+from typing import Generator
 
 from .boundary import BoundaryTrie
 from .errors import ModguardParseError
@@ -12,7 +13,26 @@ class ErrorInfo:
     message: str
 
 
-def file_to_module_path(file_path: str):
+def canonical(file_path: str) -> str:
+    return os.path.relpath(os.path.realpath(file_path))
+
+
+def walk_pyfiles(
+    root: str, exclude_paths: list[str] = None
+) -> Generator[tuple[str, str], None, None]:
+    for dirpath, _, filenames in os.walk(root):
+        for filename in filenames:
+            file_path = canonical(os.path.join(dirpath, filename))
+            if exclude_paths is not None and any(
+                file_path.startswith(exclude_path) for exclude_path in exclude_paths
+            ):
+                # Treat excluded paths as invisible
+                continue
+            if filename.endswith(".py"):
+                yield dirpath, filename
+
+
+def file_to_module_path(file_path: str) -> str:
     # Assuming that the file_path has been 'canonicalized' and does not traverse multiple directories
     file_path = file_path.lstrip("./")
     if file_path == ".":
@@ -174,28 +194,24 @@ def get_public_members(file_path: str) -> list[str]:
         raise ModguardParseError(f"Syntax error in {file_path}: {e}")
 
 
-def build_boundary_trie(root: str) -> BoundaryTrie:
+def build_boundary_trie(root: str, exclude_paths: list[str] = None) -> BoundaryTrie:
     boundary_trie = BoundaryTrie()
     # Add an 'outer boundary' containing the entire root path
     # This means a project will pass 'check' by default
     boundary_trie.insert(file_to_module_path(root))
 
-    for dirpath, _, filenames in os.walk(root):
-        for filename in filenames:
-            if filename.endswith(".py"):
-                file_path = os.path.join(dirpath, filename)
-                if has_boundary(file_path):
-                    mod_path = file_to_module_path(file_path)
-                    boundary_trie.insert(mod_path)
+    for dirpath, filename in walk_pyfiles(root, exclude_paths=exclude_paths):
+        file_path = os.path.join(dirpath, filename)
+        if has_boundary(file_path):
+            mod_path = file_to_module_path(file_path)
+            boundary_trie.insert(mod_path)
 
-    for dirpath, _, filenames in os.walk(root):
-        for filename in filenames:
-            if filename.endswith(".py"):
-                file_path = os.path.join(dirpath, filename)
-                mod_path = file_to_module_path(file_path)
-                public_members = get_public_members(file_path)
-                for public_member in public_members:
-                    boundary_trie.register_public_member(f"{mod_path}.{public_member}")
+    for dirpath, filename in walk_pyfiles(root, exclude_paths=exclude_paths):
+        file_path = os.path.join(dirpath, filename)
+        mod_path = file_to_module_path(file_path)
+        public_members = get_public_members(file_path)
+        for public_member in public_members:
+            boundary_trie.register_public_member(f"{mod_path}.{public_member}")
 
     return boundary_trie
 
@@ -204,40 +220,40 @@ def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [ErrorInfo(location="", message=f"The path {root} is not a directory.")]
 
-    # This 'canonicalizes' the root path, resolving directory traversal
-    root = os.path.relpath(os.path.realpath(root))
-    boundary_trie = build_boundary_trie(root)
+    # This 'canonicalizes' the path arguments, resolving directory traversal
+    root = canonical(root)
+    exclude_paths = list(map(canonical, exclude_paths)) if exclude_paths else None
+
+    boundary_trie = build_boundary_trie(root, exclude_paths=exclude_paths)
 
     errors = []
-    for dirpath, _, filenames in os.walk(root):
-        for filename in filenames:
-            if filename.endswith(".py"):
-                file_path = os.path.join(dirpath, filename)
-                current_mod_path = file_to_module_path(file_path)
-                current_nearest_boundary = boundary_trie.find_nearest(current_mod_path)
-                assert (
-                    current_nearest_boundary is not None
-                ), f"Checking file ({file_path}) outside of boundaries!"
-                import_mod_paths = get_imports(file_path)
-                for mod_path in import_mod_paths:
-                    nearest_boundary = boundary_trie.find_nearest(mod_path)
-                    # An imported module is allowed only in the following cases:
-                    # * The module is not contained by a boundary [generally 3rd party]
-                    # * The module's boundary is a child of the current boundary
-                    # * The module is exported as public by its boundary
-                    if (
-                        nearest_boundary is not None
-                        and not current_nearest_boundary.full_path.startswith(
-                            nearest_boundary.full_path
-                        )
-                        and mod_path not in nearest_boundary.public_members
-                    ):
-                        errors.append(
-                            ErrorInfo(
-                                location=file_path,
-                                message=f"Import {mod_path} in {file_path} is blocked"
-                                f" by boundary {nearest_boundary.full_path}",
-                            )
-                        )
+    for dirpath, filename in walk_pyfiles(root, exclude_paths=exclude_paths):
+        file_path = os.path.join(dirpath, filename)
+        current_mod_path = file_to_module_path(file_path)
+        current_nearest_boundary = boundary_trie.find_nearest(current_mod_path)
+        assert (
+            current_nearest_boundary is not None
+        ), f"Checking file ({file_path}) outside of boundaries!"
+        import_mod_paths = get_imports(file_path)
+        for mod_path in import_mod_paths:
+            nearest_boundary = boundary_trie.find_nearest(mod_path)
+            # An imported module is allowed only in the following cases:
+            # * The module is not contained by a boundary [generally 3rd party]
+            # * The module's boundary is a child of the current boundary
+            # * The module is exported as public by its boundary
+            if (
+                nearest_boundary is not None
+                and not current_nearest_boundary.full_path.startswith(
+                    nearest_boundary.full_path
+                )
+                and mod_path not in nearest_boundary.public_members
+            ):
+                errors.append(
+                    ErrorInfo(
+                        location=file_path,
+                        message=f"Import {mod_path} in {file_path} is blocked"
+                        f" by boundary {nearest_boundary.full_path}",
+                    )
+                )
 
     return errors
