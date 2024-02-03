@@ -32,7 +32,7 @@ parser.add_argument(
     "--exclude",
     required=False,
     type=str,
-    metavar="path,path,...",
+    metavar="file_or_path,...",
     help="Comma separated path list to exclude. tests/,ci/,etc.",
 )
 
