@@ -42,7 +42,7 @@ Modguard will now flag any incorrect dependencies between modules.
 ```bash
 > # From the root of your project
 > modguard .
-❌ ./utils/helpers.py: Import core.main.private_function in ./utils/helpers.py is blocked by boundary core.main
+❌ ./utils/helpers.py: Import 'core.main.private_function' in ./utils/helpers.py is blocked by boundary 'core.main'
 ```
 
 ### Details
