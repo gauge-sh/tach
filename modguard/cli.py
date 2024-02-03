@@ -62,7 +62,6 @@ def execute():
         print_invalid_path(path)
         return
     exclude_paths = args.exclude
-    result: list[ErrorInfo] = []
     if exclude_paths:
         has_error = False
         for exclude_path in exclude_paths:
@@ -71,7 +70,7 @@ def execute():
                 print_invalid_exclude(exclude_path)
         if has_error:
             return
-    result: list[ErrorInfo] = check(path)
+    result: list[ErrorInfo] = check(path, exclude_paths=exclude_paths)
     if result:
         print_errors(result)
     else:
