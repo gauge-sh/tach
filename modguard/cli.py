@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 from modguard.check import check, ErrorInfo
 
 
@@ -31,9 +32,8 @@ parser.add_argument(
     "--exclude",
     required=False,
     type=str,
-    nargs="*",
-    metavar="path",
-    help="paths to exclude. tests/ ci/ etc.",
+    metavar="path,path,...",
+    help="Comma separated path list to exclude. tests/,ci/,etc.",
 )
 
 
@@ -51,7 +51,7 @@ def print_invalid_path(path: str) -> None:
 
 def print_invalid_exclude(path: str) -> None:
     print(
-        f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is space-separated and valid."
+        f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is comma separated and valid."
     )
 
 
@@ -60,19 +60,20 @@ def execute():
     path = args.path
     if not os.path.isdir(path):
         print_invalid_path(path)
-        return
+        sys.exit(1)
     exclude_paths = args.exclude
     result: list[ErrorInfo] = []
     if exclude_paths:
         has_error = False
-        for exclude_path in exclude_paths:
-            if not os.path.isdir(exclude_path) and not os.path.isfile(exclude_path):
+        for exclude_path in exclude_paths.split(","):
+            if  exclude_path and not os.path.isdir(exclude_path) and not os.path.isfile(exclude_path):
                 has_error = True
                 print_invalid_exclude(exclude_path)
         if has_error:
-            return
+            sys.exit(1)
     result: list[ErrorInfo] = check(path)
     if result:
         print_errors(result)
-    else:
-        print(f"✅ {BCOLORS.OKGREEN}All modules safely guarded!")
+        sys.exit(1)
+    print(f"✅ {BCOLORS.OKGREEN}All modules safely guarded!")
+    sys.exit(0)
