@@ -131,6 +131,10 @@ class ImportVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_Import(self, node):
+        self.imports.extend((alias.name for alias in node.names))
+        self.generic_visit(node)
+
 
 def get_imports(file_path: str) -> list[str]:
     with open(file_path, "r") as file:

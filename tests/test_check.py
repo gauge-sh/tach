@@ -52,6 +52,11 @@ def test_check():
     ]
     check_results = check("example")
 
-    assert len(check_results) == len(expected_errors) and all(
-        (expected_error in check_results for expected_error in expected_errors)
-    ), "\n".join((result.message for result in check_results))
+    for expected_error in expected_errors:
+        assert (
+            expected_error in check_results
+        ), f"Missing error: {expected_error.message}"
+        check_results.remove(expected_error)
+    assert len(check_results) == 0, "\n".join(
+        (result.message for result in check_results)
+    )
