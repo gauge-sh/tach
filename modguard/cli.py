@@ -40,18 +40,23 @@ parser.add_argument(
 def print_errors(error_list: list[ErrorInfo]) -> None:
     sorted_results = sorted(error_list, key=lambda e: e.location)
     for error in sorted_results:
-        print(f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.WARNING}: {error.message}")
+        print(
+            f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.WARNING}: {error.message}",
+            file=sys.stderr,
+        )
 
 
 def print_invalid_path(path: str) -> None:
     print(
-        f"{BCOLORS.FAIL} {path} is not a valid directory. Provide the path of the root of your project."
+        f"{BCOLORS.FAIL} {path} is not a valid directory. Provide the path of the root of your project.",
+        file=sys.stderr,
     )
 
 
 def print_invalid_exclude(path: str) -> None:
     print(
-        f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is comma separated and valid."
+        f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is comma separated and valid.",
+        file=sys.stderr,
     )
 
 
@@ -65,7 +70,11 @@ def execute():
     if exclude_paths:
         has_error = False
         for exclude_path in exclude_paths.split(","):
-            if  exclude_path and not os.path.isdir(exclude_path) and not os.path.isfile(exclude_path):
+            if (
+                exclude_path
+                and not os.path.isdir(exclude_path)
+                and not os.path.isfile(exclude_path)
+            ):
                 has_error = True
                 print_invalid_exclude(exclude_path)
         if has_error:
