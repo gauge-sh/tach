@@ -26,11 +26,12 @@ def test_get_imports():
 
 
 def test_check():
+    expected_errors = 2
     check_results = check("example")
-    assert len(check_results) == 1, "\n".join(
+    assert len(check_results) == expected_errors, "\n".join(
         (result.message for result in check_results)
     )
     check_results = check(".")
-    assert len(check_results) == 1, "\n".join(
+    assert len(check_results) == expected_errors, "\n".join(
         (result.message for result in check_results)
     )

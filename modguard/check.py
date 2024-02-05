@@ -5,6 +5,7 @@ from typing import Generator
 
 from .boundary import BoundaryTrie
 from .errors import ModguardParseError
+from .visibility import PublicMember
 
 
 @dataclass
@@ -142,7 +143,7 @@ class PublicMemberVisitor(ast.NodeVisitor):
         self.is_modguard_public_imported = False
         self.current_mod_path = current_mod_path
         self.is_package = is_package
-        self.public_members = []
+        self.public_members: list[PublicMember] = []
 
     def visit_ImportFrom(self, node):
         if node.module == "modguard" and any(
@@ -157,28 +158,49 @@ class PublicMemberVisitor(ast.NodeVisitor):
                 self.is_modguard_public_imported = True
         self.generic_visit(node)
 
+    def _extract_allowlist(self, decorator: ast.Call) -> list[str]:
+        for kw in decorator.keywords:
+            if kw.arg == "allowlist":
+                allowlist_value = kw.value
+                if isinstance(allowlist_value, ast.List):
+                    return [
+                        elt.value
+                        for elt in allowlist_value.elts
+                        if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+                    ]
+        return []
+
+    def _add_public_member_from_decorator(self, node: ast.AST, decorator: ast.expr):
+        if (
+            isinstance(decorator, ast.Call)
+            and isinstance(decorator.func, ast.Name)
+            and decorator.func.id == "public"
+        ):
+            # This means @public is called with arguments
+            self.public_members.append(
+                PublicMember(
+                    name=node.name, allowlist=self._extract_allowlist(decorator)
+                )
+            )
+        elif isinstance(decorator, ast.Name) and decorator.id == "public":
+            self.public_members.append(PublicMember(name=node.name))
+        elif isinstance(decorator, ast.Attribute) and decorator.attr == "public":
+            value = decorator.value
+            if isinstance(value, ast.Name) and value.id == "modguard":
+                self.public_members.append(PublicMember(name=node.name))
+
     def visit_FunctionDef(self, node):
         for decorator in node.decorator_list:
-            if isinstance(decorator, ast.Name) and decorator.id == "public":
-                self.public_members.append(node.name)
-            elif isinstance(decorator, ast.Attribute) and decorator.attr == "public":
-                value = decorator.value
-                if isinstance(value, ast.Name) and value.id == "modguard":
-                    self.public_members.append(node.name)
+            self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
 
     def visit_ClassDef(self, node):
         for decorator in node.decorator_list:
-            if isinstance(decorator, ast.Name) and decorator.id == "public":
-                self.public_members.append(node.name)
-            elif isinstance(decorator, ast.Attribute) and decorator.attr == "public":
-                value = decorator.value
-                if isinstance(value, ast.Name) and value.id == "modguard":
-                    self.public_members.append(node.name)
+            self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
 
 
-def get_public_members(file_path: str) -> list[str]:
+def get_public_members(file_path: str) -> list[PublicMember]:
     with open(file_path, "r") as file:
         file_content = file.read()
 
@@ -211,7 +233,7 @@ def build_boundary_trie(root: str, exclude_paths: list[str] = None) -> BoundaryT
         mod_path = file_to_module_path(file_path)
         public_members = get_public_members(file_path)
         for public_member in public_members:
-            boundary_trie.register_public_member(f"{mod_path}.{public_member}")
+            boundary_trie.register_public_member(mod_path, public_member)
 
     return boundary_trie
 
@@ -239,21 +261,46 @@ def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
             nearest_boundary = boundary_trie.find_nearest(mod_path)
             # An imported module is allowed only in the following cases:
             # * The module is not contained by a boundary [generally 3rd party]
+            import_mod_has_boundary = nearest_boundary is not None
+
             # * The module's boundary is a child of the current boundary
-            # * The module is exported as public by its boundary
-            if (
-                nearest_boundary is not None
-                and not current_nearest_boundary.full_path.startswith(
+            import_mod_is_child_of_current = (
+                import_mod_has_boundary
+                and current_nearest_boundary.full_path.startswith(
                     nearest_boundary.full_path
                 )
-                and mod_path not in nearest_boundary.public_members
-            ):
-                errors.append(
-                    ErrorInfo(
-                        location=file_path,
-                        message=f"Import '{mod_path}' in {file_path} is blocked"
-                        f" by boundary '{nearest_boundary.full_path}'",
+            )
+
+            # * The module is exported as public by its boundary and is allowed in the current path
+            import_mod_is_public_member = (
+                import_mod_has_boundary and mod_path in nearest_boundary.public_members
+            )
+            import_mod_is_public_and_allowed = import_mod_is_public_member and (
+                nearest_boundary.public_members[mod_path].allowlist is None
+                or any(
+                    (
+                        current_mod_path.startswith(allowed_path)
+                        for allowed_path in nearest_boundary.public_members[
+                            mod_path
+                        ].allowlist
                     )
                 )
+            )
+
+            if (
+                not import_mod_has_boundary
+                or import_mod_is_child_of_current
+                or import_mod_is_public_and_allowed
+            ):
+                # This import is OK
+                continue
+
+            errors.append(
+                ErrorInfo(
+                    location=file_path,
+                    message=f"Import '{mod_path}' in {file_path} is blocked"
+                    f" by boundary '{nearest_boundary.full_path}'",
+                )
+            )
 
     return errors
