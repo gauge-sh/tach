@@ -56,7 +56,8 @@ class BoundaryTrie:
         if not nearest_boundary:
             raise ModguardSetupError(f"Could not register public member {path}")
 
-        member_path = f"{path}.{member.name}"
+        # For empty member.name, implication is that the entire module is public
+        member_path = f"{path}.{member.name}" if member.name else path
         if member_path not in nearest_boundary.public_members:
             nearest_boundary.public_members[member_path] = member
 

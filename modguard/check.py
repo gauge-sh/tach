@@ -10,8 +10,18 @@ from .visibility import PublicMember
 
 @dataclass
 class ErrorInfo:
-    location: str
-    message: str
+    location: str = ""
+    import_mod_path: str = ""
+    boundary_path: str = ""
+    exception_message: str = ""
+
+    @property
+    def message(self) -> str:
+        if self.exception_message:
+            return self.exception_message
+        if not all((self.location, self.import_mod_path, self.boundary_path)):
+            return f"Unexpected error: ({[self.location, self.import_mod_path, self.boundary_path]})"
+        return f"Import '{self.import_mod_path}' in {self.location} is blocked by boundary '{self.boundary_path}'"
 
 
 def canonical(file_path: str) -> str:
@@ -158,8 +168,8 @@ class PublicMemberVisitor(ast.NodeVisitor):
                 self.is_modguard_public_imported = True
         self.generic_visit(node)
 
-    def _extract_allowlist(self, decorator: ast.Call) -> list[str]:
-        for kw in decorator.keywords:
+    def _extract_allowlist(self, public_call: ast.Call) -> list[str]:
+        for kw in public_call.keywords:
             if kw.arg == "allowlist":
                 allowlist_value = kw.value
                 if isinstance(allowlist_value, ast.List):
@@ -190,14 +200,45 @@ class PublicMemberVisitor(ast.NodeVisitor):
                 self.public_members.append(PublicMember(name=node.name))
 
     def visit_FunctionDef(self, node):
-        for decorator in node.decorator_list:
-            self._add_public_member_from_decorator(node=node, decorator=decorator)
+        if self.is_modguard_public_imported:
+            for decorator in node.decorator_list:
+                self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
 
     def visit_ClassDef(self, node):
-        for decorator in node.decorator_list:
-            self._add_public_member_from_decorator(node=node, decorator=decorator)
+        if self.is_modguard_public_imported:
+            for decorator in node.decorator_list:
+                self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
+
+    def visit_Call(self, node):
+        parent_node = node.parent
+        top_level = isinstance(parent_node, ast.Module)
+        top_level_expr = isinstance(parent_node, ast.Expr) and isinstance(
+            getattr(parent_node, "parent"), ast.Module
+        )
+        if (
+            self.is_modguard_public_imported
+            and (top_level or top_level_expr)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "public"
+        ):
+            # public() has been called at the top-level,
+            # so we add it as the sole PublicMember and return
+            self.public_members = [
+                PublicMember(
+                    name="",
+                    allowlist=self._extract_allowlist(node),
+                )
+            ]
+            return
+        self.generic_visit(node)
+
+    def visit(self, node):
+        # Inject a 'parent' attribute to each node for easier parent tracking
+        for child in ast.iter_child_nodes(node):
+            child.parent = node
+        super().visit(node)
 
 
 def get_public_members(file_path: str) -> list[PublicMember]:
@@ -240,7 +281,7 @@ def build_boundary_trie(root: str, exclude_paths: list[str] = None) -> BoundaryT
 
 def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
     if not os.path.isdir(root):
-        return [ErrorInfo(location="", message=f"The path {root} is not a directory.")]
+        return [ErrorInfo(exception_message=f"The path {root} is not a directory.")]
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = canonical(root)
@@ -272,17 +313,24 @@ def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
             )
 
             # * The module is exported as public by its boundary and is allowed in the current path
-            import_mod_is_public_member = (
-                import_mod_has_boundary and mod_path in nearest_boundary.public_members
+            import_mod_public_member_definition = (
+                next(
+                    (
+                        public_member
+                        for public_member_name, public_member in nearest_boundary.public_members.items()
+                        if mod_path.startswith(public_member_name)
+                    ),
+                    None,
+                )
+                if import_mod_has_boundary
+                else None
             )
-            import_mod_is_public_and_allowed = import_mod_is_public_member and (
-                nearest_boundary.public_members[mod_path].allowlist is None
+            import_mod_is_public_and_allowed = import_mod_public_member_definition is not None and (
+                import_mod_public_member_definition.allowlist is None
                 or any(
                     (
                         current_mod_path.startswith(allowed_path)
-                        for allowed_path in nearest_boundary.public_members[
-                            mod_path
-                        ].allowlist
+                        for allowed_path in import_mod_public_member_definition.allowlist
                     )
                 )
             )
@@ -297,9 +345,9 @@ def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
 
             errors.append(
                 ErrorInfo(
+                    import_mod_path=mod_path,
+                    boundary_path=nearest_boundary.full_path,
                     location=file_path,
-                    message=f"Import '{mod_path}' in {file_path} is blocked"
-                    f" by boundary '{nearest_boundary.full_path}'",
                 )
             )
 
