@@ -67,8 +67,8 @@ class BoundaryFinder(ast.NodeVisitor):
         self.found_boundary = False
 
     def visit_ImportFrom(self, node):
-        # Check if 'Boundary' is imported specifically from 'modguard'
-        if node.module == "modguard" and any(
+        # Check if 'Boundary' is imported specifically from a 'modguard'-rooted module
+        if (node.module == "modguard" or node.module.startswith("modguard.")) and any(
             alias.name == "Boundary" for alias in node.names
         ):
             self.is_modguard_boundary_imported = True
@@ -156,7 +156,7 @@ class PublicMemberVisitor(ast.NodeVisitor):
         self.public_members: list[PublicMember] = []
 
     def visit_ImportFrom(self, node):
-        if node.module == "modguard" and any(
+        if (node.module == "modguard" or node.module.startswith("modguard.")) and any(
             alias.name == "public" for alias in node.names
         ):
             self.is_modguard_public_imported = True
