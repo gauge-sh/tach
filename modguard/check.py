@@ -1,7 +1,8 @@
 import ast
 import os
-from dataclasses import dataclass
-from typing import Generator
+import re
+from dataclasses import dataclass, field
+from typing import Generator, Optional
 
 from .boundary import BoundaryTrie
 from .errors import ModguardParseError
@@ -109,11 +110,50 @@ def has_boundary(file_path: str) -> bool:
         raise ModguardParseError(f"Syntax error in {file_path}: {e}")
 
 
+@dataclass
+class IgnoreDirective:
+    lineno: int
+    modules: list[str] = field(default_factory=list)
+
+
+MODGUARD_IGNORE_REGEX = re.compile(r"# *modguard-ignore(( [\w.]+)*)$")
+
+
+def get_ignore_directives(file_content: str) -> dict[int, IgnoreDirective]:
+    ignores = {}
+    lines = file_content.splitlines()
+    for lineno, line in enumerate(lines):
+        normal_lineno = lineno + 1
+        match = MODGUARD_IGNORE_REGEX.match(line)
+        if match:
+            ignored_modules = match.group(1)
+            if ignored_modules:
+                ignores[normal_lineno] = IgnoreDirective(
+                    lineno=lineno + 1, modules=ignored_modules.split()
+                )
+            else:
+                ignores[normal_lineno] = IgnoreDirective(lineno=lineno + 1)
+    return ignores
+
+
 class ImportVisitor(ast.NodeVisitor):
-    def __init__(self, current_mod_path: str, is_package: bool = False):
+    def __init__(
+        self,
+        current_mod_path: str,
+        is_package: bool = False,
+        ignore_directives: dict[int, IgnoreDirective] = None,
+    ):
         self.current_mod_path = current_mod_path
         self.is_package = is_package
+        self.ignored_imports = ignore_directives or {}
         self.imports = []
+
+    def _get_ignored_modules(self, lineno: int) -> Optional[list[str]]:
+        # Check for ignore directive at the previous line or on the current line
+        directive = self.ignored_imports.get(lineno - 1) or self.ignored_imports.get(
+            lineno
+        )
+        return directive.modules if directive else None
 
     def visit_ImportFrom(self, node):
         # For relative imports (level > 0), adjust the base module path
@@ -126,13 +166,34 @@ class ImportVisitor(ast.NodeVisitor):
         else:
             base_mod_path = node.module
 
+        ignored_modules = self._get_ignored_modules(node.lineno)
+
+        if ignored_modules is not None and len(ignored_modules) == 0:
+            # Empty ignore list signifies blanket ignore of following import
+            return self.generic_visit(node)
+
         for name_node in node.names:
+            if ignored_modules is not None and (
+                f"{'.' * node.level}{node.module}.{name_node.asname or name_node.name}"
+                in ignored_modules
+            ):
+                # This import is ignored by a modguard-ignore directive
+                continue
+
             self.imports.append(f"{base_mod_path}.{name_node.asname or name_node.name}")
 
         self.generic_visit(node)
 
     def visit_Import(self, node):
-        self.imports.extend((alias.name for alias in node.names))
+        ignored_modules = self._get_ignored_modules(node.lineno)
+        if ignored_modules is not None and len(ignored_modules) == 0:
+            # Empty ignore list signifies blanket ignore of following import
+            return self.generic_visit(node)
+
+        ignored_modules = ignored_modules or []
+        self.imports.extend(
+            (alias.name for alias in node.names if alias.name not in ignored_modules)
+        )
         self.generic_visit(node)
 
 
@@ -142,9 +203,12 @@ def get_imports(file_path: str) -> list[str]:
 
     try:
         parsed_ast = ast.parse(file_content)
+        ignore_directives = get_ignore_directives(file_content)
         mod_path = file_to_module_path(file_path)
         import_visitor = ImportVisitor(
-            is_package=file_path.endswith("__init__.py"), current_mod_path=mod_path
+            is_package=file_path.endswith("__init__.py"),
+            current_mod_path=mod_path,
+            ignore_directives=ignore_directives,
         )
         import_visitor.visit(parsed_ast)
         return import_visitor.imports
