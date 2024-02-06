@@ -16,27 +16,6 @@ class BCOLORS:
     UNDERLINE = "\033[4m"
 
 
-parser = argparse.ArgumentParser(
-    prog="modguard",
-    description="Verify module boundaries are correctly implemented.",
-    epilog="Make sure modguard is run from the root of your repo that a directory is being specified. For example: `modguard .`",
-)
-
-parser.add_argument(
-    "path",
-    type=str,
-    help="The path of the root of your project that contains all defined boundaries.",
-)
-parser.add_argument(
-    "-e",
-    "--exclude",
-    required=False,
-    type=str,
-    metavar="file_or_path,...",
-    help="Comma separated path list to exclude. tests/,ci/,etc.",
-)
-
-
 def print_errors(error_list: list[ErrorInfo]) -> None:
     sorted_results = sorted(error_list, key=lambda e: e.location)
     for error in sorted_results:
@@ -48,7 +27,7 @@ def print_errors(error_list: list[ErrorInfo]) -> None:
 
 def print_invalid_path(path: str) -> None:
     print(
-        f"{BCOLORS.FAIL} {path} is not a valid directory. Provide the path of the root of your project.",
+        f"{BCOLORS.FAIL} {path} is not a valid directory!! Provide the path of the root of your project.",
         file=sys.stderr,
     )
 
@@ -60,8 +39,30 @@ def print_invalid_exclude(path: str) -> None:
     )
 
 
-def execute():
-    args: argparse.Namespace = parser.parse_args()
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="modguard",
+        description="Verify module boundaries are correctly implemented.",
+        epilog="Make sure modguard is run from the root of your repo that a directory is being specified. For example: `modguard .`",
+    )
+
+    parser.add_argument(
+        "path",
+        type=str,
+        help="The path of the root of your project that contains all defined boundaries.",
+    )
+    parser.add_argument(
+        "-e",
+        "--exclude",
+        required=False,
+        type=str,
+        metavar="file_or_path,...",
+        help="Comma separated path list to exclude. tests/,ci/,etc.",
+    )
+    return parser
+
+
+def main(args: argparse.Namespace):
     path = args.path
     if not os.path.isdir(path):
         print_invalid_path(path)
@@ -85,3 +86,9 @@ def execute():
         sys.exit(1)
     print(f"✅ {BCOLORS.OKGREEN}All modules safely guarded!")
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    parser = build_parser()
+    args = parser.parse_args()
+    main(args)
