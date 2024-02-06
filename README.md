@@ -4,11 +4,12 @@
 A Python tool to support and enforce a modular package architecture within a monorepo.
 
 ### What is modguard?
-Modguard enables you to explicitly define the public interface for a given module. Marking a package with a `modguard.Boundary` makes all of its internals private by default, exposing only the members marked with the `@public` decorator.
+Modguard enables you to explicitly define the public interface for a given module. Marking a package with a `Boundary` makes all of its internals private by default, exposing only the members marked with the `@public` decorator.
 
-This promotes an architecture of decoupled modules, and ensures the communication between domains is only done through their expected public interfaces.
+This enforces an architecture of decoupled and well defined modules, and ensures the communication between domains is only done through their expected public interfaces.
 
-Modguard is incredibly lightweight, and has no impact on the runtime of your code. Instead, its checks are performed through a CLI tool performing static analysis.
+Modguard is incredibly lightweight, and has no impact on the runtime of your code. Instead, its checks are performed through a static analysis CLI tool.
+
 ### Installation
 ```bash
 pip install modguard
@@ -21,7 +22,6 @@ Add a `Boundary` to the `__init__.py` of the module you're creating an interface
 from modguard import Boundary
 
 Boundary(__name__)
-
 ```
 
 Add the `public` decorator to any callable in the module that should be exported.
