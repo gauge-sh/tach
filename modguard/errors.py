@@ -1,8 +1,3 @@
-from modguard import public
-
-public()
-
-
 class ModguardError(Exception):
     ...
 
