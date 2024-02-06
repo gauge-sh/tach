@@ -49,8 +49,7 @@ def test_execute_with_error(capfd, parser, mock_isdir, mock_check):
     message = "Import valid_dir in valid_dir/file.py is blocked by boundary"
     mock_check.return_value = [
         ErrorInfo(
-            location="valid_dir/file.py",
-            message="Import valid_dir in valid_dir/file.py is blocked by boundary",
+            exception_message="Import valid_dir in valid_dir/file.py is blocked by boundary",
         )
     ]
     with pytest.raises(SystemExit) as sys_exit:

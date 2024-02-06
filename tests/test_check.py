@@ -1,11 +1,8 @@
 import pytest
-from modguard.check import (
-    check,
-    file_to_module_path,
-    has_boundary,
-    get_imports,
-    ErrorInfo,
-)
+from modguard.check import check, ErrorInfo
+from modguard.parsing.utils import file_to_module_path
+from modguard.parsing.boundary import has_boundary
+from modguard.parsing.imports import get_imports
 
 
 def test_file_to_mod_path():

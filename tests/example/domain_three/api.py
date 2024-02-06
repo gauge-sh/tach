@@ -1,4 +1,4 @@
-from modguard.visibility import public
+from modguard.public import public
 
 public(allowlist=["example.domain_two"])
 

@@ -1,2 +1,2 @@
 from .boundary import Boundary
-from .visibility import public
+from .public import public

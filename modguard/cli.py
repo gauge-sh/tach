@@ -92,3 +92,7 @@ def modguard() -> None:
     parser = build_parser()
     args = parser.parse_args()
     main(args)
+
+
+if __name__ == "__main__":
+    modguard()
