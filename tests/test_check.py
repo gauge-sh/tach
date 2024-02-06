@@ -29,6 +29,7 @@ def test_get_imports():
         "modguard.Boundary",
         "example.domain_one.interface.domain_one_interface",
         "example.domain_three.api.public_for_domain_two",
+        "example.domain_four",
     ]
 
 
@@ -48,6 +49,11 @@ def test_check():
             import_mod_path="example.domain_one.interface.domain_one_interface",
             location="example/domain_three/__init__.py",
             boundary_path="example.domain_one",
+        ),
+        ErrorInfo(
+            import_mod_path="example.domain_four",
+            location="example/__init__.py",
+            boundary_path="example.domain_four",
         ),
     ]
     check_results = check("example")
