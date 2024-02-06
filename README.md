@@ -45,8 +45,46 @@ Modguard will now flag any incorrect dependencies between modules.
 ❌ ./utils/helpers.py: Import 'core.main.private_function' in ./utils/helpers.py is blocked by boundary 'core.main'
 ```
 
+### Advanced Usage
+Modguard also supports specific allow lists within the `public()` decorator.
+```python
+@public(allowlist=['utils.helpers'])
+def public_function(user_id: int) -> str:
+    ...
+```
+This will allow for `public_function` to be imported and used in `utils.helpers`, but restrict it's usage elsewhere. 
+
+Alternatively, you can mark an import with the `modguard-ignore` comment:
+```python
+# modguard-ignore
+from core.main import private_function
+```
+This will stop modguard from flagging this import as a boundary violation.
+
+
+Given that python allows for dynamic importing at runtime, modguard will fail if a whole module is imported without being declared public.
+```python
+from core import main # contains public and private members
+```
+```shell
+> # From the root of your project
+> modguard .
+❌ ./utils/helpers.py: Import 'core.main' in ./utils/helpers.py is blocked by boundary 'core.main'
+```
+
+If you expect to be able to import the entire contents of your module, you can declare an entire module as public to avoid this:
+```python
+# core/main.py
+from modguard import public
+public()
+
+...
+```
+This syntax also supports the `allowlist` parameter.
+
+
 ### Details
-Modguard works by analyzing the abstract syntax tree (AST) of your codebase. The `Boundary` class and `@public` decorator have no runtime behavior, but are detected by modguard statically.
+Modguard works by analyzing the abstract syntax tree (AST) of your codebase. The `Boundary` class and `@public` decorator have no runtime impact, and are detected by modguard statically. Boundary violations are detected at the import layer; specific nonstandard custom syntax to access modules/submodules such as getattr or dynamically generated namespaces may not be caught by modguard.
 
 [PyPi Package](https://pypi.org/project/modguard/)
 
