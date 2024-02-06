@@ -393,12 +393,15 @@ def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
                 if import_mod_has_boundary
                 else None
             )
-            import_mod_is_public_and_allowed = import_mod_public_member_definition is not None and (
-                import_mod_public_member_definition.allowlist is None
-                or any(
-                    (
-                        current_mod_path.startswith(allowed_path)
-                        for allowed_path in import_mod_public_member_definition.allowlist
+            import_mod_is_public_and_allowed = (
+                import_mod_public_member_definition is not None
+                and (
+                    import_mod_public_member_definition.allowlist is None
+                    or any(
+                        (
+                            current_mod_path.startswith(allowed_path)
+                            for allowed_path in import_mod_public_member_definition.allowlist
+                        )
                     )
                 )
             )
