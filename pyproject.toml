@@ -26,4 +26,4 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-modguard = "modguard.cli:execute"
+modguard = "modguard.cli:modguard"

@@ -88,7 +88,7 @@ def main(args: argparse.Namespace):
     sys.exit(0)
 
 
-if __name__ == "__main__":
+def modguard() -> None:
     parser = build_parser()
     args = parser.parse_args()
     main(args)
