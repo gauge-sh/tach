@@ -32,14 +32,13 @@ jobs:
       run: |
         # Ignore unused imports as they are needed to test modguard
         ruff check --ignore F401
-    - name: Test with pytest
+    - name: Test with pytest and report coverage
       run: |
         cd tests
-        coverage run --branch -m pytest
-        cd ..
-    - name: Report coverage
-      run: |
+        coverage run --branch --source=../ -m pytest
         coverage report
+        cd ..
+   
     - name: Check modguard
       run: |
         pip install .
