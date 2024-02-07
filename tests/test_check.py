@@ -18,16 +18,17 @@ def test_has_boundary():
 
 def test_get_imports():
     assert get_imports("example/domain_one/interface.py") == ["modguard.public"]
-    assert get_imports("example/domain_one/__init__.py") == [
+    assert set(get_imports("example/domain_one/__init__.py")) == {
         "modguard.Boundary",
         "example.domain_one.interface.domain_one_interface",
-    ]
-    assert get_imports("example/__init__.py") == [
+    }
+    assert set(get_imports("example/__init__.py")) == {
         "modguard.Boundary",
         "example.domain_one.interface.domain_one_interface",
         "example.domain_three.api.public_for_domain_two",
         "example.domain_four",
-    ]
+        "example.domain_four.subsystem.private_subsystem_call",
+    }
 
 
 def test_check():
@@ -48,9 +49,9 @@ def test_check():
             boundary_path="example.domain_one",
         ),
         ErrorInfo(
-            import_mod_path="example.domain_four",
+            import_mod_path="example.domain_four.subsystem.private_subsystem_call",
             location="example/__init__.py",
-            boundary_path="example.domain_four",
+            boundary_path="example.domain_four.subsystem",
         ),
     ]
     check_results = check("example")

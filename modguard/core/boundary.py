@@ -12,7 +12,6 @@ class Boundary:
 
 @dataclass
 class BoundaryNode:
-    name: str = ""
     public_members: dict[str, PublicMember] = field(default_factory=dict)
     children: dict = field(default_factory=dict)
     is_end_of_path: bool = False
