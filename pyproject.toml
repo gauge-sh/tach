@@ -1,6 +1,6 @@
 [project]
 name = "modguard"
-version = "0.3.0"
+version = "0.3.1"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
