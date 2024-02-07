@@ -1,5 +1,7 @@
-[![PyPI version](https://badge.fury.io/py/modguard.svg)](https://badge.fury.io/py/modguard)
-
+[![image](https://img.shields.io/pypi/v/modguard.svg)](https://pypi.python.org/pypi/modguard)
+[![image](https://img.shields.io/pypi/l/modguard.svg)](https://pypi.python.org/pypi/modguard)
+[![image](https://img.shields.io/pypi/pyversions/modguard.svg)](https://pypi.python.org/pypi/modguard)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # modguard
 A Python tool to support and enforce a modular package architecture within a monorepo.
 
