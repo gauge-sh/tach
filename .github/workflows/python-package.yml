@@ -30,7 +30,8 @@ jobs:
         python -m pip install ruff pytest pytest-mock
     - name: Lint with ruff
       run: |
-        ruff check
+        # Ignore unused imports as they are needed to test modguard
+        ruff check --ignore F401
     - name: Test with pytest
       run: |
         cd tests
@@ -39,4 +40,4 @@ jobs:
     - name: Check modguard
       run: |
         pip install .
-        modguard -e tests .
+        modguard --exclude tests .
