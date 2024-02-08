@@ -60,7 +60,3 @@ def init_project(root: str, exclude_paths: list[str] = None):
             file_path, member_name = utils.module_to_file_path(import_mod_path)
             mark_as_public(file_path, member_name)
             violated_boundary.add_public_member(PublicMember(name=import_mod_path))
-
-
-if __name__ == "__main__":
-    init_project(".")
