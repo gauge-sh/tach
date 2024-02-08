@@ -43,17 +43,44 @@ class BoundaryFinder(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def _has_boundary(file_path: str, file_content: str) -> bool:
+    try:
+        parsed_ast = ast.parse(file_content)
+    except SyntaxError as e:
+        raise ModguardParseError(f"Syntax error in {file_path}: {e}")
+
+    boundary_finder = BoundaryFinder()
+    boundary_finder.visit(parsed_ast)
+    return boundary_finder.found_boundary
+
+
 def has_boundary(file_path: str) -> bool:
     with open(file_path, "r") as file:
         file_content = file.read()
 
-    try:
-        parsed_ast = ast.parse(file_content)
-        boundary_finder = BoundaryFinder()
-        boundary_finder.visit(parsed_ast)
-        return boundary_finder.found_boundary
-    except SyntaxError as e:
-        raise ModguardParseError(f"Syntax error in {file_path}: {e}")
+    return _has_boundary(file_path, file_content)
+
+
+BOUNDARY_PRELUDE = "import modguard\nmodguard.Boundary()\n"
+
+
+def _add_boundary(file_path: str, file_content: str):
+    with open(file_path, "w") as file:
+        file.write(BOUNDARY_PRELUDE + file_content)
+
+
+@public
+def ensure_boundary(file_path: str) -> bool:
+    with open(file_path, "r") as file:
+        file_content = file.read()
+
+    if _has_boundary(file_path, file_content):
+        # Boundary already exists, don't need to create one
+        return False
+
+    # Boundary doesn't exist, create one
+    _add_boundary(file_path, file_content)
+    return True
 
 
 @public
@@ -63,14 +90,12 @@ def build_boundary_trie(root: str, exclude_paths: list[str] = None) -> BoundaryT
     # This means a project will pass 'check' by default
     boundary_trie.insert(file_to_module_path(root))
 
-    for dirpath, filename in walk_pyfiles(root, exclude_paths=exclude_paths):
-        file_path = os.path.join(dirpath, filename)
+    for file_path in walk_pyfiles(root, exclude_paths=exclude_paths):
         if has_boundary(file_path):
             mod_path = file_to_module_path(file_path)
             boundary_trie.insert(mod_path)
 
-    for dirpath, filename in walk_pyfiles(root, exclude_paths=exclude_paths):
-        file_path = os.path.join(dirpath, filename)
+    for file_path in walk_pyfiles(root, exclude_paths=exclude_paths):
         mod_path = file_to_module_path(file_path)
         public_members = get_public_members(file_path)
         for public_member in public_members:

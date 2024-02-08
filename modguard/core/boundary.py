@@ -1,5 +1,6 @@
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Generator
 
 from .public import PublicMember
 from modguard.errors import ModguardSetupError
@@ -13,14 +14,20 @@ class Boundary:
 @dataclass
 class BoundaryNode:
     public_members: dict[str, PublicMember] = field(default_factory=dict)
-    children: dict = field(default_factory=dict)
+    children: dict[str, "BoundaryNode"] = field(default_factory=dict)
     is_end_of_path: bool = False
     full_path: str = None
+
+    def add_public_member(self, member: PublicMember):
+        self.public_members[member.name] = member
 
 
 @dataclass
 class BoundaryTrie:
     root: BoundaryNode = field(default_factory=BoundaryNode)
+
+    def __iter__(self):
+        return boundary_trie_iterator(self)
 
     def get(self, path: str) -> Optional[BoundaryNode]:
         node = self.root
@@ -72,3 +79,14 @@ class BoundaryTrie:
                 break
 
         return nearest_parent
+
+
+def boundary_trie_iterator(trie: BoundaryTrie) -> Generator[BoundaryNode, None, None]:
+    stack = deque([trie.root])
+
+    while stack:
+        node = stack.popleft()
+        if node.is_end_of_path:
+            yield node
+
+        stack.extend(node.children.values())

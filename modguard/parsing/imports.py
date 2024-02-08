@@ -44,7 +44,7 @@ class ImportVisitor(ast.NodeVisitor):
         self.current_mod_path = current_mod_path
         self.is_package = is_package
         self.ignored_imports = ignore_directives or {}
-        self.imports = []
+        self.imports: list[str] = []
 
     def _get_ignored_modules(self, lineno: int) -> Optional[list[str]]:
         # Check for ignore directive at the previous line or on the current line
@@ -102,14 +102,15 @@ def get_imports(file_path: str) -> list[str]:
 
     try:
         parsed_ast = ast.parse(file_content)
-        ignore_directives = get_ignore_directives(file_content)
-        mod_path = file_to_module_path(file_path)
-        import_visitor = ImportVisitor(
-            is_package=file_path.endswith("__init__.py"),
-            current_mod_path=mod_path,
-            ignore_directives=ignore_directives,
-        )
-        import_visitor.visit(parsed_ast)
-        return import_visitor.imports
     except SyntaxError as e:
         raise ModguardParseError(f"Syntax error in {file_path}: {e}")
+
+    ignore_directives = get_ignore_directives(file_content)
+    mod_path = file_to_module_path(file_path)
+    import_visitor = ImportVisitor(
+        is_package=file_path.endswith("__init__.py"),
+        current_mod_path=mod_path,
+        ignore_directives=ignore_directives,
+    )
+    import_visitor.visit(parsed_ast)
+    return import_visitor.imports

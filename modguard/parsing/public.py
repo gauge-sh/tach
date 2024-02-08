@@ -1,10 +1,32 @@
 import ast
 from typing import Optional
 
+from modguard import public
 from modguard.core.public import PublicMember
 from modguard.errors import ModguardParseError
 
 from .utils import file_to_module_path
+
+
+class ModguardImportVisitor(ast.NodeVisitor):
+    def __init__(self, module_name: str):
+        self.module_name = module_name
+        self.import_found = False
+
+    def visit_ImportFrom(self, node):
+        if (node.module == "modguard" or node.module.startswith("modguard.")) and any(
+            alias.name == self.module_name for alias in node.names
+        ):
+            self.import_found = True
+            return
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            if alias.name == "modguard":
+                self.import_found = True
+                return
+        self.generic_visit(node)
 
 
 class PublicMemberVisitor(ast.NodeVisitor):
@@ -106,11 +128,89 @@ def get_public_members(file_path: str) -> list[PublicMember]:
 
     try:
         parsed_ast = ast.parse(file_content)
-        mod_path = file_to_module_path(file_path)
-        public_member_visitor = PublicMemberVisitor(
-            is_package=file_path.endswith("__init__.py"), current_mod_path=mod_path
-        )
-        public_member_visitor.visit(parsed_ast)
-        return public_member_visitor.public_members
     except SyntaxError as e:
         raise ModguardParseError(f"Syntax error in {file_path}: {e}")
+
+    mod_path = file_to_module_path(file_path)
+    public_member_visitor = PublicMemberVisitor(
+        is_package=file_path.endswith("__init__.py"), current_mod_path=mod_path
+    )
+    public_member_visitor.visit(parsed_ast)
+    return public_member_visitor.public_members
+
+
+class MemberFinder(ast.NodeVisitor):
+    def __init__(self, member_name: str):
+        self.member_name = member_name
+        self.matched_lineno: Optional[int] = None
+        self.depth = 0
+
+    def visit_FunctionDef(self, node):
+        if self.depth == 0 and node.name == self.member_name:
+            self.matched_lineno = node.lineno
+            return
+
+        self.depth += 1
+        self.generic_visit(node)
+        self.depth -= 1
+
+    def visit_ClassDef(self, node):
+        if self.depth == 0 and node.name == self.member_name:
+            self.matched_lineno = node.lineno
+            return
+
+        self.depth += 1
+        self.generic_visit(node)
+        self.depth -= 1
+
+
+def _public_module_prelude(should_import: bool = True) -> str:
+    if should_import:
+        return "import modguard\nmodguard.public()\n"
+    return "modguard.public()\n"
+
+
+IMPORT_MODGUARD = "import modguard"
+PUBLIC_DECORATOR = "@public"
+
+
+@public
+def mark_as_public(file_path: str, member_name: str = ""):
+    with open(file_path, "r") as file:
+        file_content = file.read()
+
+    try:
+        parsed_ast = ast.parse(file_content)
+    except SyntaxError as e:
+        raise ModguardParseError(f"Syntax error in {file_path}: {e}")
+
+    modguard_import_visitor = ModguardImportVisitor("public")
+    modguard_import_visitor.visit(parsed_ast)
+    modguard_public_is_imported = modguard_import_visitor.import_found
+
+    if not member_name:
+        with open(file_path, "w") as file:
+            file.write(
+                _public_module_prelude(should_import=not modguard_public_is_imported)
+                + file_content
+            )
+        return
+
+    member_finder = MemberFinder(member_name)
+    member_finder.visit(parsed_ast)
+    if member_finder.matched_lineno is None:
+        raise ModguardParseError(
+            f"Failed to find member {member_name} in file {file_path}"
+        )
+
+    with open(file_path, "w") as file:
+        file_lines = file_content.splitlines()
+        lines_to_write = [
+            *file_lines[: member_finder.matched_lineno - 1],
+            PUBLIC_DECORATOR,
+            *file_lines[member_finder.matched_lineno - 1 :],
+        ]
+        if not modguard_public_is_imported:
+            lines_to_write = [IMPORT_MODGUARD, *lines_to_write]
+
+        file.write("\n".join(lines_to_write))
