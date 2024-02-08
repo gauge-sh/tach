@@ -3,7 +3,7 @@ from typing import Optional
 
 from modguard import public
 from modguard.core.public import PublicMember
-from modguard.errors import ModguardParseError, ModguardError
+from modguard.errors import ModguardParseError
 
 from .utils import file_to_module_path
 
@@ -149,6 +149,10 @@ def get_public_members(file_path: str) -> list[PublicMember]:
 class MemberFinder(ast.NodeVisitor):
     def __init__(self, member_name: str):
         self.member_name = member_name
+        # For functions and classes, matched_lineno is the start of the definition
+        # because a decorator can be inserted directly before the definition
+        # For assignments, matched_lineno is the end of the assignment
+        # because a public(...) call can be inserted directly after the assignment
         self.matched_lineno: Optional[int] = None
         self.matched_assignment = False
         self.depth = 0
@@ -157,13 +161,13 @@ class MemberFinder(ast.NodeVisitor):
         if self.depth == 0:
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id == self.member_name:
-                    self.matched_lineno = target.lineno
+                    self.matched_lineno = target.end_lineno
                     self.matched_assignment = True
                     return
                 elif isinstance(target, ast.List) or isinstance(target, ast.Tuple):
                     for elt in target.elts:
                         if isinstance(elt, ast.Name) and elt.id == self.member_name:
-                            self.matched_lineno = elt.lineno
+                            self.matched_lineno = target.end_lineno
                             self.matched_assignment = True
                             return
 
@@ -177,7 +181,7 @@ class MemberFinder(ast.NodeVisitor):
 
     def visit_Global(self, node):
         if self.member_name in node.names:
-            self.matched_lineno = node.lineno
+            self.matched_lineno = node.end_lineno
             self.matched_assignment = True
             return
         self.generic_visit(node)
@@ -209,6 +213,7 @@ def _public_module_prelude(should_import: bool = True) -> str:
 
 IMPORT_MODGUARD = "import modguard"
 PUBLIC_DECORATOR = "@modguard.public"
+PUBLIC_CALL = "modguard.public"
 
 
 @public
@@ -243,15 +248,19 @@ def mark_as_public(file_path: str, member_name: str = ""):
     normal_lineno = member_finder.matched_lineno - 1
     file_lines = file_content.splitlines(keepends=True)
     if member_finder.matched_assignment:
-        raise ModguardError(
-            f"Failed to mark {member_name} as public in file {file_path}."
-        )
-
-    lines_to_write = [
-        *file_lines[:normal_lineno],
-        PUBLIC_DECORATOR + "\n",
-        *file_lines[normal_lineno:],
-    ]
+        # Insert a call to public for the member after the assignment
+        lines_to_write = [
+            *file_lines[: normal_lineno + 1],
+            f"{PUBLIC_CALL}({member_name})\n",
+            *file_lines[normal_lineno + 1 :],
+        ]
+    else:
+        # Insert a decorator before the function or class definition
+        lines_to_write = [
+            *file_lines[:normal_lineno],
+            PUBLIC_DECORATOR + "\n",
+            *file_lines[normal_lineno:],
+        ]
     if not modguard_public_is_imported:
         lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
 
