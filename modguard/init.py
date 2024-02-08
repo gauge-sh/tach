@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 from . import errors
 from .check import check_import
 from .core import PublicMember
@@ -8,7 +10,7 @@ from .parsing.imports import get_imports
 from .parsing.public import mark_as_public
 
 
-def init_project(root: str, exclude_paths: list[str] = None):
+def init_project(root: str, exclude_paths: Optional[list[str]] = None):
     # Core functionality:
     # * do nothing in any package already having a Boundary
     # * import and call Boundary in __init__.py for all other packages

@@ -1,5 +1,5 @@
 import ast
-from typing import Optional
+from typing import Optional, Union
 
 from modguard import public
 from modguard.core.public import PublicMember
@@ -74,7 +74,9 @@ class PublicMemberVisitor(ast.NodeVisitor):
                     ] or None
         return None
 
-    def _add_public_member_from_decorator(self, node: ast.AST, decorator: ast.expr):
+    def _add_public_member_from_decorator(
+        self, node: Union[ast.FunctionDef, ast.ClassDef], decorator: ast.expr
+    ):
         if (
             isinstance(decorator, ast.Call)
             and isinstance(decorator.func, ast.Name)
@@ -93,23 +95,24 @@ class PublicMemberVisitor(ast.NodeVisitor):
             if isinstance(value, ast.Name) and value.id == "modguard":
                 self.public_members.append(PublicMember(name=node.name))
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node: ast.FunctionDef):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
 
-    def visit_ClassDef(self, node):
+    def visit_ClassDef(self, node: ast.ClassDef):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
 
     def visit_Call(self, node):
-        parent_node = node.parent
+        parent_node = getattr(node, "parent")
+        grandparent_node = getattr(parent_node, "parent")
         top_level = isinstance(parent_node, ast.Module)
         top_level_expr = isinstance(parent_node, ast.Expr) and isinstance(
-            parent_node.parent, ast.Module
+            grandparent_node, ast.Module
         )
         is_raw_public_call = (
             isinstance(node.func, ast.Name) and node.func.id == "public"
@@ -149,10 +152,10 @@ class PublicMemberVisitor(ast.NodeVisitor):
             return
         self.generic_visit(node)
 
-    def visit(self, node):
+    def visit(self, node: ast.AST):
         # Inject a 'parent' attribute to each node for easier parent tracking
         for child in ast.iter_child_nodes(node):
-            child.parent = node
+            setattr(child, "parent", node)
         super().visit(node)
 
 

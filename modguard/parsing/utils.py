@@ -1,5 +1,5 @@
 import os
-from typing import Generator
+from typing import Generator, Optional
 from modguard import public, errors
 
 
@@ -11,7 +11,7 @@ def canonical(file_path: str) -> str:
 
 
 def walk_pyfiles(
-    root: str, exclude_paths: list[str] = None
+    root: str, exclude_paths: Optional[list[str]] = None
 ) -> Generator[str, None, None]:
     for dirpath, _, filenames in os.walk(root):
         for filename in filenames:
@@ -26,7 +26,7 @@ def walk_pyfiles(
 
 
 def walk_pypackages(
-    root: str, exclude_paths: list[str] = None
+    root: str, exclude_paths: Optional[list[str]] = None
 ) -> Generator[str, None, None]:
     for filepath in walk_pyfiles(root, exclude_paths=exclude_paths):
         init_file_ending = f"{os.path.sep}__init__.py"
@@ -61,7 +61,7 @@ def module_to_file_path(
     # mod_path may refer to a package
     if os.path.isdir(fs_path):
         return (
-            os.path.join(fs_path(), "__init__.py") if find_package_init else fs_path
+            os.path.join(fs_path, "__init__.py") if find_package_init else fs_path
         ), ""
 
     # mod_path may refer to a file module

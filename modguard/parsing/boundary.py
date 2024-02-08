@@ -1,5 +1,6 @@
 import ast
 import os
+from typing import Optional
 
 from modguard.core.boundary import BoundaryTrie
 from modguard.errors import ModguardParseError
@@ -87,7 +88,9 @@ def ensure_boundary(file_path: str) -> bool:
 
 
 @public
-def build_boundary_trie(root: str, exclude_paths: list[str] = None) -> BoundaryTrie:
+def build_boundary_trie(
+    root: str, exclude_paths: Optional[list[str]] = None
+) -> BoundaryTrie:
     boundary_trie = BoundaryTrie()
     # Add an 'outer boundary' containing the entire root path
     # This means a project will pass 'check' by default

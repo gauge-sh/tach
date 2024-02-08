@@ -39,7 +39,7 @@ class ImportVisitor(ast.NodeVisitor):
         self,
         current_mod_path: str,
         is_package: bool = False,
-        ignore_directives: dict[int, IgnoreDirective] = None,
+        ignore_directives: Optional[dict[int, IgnoreDirective]] = None,
     ):
         self.current_mod_path = current_mod_path
         self.is_package = is_package
@@ -60,7 +60,9 @@ class ImportVisitor(ast.NodeVisitor):
             base_path_parts = self.current_mod_path.split(".")
             if num_paths_to_strip:
                 base_path_parts = base_path_parts[:-num_paths_to_strip]
-            base_mod_path = ".".join([*base_path_parts, node.module if node.module else ''])
+            base_mod_path = ".".join(
+                [*base_path_parts, node.module if node.module else ""]
+            )
         else:
             base_mod_path = node.module or ""
 

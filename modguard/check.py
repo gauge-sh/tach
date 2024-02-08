@@ -78,7 +78,7 @@ def check_import(
     return nearest_boundary
 
 
-def check(root: str, exclude_paths: list[str] = None) -> list[ErrorInfo]:
+def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [ErrorInfo(exception_message=f"The path {root} is not a directory.")]
 
