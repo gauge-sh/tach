@@ -1,5 +1,6 @@
 import ast
 import os
+from typing import Optional
 
 from modguard.core.boundary import BoundaryTrie
 from modguard.errors import ModguardParseError
@@ -67,23 +68,12 @@ def has_boundary(file_path: str) -> bool:
 BOUNDARY_PRELUDE = "import modguard\nmodguard.Boundary()\n"
 
 
-def _add_boundary(file_path: str, file_content: str):
-    with open(file_path, "w") as file:
-        file.write(BOUNDARY_PRELUDE + file_content)
 
-
-@public
-def ensure_boundary(file_path: str) -> bool:
-    with open(file_path, "r") as file:
+def add_boundary(file_path: str) -> None:
+    with open(file_path, "r+") as file:
         file_content = file.read()
-
-    if _has_boundary(file_path, file_content):
-        # Boundary already exists, don't need to create one
-        return False
-
-    # Boundary doesn't exist, create one
-    _add_boundary(file_path, file_content)
-    return True
+        file.seek(0)
+        file.write(BOUNDARY_PRELUDE + file_content)
 
 
 @public

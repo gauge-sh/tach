@@ -246,23 +246,19 @@ PUBLIC_CALL = "modguard.public"
 
 @public
 def mark_as_public(file_path: str, member_name: str = ""):
-    with open(file_path, "r") as file:
+    with open(file_path, "r+") as file:
         file_content = file.read()
-
-    try:
-        parsed_ast = ast.parse(file_content)
-    except SyntaxError as e:
-        raise ModguardParseError(f"Syntax error in {file_path}: {e}")
-
-    modguard_public_is_imported = is_modguard_imported(parsed_ast, "public")
-
-    if not member_name:
-        with open(file_path, "w") as file:
+        file.seek(0)
+        try:
+            parsed_ast = ast.parse(file_content)
+        except SyntaxError as e:
+            raise ModguardParseError(f"Syntax error in {file_path}: {e}")
+        modguard_public_is_imported = is_modguard_imported(parsed_ast, "public")
+        if not member_name:
             file.write(
                 _public_module_prelude(should_import=not modguard_public_is_imported)
                 + file_content
             )
-        return
 
     member_finder = MemberFinder(member_name)
     member_finder.visit(parsed_ast)
