@@ -76,6 +76,11 @@ def module_to_file_path(
         member_name = fs_path[last_sep_index + 1 :]
         return file_path, member_name
 
+    init_file_path = fs_path[:last_sep_index] + "/__init__.py"
+    if os.path.exists(init_file_path):
+        member_name = fs_path[last_sep_index + 1 :]
+        return init_file_path, member_name
+
     raise errors.ModguardParseError(
         f"Failed to translate module path {mod_path} into file path"
     )
