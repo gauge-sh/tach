@@ -63,7 +63,7 @@ def init_project(root: str, exclude_paths: list[str] = None):
             try:
                 mark_as_public(file_path, member_name)
                 violated_boundary.add_public_member(PublicMember(name=import_mod_path))
-            except errors.ModguardParseError:
+            except errors.ModguardError:
                 print(
                     f"Skipping member {member_name} in {file_path}; could not mark as public"
                 )
