@@ -53,7 +53,9 @@ Modguard also comes bundled with a command to set up and define your initial bou
 ```python3
 modguard init .
 ```
-By running `modguard init` from the root of your python project, modguard will inspect and declare boundaries on each python package within your project. Additionally, each accessed member of that package will be decorated with `public` automatically. 
+By running `modguard init` from the root of your python project, modguard will inspect and declare boundaries on each python package within your project. Additionally, each accessed member of that package will be decorated with `public`. 
+
+
 This will automatically create boundaries and define your public interface for each package within your project, and instantly get your project to passing `modguard .`
 
 
