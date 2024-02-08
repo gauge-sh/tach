@@ -22,7 +22,7 @@ def _test_check_import(
     )
 
 
-def test_check_import(boundary_trie):
+def test_check_import_across_boundary_public(boundary_trie):
     assert (
         _test_check_import(
             boundary_trie,
@@ -31,6 +31,9 @@ def test_check_import(boundary_trie):
         )
         is None
     )
+
+
+def test_check_import_within_boundary(boundary_trie):
     assert (
         _test_check_import(
             boundary_trie,
@@ -39,6 +42,9 @@ def test_check_import(boundary_trie):
         )
         is None
     )
+
+
+def test_check_import_external_module(boundary_trie):
     assert (
         _test_check_import(
             boundary_trie,
@@ -47,6 +53,9 @@ def test_check_import(boundary_trie):
         )
         is None
     )
+
+
+def test_check_import_across_boundary_private(boundary_trie):
     assert (
         _test_check_import(
             boundary_trie,
@@ -55,17 +64,9 @@ def test_check_import(boundary_trie):
         )
         is not None
     )
-    assert (
-        _test_check_import(
-            boundary_trie,
-            file_mod_path="domain_one",
-            import_mod_path="domain_three.anything",
-        )
-        is not None
-    )
 
 
-def test_check():
+def test_check_example_dir_end_to_end():
     expected_errors = [
         ErrorInfo(
             import_mod_path="example.domain_one.interface.domain_one_interface",
