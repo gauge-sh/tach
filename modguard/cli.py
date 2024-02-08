@@ -103,7 +103,9 @@ def handle_shared_arguments(args: argparse.Namespace):
         if has_error:
             sys.exit(1)
 
-    return argparse.Namespace(path=path, exclude_paths=exclude_paths.split(","))
+    return argparse.Namespace(
+        path=path, exclude_paths=exclude_paths.split(",") if exclude_paths else None
+    )
 
 
 def modguard(args: argparse.Namespace):
