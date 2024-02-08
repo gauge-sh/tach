@@ -171,7 +171,7 @@ def _public_module_prelude(should_import: bool = True) -> str:
 
 
 IMPORT_MODGUARD = "import modguard"
-PUBLIC_DECORATOR = "@public"
+PUBLIC_DECORATOR = "@modguard.public"
 
 
 @public
@@ -204,13 +204,13 @@ def mark_as_public(file_path: str, member_name: str = ""):
         )
 
     with open(file_path, "w") as file:
-        file_lines = file_content.splitlines()
+        file_lines = file_content.splitlines(keepends=True)
         lines_to_write = [
             *file_lines[: member_finder.matched_lineno - 1],
-            PUBLIC_DECORATOR,
+            PUBLIC_DECORATOR + "\n",
             *file_lines[member_finder.matched_lineno - 1 :],
         ]
         if not modguard_public_is_imported:
-            lines_to_write = [IMPORT_MODGUARD, *lines_to_write]
+            lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
 
-        file.write("\n".join(lines_to_write))
+        file.write("".join(lines_to_write))

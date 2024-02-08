@@ -1,5 +1,5 @@
 import os
-import errors
+from . import errors
 from .check import check_import
 from .core import PublicMember
 from .parsing import utils
@@ -21,7 +21,9 @@ def init_project(root: str, exclude_paths: list[str] = None):
     exclude_paths = list(map(utils.canonical, exclude_paths)) if exclude_paths else None
 
     boundary_trie = build_boundary_trie(root, exclude_paths=exclude_paths)
-    initial_boundary_paths = [boundary.full_path for boundary in boundary_trie]
+    initial_boundary_paths = [
+        boundary.full_path for boundary in boundary_trie if boundary.full_path
+    ]
 
     for dirpath in utils.walk_pypackages(root, exclude_paths=exclude_paths):
         added_boundary = ensure_boundary(dirpath + "/__init__.py")
@@ -58,5 +60,10 @@ def init_project(root: str, exclude_paths: list[str] = None):
                 continue
 
             file_path, member_name = utils.module_to_file_path(import_mod_path)
-            mark_as_public(file_path, member_name)
-            violated_boundary.add_public_member(PublicMember(name=import_mod_path))
+            try:
+                mark_as_public(file_path, member_name)
+                violated_boundary.add_public_member(PublicMember(name=import_mod_path))
+            except errors.ModguardParseError:
+                print(
+                    f"Skipping member {member_name} in {file_path}; could not mark as public"
+                )

@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 from modguard.check import check, ErrorInfo
+from modguard.init import init_project
 
 
 class BCOLORS:
@@ -39,17 +40,37 @@ def print_invalid_exclude(path: str) -> None:
     )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+def parse_base_arguments(args) -> argparse.Namespace:
+    base_parser = argparse.ArgumentParser(
         prog="modguard",
-        description="Verify module boundaries are correctly implemented.",
+        add_help=True,
         epilog="Make sure modguard is run from the root of your repo that a directory is being specified. For example: `modguard .`",
     )
-
-    parser.add_argument(
+    base_parser.add_argument(
         "path",
         type=str,
         help="The path of the root of your project that contains all defined boundaries.",
+    )
+    base_parser.add_argument(
+        "-e",
+        "--exclude",
+        required=False,
+        type=str,
+        metavar="file_or_path,...",
+        help="Comma separated path list to exclude. tests/,ci/,etc.",
+    )
+    return base_parser.parse_args(args)
+
+
+def parse_init_arguments(args) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="modguard init",
+        description="Initialize boundaries in a repository with modguard",
+    )
+    parser.add_argument(
+        "path",
+        type=str,
+        help="The path of the Python project in which boundaries should be initialized.",
     )
     parser.add_argument(
         "-e",
@@ -59,10 +80,11 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="file_or_path,...",
         help="Comma separated path list to exclude. tests/,ci/,etc.",
     )
-    return parser
+
+    return parser.parse_args(args)
 
 
-def main(args: argparse.Namespace):
+def handle_shared_arguments(args: argparse.Namespace):
     path = args.path
     if not os.path.isdir(path):
         print_invalid_path(path)
@@ -80,7 +102,20 @@ def main(args: argparse.Namespace):
                 print_invalid_exclude(exclude_path)
         if has_error:
             sys.exit(1)
-    result: list[ErrorInfo] = check(path, exclude_paths=exclude_paths)
+
+    return argparse.Namespace(path=path, exclude_paths=exclude_paths)
+
+
+def modguard(args: argparse.Namespace):
+    shared_args = handle_shared_arguments(args)
+    try:
+        result: list[ErrorInfo] = check(
+            shared_args.path, exclude_paths=shared_args.exclude_paths
+        )
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+
     if result:
         print_errors(result)
         sys.exit(1)
@@ -88,11 +123,25 @@ def main(args: argparse.Namespace):
     sys.exit(0)
 
 
-def modguard() -> None:
-    parser = build_parser()
-    args = parser.parse_args()
-    main(args)
+def modguard_init(args: argparse.Namespace):
+    shared_args = handle_shared_arguments(args)
+
+    try:
+        init_project(shared_args.path, exclude_paths=shared_args.exclude_paths)
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+
+    print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
+    sys.exit(0)
+
+
+def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "init":
+        modguard_init(parse_init_arguments(sys.argv[2:]))
+    else:
+        modguard(parse_base_arguments(sys.argv[1:]))
 
 
 if __name__ == "__main__":
-    modguard()
+    main()

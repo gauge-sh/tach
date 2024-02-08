@@ -73,7 +73,7 @@ def module_to_file_path(
     last_sep_index = fs_path.rfind(os.path.sep)
     file_path = fs_path[:last_sep_index] + ".py"
     if os.path.exists(file_path):
-        member_name = fs_path[last_sep_index:]
+        member_name = fs_path[last_sep_index + 1 :]
         return file_path, member_name
 
     raise errors.ModguardParseError(
