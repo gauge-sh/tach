@@ -21,7 +21,7 @@ pip install modguard
 ### Usage
 Add a `Boundary` to the `__init__.py` of the module you're creating an interface for.
 ```python
-# core/__init__.py
+# project/core/__init__.py
 from modguard import Boundary
 
 Boundary(__name__)
@@ -29,7 +29,7 @@ Boundary(__name__)
 
 Add the `public` decorator to any callable in the module that should be exported.
 ```python
-# core/main.py
+# project/core/main.py
 from modguard import public
 
 # Adding the decorator here signifies this function is public
@@ -43,10 +43,19 @@ def private_function():
 ```
 Modguard will now flag any incorrect dependencies between modules.
 ```bash
-> # From the root of your project
+> # From the root of your python project (in this example, `project/`)
 > modguard .
 ❌ ./utils/helpers.py: Import 'core.main.private_function' in ./utils/helpers.py is blocked by boundary 'core.main'
 ```
+
+### Setup
+Modguard also comes bundled with a command to set up and define your initial boundaries.
+```python3
+modguard init .
+```
+By running `modguard init` from the root of your python project, modguard will inspect and declare boundaries on each python package within your project. Additionally, each accessed member of that package will be decorated with `public` automatically. 
+This will automatically create boundaries and define your public interface for each package within your project, and instantly get your project to passing `modguard .`
+
 
 ### Advanced Usage
 Modguard also supports specific allow lists within the `public()` decorator.
