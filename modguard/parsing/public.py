@@ -14,7 +14,10 @@ class ModguardImportVisitor(ast.NodeVisitor):
         self.import_found = False
 
     def visit_ImportFrom(self, node):
-        if (node.module == "modguard" or node.module and node.module.startswith("modguard.")) and any(
+        is_modguard_module_import = node.module is not None and (
+            node.module == "modguard" or node.module.startswith("modguard.")
+        )
+        if is_modguard_module_import and any(
             alias.name == self.module_name for alias in node.names
         ):
             self.import_found = True
@@ -37,7 +40,10 @@ class PublicMemberVisitor(ast.NodeVisitor):
         self.public_members: list[PublicMember] = []
 
     def visit_ImportFrom(self, node):
-        if (node.module == "modguard" or node.module and node.module.startswith("modguard.")) and any(
+        is_modguard_module_import = node.module is not None and (
+            node.module == "modguard" or node.module.startswith("modguard.")
+        )
+        if is_modguard_module_import and any(
             alias.name == "public" for alias in node.names
         ):
             self.is_modguard_public_imported = True

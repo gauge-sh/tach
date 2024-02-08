@@ -55,14 +55,14 @@ class ImportVisitor(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node):
         # For relative imports (level > 0), adjust the base module path
-        if node.level > 0:
+        if node.module is not None and node.level > 0:
             num_paths_to_strip = node.level - 1 if self.is_package else node.level
             base_path_parts = self.current_mod_path.split(".")
             if num_paths_to_strip:
                 base_path_parts = base_path_parts[:-num_paths_to_strip]
             base_mod_path = ".".join([*base_path_parts, node.module if node.module else ''])
         else:
-            base_mod_path = node.module
+            base_mod_path = node.module or ""
 
         ignored_modules = self._get_ignored_modules(node.lineno)
 
@@ -71,14 +71,21 @@ class ImportVisitor(ast.NodeVisitor):
             return self.generic_visit(node)
 
         for name_node in node.names:
-            if ignored_modules is not None and (
+            local_mod_path = (
                 f"{'.' * node.level}{node.module}.{name_node.asname or name_node.name}"
-                in ignored_modules
-            ):
+                if node.module
+                else f"{'.' * node.level}{name_node.asname or name_node.name}"
+            )
+            if ignored_modules is not None and (local_mod_path in ignored_modules):
                 # This import is ignored by a modguard-ignore directive
                 continue
 
-            self.imports.append(f"{base_mod_path}.{name_node.asname or name_node.name}")
+            global_mod_path = (
+                f"{base_mod_path}.{name_node.asname or name_node.name}"
+                if node.module
+                else (name_node.asname or name_node.name)
+            )
+            self.imports.append(global_mod_path)
 
         self.generic_visit(node)
 
