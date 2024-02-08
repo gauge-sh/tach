@@ -88,7 +88,7 @@ def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInf
 
     boundary_trie = build_boundary_trie(root, exclude_paths=exclude_paths)
 
-    errors = []
+    errors: list[ErrorInfo] = []
     for file_path in utils.walk_pyfiles(root, exclude_paths=exclude_paths):
         mod_path = utils.file_to_module_path(file_path)
         nearest_boundary = boundary_trie.find_nearest(mod_path)

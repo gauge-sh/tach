@@ -35,6 +35,7 @@ Issues = "https://github.com/never-over/modguard/issues"
 [tool.pyright]
 include = ["modguard"]
 exclude = ["**/__pycache__"]
+strict = ["modguard"]
 
 
 [build-system]

@@ -40,7 +40,7 @@ def print_invalid_exclude(path: str) -> None:
     )
 
 
-def parse_base_arguments(args) -> argparse.Namespace:
+def parse_base_arguments(args: list[str]) -> argparse.Namespace:
     base_parser = argparse.ArgumentParser(
         prog="modguard",
         add_help=True,
@@ -62,7 +62,7 @@ def parse_base_arguments(args) -> argparse.Namespace:
     return base_parser.parse_args(args)
 
 
-def parse_init_arguments(args) -> argparse.Namespace:
+def parse_init_arguments(args: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="modguard init",
         description="Initialize boundaries in a repository with modguard",

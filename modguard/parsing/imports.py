@@ -18,7 +18,7 @@ MODGUARD_IGNORE_REGEX = re.compile(r"# *modguard-ignore(( [\w.]+)*)$")
 
 
 def get_ignore_directives(file_content: str) -> dict[int, IgnoreDirective]:
-    ignores = {}
+    ignores: dict[int, IgnoreDirective] = {}
     lines = file_content.splitlines()
     for lineno, line in enumerate(lines):
         normal_lineno = lineno + 1
@@ -53,7 +53,7 @@ class ImportVisitor(ast.NodeVisitor):
         )
         return directive.modules if directive else None
 
-    def visit_ImportFrom(self, node):
+    def visit_ImportFrom(self, node: ast.ImportFrom):
         # For relative imports (level > 0), adjust the base module path
         if node.module is not None and node.level > 0:
             num_paths_to_strip = node.level - 1 if self.is_package else node.level
@@ -91,7 +91,7 @@ class ImportVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
-    def visit_Import(self, node):
+    def visit_Import(self, node: ast.Import):
         ignored_modules = self._get_ignored_modules(node.lineno)
         if ignored_modules is not None and len(ignored_modules) == 0:
             # Empty ignore list signifies blanket ignore of following import
