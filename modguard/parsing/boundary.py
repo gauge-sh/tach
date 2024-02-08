@@ -15,7 +15,7 @@ class BoundaryFinder(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node):
         # Check if 'Boundary' is imported specifically from a 'modguard'-rooted module
-        if (node.module == "modguard" or node.module.startswith("modguard.")) and any(
+        if (node.module == "modguard" or node.module and  node.module.startswith("modguard.")) and any(
             alias.name == "Boundary" for alias in node.names
         ):
             self.is_modguard_boundary_imported = True
