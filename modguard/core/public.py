@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
 class PublicMember:
     name: str
-    allowlist: list[str] = None
+    allowlist: Optional[list[str]] = None

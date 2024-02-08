@@ -1,5 +1,4 @@
 import ast
-import os
 from typing import Optional
 
 from modguard.core.boundary import BoundaryTrie
@@ -14,7 +13,7 @@ class BoundaryFinder(ast.NodeVisitor):
         self.is_modguard_boundary_imported = False
         self.found_boundary = False
 
-    def visit_ImportFrom(self, node):
+    def visit_ImportFrom(self, node: ast.ImportFrom):
         # Check if 'Boundary' is imported specifically from a 'modguard'-rooted module
         is_modguard_module_import = node.module is not None and (
             node.module == "modguard" or node.module.startswith("modguard.")
@@ -25,14 +24,14 @@ class BoundaryFinder(ast.NodeVisitor):
             self.is_modguard_boundary_imported = True
         self.generic_visit(node)
 
-    def visit_Import(self, node):
+    def visit_Import(self, node: ast.Import):
         # Check if 'modguard' is imported
         for alias in node.names:
             if alias.name == "modguard":
                 self.is_modguard_boundary_imported = True
         self.generic_visit(node)
 
-    def visit_Call(self, node):
+    def visit_Call(self, node: ast.Call):
         if self.is_modguard_boundary_imported:
             if isinstance(node.func, ast.Attribute) and node.func.attr == "Boundary":
                 if (
@@ -77,7 +76,9 @@ def add_boundary(file_path: str) -> None:
 
 
 @public
-def build_boundary_trie(root: str, exclude_paths: list[str] = None) -> BoundaryTrie:
+def build_boundary_trie(
+    root: str, exclude_paths: Optional[list[str]] = None
+) -> BoundaryTrie:
     boundary_trie = BoundaryTrie()
     # Add an 'outer boundary' containing the entire root path
     # This means a project will pass 'check' by default

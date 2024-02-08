@@ -1,5 +1,5 @@
 import ast
-from typing import Optional
+from typing import Optional, Union
 
 from modguard import public
 from modguard.core.public import PublicMember
@@ -13,7 +13,7 @@ class ModguardImportVisitor(ast.NodeVisitor):
         self.module_name = module_name
         self.import_found = False
 
-    def visit_ImportFrom(self, node):
+    def visit_ImportFrom(self, node: ast.ImportFrom):
         if self.module_name:
             is_modguard_module_import = node.module is not None and (
                 node.module == "modguard" or node.module.startswith("modguard.")
@@ -25,7 +25,7 @@ class ModguardImportVisitor(ast.NodeVisitor):
                 return
         self.generic_visit(node)
 
-    def visit_Import(self, node):
+    def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name == "modguard":
                 self.import_found = True
@@ -46,7 +46,7 @@ class PublicMemberVisitor(ast.NodeVisitor):
         self.is_package = is_package
         self.public_members: list[PublicMember] = []
 
-    def visit_ImportFrom(self, node):
+    def visit_ImportFrom(self, node: ast.ImportFrom):
         is_modguard_module_import = node.module is not None and (
             node.module == "modguard" or node.module.startswith("modguard.")
         )
@@ -56,7 +56,7 @@ class PublicMemberVisitor(ast.NodeVisitor):
             self.is_modguard_public_imported = True
         self.generic_visit(node)
 
-    def visit_Import(self, node):
+    def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name == "modguard":
                 self.is_modguard_public_imported = True
@@ -74,7 +74,9 @@ class PublicMemberVisitor(ast.NodeVisitor):
                     ] or None
         return None
 
-    def _add_public_member_from_decorator(self, node: ast.AST, decorator: ast.expr):
+    def _add_public_member_from_decorator(
+        self, node: Union[ast.FunctionDef, ast.ClassDef], decorator: ast.expr
+    ):
         if (
             isinstance(decorator, ast.Call)
             and isinstance(decorator.func, ast.Name)
@@ -93,23 +95,24 @@ class PublicMemberVisitor(ast.NodeVisitor):
             if isinstance(value, ast.Name) and value.id == "modguard":
                 self.public_members.append(PublicMember(name=node.name))
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node: ast.FunctionDef):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
 
-    def visit_ClassDef(self, node):
+    def visit_ClassDef(self, node: ast.ClassDef):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
         self.generic_visit(node)
 
-    def visit_Call(self, node):
-        parent_node = node.parent
+    def visit_Call(self, node: ast.Call):
+        parent_node = getattr(node, "parent")
+        grandparent_node = getattr(parent_node, "parent")
         top_level = isinstance(parent_node, ast.Module)
         top_level_expr = isinstance(parent_node, ast.Expr) and isinstance(
-            parent_node.parent, ast.Module
+            grandparent_node, ast.Module
         )
         is_raw_public_call = (
             isinstance(node.func, ast.Name) and node.func.id == "public"
@@ -149,10 +152,10 @@ class PublicMemberVisitor(ast.NodeVisitor):
             return
         self.generic_visit(node)
 
-    def visit(self, node):
+    def visit(self, node: ast.AST):
         # Inject a 'parent' attribute to each node for easier parent tracking
         for child in ast.iter_child_nodes(node):
-            child.parent = node
+            setattr(child, "parent", node)
         super().visit(node)
 
 
@@ -185,36 +188,39 @@ class MemberFinder(ast.NodeVisitor):
         self.matched_assignment = False
         self.depth = 0
 
-    def _check_assignment(self, node):
-        if self.depth == 0:
-            for target in node.targets:
-                if isinstance(target, ast.Name) and target.id == self.member_name:
+    def _check_assignment_target(
+        self, target: Union[ast.expr, ast.Name, ast.Attribute, ast.Subscript]
+    ):
+        if isinstance(target, ast.Name) and target.id == self.member_name:
+            self.matched_lineno = target.end_lineno
+            self.matched_assignment = True
+            return
+        elif isinstance(target, ast.List) or isinstance(target, ast.Tuple):
+            for elt in target.elts:
+                if isinstance(elt, ast.Name) and elt.id == self.member_name:
                     self.matched_lineno = target.end_lineno
                     self.matched_assignment = True
                     return
-                elif isinstance(target, ast.List) or isinstance(target, ast.Tuple):
-                    for elt in target.elts:
-                        if isinstance(elt, ast.Name) and elt.id == self.member_name:
-                            self.matched_lineno = target.end_lineno
-                            self.matched_assignment = True
-                            return
 
-    def visit_Assign(self, node):
-        self._check_assignment(node)
+    def visit_Assign(self, node: ast.Assign):
+        if self.depth == 0:
+            for target in node.targets:
+                self._check_assignment_target(target)
         self.generic_visit(node)
 
-    def visit_AnnAssign(self, node):
-        self._check_assignment(node)
+    def visit_AnnAssign(self, node: ast.AnnAssign):
+        if self.depth == 0:
+            self._check_assignment_target(node.target)
         self.generic_visit(node)
 
-    def visit_Global(self, node):
+    def visit_Global(self, node: ast.Global):
         if self.member_name in node.names:
             self.matched_lineno = node.end_lineno
             self.matched_assignment = True
             return
         self.generic_visit(node)
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node: ast.FunctionDef):
         if self.depth == 0 and node.name == self.member_name:
             self.matched_lineno = node.lineno
             return
@@ -223,7 +229,7 @@ class MemberFinder(ast.NodeVisitor):
         self.generic_visit(node)
         self.depth -= 1
 
-    def visit_ClassDef(self, node):
+    def visit_ClassDef(self, node: ast.ClassDef):
         if self.depth == 0 and node.name == self.member_name:
             self.matched_lineno = node.lineno
             return

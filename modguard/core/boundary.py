@@ -16,7 +16,7 @@ class BoundaryNode:
     public_members: dict[str, PublicMember] = field(default_factory=dict)
     children: dict[str, "BoundaryNode"] = field(default_factory=dict)
     is_end_of_path: bool = False
-    full_path: str = None
+    full_path: str = ""
 
     def add_public_member(self, member: PublicMember):
         self.public_members[member.name] = member
@@ -40,7 +40,9 @@ class BoundaryTrie:
 
         return node
 
-    def insert(self, path: str, public_members: dict[str, PublicMember] = None):
+    def insert(
+        self, path: str, public_members: Optional[dict[str, PublicMember]] = None
+    ):
         node = self.root
         parts = path.split(".")
         parts = [part for part in parts if part]
@@ -65,7 +67,7 @@ class BoundaryTrie:
         if member_path not in nearest_boundary.public_members:
             nearest_boundary.public_members[member_path] = member
 
-    def find_nearest(self, path: str) -> BoundaryNode:
+    def find_nearest(self, path: str) -> Optional[BoundaryNode]:
         node = self.root
         parts = path.split(".")
         nearest_parent = node if node.is_end_of_path else None
