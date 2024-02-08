@@ -11,15 +11,17 @@ from .parsing.boundary import add_boundary, has_boundary, build_boundary_trie
 from .parsing.imports import get_imports
 from .parsing.public import mark_as_public
 
+
 class WriteOperation(StrEnum):
-    BOUNDARY = 'boundary'
-    PUBLIC = 'public'
+    BOUNDARY = "boundary"
+    PUBLIC = "public"
+
 
 @dataclass
 class FileWriteInformation:
     location: str
     operation: WriteOperation
-    member_name: str = ''
+    member_name: str = ""
 
 
 def init_project(root: str, exclude_paths: Optional[list[str]] = None):
@@ -42,11 +44,15 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
     ]
 
     for dirpath in utils.walk_pypackages(root, exclude_paths=exclude_paths):
-        filepath = dirpath + '/__init__.py'
+        filepath = dirpath + "/__init__.py"
         if not has_boundary(filepath):
             dir_mod_path = utils.file_to_module_path(dirpath)
             boundary_trie.insert(dir_mod_path)
-            write_operations.append(FileWriteInformation(location=filepath, operation=WriteOperation.BOUNDARY))
+            write_operations.append(
+                FileWriteInformation(
+                    location=filepath, operation=WriteOperation.BOUNDARY
+                )
+            )
 
     for file_path in utils.walk_pyfiles(root, exclude_paths=exclude_paths):
         mod_path = utils.file_to_module_path(file_path)
@@ -78,20 +84,24 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
 
             file_path, member_name = utils.module_to_file_path(import_mod_path)
             try:
-                write_operations.append(FileWriteInformation(location=file_path, operation=WriteOperation.PUBLIC, member_name=member_name))
+                write_operations.append(
+                    FileWriteInformation(
+                        location=file_path,
+                        operation=WriteOperation.PUBLIC,
+                        member_name=member_name,
+                    )
+                )
                 violated_boundary.add_public_member(PublicMember(name=import_mod_path))
             except errors.ModguardError:
                 print(
                     f"Skipping member {member_name} in {file_path}; could not mark as public"
                 )
     # After we've completed our pass on inserting boundaries and public members, write to files
-    for write_op in write_operations:   
+    for write_op in write_operations:
         try:
             if write_op.operation == WriteOperation.BOUNDARY:
                 add_boundary(write_op.location)
             if write_op.operation == WriteOperation.PUBLIC:
                 mark_as_public(write_op.location, write_op.member_name)
         except errors.ModguardError:
-            print(
-                f'Error marking {write_op.operation} in {write_op.operation}'
-                )
+            print(f"Error marking {write_op.operation} in {write_op.operation}")

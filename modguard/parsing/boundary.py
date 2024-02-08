@@ -67,7 +67,6 @@ def has_boundary(file_path: str) -> bool:
 BOUNDARY_PRELUDE = "import modguard\nmodguard.Boundary()\n"
 
 
-
 def add_boundary(file_path: str) -> None:
     with open(file_path, "r+") as file:
         file_content = file.read()
