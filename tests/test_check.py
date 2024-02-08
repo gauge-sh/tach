@@ -1,34 +1,28 @@
 import pytest
-from modguard.check import check, ErrorInfo
-from modguard.parsing.utils import file_to_module_path
-from modguard.parsing.boundary import has_boundary
-from modguard.parsing.imports import get_imports
+from modguard.check import check, ErrorInfo, check_import
+from modguard.core import BoundaryTrie
+from .mocks.boundary_trie import build_example_boundary_trie
 
 
-def test_file_to_mod_path():
-    assert file_to_module_path("__init__.py") == ""
-    assert file_to_module_path("domain_one/__init__.py") == "domain_one"
-    assert file_to_module_path("domain_one/interface.py") == "domain_one.interface"
+@pytest.fixture
+def boundary_trie() -> BoundaryTrie:
+    return build_example_boundary_trie()
 
 
-def test_has_boundary():
-    assert has_boundary("example/domain_one/__init__.py")
-    assert not has_boundary("example/domain_one/interface.py")
-
-
-def test_get_imports():
-    assert get_imports("example/domain_one/interface.py") == ["modguard.public"]
-    assert set(get_imports("example/domain_one/__init__.py")) == {
-        "modguard.Boundary",
-        "example.domain_one.interface.domain_one_interface",
-    }
-    assert set(get_imports("example/__init__.py")) == {
-        "modguard.Boundary",
-        "example.domain_one.interface.domain_one_interface",
-        "example.domain_three.api.public_for_domain_two",
-        "example.domain_four",
-        "example.domain_four.subsystem.private_subsystem_call",
-    }
+def test_check_import(boundary_trie):
+    file_mod_path = "domain_one"
+    file_boundary = boundary_trie.find_nearest(file_mod_path)
+    assert file_boundary is not None
+    import_mod_path = "domain_four.public_api"
+    assert (
+        check_import(
+            boundary_trie=boundary_trie,
+            import_mod_path=import_mod_path,
+            file_nearest_boundary=file_boundary,
+            file_mod_path=file_mod_path,
+        )
+        is None
+    )
 
 
 def test_check():
