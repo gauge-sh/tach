@@ -7,11 +7,6 @@ from modguard.errors import ModguardSetupError
 
 
 @dataclass
-class Boundary:
-    name: str = ""
-
-
-@dataclass
 class BoundaryNode:
     public_members: dict[str, PublicMember] = field(default_factory=dict)
     children: dict[str, "BoundaryNode"] = field(default_factory=dict)
