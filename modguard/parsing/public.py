@@ -265,32 +265,32 @@ def mark_as_public(file_path: str, member_name: str = ""):
                 _public_module_prelude(should_import=not modguard_public_is_imported)
                 + file_content
             )
+            return
 
-    member_finder = MemberFinder(member_name)
-    member_finder.visit(parsed_ast)
-    if member_finder.matched_lineno is None:
-        raise ModguardParseError(
-            f"Failed to find member {member_name} in file {file_path}"
-        )
+        member_finder = MemberFinder(member_name)
+        member_finder.visit(parsed_ast)
+        if member_finder.matched_lineno is None:
+            raise ModguardParseError(
+                f"Failed to find member {member_name} in file {file_path}"
+            )
 
-    normal_lineno = member_finder.matched_lineno - 1
-    file_lines = file_content.splitlines(keepends=True)
-    if member_finder.matched_assignment:
-        # Insert a call to public for the member after the assignment
-        lines_to_write = [
-            *file_lines[: normal_lineno + 1],
-            f"{PUBLIC_CALL}({member_name})\n",
-            *file_lines[normal_lineno + 1 :],
-        ]
-    else:
-        # Insert a decorator before the function or class definition
-        lines_to_write = [
-            *file_lines[:normal_lineno],
-            PUBLIC_DECORATOR + "\n",
-            *file_lines[normal_lineno:],
-        ]
-    if not modguard_public_is_imported:
-        lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
+        normal_lineno = member_finder.matched_lineno - 1
+        file_lines = file_content.splitlines(keepends=True)
+        if member_finder.matched_assignment:
+            # Insert a call to public for the member after the assignment
+            lines_to_write = [
+                *file_lines[: normal_lineno + 1],
+                f"{PUBLIC_CALL}({member_name})\n",
+                *file_lines[normal_lineno + 1 :],
+            ]
+        else:
+            # Insert a decorator before the function or class definition
+            lines_to_write = [
+                *file_lines[:normal_lineno],
+                PUBLIC_DECORATOR + "\n",
+                *file_lines[normal_lineno:],
+            ]
+        if not modguard_public_is_imported:
+            lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
 
-    with open(file_path, "w") as file:
         file.write("".join(lines_to_write))
