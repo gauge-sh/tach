@@ -9,19 +9,59 @@ def boundary_trie() -> BoundaryTrie:
     return build_example_boundary_trie()
 
 
-def test_check_import(boundary_trie):
-    file_mod_path = "domain_one"
+def _test_check_import(
+    boundary_trie: BoundaryTrie, file_mod_path: str, import_mod_path: str
+):
     file_boundary = boundary_trie.find_nearest(file_mod_path)
-    assert file_boundary is not None
-    import_mod_path = "domain_four.public_api"
+    assert file_boundary is not None, f"Couldn't find boundary for {file_mod_path}"
+    return check_import(
+        boundary_trie=boundary_trie,
+        import_mod_path=import_mod_path,
+        file_nearest_boundary=file_boundary,
+        file_mod_path=file_mod_path,
+    )
+
+
+def test_check_import(boundary_trie):
     assert (
-        check_import(
-            boundary_trie=boundary_trie,
-            import_mod_path=import_mod_path,
-            file_nearest_boundary=file_boundary,
-            file_mod_path=file_mod_path,
+        _test_check_import(
+            boundary_trie,
+            file_mod_path="domain_one",
+            import_mod_path="domain_four.public_api",
         )
         is None
+    )
+    assert (
+        _test_check_import(
+            boundary_trie,
+            file_mod_path="domain_one",
+            import_mod_path="domain_one.private_api",
+        )
+        is None
+    )
+    assert (
+        _test_check_import(
+            boundary_trie,
+            file_mod_path="domain_one",
+            import_mod_path="external_domain",
+        )
+        is None
+    )
+    assert (
+        _test_check_import(
+            boundary_trie,
+            file_mod_path="domain_one",
+            import_mod_path="domain_four.private_api",
+        )
+        is not None
+    )
+    assert (
+        _test_check_import(
+            boundary_trie,
+            file_mod_path="domain_one",
+            import_mod_path="domain_three.anything",
+        )
+        is not None
     )
 
 
