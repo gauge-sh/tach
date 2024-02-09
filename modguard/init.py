@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum
 import os
 from typing import Optional
 
@@ -12,7 +12,7 @@ from .parsing.imports import get_imports
 from .parsing.public import mark_as_public
 
 
-class WriteOperation(StrEnum):
+class WriteOperation(Enum):
     BOUNDARY = "boundary"
     PUBLIC = "public"
 
