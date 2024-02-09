@@ -27,13 +27,14 @@ class BoundaryTrie:
     def get(self, path: str) -> Optional[BoundaryNode]:
         node = self.root
         parts = path.split(".")
+        parts = [part for part in parts if part]
 
         for part in parts:
             if part not in node.children:
                 return None
             node = node.children[part]
 
-        return node
+        return node if node.is_end_of_path else None
 
     def insert(self, path: str, public_members: Optional[list[PublicMember]] = None):
         node = self.root
@@ -67,6 +68,7 @@ class BoundaryTrie:
     def find_nearest(self, path: str) -> Optional[BoundaryNode]:
         node = self.root
         parts = path.split(".")
+        parts = [part for part in parts if part]
         nearest_parent = node if node.is_end_of_path else None
 
         for part in parts:
