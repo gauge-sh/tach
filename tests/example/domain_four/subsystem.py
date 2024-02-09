@@ -1,7 +1,8 @@
-from modguard import Boundary
+import modguard
+import math
 
-Boundary()
+modguard.Boundary()
 
 
 def private_subsystem_call():
-    ...
+    print(math.random())
