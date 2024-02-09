@@ -3,12 +3,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Generator
 
 from .public import PublicMember
-from modguard.errors import ModguardSetupError
-
-
-@dataclass
-class Boundary:
-    name: str = ""
+from modguard.errors import ModguardSetupError, ModguardError
 
 
 @dataclass
@@ -40,9 +35,7 @@ class BoundaryTrie:
 
         return node
 
-    def insert(
-        self, path: str, public_members: Optional[dict[str, PublicMember]] = None
-    ):
+    def insert(self, path: str, public_members: Optional[list[PublicMember]] = None):
         node = self.root
         parts = path.split(".")
         parts = [part for part in parts if part]
@@ -53,12 +46,16 @@ class BoundaryTrie:
             node = node.children[part]
 
         if public_members:
-            node.public_members = public_members
+            node.public_members = {member.name: member for member in public_members}
 
         node.is_end_of_path = True
         node.full_path = path
 
     def register_public_member(self, path: str, member: PublicMember):
+        if not path and not member.name:
+            raise ModguardError(
+                "Registering the root boundary as public (in '__init__.py') is invalid."
+            )
         nearest_boundary = self.find_nearest(path)
         if not nearest_boundary:
             raise ModguardSetupError(f"Could not register public member {path}")
