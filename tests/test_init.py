@@ -6,6 +6,7 @@ from modguard import errors
 from modguard.init import init_project
 from modguard.parsing.boundary import BOUNDARY_PRELUDE
 
+
 @pytest.fixture(scope="module")
 def test_root():
     # Create a temporary directory to use as the root for testing
@@ -13,6 +14,7 @@ def test_root():
     yield test_root
     # Remove the temporary directory after testing
     shutil.rmtree(test_root)
+
 
 def test_init_project_with_valid_root(test_root):
     # Create some mock files and directories for testing
