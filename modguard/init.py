@@ -30,7 +30,7 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
     # * import and call Boundary in __init__.py for all other packages
     # * import and decorate public on all externally imported functions and classes
     if not os.path.isdir(root):
-        return errors.ModguardSetupError(f"The path {root} is not a directory.")
+        raise errors.ModguardSetupError(f"The path {root} is not a directory.")
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = utils.canonical(root)
