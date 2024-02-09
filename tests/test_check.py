@@ -1,12 +1,17 @@
 import pytest
 from modguard.check import check, ErrorInfo, check_import
-from modguard.core import BoundaryTrie
-from .mocks.boundary_trie import build_example_boundary_trie
+from modguard.core import BoundaryTrie, PublicMember
 
 
 @pytest.fixture
 def boundary_trie() -> BoundaryTrie:
-    return build_example_boundary_trie()
+    trie = BoundaryTrie()
+    trie.insert("")
+    trie.insert("domain_one")
+    trie.insert("domain_two")
+    trie.insert("domain_three")
+    trie.insert("domain_four", [PublicMember(name="domain_four.public_api")])
+    return trie
 
 
 def _test_check_import(
