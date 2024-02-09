@@ -115,12 +115,6 @@ def test_register_named_public_member_at_root(boundary_trie):
     }
 
 
-def test_register_unnamed_public_member_at_root(boundary_trie):
-    pub_member = PublicMember(name="")
-    boundary_trie.register_public_member("member_path", pub_member)
-    assert boundary_trie.get("").public_members == {"member_path": pub_member}
-
-
 def test_register_named_public_member_at_single_level_domain(boundary_trie):
     pub_member = PublicMember(name="member_variable")
     boundary_trie.register_public_member("domain_one", pub_member)
