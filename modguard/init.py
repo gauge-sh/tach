@@ -104,4 +104,4 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
             if write_op.operation == WriteOperation.PUBLIC:
                 mark_as_public(write_op.location, write_op.member_name)
         except errors.ModguardError:
-            print(f"Error marking {write_op.operation} in {write_op.operation}")
+            print(f"Error marking {write_op.operation} in {write_op.location}")
