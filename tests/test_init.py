@@ -18,6 +18,7 @@ def init_project_from_root(root) -> None:
         # Change back to the original directory
         os.chdir(saved_directory)
 
+
 @pytest.fixture(scope="module")
 def test_root():
     # Create a temporary directory to use as the root for testing
@@ -56,7 +57,6 @@ def test_init_project_with_valid_root(test_root):
         with open(os.path.join(test_root, file_path), "w") as f:
             f.write(content)
 
-
     # Call init_project with the test root
     init_project_from_root(test_root)
 
@@ -68,8 +68,14 @@ def test_init_project_with_valid_root(test_root):
 
     # Check if public members have been marked as expected
     expected_public_files = [
-        ("package1/module1.py", 'import modguard\n@modguard.public\nclass Package1Class:\n    pass\n'),
-        ("package2/module2.py", 'import modguard\n@modguard.public\nclass Package2Class:\n    pass\n'),
+        (
+            "package1/module1.py",
+            "import modguard\n@modguard.public\nclass Package1Class:\n    pass\n",
+        ),
+        (
+            "package2/module2.py",
+            "import modguard\n@modguard.public\nclass Package2Class:\n    pass\n",
+        ),
     ]
     for file_path, expected_state in expected_public_files:
         with open(os.path.join(test_root, file_path)) as f:

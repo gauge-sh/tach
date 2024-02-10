@@ -72,7 +72,6 @@ class PublicMemberVisitor(ast.NodeVisitor):
                         for elt in allowlist_value.elts
                         if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
                     ] or None
-        return None
 
     def _add_public_member_from_decorator(
         self, node: Union[ast.FunctionDef, ast.ClassDef], decorator: ast.expr
