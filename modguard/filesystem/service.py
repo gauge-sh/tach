@@ -17,7 +17,10 @@ class FileInfo:
 
 # Thread-local file cache to avoid going to disk as much as possible
 thread_local = threading.local()
+# Cannot type-hint non-self attributes (https://github.com/python/mypy/issues/2388)
+# cwd: str
 thread_local.cwd = os.getcwd()
+# file_caches_by_cwd: defaultdict[str, dict[str, FileInfo]]
 thread_local.file_caches_by_cwd = defaultdict(dict)
 
 
@@ -38,7 +41,9 @@ def _get_file_cache() -> dict[str, FileInfo]:
     if not hasattr(thread_local, "file_caches_by_cwd"):
         print("reset file cache")
         thread_local.file_caches_by_cwd = defaultdict(dict)
-    file_caches_by_cwd = thread_local.file_caches_by_cwd
+    file_caches_by_cwd: defaultdict[
+        str, dict[str, FileInfo]
+    ] = thread_local.file_caches_by_cwd  # type: ignore
     return file_caches_by_cwd[get_cwd()]
 
 

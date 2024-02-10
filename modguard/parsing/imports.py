@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 
 from modguard import filesystem as fs
 from modguard.public import public
-from modguard.errors import ModguardParseError
 
 
 @dataclass
