@@ -11,4 +11,14 @@ import example.domain_four
 # modguard-ignore
 from .domain_two.other import internal_api
 
+
 Boundary()
+
+
+# Usages
+domain_one_interface()
+example = domain_one_var
+PublicForDomainTwo()
+private_subsystem_call()
+example.domain_four
+internal_api()
