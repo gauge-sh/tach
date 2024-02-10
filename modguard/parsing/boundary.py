@@ -21,14 +21,12 @@ class BoundaryFinder(ast.NodeVisitor):
             alias.name == "Boundary" for alias in node.names
         ):
             self.is_modguard_boundary_imported = True
-        self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import):
         # Check if 'modguard' is imported
         for alias in node.names:
             if alias.name == "modguard":
                 self.is_modguard_boundary_imported = True
-        self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call):
         if self.is_modguard_boundary_imported:
@@ -42,7 +40,6 @@ class BoundaryFinder(ast.NodeVisitor):
                 # This handles the case where 'Boundary' is imported directly: from modguard import Boundary
                 # We are currently ignoring the case where this is still the wrong Boundary (if it has been re-assigned)
                 self.found_boundary = True
-        self.generic_visit(node)
 
 
 @public

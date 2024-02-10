@@ -21,14 +21,12 @@ class ModguardImportVisitor(ast.NodeVisitor):
             ):
                 self.import_found = True
                 return
-        self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name == "modguard":
                 self.import_found = True
                 return
-        self.generic_visit(node)
 
 
 def is_modguard_imported(parsed_ast: ast.AST, module_name: str = "") -> bool:
@@ -52,13 +50,11 @@ class PublicMemberVisitor(ast.NodeVisitor):
             alias.name == "public" for alias in node.names
         ):
             self.is_modguard_public_imported = True
-        self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name == "modguard":
                 self.is_modguard_public_imported = True
-        self.generic_visit(node)
 
     def _extract_allowlist(self, public_call: ast.Call) -> Optional[list[str]]:
         for kw in public_call.keywords:
@@ -97,13 +93,11 @@ class PublicMemberVisitor(ast.NodeVisitor):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
-        self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
-        self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call):
         parent_node = getattr(node, "parent")
@@ -148,7 +142,6 @@ class PublicMemberVisitor(ast.NodeVisitor):
                     )
                 ]
             return
-        self.generic_visit(node)
 
     def visit(self, node: ast.AST):
         # Inject a 'parent' attribute to each node for easier parent tracking
@@ -177,7 +170,6 @@ class MemberFinder(ast.NodeVisitor):
         # because a public(...) call can be inserted directly after the assignment
         self.matched_lineno: Optional[int] = None
         self.matched_assignment = False
-        self.depth = 0
 
     def _check_assignment_target(
         self, target: Union[ast.expr, ast.Name, ast.Attribute, ast.Subscript]
@@ -194,40 +186,27 @@ class MemberFinder(ast.NodeVisitor):
                     return
 
     def visit_Assign(self, node: ast.Assign):
-        if self.depth == 0:
-            for target in node.targets:
-                self._check_assignment_target(target)
-        self.generic_visit(node)
+        for target in node.targets:
+            self._check_assignment_target(target)
 
     def visit_AnnAssign(self, node: ast.AnnAssign):
-        if self.depth == 0:
-            self._check_assignment_target(node.target)
-        self.generic_visit(node)
+        self._check_assignment_target(node.target)
 
     def visit_Global(self, node: ast.Global):
         if self.member_name in node.names:
             self.matched_lineno = node.end_lineno
             self.matched_assignment = True
             return
-        self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
-        if self.depth == 0 and node.name == self.member_name:
+        if node.name == self.member_name:
             self.matched_lineno = node.lineno
             return
-
-        self.depth += 1
-        self.generic_visit(node)
-        self.depth -= 1
 
     def visit_ClassDef(self, node: ast.ClassDef):
-        if self.depth == 0 and node.name == self.member_name:
+        if node.name == self.member_name:
             self.matched_lineno = node.lineno
             return
-
-        self.depth += 1
-        self.generic_visit(node)
-        self.depth -= 1
 
 
 def _public_module_prelude(should_import: bool = True) -> str:

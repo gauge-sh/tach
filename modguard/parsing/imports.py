@@ -70,7 +70,7 @@ class ImportVisitor(ast.NodeVisitor):
 
         if ignored_modules is not None and len(ignored_modules) == 0:
             # Empty ignore list signifies blanket ignore of following import
-            return self.generic_visit(node)
+            return
 
         for name_node in node.names:
             local_mod_path = (
@@ -89,19 +89,16 @@ class ImportVisitor(ast.NodeVisitor):
             )
             self.imports.append(global_mod_path)
 
-        self.generic_visit(node)
-
     def visit_Import(self, node: ast.Import):
         ignored_modules = self._get_ignored_modules(node.lineno)
         if ignored_modules is not None and len(ignored_modules) == 0:
             # Empty ignore list signifies blanket ignore of following import
-            return self.generic_visit(node)
+            return
 
         ignored_modules = ignored_modules or []
         self.imports.extend(
             (alias.name for alias in node.names if alias.name not in ignored_modules)
         )
-        self.generic_visit(node)
 
 
 @public
