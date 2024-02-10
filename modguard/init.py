@@ -3,13 +3,12 @@ from enum import Enum
 import os
 from typing import Optional
 
-from . import errors
-from .check import check_import
-from .core import PublicMember
-from .parsing import utils
-from .parsing.boundary import add_boundary, has_boundary, build_boundary_trie
-from .parsing.imports import get_imports
-from .parsing.public import mark_as_public
+from modguard import errors, filesystem as fs
+from modguard.check import check_import
+from modguard.core import PublicMember
+from modguard.parsing.boundary import add_boundary, has_boundary, build_boundary_trie
+from modguard.parsing.imports import get_imports
+from modguard.parsing.public import mark_as_public
 
 
 class WriteOperation(Enum):
@@ -33,8 +32,8 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
         raise errors.ModguardSetupError(f"The path {root} is not a directory.")
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
-    root = utils.canonical(root)
-    exclude_paths = list(map(utils.canonical, exclude_paths)) if exclude_paths else None
+    root = fs.canonical(root)
+    exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
     write_operations: list[FileWriteInformation] = []
 
@@ -43,10 +42,10 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
         boundary.full_path for boundary in boundary_trie if boundary.full_path
     ]
 
-    for dirpath in utils.walk_pypackages(root, exclude_paths=exclude_paths):
+    for dirpath in fs.walk_pypackages(root, exclude_paths=exclude_paths):
         filepath = dirpath + "/__init__.py"
         if not has_boundary(filepath):
-            dir_mod_path = utils.file_to_module_path(dirpath)
+            dir_mod_path = fs.file_to_module_path(dirpath)
             boundary_trie.insert(dir_mod_path)
             write_operations.append(
                 FileWriteInformation(
@@ -54,8 +53,8 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
                 )
             )
 
-    for file_path in utils.walk_pyfiles(root, exclude_paths=exclude_paths):
-        mod_path = utils.file_to_module_path(file_path)
+    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
+        mod_path = fs.file_to_module_path(file_path)
         # If this file belongs to a Boundary which existed
         # before calling init_project, ignore the file and move on
         if any(
@@ -82,7 +81,7 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
                 # This import is fine, no need to mark anything as public
                 continue
 
-            file_path, member_name = utils.module_to_file_path(import_mod_path)
+            file_path, member_name = fs.module_to_file_path(import_mod_path)
             try:
                 write_operations.append(
                     FileWriteInformation(

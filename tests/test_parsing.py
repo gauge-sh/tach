@@ -1,4 +1,5 @@
-from modguard.parsing.utils import file_to_module_path
+# TODO: move this test
+from modguard.filesystem import file_to_module_path
 from modguard.parsing.boundary import has_boundary
 from modguard.parsing.imports import get_imports
 

@@ -1,11 +1,9 @@
 import ast
 from typing import Optional, Union
 
-from modguard import public
+from modguard import public, filesystem as fs
 from modguard.core.public import PublicMember
 from modguard.errors import ModguardParseError
-
-from .utils import file_to_module_path
 
 
 class ModguardImportVisitor(ast.NodeVisitor):
@@ -160,15 +158,8 @@ class PublicMemberVisitor(ast.NodeVisitor):
 
 
 def get_public_members(file_path: str) -> list[PublicMember]:
-    with open(file_path, "r") as file:
-        file_content = file.read()
-
-    try:
-        parsed_ast = ast.parse(file_content)
-    except SyntaxError as e:
-        raise ModguardParseError(f"Syntax error in {file_path}: {e}")
-
-    mod_path = file_to_module_path(file_path)
+    parsed_ast = fs.parse_ast(file_path)
+    mod_path = fs.file_to_module_path(file_path)
     public_member_visitor = PublicMemberVisitor(
         is_package=file_path.endswith("__init__.py"), current_mod_path=mod_path
     )
@@ -252,45 +243,41 @@ PUBLIC_CALL = "modguard.public"
 
 @public
 def mark_as_public(file_path: str, member_name: str = ""):
-    with open(file_path, "r+") as file:
-        file_content = file.read()
-        file.seek(0)
-        try:
-            parsed_ast = ast.parse(file_content)
-        except SyntaxError as e:
-            raise ModguardParseError(f"Syntax error in {file_path}: {e}")
-        modguard_public_is_imported = is_modguard_imported(parsed_ast, "public")
-        if not member_name:
-            file.write(
-                _public_module_prelude(should_import=not modguard_public_is_imported)
-                + file_content
-            )
-            return
+    file_content = fs.read_file(file_path)
+    parsed_ast = fs.parse_ast(file_path)
+    modguard_public_is_imported = is_modguard_imported(parsed_ast, "public")
+    if not member_name:
+        fs.write_file(
+            file_path,
+            _public_module_prelude(should_import=not modguard_public_is_imported)
+            + file_content,
+        )
+        return
 
-        member_finder = MemberFinder(member_name)
-        member_finder.visit(parsed_ast)
-        if member_finder.matched_lineno is None:
-            raise ModguardParseError(
-                f"Failed to find member {member_name} in file {file_path}"
-            )
+    member_finder = MemberFinder(member_name)
+    member_finder.visit(parsed_ast)
+    if member_finder.matched_lineno is None:
+        raise ModguardParseError(
+            f"Failed to find member {member_name} in file {file_path}"
+        )
 
-        normal_lineno = member_finder.matched_lineno - 1
-        file_lines = file_content.splitlines(keepends=True)
-        if member_finder.matched_assignment:
-            # Insert a call to public for the member after the assignment
-            lines_to_write = [
-                *file_lines[: normal_lineno + 1],
-                f"{PUBLIC_CALL}({member_name})\n",
-                *file_lines[normal_lineno + 1 :],
-            ]
-        else:
-            # Insert a decorator before the function or class definition
-            lines_to_write = [
-                *file_lines[:normal_lineno],
-                PUBLIC_DECORATOR + "\n",
-                *file_lines[normal_lineno:],
-            ]
-        if not modguard_public_is_imported:
-            lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
+    normal_lineno = member_finder.matched_lineno - 1
+    file_lines = file_content.splitlines(keepends=True)
+    if member_finder.matched_assignment:
+        # Insert a call to public for the member after the assignment
+        lines_to_write = [
+            *file_lines[: normal_lineno + 1],
+            f"{PUBLIC_CALL}({member_name})\n",
+            *file_lines[normal_lineno + 1 :],
+        ]
+    else:
+        # Insert a decorator before the function or class definition
+        lines_to_write = [
+            *file_lines[:normal_lineno],
+            PUBLIC_DECORATOR + "\n",
+            *file_lines[normal_lineno:],
+        ]
+    if not modguard_public_is_imported:
+        lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
 
-        file.write("".join(lines_to_write))
+    fs.write_file(file_path, "".join(lines_to_write))
