@@ -98,6 +98,11 @@ def test_check_example_dir_end_to_end():
             import_mod_path="example.domain_one.interface.domain_one_var",
             boundary_path="example.domain_one",
         ),
+        ErrorInfo(
+            location="example/domain_three/__init__.py",
+            import_mod_path="example.domain_one.interface.domain_one_var",
+            boundary_path="example.domain_one",
+        ),
     ]
     check_results = check("example")
 

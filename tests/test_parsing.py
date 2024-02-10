@@ -19,6 +19,7 @@ def test_get_imports():
     assert set(get_imports("example/domain_one/__init__.py")) == {
         "modguard.Boundary",
         "example.domain_one.interface.domain_one_interface",
+        "example.domain_one.interface.domain_one_var",
     }
     assert set(get_imports("example/__init__.py")) == {
         "modguard.Boundary",

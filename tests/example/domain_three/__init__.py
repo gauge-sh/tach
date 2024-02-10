@@ -8,4 +8,4 @@ Boundary()
 # Usages
 public_for_domain_two()
 domain_one_interface()
-local_var =domain_one_var
+local_var = domain_one_var
