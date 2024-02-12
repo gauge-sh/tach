@@ -17,7 +17,7 @@ Boundary()
 
 # Usages
 domain_one_interface()
-example = domain_one_var
+example_usage = domain_one_var
 PublicForDomainTwo()
 private_subsystem_call()
 example.domain_four
