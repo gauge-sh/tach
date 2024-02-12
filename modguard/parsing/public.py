@@ -170,26 +170,29 @@ class MemberFinder(ast.NodeVisitor):
         self.matched_lineno: Optional[int] = None
         self.matched_assignment = False
 
-    def _check_assignment_target(
-        self, target: Union[ast.expr, ast.Name, ast.Attribute, ast.Subscript]
+    def _check_assignment(
+        self,
+        target: Union[ast.expr, ast.Name, ast.Attribute, ast.Subscript],
+        value: ast.expr,
     ):
         if isinstance(target, ast.Name) and target.id == self.member_name:
-            self.matched_lineno = target.end_lineno
+            self.matched_lineno = value.end_lineno
             self.matched_assignment = True
             return
         elif isinstance(target, ast.List) or isinstance(target, ast.Tuple):
             for elt in target.elts:
                 if isinstance(elt, ast.Name) and elt.id == self.member_name:
-                    self.matched_lineno = target.end_lineno
+                    self.matched_lineno = value.end_lineno
                     self.matched_assignment = True
                     return
 
     def visit_Assign(self, node: ast.Assign):
         for target in node.targets:
-            self._check_assignment_target(target)
+            self._check_assignment(target, node.value)
 
     def visit_AnnAssign(self, node: ast.AnnAssign):
-        self._check_assignment_target(node.target)
+        # If node.value is none, can use target itself for end_lineno
+        self._check_assignment(node.target, node.value or node.target)
 
     def visit_Global(self, node: ast.Global):
         if self.member_name in node.names:
@@ -208,16 +211,10 @@ class MemberFinder(ast.NodeVisitor):
             return
 
 
-def _public_module_end(should_import: bool = True) -> str:
-    if should_import:
-        return "import modguard\nmodguard.public()\n"
-    return "modguard.public()\n"
-
-
-IMPORT_REGEX = re.compile(r"\s*import\s")
+IMPORT_REGEX = re.compile(r"^(from |import )")
 IMPORT_MODGUARD = "import modguard"
 PUBLIC_DECORATOR = "@modguard.public"
-PUBLIC_CALL = "modguard.public"
+MODGUARD_PUBLIC = "modguard.public"
 
 
 @public
@@ -225,11 +222,12 @@ def mark_as_public(file_path: str, member_name: str = ""):
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)
     modguard_public_is_imported = is_modguard_imported(parsed_ast, "public")
-    if not member_name:
+    if not member_name or member_name == "*":
         fs.write_file(
             file_path,
-            file_content
-            + _public_module_end(should_import=not modguard_public_is_imported),
+            (f"{IMPORT_MODGUARD}\n" if not modguard_public_is_imported else "")
+            + file_content
+            + f"{MODGUARD_PUBLIC}()\n",
         )
         return
 
@@ -241,18 +239,9 @@ def mark_as_public(file_path: str, member_name: str = ""):
     if member_finder.matched_lineno is None:
         # The member name was not found, which probably means it is dynamic
         # Add a public call with the member name as a string
-        last_import_line = len(file_lines) - next(
-            (
-                i
-                for i, file_line in enumerate(reversed(file_lines))
-                if IMPORT_REGEX.match(file_line)
-            ),
-            0,
-        )
         lines_to_write = [
-            *file_lines[:last_import_line],
-            f'\n{PUBLIC_CALL}("{member_name}")\n',
-            *file_lines[last_import_line:],
+            *file_lines,
+            f'{MODGUARD_PUBLIC}("{member_name}")\n',
         ]
     else:
         # The member name was found
@@ -261,7 +250,7 @@ def mark_as_public(file_path: str, member_name: str = ""):
             # Insert a call to public for the member after the assignment
             lines_to_write = [
                 *file_lines[: normal_lineno + 1],
-                f"{PUBLIC_CALL}({member_name})\n",
+                f"{MODGUARD_PUBLIC}({member_name})\n",
                 *file_lines[normal_lineno + 1 :],
             ]
         else:

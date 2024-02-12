@@ -81,8 +81,11 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
                 # This import is fine, no need to mark anything as public
                 continue
 
-            file_path, member_name = fs.module_to_file_path(import_mod_path)
+            member_name = ""
             try:
+                file_path, member_name = fs.module_to_file_path(
+                    import_mod_path, find_package_init=True
+                )
                 write_operations.append(
                     FileWriteInformation(
                         location=file_path,
@@ -93,7 +96,7 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
                 violated_boundary.add_public_member(PublicMember(name=import_mod_path))
             except errors.ModguardError:
                 print(
-                    f"Skipping member {member_name} in {file_path}; could not mark as public"
+                    f"Skipping member {member_name or import_mod_path} in {file_path}; could not mark as public"
                 )
     # After we've completed our pass on inserting boundaries and public members, write to files
     for write_op in write_operations:
@@ -103,4 +106,8 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
             elif write_op.operation == WriteOperation.PUBLIC:
                 mark_as_public(write_op.location, write_op.member_name)
         except errors.ModguardError:
-            print(f"Error marking {write_op.operation} in {write_op.location}")
+            print(
+                f"Error marking {write_op.operation.value}"
+                f"{'({member})'.format(member=write_op.member_name) if write_op.member_name else ''}"
+                f" in {write_op.location}"
+            )
