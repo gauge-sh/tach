@@ -39,7 +39,6 @@ def chdir(path: str):
 
 def _get_file_cache() -> dict[str, FileInfo]:
     if not hasattr(thread_local, "file_caches_by_cwd"):
-        print("reset file cache")
         thread_local.file_caches_by_cwd = defaultdict(dict)
     file_caches_by_cwd: defaultdict[
         str, dict[str, FileInfo]
