@@ -86,10 +86,11 @@ def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInf
     root = fs.canonical(root)
     exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
-    boundary_trie = build_boundary_trie(root, exclude_paths=exclude_paths)
+    pyfiles = list(fs.walk_pyfiles(root, exclude_paths=exclude_paths))
+    boundary_trie = build_boundary_trie(root, pyfiles=pyfiles)
 
     errors: list[ErrorInfo] = []
-    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
+    for file_path in pyfiles:
         mod_path = fs.file_to_module_path(file_path)
         nearest_boundary = boundary_trie.find_nearest(mod_path)
         assert (

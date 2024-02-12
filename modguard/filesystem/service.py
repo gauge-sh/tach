@@ -3,6 +3,7 @@ import ast
 import threading
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Optional, Generator
 from modguard.errors import ModguardParseError
 
@@ -154,6 +155,7 @@ def walk_pypackages(
             yield filepath[: -len(init_file_ending)]
 
 
+@lru_cache(maxsize=None)
 def file_to_module_path(file_path: str) -> str:
     # Assuming that the file_path has been 'canonicalized' and does not traverse multiple directories
     file_path = file_path.lstrip("./")

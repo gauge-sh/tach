@@ -67,19 +67,22 @@ def add_boundary(file_path: str) -> None:
 
 @public
 def build_boundary_trie(
-    root: str, exclude_paths: Optional[list[str]] = None
+    root: str,
+    exclude_paths: Optional[list[str]] = None,
+    pyfiles: Optional[list[str]] = None,
 ) -> BoundaryTrie:
     boundary_trie = BoundaryTrie()
     # Add an 'outer boundary' containing the entire root path
     # This means a project will pass 'check' by default
     boundary_trie.insert(fs.file_to_module_path(root))
+    pyfiles = pyfiles or list(fs.walk_pyfiles(root, exclude_paths=exclude_paths))
 
-    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
+    for file_path in pyfiles:
         if has_boundary(file_path):
             mod_path = fs.file_to_module_path(file_path)
             boundary_trie.insert(mod_path)
 
-    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
+    for file_path in pyfiles:
         mod_path = fs.file_to_module_path(file_path)
         public_members = get_public_members(file_path)
         for public_member in public_members:

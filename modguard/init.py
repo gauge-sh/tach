@@ -27,7 +27,7 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
     # Core functionality:
     # * do nothing in any package already having a Boundary
     # * import and call Boundary in __init__.py for all other packages
-    # * import and decorate public on all externally imported functions and classes
+    # * import and decorate public on all externally imported members
     if not os.path.isdir(root):
         raise errors.ModguardSetupError(f"The path {root} is not a directory.")
 
@@ -44,8 +44,8 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
 
     for dirpath in fs.walk_pypackages(root, exclude_paths=exclude_paths):
         filepath = dirpath + "/__init__.py"
-        if not has_boundary(filepath):
-            dir_mod_path = fs.file_to_module_path(dirpath)
+        dir_mod_path = fs.file_to_module_path(dirpath)
+        if not boundary_trie.get(dir_mod_path):
             boundary_trie.insert(dir_mod_path)
             write_operations.append(
                 FileWriteInformation(
