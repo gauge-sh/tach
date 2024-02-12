@@ -1,0 +1,16 @@
+import ast
+
+
+class EarlyExitNodeVisitor(ast.NodeVisitor):
+    def __init__(self, *args, **kwargs):
+        self._exit = False
+
+    def set_exit(self, flag: bool = True):
+        self._exit = flag
+
+    def visit(self, node: ast.AST):
+        if self._exit:
+            # Allow reusing the instance
+            self._exit = False
+            return
+        super().visit(node)

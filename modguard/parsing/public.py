@@ -4,10 +4,12 @@ from typing import Optional, Union
 
 from modguard import public, filesystem as fs
 from modguard.core.public import PublicMember
+from .ast_visitor import EarlyExitNodeVisitor
 
 
-class ModguardImportVisitor(ast.NodeVisitor):
-    def __init__(self, module_name: str):
+class ModguardImportVisitor(EarlyExitNodeVisitor):
+    def __init__(self, module_name: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.module_name = module_name
         self.import_found = False
 
@@ -20,12 +22,14 @@ class ModguardImportVisitor(ast.NodeVisitor):
                 alias.name == self.module_name for alias in node.names
             ):
                 self.import_found = True
+                self.set_exit()
                 return
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name == "modguard":
                 self.import_found = True
+                self.set_exit()
                 return
 
 
@@ -145,8 +149,9 @@ def get_public_members(file_path: str) -> list[PublicMember]:
     return public_member_visitor.public_members
 
 
-class MemberFinder(ast.NodeVisitor):
-    def __init__(self, member_name: str):
+class MemberFinder(EarlyExitNodeVisitor):
+    def __init__(self, member_name: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.member_name = member_name
         self.start_lineno: Optional[int] = None
         # For assignments, end_lineno is the end of the assignment value expression
@@ -163,6 +168,7 @@ class MemberFinder(ast.NodeVisitor):
             self.start_lineno = target.lineno
             self.end_lineno = value.end_lineno
             self.matched_assignment = True
+            self.set_exit()
             return
         elif isinstance(target, ast.List) or isinstance(target, ast.Tuple):
             for elt in target.elts:
@@ -170,6 +176,7 @@ class MemberFinder(ast.NodeVisitor):
                     self.start_lineno = target.lineno
                     self.matched_lineno = value.end_lineno
                     self.matched_assignment = True
+                    self.set_exit()
                     return
 
     def visit_Assign(self, node: ast.Assign):
@@ -184,16 +191,19 @@ class MemberFinder(ast.NodeVisitor):
         if self.member_name in node.names:
             self.start_lineno = node.lineno
             self.matched_assignment = True
+            self.set_exit()
             return
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
         if node.name == self.member_name:
             self.start_lineno = node.lineno
+            self.set_exit()
             return
 
     def visit_ClassDef(self, node: ast.ClassDef):
         if node.name == self.member_name:
             self.start_lineno = node.lineno
+            self.set_exit()
             return
 
 

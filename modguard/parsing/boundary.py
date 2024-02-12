@@ -5,10 +5,12 @@ from modguard.core.boundary import BoundaryTrie
 from modguard.public import public
 from modguard import filesystem as fs
 from .public import get_public_members
+from .ast_visitor import EarlyExitNodeVisitor
 
 
-class BoundaryFinder(ast.NodeVisitor):
-    def __init__(self):
+class BoundaryFinder(EarlyExitNodeVisitor):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.is_modguard_boundary_imported = False
         self.found_boundary = False
 
@@ -36,10 +38,14 @@ class BoundaryFinder(ast.NodeVisitor):
                     and node.func.value.id == "modguard"
                 ):
                     self.found_boundary = True
+                    self.set_exit()
+                    return
             elif isinstance(node.func, ast.Name) and node.func.id == "Boundary":
                 # This handles the case where 'Boundary' is imported directly: from modguard import Boundary
                 # We are currently ignoring the case where this is still the wrong Boundary (if it has been re-assigned)
                 self.found_boundary = True
+                self.set_exit()
+                return
 
 
 @public
