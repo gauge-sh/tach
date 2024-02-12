@@ -99,12 +99,6 @@ class PublicMemberVisitor(ast.NodeVisitor):
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
 
     def visit_Call(self, node: ast.Call):
-        parent_node = getattr(node, "parent")
-        grandparent_node = getattr(parent_node, "parent")
-        top_level = isinstance(parent_node, ast.Module)
-        top_level_expr = isinstance(parent_node, ast.Expr) and isinstance(
-            grandparent_node, ast.Module
-        )
         is_raw_public_call = (
             isinstance(node.func, ast.Name) and node.func.id == "public"
         )
@@ -114,10 +108,8 @@ class PublicMemberVisitor(ast.NodeVisitor):
             and node.func.value.id == "modguard"
             and node.func.attr == "public"
         )
-        if (
-            self.is_modguard_public_imported
-            and (top_level or top_level_expr)
-            and (is_raw_public_call or is_modguard_public_call)
+        if self.is_modguard_public_imported and (
+            is_raw_public_call or is_modguard_public_call
         ):
             # public() has been called at the top-level,
             if node.args:
@@ -141,12 +133,6 @@ class PublicMemberVisitor(ast.NodeVisitor):
                     )
                 ]
             return
-
-    def visit(self, node: ast.AST):
-        # Inject a 'parent' attribute to each node for easier parent tracking
-        for child in ast.iter_child_nodes(node):
-            setattr(child, "parent", node)
-        super().visit(node)
 
 
 def get_public_members(file_path: str) -> list[PublicMember]:
@@ -247,6 +233,9 @@ def mark_as_public(file_path: str, member_name: str = ""):
     else:
         starting_line = file_lines[member_finder.start_lineno - 1]
         starting_whitespace_match = WHITESPACE_REGEX.match(starting_line)
+        assert (
+            starting_whitespace_match
+        ), f"Whitespace regex should always match.\n{starting_line}"
 
         # The member name was found
         if member_finder.matched_assignment:
