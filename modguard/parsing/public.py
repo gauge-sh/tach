@@ -227,8 +227,8 @@ def mark_as_public(file_path: str, member_name: str = ""):
     if not member_name:
         fs.write_file(
             file_path,
-            _public_module_end(should_import=not modguard_public_is_imported)
-            + file_content,
+            file_content
+            + _public_module_end(should_import=not modguard_public_is_imported),
         )
         return
 
