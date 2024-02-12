@@ -3,9 +3,8 @@ import re
 from typing import Optional
 from dataclasses import dataclass, field
 
+from modguard import filesystem as fs
 from modguard.public import public
-from modguard.errors import ModguardParseError
-from .utils import file_to_module_path
 
 
 @dataclass
@@ -70,7 +69,7 @@ class ImportVisitor(ast.NodeVisitor):
 
         if ignored_modules is not None and len(ignored_modules) == 0:
             # Empty ignore list signifies blanket ignore of following import
-            return self.generic_visit(node)
+            return
 
         for name_node in node.names:
             local_mod_path = (
@@ -89,33 +88,24 @@ class ImportVisitor(ast.NodeVisitor):
             )
             self.imports.append(global_mod_path)
 
-        self.generic_visit(node)
-
     def visit_Import(self, node: ast.Import):
         ignored_modules = self._get_ignored_modules(node.lineno)
         if ignored_modules is not None and len(ignored_modules) == 0:
             # Empty ignore list signifies blanket ignore of following import
-            return self.generic_visit(node)
+            return
 
         ignored_modules = ignored_modules or []
         self.imports.extend(
             (alias.name for alias in node.names if alias.name not in ignored_modules)
         )
-        self.generic_visit(node)
 
 
 @public
 def get_imports(file_path: str) -> list[str]:
-    with open(file_path, "r") as file:
-        file_content = file.read()
-
-    try:
-        parsed_ast = ast.parse(file_content)
-    except SyntaxError as e:
-        raise ModguardParseError(f"Syntax error in {file_path}: {e}")
-
+    file_content = fs.read_file(file_path)
+    parsed_ast = fs.parse_ast(file_path)
     ignore_directives = get_ignore_directives(file_content)
-    mod_path = file_to_module_path(file_path)
+    mod_path = fs.file_to_module_path(file_path)
     import_visitor = ImportVisitor(
         is_package=file_path.endswith("__init__.py"),
         current_mod_path=mod_path,

@@ -2,7 +2,7 @@ import pytest
 import tempfile
 import shutil
 import os
-from modguard import errors
+from modguard import errors, filesystem as fs
 from modguard.init import init_project
 from modguard.parsing.boundary import BOUNDARY_PRELUDE
 
@@ -12,11 +12,11 @@ def init_project_from_root(root) -> None:
     saved_directory = os.getcwd()
     try:
         # Navigate to the root directory and call init_project
-        os.chdir(root)
+        fs.chdir(root)
         init_project(root)
     finally:
         # Change back to the original directory
-        os.chdir(saved_directory)
+        fs.chdir(saved_directory)
 
 
 @pytest.fixture(scope="module")
@@ -36,7 +36,7 @@ def test_init_project_with_valid_root(test_root):
         "package3",
         "package4/subpackage",
         "package5/subpackage",
-        "package6/subpackage"
+        "package6/subpackage",
     ]
     for d in test_dirs:
         os.makedirs(os.path.join(test_root, d))
@@ -80,8 +80,11 @@ def test_init_project_with_valid_root(test_root):
             "package2/module2.py",
             "import modguard\n@modguard.public\ndef package_2_func():\n    pass\n",
         ),
-        ("package6/subpackage/module6.py","import modguard\nx = 3\nmodguard.public(x)\n",),
-        ('package3/module3.py', 'import modguard\nmodguard.public()\n')
+        (
+            "package6/subpackage/module6.py",
+            "import modguard\nx = 3\nmodguard.public(x)\n",
+        ),
+        ("package3/module3.py", "import modguard\nmodguard.public()\n"),
     ]
     for file_path, expected_state in expected_public_files:
         with open(os.path.join(test_root, file_path)) as f:

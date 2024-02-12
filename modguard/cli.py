@@ -1,8 +1,9 @@
 import argparse
 import os
 import sys
-from .check import check, ErrorInfo
-from .init import init_project
+
+from modguard.check import check, ErrorInfo
+from modguard.init import init_project
 
 
 class BCOLORS:

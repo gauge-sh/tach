@@ -2,10 +2,10 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
+from . import filesystem as fs
 from .core.boundary import BoundaryTrie, BoundaryNode
 from .parsing.boundary import build_boundary_trie
 from .parsing.imports import get_imports
-from .parsing import utils
 
 
 @dataclass
@@ -83,14 +83,14 @@ def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInf
         return [ErrorInfo(exception_message=f"The path {root} is not a directory.")]
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
-    root = utils.canonical(root)
-    exclude_paths = list(map(utils.canonical, exclude_paths)) if exclude_paths else None
+    root = fs.canonical(root)
+    exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
     boundary_trie = build_boundary_trie(root, exclude_paths=exclude_paths)
 
     errors: list[ErrorInfo] = []
-    for file_path in utils.walk_pyfiles(root, exclude_paths=exclude_paths):
-        mod_path = utils.file_to_module_path(file_path)
+    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
+        mod_path = fs.file_to_module_path(file_path)
         nearest_boundary = boundary_trie.find_nearest(mod_path)
         assert (
             nearest_boundary is not None
