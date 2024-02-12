@@ -20,11 +20,13 @@ def test_get_imports():
     assert set(get_imports("example/domain_one/__init__.py")) == {
         "modguard.Boundary",
         "example.domain_one.interface.domain_one_interface",
+        "example.domain_one.interface.domain_one_var",
     }
     assert set(get_imports("example/__init__.py")) == {
         "modguard.Boundary",
         "example.domain_one.interface.domain_one_interface",
-        "example.domain_three.api.public_for_domain_two",
+        "example.domain_three.api.PublicForDomainTwo",
         "example.domain_four",
         "example.domain_four.subsystem.private_subsystem_call",
+        "example.domain_one.interface.domain_one_var",
     }

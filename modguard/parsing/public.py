@@ -66,7 +66,6 @@ class PublicMemberVisitor(ast.NodeVisitor):
                         for elt in allowlist_value.elts
                         if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
                     ] or None
-        return None
 
     def _add_public_member_from_decorator(
         self, node: Union[ast.FunctionDef, ast.ClassDef], decorator: ast.expr
@@ -209,7 +208,7 @@ class MemberFinder(ast.NodeVisitor):
             return
 
 
-def _public_module_prelude(should_import: bool = True) -> str:
+def _public_module_end(should_import: bool = True) -> str:
     if should_import:
         return "import modguard\nmodguard.public()\n"
     return "modguard.public()\n"
@@ -228,7 +227,7 @@ def mark_as_public(file_path: str, member_name: str = ""):
     if not member_name:
         fs.write_file(
             file_path,
-            _public_module_prelude(should_import=not modguard_public_is_imported)
+            _public_module_end(should_import=not modguard_public_is_imported)
             + file_content,
         )
         return

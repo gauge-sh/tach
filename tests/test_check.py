@@ -79,7 +79,7 @@ def test_check_example_dir_end_to_end():
             boundary_path="example.domain_one",
         ),
         ErrorInfo(
-            import_mod_path="example.domain_three.api.public_for_domain_two",
+            import_mod_path="example.domain_three.api.PublicForDomainTwo",
             location="example/__init__.py",
             boundary_path="example.domain_three",
         ),
@@ -92,6 +92,16 @@ def test_check_example_dir_end_to_end():
             import_mod_path="example.domain_four.subsystem.private_subsystem_call",
             location="example/__init__.py",
             boundary_path="example.domain_four.subsystem",
+        ),
+        ErrorInfo(
+            location="example/__init__.py",
+            import_mod_path="example.domain_one.interface.domain_one_var",
+            boundary_path="example.domain_one",
+        ),
+        ErrorInfo(
+            location="example/domain_three/__init__.py",
+            import_mod_path="example.domain_one.interface.domain_one_var",
+            boundary_path="example.domain_one",
         ),
     ]
     check_results = check("example")
