@@ -159,15 +159,13 @@ def get_public_members(file_path: str) -> list[PublicMember]:
     return public_member_visitor.public_members
 
 
-# TODO: handle re-exported members (follow imports?)
 class MemberFinder(ast.NodeVisitor):
     def __init__(self, member_name: str):
         self.member_name = member_name
-        # For functions and classes, matched_lineno is the start of the definition
-        # because a decorator can be inserted directly before the definition
-        # For assignments, matched_lineno is the end of the assignment
-        # because a public(...) call can be inserted directly after the assignment
-        self.matched_lineno: Optional[int] = None
+        self.start_lineno: Optional[int] = None
+        # For assignments, end_lineno is the end of the assignment value expression
+        # because a public(...) call should be inserted directly after the assignment
+        self.end_lineno: Optional[int] = None
         self.matched_assignment = False
 
     def _check_assignment(
@@ -176,12 +174,14 @@ class MemberFinder(ast.NodeVisitor):
         value: ast.expr,
     ):
         if isinstance(target, ast.Name) and target.id == self.member_name:
-            self.matched_lineno = value.end_lineno
+            self.start_lineno = target.lineno
+            self.end_lineno = value.end_lineno
             self.matched_assignment = True
             return
         elif isinstance(target, ast.List) or isinstance(target, ast.Tuple):
             for elt in target.elts:
                 if isinstance(elt, ast.Name) and elt.id == self.member_name:
+                    self.start_lineno = target.lineno
                     self.matched_lineno = value.end_lineno
                     self.matched_assignment = True
                     return
@@ -196,22 +196,23 @@ class MemberFinder(ast.NodeVisitor):
 
     def visit_Global(self, node: ast.Global):
         if self.member_name in node.names:
-            self.matched_lineno = node.end_lineno
+            self.start_lineno = node.lineno
             self.matched_assignment = True
             return
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
         if node.name == self.member_name:
-            self.matched_lineno = node.lineno
+            self.start_lineno = node.lineno
             return
 
     def visit_ClassDef(self, node: ast.ClassDef):
         if node.name == self.member_name:
-            self.matched_lineno = node.lineno
+            self.start_lineno = node.lineno
             return
 
 
 IMPORT_REGEX = re.compile(r"^(from |import )")
+WHITESPACE_REGEX = re.compile(r"^((\s)*)")
 IMPORT_MODGUARD = "import modguard"
 PUBLIC_DECORATOR = "@modguard.public"
 MODGUARD_PUBLIC = "modguard.public"
@@ -236,7 +237,7 @@ def mark_as_public(file_path: str, member_name: str = ""):
 
     file_lines = file_content.splitlines(keepends=True)
     lines_to_write: list[str]
-    if member_finder.matched_lineno is None:
+    if member_finder.start_lineno is None:
         # The member name was not found, which probably means it is dynamic
         # Add a public call with the member name as a string
         lines_to_write = [
@@ -244,21 +245,27 @@ def mark_as_public(file_path: str, member_name: str = ""):
             f'{MODGUARD_PUBLIC}("{member_name}")\n',
         ]
     else:
+        starting_line = file_lines[member_finder.start_lineno - 1]
+        starting_whitespace_match = WHITESPACE_REGEX.match(starting_line)
+
         # The member name was found
-        normal_lineno = member_finder.matched_lineno - 1
         if member_finder.matched_assignment:
+            assert (
+                member_finder.end_lineno is not None
+            ), f"Expected to find end_lineno on matched assignment. [{file_path}, {member_name}]"
+
             # Insert a call to public for the member after the assignment
             lines_to_write = [
-                *file_lines[: normal_lineno + 1],
-                f"{MODGUARD_PUBLIC}({member_name})\n",
-                *file_lines[normal_lineno + 1 :],
+                *file_lines[: member_finder.end_lineno],
+                f"{starting_whitespace_match.group(1) or ''}{MODGUARD_PUBLIC}({member_name})\n",
+                *file_lines[member_finder.end_lineno :],
             ]
         else:
             # Insert a decorator before the function or class definition
             lines_to_write = [
-                *file_lines[:normal_lineno],
-                PUBLIC_DECORATOR + "\n",
-                *file_lines[normal_lineno:],
+                *file_lines[: member_finder.start_lineno - 1],
+                f"{starting_whitespace_match.group(1) or ''}{PUBLIC_DECORATOR}\n",
+                *file_lines[member_finder.start_lineno - 1 :],
             ]
     if not modguard_public_is_imported:
         lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
