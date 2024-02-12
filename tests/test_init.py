@@ -18,6 +18,7 @@ def init_project_from_root(root) -> None:
         # Change back to the original directory
         os.chdir(saved_directory)
 
+
 @pytest.fixture(scope="module")
 def test_root():
     # Create a temporary directory to use as the root for testing
@@ -35,6 +36,7 @@ def test_init_project_with_valid_root(test_root):
         "package3",
         "package4/subpackage",
         "package5/subpackage",
+        "package6/subpackage"
     ]
     for d in test_dirs:
         os.makedirs(os.path.join(test_root, d))
@@ -43,19 +45,21 @@ def test_init_project_with_valid_root(test_root):
 
     # Create some mock Python files with imports and member names
     file_contents = {
-        "package1/__init__.py": "from package4.subpackage import SubPackageClass\n",
-        "package2/__init__.py": "from package5.subpackage import SubPackageClass\n",
-        "package3/__init__.py": "from package1.module1 import Package1Class\nfrom package2.module2 import Package2Class\n",
-        "package4/subpackage/__init__.py": "",
-        "package5/subpackage/__init__.py": "",
+        "package1/__init__.py": "from package6.subpackage.module6 import x",
+        "package2/__init__.py": "",
         "package1/module1.py": "class Package1Class:\n    pass\n",
-        "package2/module2.py": "class Package2Class:\n    pass\n",
+        "package2/module2.py": "def package_2_func():\n    pass\n",
+        "package3/__init__.py": "from package1.module1 import Package1Class\nfrom package2.module2 import package_2_func\n",
+        "package3/module3.py": "",
+        "package4/subpackage/__init__.py": "",
+        "package5/subpackage/__init__.py": "import package3.module3",
+        "package6/subpackage/__init__.py": "",
+        "package6/subpackage/module6.py": "x = 3\n",
     }
 
     for file_path, content in file_contents.items():
         with open(os.path.join(test_root, file_path), "w") as f:
             f.write(content)
-
 
     # Call init_project with the test root
     init_project_from_root(test_root)
@@ -68,8 +72,16 @@ def test_init_project_with_valid_root(test_root):
 
     # Check if public members have been marked as expected
     expected_public_files = [
-        ("package1/module1.py", 'import modguard\n@modguard.public\nclass Package1Class:\n    pass\n'),
-        ("package2/module2.py", 'import modguard\n@modguard.public\nclass Package2Class:\n    pass\n'),
+        (
+            "package1/module1.py",
+            "import modguard\n@modguard.public\nclass Package1Class:\n    pass\n",
+        ),
+        (
+            "package2/module2.py",
+            "import modguard\n@modguard.public\ndef package_2_func():\n    pass\n",
+        ),
+        ("package6/subpackage/module6.py","import modguard\nx = 3\nmodguard.public(x)\n",),
+        ('package3/module3.py', 'import modguard\nmodguard.public()\n')
     ]
     for file_path, expected_state in expected_public_files:
         with open(os.path.join(test_root, file_path)) as f:

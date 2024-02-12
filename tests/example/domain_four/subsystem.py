@@ -1,6 +1,6 @@
-from modguard import Boundary
+import modguard
 
-Boundary()
+modguard.Boundary()
 
 
 def private_subsystem_call():

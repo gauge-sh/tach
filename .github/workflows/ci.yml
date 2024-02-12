@@ -30,8 +30,7 @@ jobs:
         python -m pip install ruff pytest pytest-mock coverage pyright
     - name: Check ruff
       run: |
-        # Ignore unused imports as they are needed to test modguard
-        ruff check --ignore F401
+        ruff check .
     - name: Test with pytest and report coverage
       run: |
         cd tests
