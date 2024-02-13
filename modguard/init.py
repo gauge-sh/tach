@@ -37,19 +37,20 @@ def deduplicate_writes(
             # Uniqueness check means all boundary writes should be kept
             result.append(write)
         elif write.operation == WriteOperation.PUBLIC:
+            root_public = FileWriteInformation(
+                location=write.location,
+                operation=WriteOperation.PUBLIC,
+                member_name="",
+            )
             if write.location in public_writes and public_writes[write.location] == [
-                FileWriteInformation(
-                    location=write.location,
-                    operation=WriteOperation.PUBLIC,
-                    member_name="",
-                )
+                root_public
             ]:
                 # Root already public, skip this write
                 continue
 
-            if write.member_name == "":
+            if write.member_name in ["", "*"]:
                 # A blank public write clears all other public writes for the location
-                public_writes[write.location] = [write]
+                public_writes[write.location] = [root_public]
             else:
                 public_writes[write.location].append(write)
     return [*result, *chain(*public_writes.values())]
