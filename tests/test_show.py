@@ -1,8 +1,53 @@
 import pytest
 
+from modguard.core import BoundaryTrie, PublicMember, BoundaryNode
 
-from .test_boundary_trie import boundary_trie
-
+@pytest.fixture
+def boundary_trie():
+    return BoundaryTrie(
+        root=BoundaryNode(
+            public_members={},
+            children={
+                "domain_one": BoundaryNode(
+                    public_members={},
+                    children={},
+                    is_end_of_path=True,
+                    full_path="domain_one",
+                ),
+                "domain_two": BoundaryNode(
+                    public_members={},
+                    children={
+                        "subdomain": BoundaryNode(
+                            public_members={},
+                            children={},
+                            is_end_of_path=True,
+                            full_path="domain_two.subdomain",
+                        )
+                    },
+                    is_end_of_path=True,
+                    full_path="domain_two",
+                ),
+                "domain_three": BoundaryNode(
+                    public_members={},
+                    children={},
+                    is_end_of_path=True,
+                    full_path="domain_three",
+                ),
+                "domain_four": BoundaryNode(
+                    public_members={
+                        "domain_four.public_api": PublicMember(
+                            name="domain_four.public_api", allowlist=None
+                        )
+                    },
+                    children={},
+                    is_end_of_path=True,
+                    full_path="domain_four",
+                ),
+            },
+            is_end_of_path=True,
+            full_path="",
+        )
+    )
 from modguard.show import show
 
 
