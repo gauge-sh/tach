@@ -31,6 +31,7 @@ jobs:
     - name: Check ruff
       run: |
         ruff check .
+        ruff format --check .
     - name: Test with pytest and report coverage
       run: |
         cd tests
