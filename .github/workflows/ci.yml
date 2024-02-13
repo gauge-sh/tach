@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install ruff pytest pytest-mock coverage pyright
+        python -m pip install ruff pytest pytest-mock coverage pyright PyYAML
     - name: Check ruff
       run: |
         ruff check .
