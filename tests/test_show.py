@@ -1,8 +1,7 @@
 import pytest
 
+from modguard.show import show
 from modguard.core import BoundaryTrie, PublicMember, BoundaryNode
-
-d
 
 
 @pytest.fixture
@@ -51,9 +50,6 @@ def boundary_trie():
             full_path="",
         )
     )
-
-
-from modguard.show import show
 
 
 def test_show(boundary_trie):
