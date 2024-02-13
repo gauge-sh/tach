@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-from . import filesystem as fs
+from .filesystem import interface as fs
 from .core.boundary import BoundaryTrie, BoundaryNode
 from .parsing.boundary import build_boundary_trie
 from .parsing.imports import get_imports

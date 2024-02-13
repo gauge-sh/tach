@@ -2,7 +2,8 @@ import pytest
 import tempfile
 import shutil
 import os
-from modguard import errors, filesystem as fs
+from modguard import errors
+from modguard.filesystem import interface as fs
 from modguard.init import init_project
 from modguard.parsing.boundary import BOUNDARY_PRELUDE
 

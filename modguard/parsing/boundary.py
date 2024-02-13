@@ -1,15 +1,15 @@
 import ast
-from typing import Optional
+from typing import Optional, Any
 
 from modguard.core.boundary import BoundaryTrie
 from modguard.public import public
-from modguard import filesystem as fs
+from modguard.filesystem import interface as fs
 from .public import get_public_members
 from .ast_visitor import EarlyExitNodeVisitor
 
 
 class BoundaryFinder(EarlyExitNodeVisitor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: list[Any], **kwargs: dict[Any, Any]):
         super().__init__(*args, **kwargs)
         self.is_modguard_boundary_imported = False
         self.found_boundary = False

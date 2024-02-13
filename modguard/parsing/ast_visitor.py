@@ -1,8 +1,9 @@
 import ast
+from typing import Any
 
 
 class EarlyExitNodeVisitor(ast.NodeVisitor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: list[Any], **kwargs: dict[Any, Any]):
         self._exit = False
 
     def set_exit(self, flag: bool = True):

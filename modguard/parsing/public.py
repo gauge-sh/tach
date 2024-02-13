@@ -1,14 +1,15 @@
 import ast
 import re
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
-from modguard import public, filesystem as fs
+from modguard import public
+from modguard.filesystem import interface as fs
 from modguard.core.public import PublicMember
 from .ast_visitor import EarlyExitNodeVisitor
 
 
 class ModguardImportVisitor(EarlyExitNodeVisitor):
-    def __init__(self, module_name: str, *args, **kwargs):
+    def __init__(self, module_name: str, *args: list[Any], **kwargs: dict[Any, Any]):
         super().__init__(*args, **kwargs)
         self.module_name = module_name
         self.import_found = False
@@ -150,7 +151,7 @@ def get_public_members(file_path: str) -> list[PublicMember]:
 
 
 class MemberFinder(EarlyExitNodeVisitor):
-    def __init__(self, member_name: str, *args, **kwargs):
+    def __init__(self, member_name: str, *args: list[Any], **kwargs: dict[Any, Any]):
         super().__init__(*args, **kwargs)
         self.member_name = member_name
         self.start_lineno: Optional[int] = None
