@@ -1,4 +1,5 @@
 import yaml
+from modguard.colors import BCOLORS
 from modguard.core.boundary import BoundaryTrie
 from typing import Any, Dict
 
@@ -32,11 +33,30 @@ def boundary_trie_to_dict(boundary_trie: BoundaryTrie) -> Dict[str, Any]:
     return result
 
 
+def dict_to_str(dict_repr: Dict[str, Any]) -> str:
+    str_repr = ''
+    def _recurs_build_string(str_repr: str, level: int, current: Dict[str, Any]) -> str:
+        for k, v in current.items():
+            if isinstance(v, dict):
+                is_boundary =  'is_boundary' in v.keys()
+                is_public =  'is_public' in v.keys()
+                str_repr += BCOLORS.ENDC + BCOLORS.ENDC +  '\n'+ '    ' * level
+                if is_boundary:
+                    str_repr += BCOLORS.BOLD + "[B]"
+                if is_public:
+                    str_repr += BCOLORS.OKGREEN + "[P]"
+                str_repr += k
+                str_repr = _recurs_build_string(str_repr, level + 1, v)
+        return str_repr
+    return _recurs_build_string(str_repr, 0, dict_repr)
+
+            
+
 def show(boundary_trie: BoundaryTrie, write_file: bool = False) -> str:
     dict_repr = boundary_trie_to_dict(boundary_trie)
     result = yaml.dump(dict_repr)
-    print(result)
+    print(dict_to_str(dict_repr))
     if write_file:
         with open("modguard.yaml", "w") as f:
-            f.write(result)
+            yaml.dump(dict_repr, f)
     return result
