@@ -75,7 +75,9 @@ class PublicMemberVisitor(ast.NodeVisitor):
                     ] or None
 
     def _add_public_member_from_decorator(
-        self, node: Union[ast.FunctionDef, ast.ClassDef], decorator: ast.expr
+        self,
+        node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
+        decorator: ast.expr,
     ):
         if (
             isinstance(decorator, ast.Call)
@@ -109,6 +111,11 @@ class PublicMemberVisitor(ast.NodeVisitor):
                 self.public_members.append(PublicMember(name=node.name))
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
+        if self.is_modguard_public_imported:
+            for decorator in node.decorator_list:
+                self._add_public_member_from_decorator(node=node, decorator=decorator)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
@@ -211,6 +218,12 @@ class MemberFinder(EarlyExitNodeVisitor):
             return
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
+        if node.name == self.member_name:
+            self.start_lineno = node.lineno
+            self.set_exit()
+            return
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         if node.name == self.member_name:
             self.start_lineno = node.lineno
             self.set_exit()
