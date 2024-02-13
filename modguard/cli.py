@@ -4,6 +4,7 @@ import sys
 
 from modguard.check import check, ErrorInfo
 from modguard.init import init_project
+from modguard.loading import stop_spinner, start_spinner
 from modguard.show import show
 from modguard.parsing.boundary import build_boundary_trie
 from modguard.colors import BCOLORS
@@ -137,9 +138,11 @@ def modguard(args: argparse.Namespace):
             shared_args.path, exclude_paths=shared_args.exclude_paths
         )
     except Exception as e:
+        stop_spinner()
         print(str(e))
         sys.exit(1)
 
+    stop_spinner()
     if result:
         print_errors(result)
         sys.exit(1)
@@ -151,10 +154,13 @@ def modguard_show(args: argparse.Namespace):
     shared_args = handle_shared_arguments(args)
     try:
         bt = build_boundary_trie(shared_args.path)
-        show(bt, write_file=args.write)
+        _, pretty_result = show(bt, write_file=args.write)
     except Exception as e:
+        stop_spinner()
         print(str(e))
         sys.exit(1)
+    stop_spinner()
+    print(pretty_result)
     sys.exit(0)
 
 
@@ -163,14 +169,17 @@ def modguard_init(args: argparse.Namespace):
     try:
         init_project(shared_args.path, exclude_paths=shared_args.exclude_paths)
     except Exception as e:
+        stop_spinner()
         print(str(e))
         sys.exit(1)
 
+    stop_spinner()
     print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
     sys.exit(0)
 
 
 def main() -> None:
+    start_spinner()
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         modguard_init(parse_init_arguments(sys.argv[2:]))
     elif len(sys.argv) > 1 and sys.argv[1] == "show":
