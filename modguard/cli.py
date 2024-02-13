@@ -87,6 +87,35 @@ def parse_init_arguments(args: list[str]) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
+def parse_show_arguments(args: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="modguard show",
+        description="Show your exisiting boundaries in modguard",
+    )
+    parser.add_argument(
+        "path",
+        type=str,
+        help="The path of the Python project in which boundaries should be initialized.",
+    )
+    parser.add_argument(
+        "-e",
+        "--exclude",
+        required=False,
+        type=str,
+        metavar="file_or_path,...",
+        help="Comma separated path list to exclude. tests/,ci/,etc.",
+    )
+    parser.add_argument(
+        "-w",
+        "--write",
+        required=False,
+        dest="write",
+        action='store_true',
+        default=False,
+    )
+    return parser.parse_args(args)
+
+
 def handle_shared_arguments(args: argparse.Namespace):
     path = args.path
     if not os.path.isdir(path):
@@ -132,7 +161,7 @@ def modguard_show(args: argparse.Namespace):
     shared_args = handle_shared_arguments(args)
     try:
         bt = build_boundary_trie(shared_args.path)
-        show(bt)
+        show(bt, write_file=args.write)
     except Exception as e:
         print(str(e))
         sys.exit(1)
@@ -141,7 +170,6 @@ def modguard_show(args: argparse.Namespace):
 
 def modguard_init(args: argparse.Namespace):
     shared_args = handle_shared_arguments(args)
-
     try:
         init_project(shared_args.path, exclude_paths=shared_args.exclude_paths)
     except Exception as e:
@@ -156,7 +184,7 @@ def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         modguard_init(parse_init_arguments(sys.argv[2:]))
     if len(sys.argv) > 1 and sys.argv[1] == "show":
-        modguard_show(parse_init_arguments(sys.argv[2:]))
+        modguard_show(parse_show_arguments(sys.argv[2:]))
     else:
         modguard(parse_base_arguments(sys.argv[1:]))
 

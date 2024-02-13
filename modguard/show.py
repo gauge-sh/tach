@@ -31,8 +31,12 @@ def boundary_trie_to_dict(boundary_trie: BoundaryTrie) -> Dict[str, Any]:
     return result
 
 
-def show(boundary_trie: BoundaryTrie) -> str:
+
+def show(boundary_trie: BoundaryTrie, write_file: bool=False) -> str:
     dict_repr = boundary_trie_to_dict(boundary_trie)
     result = yaml.dump(dict_repr)
     print(result)
+    if write_file:
+        with open('modguard.yaml', 'w') as f:
+            yaml.dump(dict_repr, f)
     return result
