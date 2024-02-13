@@ -54,7 +54,7 @@ def boundary_trie():
 
 def test_show(boundary_trie):
     assert (
-        show(boundary_trie)
+        show(boundary_trie)[0]
         == """domain_four:
   is_boundary: true
   public_api:

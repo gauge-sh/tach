@@ -23,13 +23,15 @@ class FileWriteInformation:
     member_name: str = ""
 
 
-def init_project(root: str, exclude_paths: Optional[list[str]] = None):
+def init_project(root: str, exclude_paths: Optional[list[str]] = None) -> list[str]:
     # Core functionality:
     # * do nothing in any package already having a Boundary
     # * import and call Boundary in __init__.py for all other packages
     # * import and decorate public on all externally imported members
     if not os.path.isdir(root):
         raise errors.ModguardSetupError(f"The path {root} is not a directory.")
+
+    warnings: list[str] = []
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = fs.canonical(root)
@@ -95,8 +97,8 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
                 )
                 violated_boundary.add_public_member(PublicMember(name=import_mod_path))
             except errors.ModguardError:
-                print(
-                    f"Skipping member {member_name or import_mod_path} in {file_path}; could not mark as public"
+                warnings.append(
+                    f"Warning: Skipped member {member_name or import_mod_path} in {file_path}; could not mark as public"
                 )
     # After we've completed our pass on inserting boundaries and public members, write to files
     for write_op in write_operations:
@@ -106,8 +108,10 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None):
             elif write_op.operation == WriteOperation.PUBLIC:
                 mark_as_public(write_op.location, write_op.member_name)
         except errors.ModguardError:
-            print(
-                f"Error marking {write_op.operation.value}"
+            warnings.append(
+                f"Warning: Could not mark {write_op.operation.value}"
                 f"{'({member})'.format(member=write_op.member_name) if write_op.member_name else ''}"
                 f" in {write_op.location}"
             )
+
+    return warnings
