@@ -52,11 +52,19 @@ class BoundaryFinder(EarlyExitNodeVisitor):
 @public
 def has_boundary(file_path: str) -> bool:
     file_content = fs.read_file(file_path)
-    # Enforce specific import style to speed up this check
-    # Only match open paren on Boundary to automatically remain compatible when Boundary is configurable in-line
-    return bool(re.search(r"(^|\n*)import modguard($|\n*)", file_content)) and bool(
-        re.search(r"(^|\n*)modguard\.Boundary\(", file_content)
-    )
+    # import modguard; modguard.Boundary()
+    if re.search(r"(^|\n)import\s+modguard($|\n)", file_content):
+        return bool(re.search(r"(^|\n)modguard\.Boundary\(", file_content))
+    # from modguard.boundary import Boundary; Boundary()
+    if re.search(r"(^|\n)from\s+modguard\.boundary\s+import.*Boundary", file_content):
+        return bool(re.search(r"(^|\n)Boundary\(", file_content))
+    # from modguard import boundary; boundary.Boundary()
+    if re.search(r"(^|\n)from\s+modguard\s+import.*boundary", file_content):
+        return bool(re.search(r"(^|\n)boundary\.Boundary\(", file_content))
+    # import modguard.boundary; modguard.boundary.Boundary()
+    if re.search(r"(^|\n)import\s+modguard\.boundary($|\n)", file_content):
+        return bool(re.search(r"(^|\n)modguard\.boundary\.Boundary\(", file_content))
+    return False
 
 
 BOUNDARY_PRELUDE = "import modguard\nmodguard.Boundary()\n"

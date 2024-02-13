@@ -1,5 +1,6 @@
 import ast
 import re
+from dataclasses import dataclass
 from typing import Optional, Union, Any
 
 import modguard
@@ -8,8 +9,37 @@ from modguard.core.public import PublicMember
 from .ast_visitor import EarlyExitNodeVisitor
 
 
-def is_modguard_imported(file_content: str) -> bool:
-    return bool(re.search(r"(^|\n*)import modguard($|\n*)", file_content))
+@dataclass
+class ModguardImportInfo:
+    is_import_from: bool = False
+    module_name: str = ""
+
+
+def get_modguard_import_info(
+    file_content: str, module_name: str = ""
+) -> Optional[ModguardImportInfo]:
+    # absolute import of modguard
+    if re.search(r"(^|\n)import\s+modguard($|\n)", file_content):
+        return ModguardImportInfo()
+
+    if not module_name:
+        # If no module, only absolute import is valid
+        return None
+
+    # absolute import of modguard.<module_name>
+    if re.search(rf"(^|\n)import\s+modguard\.{module_name}($|\n)", file_content):
+        return ModguardImportInfo(is_import_from=True, module_name=module_name)
+    # from modguard import <module_name>
+    if re.search(
+        rf"(^|\n)from\s+modguard(\.\w+)?\s+import\s+{module_name}($|\n)", file_content
+    ):
+        return ModguardImportInfo(is_import_from=True, module_name=module_name)
+    # from modguard import (..., <module_name>)
+    # this is a best-effort regex that does NOT match multi-line imports correctly
+    if re.search(
+        rf"(^|\n)from\s+modguard(\.\w+)?\s+import.*{module_name}($|\n)", file_content
+    ):
+        return ModguardImportInfo(is_import_from=True, module_name=module_name)
 
 
 class PublicMemberVisitor(ast.NodeVisitor):
@@ -193,24 +223,36 @@ class MemberFinder(EarlyExitNodeVisitor):
             return
 
 
-IMPORT_REGEX = re.compile(r"^(from |import )")
 WHITESPACE_REGEX = re.compile(r"^((\s)*)")
 IMPORT_MODGUARD = "import modguard"
-PUBLIC_DECORATOR = "@modguard.public"
+MODGUARD_PUBLIC_DECORATOR = "@modguard.public"
+PUBLIC_DECORATOR = "@public"
 MODGUARD_PUBLIC = "modguard.public"
+PUBLIC = "public"
 
 
 @modguard.public
 def mark_as_public(file_path: str, member_name: str = ""):
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)
-    modguard_is_imported = is_modguard_imported(file_content)
+    modguard_import_info = get_modguard_import_info(file_content, "public")
+    public_fn_name = (
+        PUBLIC
+        if modguard_import_info and modguard_import_info.is_import_from
+        else MODGUARD_PUBLIC
+    )
+    public_decorator_name = (
+        PUBLIC_DECORATOR
+        if modguard_import_info and modguard_import_info.is_import_from
+        else MODGUARD_PUBLIC_DECORATOR
+    )
+
     if not member_name or member_name == "*":
         fs.write_file(
             file_path,
-            (f"{IMPORT_MODGUARD}\n" if not modguard_is_imported else "")
+            (f"{IMPORT_MODGUARD}\n" if modguard_import_info is None else "")
             + file_content
-            + f"{MODGUARD_PUBLIC}()\n",
+            + f"{public_fn_name}()\n",
         )
         return
 
@@ -224,7 +266,7 @@ def mark_as_public(file_path: str, member_name: str = ""):
         # Add a public call with the member name as a string
         lines_to_write = [
             *file_lines,
-            f'{MODGUARD_PUBLIC}("{member_name}")\n',
+            f'{public_fn_name}("{member_name}")\n',
         ]
     else:
         starting_line = file_lines[member_finder.start_lineno - 1]
@@ -242,17 +284,17 @@ def mark_as_public(file_path: str, member_name: str = ""):
             # Insert a call to public for the member after the assignment
             lines_to_write = [
                 *file_lines[: member_finder.end_lineno],
-                f"{starting_whitespace_match.group(1) or ''}{MODGUARD_PUBLIC}({member_name})\n",
+                f"{starting_whitespace_match.group(1) or ''}{public_fn_name}({member_name})\n",
                 *file_lines[member_finder.end_lineno :],
             ]
         else:
             # Insert a decorator before the function or class definition
             lines_to_write = [
                 *file_lines[: member_finder.start_lineno - 1],
-                f"{starting_whitespace_match.group(1) or ''}{PUBLIC_DECORATOR}\n",
+                f"{starting_whitespace_match.group(1) or ''}{public_decorator_name}\n",
                 *file_lines[member_finder.start_lineno - 1 :],
             ]
-    if not modguard_is_imported:
+    if modguard_import_info is None:
         lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
 
     fs.write_file(file_path, "".join(lines_to_write))
