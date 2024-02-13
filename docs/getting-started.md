@@ -1,6 +1,6 @@
 # Getting Started
 
-### Installation
+## Installation
 
 [PyPi package](https://pypi.org/project/modguard/)
 
@@ -16,14 +16,14 @@ Verify your installation is working correctly
 modguard --help
 ```
 
-### Guarding an Existing Project
+## Guarding a Project
 
 If you are adding `modguard` to an existing project, you have two main options:
 
-1. Use [`modguard init`](usage.md#init) to automatically set up package boundaries and identify necessary public members
+1. Use [`modguard init`](usage.md#modguard-init) to automatically set up package boundaries and identify necessary public members
 2. Manually mark boundaries and public members in your code ([See API docs](api.md))
 
-### Checking Project Boundaries
+## Checking Boundaries
 
 ```bash
 # From the root of your Python project
