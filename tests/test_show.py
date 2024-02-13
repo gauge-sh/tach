@@ -67,7 +67,5 @@ domain_two:
   is_boundary: true
   subdomain:
     is_boundary: true
-root:
-  is_boundary: true
 """
     )
