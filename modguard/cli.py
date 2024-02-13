@@ -110,9 +110,9 @@ def parse_show_arguments(args: list[str]) -> argparse.Namespace:
         "--write",
         required=False,
         dest="write",
-        action='store_true',
+        action="store_true",
         default=False,
-        help="Include to write the output to a `modguard.yaml` file"
+        help="Include to write the output to a `modguard.yaml` file",
     )
     return parser.parse_args(args)
 
