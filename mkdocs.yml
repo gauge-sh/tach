@@ -1,6 +1,18 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 site_name: Modguard Documentation
+site_url: https://never-over.github.io/modguard/
+nav:
+  - index.md
+  - why-modguard.md
+  - getting-started.md
+  - usage.md
+  - api.md
+  - faq.md
 theme:
   name: material
   features:
     - navigation.instant
+    - navigation.instant.progress
+    - navigation.sections
+    - navigation.tracking
+    - toc.follow
