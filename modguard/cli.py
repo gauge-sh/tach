@@ -95,7 +95,7 @@ def parse_show_arguments(args: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "path",
         type=str,
-        help="The path of the Python project in which boundaries should be initialized.",
+        help="The path of the Python project in which to show boundaries and public members.",
     )
     parser.add_argument(
         "-e",
@@ -184,7 +184,7 @@ def modguard_init(args: argparse.Namespace):
 def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         modguard_init(parse_init_arguments(sys.argv[2:]))
-    if len(sys.argv) > 1 and sys.argv[1] == "show":
+    elif len(sys.argv) > 1 and sys.argv[1] == "show":
         modguard_show(parse_show_arguments(sys.argv[2:]))
     else:
         modguard(parse_base_arguments(sys.argv[1:]))

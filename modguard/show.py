@@ -10,23 +10,23 @@ def boundary_trie_to_dict(boundary_trie: BoundaryTrie) -> Dict[str, Any]:
     for node in boundary_trie:
         path = node.full_path
         if path == "":
-            path = "root"
+            continue
         sections = path.split(".")
-        pointer: Dict[str, Any] = result
+        current: Dict[str, Any] = result
         for section in sections:
-            if section not in pointer:
-                pointer[section] = dict()
-            pointer = pointer[section]
-        pointer["is_boundary"] = True
+            if section not in current:
+                current[section] = dict()
+            current = current[section]
+        current["is_boundary"] = True
 
         for member in node.public_members.keys():
-            pointer: Dict[str, Any] = result
+            current: Dict[str, Any] = result
             sections = member.split(".")
             for section in sections:
-                if section not in pointer:
-                    pointer[section] = dict()
-                pointer = pointer[section]
-            pointer["is_public"] = True
+                if section not in current:
+                    current[section] = dict()
+                current = current[section]
+            current["is_public"] = True
 
     return result
 
