@@ -1,6 +1,8 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 import os
+from itertools import chain
 from typing import Optional
 
 from modguard import errors, filesystem as fs
@@ -16,11 +18,41 @@ class WriteOperation(Enum):
     PUBLIC = "public"
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class FileWriteInformation:
     location: str
     operation: WriteOperation
     member_name: str = ""
+
+
+def deduplicate_writes(
+    writes: list[FileWriteInformation],
+) -> list[FileWriteInformation]:
+    public_writes: defaultdict[str, list[FileWriteInformation]] = defaultdict(list)
+    result = []
+    # Basic uniqueness simplifies later checks
+    writes = list(set(writes))
+    for write in writes:
+        if write.operation == WriteOperation.BOUNDARY:
+            # Uniqueness check means all boundary writes should be kept
+            result.append(write)
+        elif write.operation == WriteOperation.PUBLIC:
+            if write.location in public_writes and public_writes[write.location] == [
+                FileWriteInformation(
+                    location=write.location,
+                    operation=WriteOperation.PUBLIC,
+                    member_name="",
+                )
+            ]:
+                # Root already public, skip this write
+                continue
+
+            if write.member_name == "":
+                # A blank public write clears all other public writes for the location
+                public_writes[write.location] = [write]
+            else:
+                public_writes[write.location].append(write)
+    return [*result, *chain(*public_writes.values())]
 
 
 def init_project(root: str, exclude_paths: Optional[list[str]] = None) -> list[str]:
@@ -101,7 +133,7 @@ def init_project(root: str, exclude_paths: Optional[list[str]] = None) -> list[s
                     f"Warning: Skipped member {member_name or import_mod_path} in {file_path}; could not mark as public"
                 )
     # After we've completed our pass on inserting boundaries and public members, write to files
-    for write_op in write_operations:
+    for write_op in deduplicate_writes(write_operations):
         try:
             if write_op.operation == WriteOperation.BOUNDARY:
                 add_boundary(write_op.location)
