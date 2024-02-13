@@ -144,7 +144,7 @@ def modguard_init(args: argparse.Namespace, exclude_paths: Optional[list[str]] =
 
 
 def main() -> None:
-    args = parse_arguments(args)
+    args = parse_arguments(sys.argv[1:])
     exclude_paths = args.exclude.split(',') if args.exclude else None
     if args.command == 'init':
         modguard_init(args, exclude_paths)
