@@ -8,36 +8,8 @@ from modguard.core.public import PublicMember
 from .ast_visitor import EarlyExitNodeVisitor
 
 
-class ModguardImportVisitor(EarlyExitNodeVisitor):
-    def __init__(self, module_name: str, *args: list[Any], **kwargs: dict[Any, Any]):
-        super().__init__(*args, **kwargs)
-        self.module_name = module_name
-        self.import_found = False
-
-    def visit_ImportFrom(self, node: ast.ImportFrom):
-        if self.module_name:
-            is_modguard_module_import = node.module is not None and (
-                node.module == "modguard" or node.module.startswith("modguard.")
-            )
-            if is_modguard_module_import and any(
-                alias.name == self.module_name for alias in node.names
-            ):
-                self.import_found = True
-                self.set_exit()
-                return
-
-    def visit_Import(self, node: ast.Import):
-        for alias in node.names:
-            if alias.name == "modguard":
-                self.import_found = True
-                self.set_exit()
-                return
-
-
-def is_modguard_imported(parsed_ast: ast.AST, module_name: str = "") -> bool:
-    modguard_import_visitor = ModguardImportVisitor(module_name)
-    modguard_import_visitor.visit(parsed_ast)
-    return modguard_import_visitor.import_found
+def is_modguard_imported(file_content: str) -> bool:
+    return bool(re.match(r"^import modguard", file_content))
 
 
 class PublicMemberVisitor(ast.NodeVisitor):
@@ -219,11 +191,11 @@ MODGUARD_PUBLIC = "modguard.public"
 def mark_as_public(file_path: str, member_name: str = ""):
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)
-    modguard_public_is_imported = is_modguard_imported(parsed_ast, "public")
+    modguard_is_imported = is_modguard_imported(file_content)
     if not member_name or member_name == "*":
         fs.write_file(
             file_path,
-            (f"{IMPORT_MODGUARD}\n" if not modguard_public_is_imported else "")
+            (f"{IMPORT_MODGUARD}\n" if not modguard_is_imported else "")
             + file_content
             + f"{MODGUARD_PUBLIC}()\n",
         )
@@ -267,7 +239,7 @@ def mark_as_public(file_path: str, member_name: str = ""):
                 f"{starting_whitespace_match.group(1) or ''}{PUBLIC_DECORATOR}\n",
                 *file_lines[member_finder.start_lineno - 1 :],
             ]
-    if not modguard_public_is_imported:
+    if not modguard_is_imported:
         lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
 
     fs.write_file(file_path, "".join(lines_to_write))
