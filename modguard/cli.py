@@ -167,24 +167,29 @@ def modguard_show(args: argparse.Namespace):
 def modguard_init(args: argparse.Namespace):
     shared_args = handle_shared_arguments(args)
     try:
-        init_project(shared_args.path, exclude_paths=shared_args.exclude_paths)
+        warnings = init_project(
+            shared_args.path, exclude_paths=shared_args.exclude_paths
+        )
     except Exception as e:
         stop_spinner()
         print(str(e))
         sys.exit(1)
 
     stop_spinner()
+    print("\n".join(warnings))
     print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
     sys.exit(0)
 
 
 def main() -> None:
-    start_spinner()
     if len(sys.argv) > 1 and sys.argv[1] == "init":
+        start_spinner("Initializing...")
         modguard_init(parse_init_arguments(sys.argv[2:]))
     elif len(sys.argv) > 1 and sys.argv[1] == "show":
+        start_spinner("Scanning...")
         modguard_show(parse_show_arguments(sys.argv[2:]))
     else:
+        start_spinner("Scanning...")
         modguard(parse_base_arguments(sys.argv[1:]))
 
 
