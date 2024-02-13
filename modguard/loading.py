@@ -9,6 +9,7 @@ spinner_started = False
 
 
 end_signal_queue: queue.Queue[bool] = queue.Queue()
+confirm_end_signal_queue: queue.Queue[bool] = queue.Queue()
 
 
 def spinner(label: str = ""):
@@ -21,6 +22,7 @@ def spinner(label: str = ""):
             if written:
                 sys.stdout.write("\b" * len(line))
                 sys.stdout.flush()
+            confirm_end_signal_queue.put_nowait(True)
             return
         except queue.Empty:
             pass
@@ -34,7 +36,7 @@ def stop_spinner():
     global spinner_started
     if spinner_started:
         end_signal_queue.put_nowait(True)
-        time.sleep(0.01)
+        confirm_end_signal_queue.get(timeout=0.34)
         spinner_started = False
 
 
