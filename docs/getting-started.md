@@ -13,7 +13,7 @@ pip install modguard
 
 Verify your installation is working correctly
 ```bash
-modguard --help
+modguard -h
 ```
 
 ## Guarding a Project
@@ -27,7 +27,7 @@ If you are adding `modguard` to an existing project, you have two main options:
 
 ```bash
 # From the root of your Python project
-modguard .
+modguard check .
 ```
 
-After guarding your project, running `modguard` from the root will check all imports to verify that packages remain correctly decoupled.
+After implementing in your project, running `modguard` from the root will check all imports to verify that packages remain correctly decoupled.
