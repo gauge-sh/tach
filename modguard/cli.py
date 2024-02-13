@@ -140,9 +140,7 @@ def modguard_show(args: argparse.Namespace, exclude_paths: Optional[list[str]] =
 
 def modguard_init(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
     try:
-        warnings = init_project(
-            args.path, exclude_paths=exclude_paths
-        )
+        warnings = init_project(args.path, exclude_paths=exclude_paths)
     except Exception as e:
         stop_spinner()
         print(str(e))
