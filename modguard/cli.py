@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+from typing import Optional
 
 from modguard.check import check, ErrorInfo
 from modguard.init import init_project
@@ -87,10 +88,10 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def modguard_check(args: argparse.Namespace):
+def modguard_check(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
     try:
         result: list[ErrorInfo] = check(
-            args.path, exclude_paths=args.exclude
+            args.path, exclude_paths=exclude_paths
         )
     except Exception as e:
         print(str(e))
@@ -103,9 +104,9 @@ def modguard_check(args: argparse.Namespace):
     sys.exit(0)
 
 
-def modguard_show(args: argparse.Namespace):
+def modguard_show(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
     try:
-        bt = build_boundary_trie(args.path)
+        bt = build_boundary_trie(args.path, exclude_paths=exclude_paths)
         show(bt, write_file=args.write)
     except Exception as e:
         print(str(e))
@@ -113,9 +114,9 @@ def modguard_show(args: argparse.Namespace):
     sys.exit(0)
 
 
-def modguard_init(args: argparse.Namespace):
+def modguard_init(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
     try:
-        init_project(args.path, exclude_paths=args.exclude)
+        init_project(args.path, exclude_paths=exclude_paths)
     except Exception as e:
         print(str(e))
         sys.exit(1)
@@ -132,8 +133,9 @@ def main() -> None:
         sys.exit(1)
     exclude_paths = args.exclude
     if exclude_paths:
+        exclude_paths = exclude_paths.split(",")
         has_error = False
-        for exclude_path in exclude_paths.split(","):
+        for exclude_path in exclude_paths:
             if (
                 exclude_path
                 and not os.path.isdir(exclude_path)
@@ -144,11 +146,11 @@ def main() -> None:
         if has_error:
             sys.exit(1)
     if args.command == 'init':
-        modguard_init(args)
+        modguard_init(args, exclude_paths)
     elif args.command == 'check':
-        modguard_check(args)
+        modguard_check(args, exclude_paths)
     elif args.command == 'show':
-        modguard_show(args)
+        modguard_show(args, exclude_paths)
     else:
         print('Unrecognized command')
         exit(1)
