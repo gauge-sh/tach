@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional, Union, Any
 
 import modguard
-from modguard.filesystem import interface as fs
+from modguard import filesystem as fs
 from modguard.core.public import PublicMember
 from .ast_visitor import EarlyExitNodeVisitor
 

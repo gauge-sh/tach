@@ -3,8 +3,7 @@ from enum import Enum
 import os
 from typing import Optional
 
-from modguard import errors
-from modguard.filesystem import interface as fs
+from modguard import errors, filesystem as fs
 from modguard.check import check_import
 from modguard.core import PublicMember
 from modguard.parsing.boundary import add_boundary, build_boundary_trie

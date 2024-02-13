@@ -1,5 +1,5 @@
 # TODO: move this test
-from modguard.filesystem.interface import file_to_module_path
+from modguard.filesystem import file_to_module_path
 from modguard.parsing.boundary import has_boundary
 from modguard.parsing.imports import get_imports
 
@@ -29,4 +29,6 @@ def test_get_imports():
         "example.domain_four",
         "example.domain_four.subsystem.private_subsystem_call",
         "example.domain_one.interface.domain_one_var",
+        "example.domain_five.inner.private",
+        "example.domain_five.pub_fn",
     }

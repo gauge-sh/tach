@@ -1,8 +1,9 @@
 import os
+import re
 from dataclasses import dataclass
 from typing import Optional
 
-from .filesystem import interface as fs
+from . import filesystem as fs
 from .core.boundary import BoundaryTrie, BoundaryNode
 from .parsing.boundary import build_boundary_trie
 from .parsing.imports import get_imports
@@ -35,7 +36,7 @@ def check_import(
     # * The module is not contained by a boundary [generally 3rd party]
     import_mod_has_boundary = nearest_boundary is not None
 
-    # * The imported module's boundary is a child of the file's boundary
+    # * The file's boundary is a child of the imported module's boundary
     import_mod_is_child_of_current = (
         import_mod_has_boundary
         and file_nearest_boundary.full_path.startswith(nearest_boundary.full_path)
@@ -47,7 +48,7 @@ def check_import(
             (
                 public_member
                 for public_member_name, public_member in nearest_boundary.public_members.items()
-                if import_mod_path.startswith(public_member_name)
+                if re.match(rf"^{public_member_name}(\.\w+)?$", import_mod_path)
             ),
             None,
         )

@@ -3,7 +3,7 @@ import re
 from typing import Optional
 from dataclasses import dataclass, field
 
-from modguard.filesystem import interface as fs
+from modguard import filesystem as fs
 from modguard.public import public
 
 

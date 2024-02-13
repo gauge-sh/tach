@@ -1,9 +1,9 @@
 import re
 from typing import Optional
 
+from modguard import filesystem as fs
 from modguard.core.boundary import BoundaryTrie
 from modguard.public import public
-from modguard.filesystem import interface as fs
 from .public import get_public_members
 
 
