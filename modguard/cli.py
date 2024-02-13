@@ -4,6 +4,8 @@ import sys
 
 from modguard.check import check, ErrorInfo
 from modguard.init import init_project
+from modguard.show import show
+from modguard.parsing.boundary import build_boundary_trie
 
 
 class BCOLORS:
@@ -126,6 +128,17 @@ def modguard(args: argparse.Namespace):
     sys.exit(0)
 
 
+def modguard_show(args: argparse.Namespace):
+    shared_args = handle_shared_arguments(args)
+    try:
+        bt = build_boundary_trie(shared_args.path)
+        show(bt)
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+    sys.exit(0)
+
+
 def modguard_init(args: argparse.Namespace):
     shared_args = handle_shared_arguments(args)
 
@@ -142,6 +155,8 @@ def modguard_init(args: argparse.Namespace):
 def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         modguard_init(parse_init_arguments(sys.argv[2:]))
+    if len(sys.argv) > 1 and sys.argv[1] == "show":
+        modguard_show(parse_init_arguments(sys.argv[2:]))
     else:
         modguard(parse_base_arguments(sys.argv[1:]))
 
