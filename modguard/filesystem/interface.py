@@ -1,4 +1,4 @@
-from modguard import public
+import modguard
 
 # ruff: noqa: F401
 # pyright: reportUnusedImport=false
@@ -15,4 +15,4 @@ from .service import (
     module_to_file_path,
 )
 
-public()
+modguard.public()

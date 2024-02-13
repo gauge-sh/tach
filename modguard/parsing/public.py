@@ -2,14 +2,14 @@ import ast
 import re
 from typing import Optional, Union, Any
 
-from modguard import public
+import modguard
 from modguard.filesystem import interface as fs
 from modguard.core.public import PublicMember
 from .ast_visitor import EarlyExitNodeVisitor
 
 
 def is_modguard_imported(file_content: str) -> bool:
-    return bool(re.match(r"^import modguard", file_content))
+    return bool(re.search(r"(^|\n*)import modguard($|\n*)", file_content))
 
 
 class PublicMemberVisitor(ast.NodeVisitor):
@@ -53,6 +53,19 @@ class PublicMemberVisitor(ast.NodeVisitor):
             and decorator.func.id == "public"
         ):
             # This means @public is called with arguments
+            self.public_members.append(
+                PublicMember(
+                    name=node.name, allowlist=self._extract_allowlist(decorator)
+                )
+            )
+        elif (
+            isinstance(decorator, ast.Call)
+            and isinstance(decorator.func, ast.Attribute)
+            and isinstance(decorator.func.value, ast.Name)
+            and decorator.func.value.id == "modguard"
+            and decorator.func.attr == "public"
+        ):
+            # This means @modguard.public is called with arguments
             self.public_members.append(
                 PublicMember(
                     name=node.name, allowlist=self._extract_allowlist(decorator)
@@ -187,7 +200,7 @@ PUBLIC_DECORATOR = "@modguard.public"
 MODGUARD_PUBLIC = "modguard.public"
 
 
-@public
+@modguard.public
 def mark_as_public(file_path: str, member_name: str = ""):
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)

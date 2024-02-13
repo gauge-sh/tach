@@ -16,14 +16,14 @@ def test_has_boundary():
 
 
 def test_get_imports():
-    assert get_imports("example/domain_one/interface.py") == ["modguard.public"]
+    assert get_imports("example/domain_one/interface.py") == ["modguard"]
     assert set(get_imports("example/domain_one/__init__.py")) == {
-        "modguard.Boundary",
+        "modguard",
         "example.domain_one.interface.domain_one_interface",
         "example.domain_one.interface.domain_one_var",
     }
     assert set(get_imports("example/__init__.py")) == {
-        "modguard.Boundary",
+        "modguard",
         "example.domain_one.interface.domain_one_interface",
         "example.domain_three.api.PublicForDomainTwo",
         "example.domain_four",

@@ -1,11 +1,11 @@
-from modguard import public
+import modguard
 
 
-@public(allowlist=["example.domain_two"])
+@modguard.public(allowlist=["example.domain_two"])
 def domain_one_interface():
     ...
 
 
 domain_one_var = "hello domain two"
 
-public(domain_one_var, allowlist=["example.domain_two"])
+modguard.public(domain_one_var, allowlist=["example.domain_two"])

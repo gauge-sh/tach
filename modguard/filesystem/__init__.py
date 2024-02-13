@@ -1,3 +1,3 @@
-from modguard import Boundary
+import modguard
 
-Boundary()
+modguard.Boundary()

@@ -1,4 +1,4 @@
-from modguard import Boundary
+import modguard
 
 # intentional import violations
 from .domain_one.interface import domain_one_interface, domain_one_var
@@ -12,7 +12,7 @@ import example.domain_four
 from .domain_two.other import internal_api
 
 
-Boundary()
+modguard.Boundary()
 
 
 # Usages

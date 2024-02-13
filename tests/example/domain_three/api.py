@@ -1,6 +1,6 @@
-from modguard.public import public
+import modguard
 
-public(allowlist=["example.domain_two"])
+modguard.public(allowlist=["example.domain_two"])
 
 
 class PublicForDomainTwo:

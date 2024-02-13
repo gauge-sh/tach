@@ -1,7 +1,7 @@
-from modguard import Boundary
+import modguard
 from .interface import domain_one_interface, domain_one_var
 
-Boundary()
+modguard.Boundary()
 
 # Usages
 domain_one_interface()

@@ -23,18 +23,18 @@ pip install modguard
 Add a `Boundary` to the `__init__.py` of the module you're creating an interface for.
 ```python
 # project/core/__init__.py
-from modguard import Boundary
+import modguard
 
-Boundary(__name__)
+modguard.Boundary(__name__)
 ```
 
 Add the `public` decorator to any callable in the module that should be exported.
 ```python
 # project/core/main.py
-from modguard import public
+import modguard
 
 # Adding the decorator here signifies this function is public
-@public
+@modguard.public
 def public_function(user_id: int) -> str:
     ...
 
@@ -63,7 +63,7 @@ This will automatically create boundaries and define your public interface for e
 ### Advanced Usage
 Modguard also supports specific allow lists within the `public()` decorator.
 ```python
-@public(allowlist=['utils.helpers'])
+@modguard.public(allowlist=['utils.helpers'])
 def public_function(user_id: int) -> str:
     ...
 ```
@@ -90,8 +90,9 @@ from core import main # contains public and private members
 If you expect to be able to import the entire contents of your module, you can declare an entire module as public to avoid this:
 ```python
 # core/main.py
-from modguard import public
-public()
+import modguard
+
+modguard.public()
 
 ...
 ```

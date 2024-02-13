@@ -1,4 +1,5 @@
 import ast
+import re
 from typing import Optional, Any
 
 from modguard.core.boundary import BoundaryTrie
@@ -50,10 +51,12 @@ class BoundaryFinder(EarlyExitNodeVisitor):
 
 @public
 def has_boundary(file_path: str) -> bool:
-    parsed_ast = fs.parse_ast(file_path)
-    boundary_finder = BoundaryFinder()
-    boundary_finder.visit(parsed_ast)
-    return boundary_finder.found_boundary
+    file_content = fs.read_file(file_path)
+    # Enforce specific import style to speed up this check
+    # Only match open paren on Boundary to automatically remain compatible when Boundary is configurable in-line
+    return bool(re.search(r"(^|\n*)import modguard($|\n*)", file_content)) and bool(
+        re.search(r"(^|\n*)modguard\.Boundary\(", file_content)
+    )
 
 
 BOUNDARY_PRELUDE = "import modguard\nmodguard.Boundary()\n"
