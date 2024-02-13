@@ -21,7 +21,7 @@ def print_errors(error_list: list[ErrorInfo]) -> None:
 
 def print_invalid_path(path: str) -> None:
     print(
-        f"{BCOLORS.FAIL} {path} is not a valid directory!! Provide the path of the root of your project.",
+        f"{BCOLORS.FAIL} {path} is not a valid directory! Provide the path of the root of your project.",
         file=sys.stderr,
     )
 
@@ -31,7 +31,6 @@ def print_invalid_exclude(path: str) -> None:
         f"{BCOLORS.FAIL} {path} is not a valid dir or file. Make sure the exclude list is comma separated and valid.",
         file=sys.stderr,
     )
-
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
@@ -85,7 +84,26 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
         default=False,
         help="Write the output to a `modguard.yaml` file",
     )
-    return parser.parse_args(args)
+    parsed_args = parser.parse_args(args)
+    path = parsed_args.path
+    if not os.path.isdir(path):
+        print_invalid_path(path)
+        sys.exit(1)
+    exclude_paths = parsed_args.exclude
+    if exclude_paths:
+        exclude_paths = exclude_paths.split(",")
+        has_error = False
+        for exclude_path in exclude_paths:
+            if (
+                exclude_path
+                and not os.path.isdir(exclude_path)
+                and not os.path.isfile(exclude_path)
+            ):
+                has_error = True
+                print_invalid_exclude(exclude_path)
+        if has_error:
+            sys.exit(1)
+    return parsed_args
 
 
 def modguard_check(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
@@ -126,25 +144,8 @@ def modguard_init(args: argparse.Namespace, exclude_paths: Optional[list[str]] =
 
 
 def main() -> None:
-    args = parse_arguments(sys.argv[1:])
-    path = args.path
-    if not os.path.isdir(path):
-        print_invalid_path(path)
-        sys.exit(1)
-    exclude_paths = args.exclude
-    if exclude_paths:
-        exclude_paths = exclude_paths.split(",")
-        has_error = False
-        for exclude_path in exclude_paths:
-            if (
-                exclude_path
-                and not os.path.isdir(exclude_path)
-                and not os.path.isfile(exclude_path)
-            ):
-                has_error = True
-                print_invalid_exclude(exclude_path)
-        if has_error:
-            sys.exit(1)
+    args = parse_arguments(args)
+    exclude_paths = args.exclude.split(',') if args.exclude else None
     if args.command == 'init':
         modguard_init(args, exclude_paths)
     elif args.command == 'check':

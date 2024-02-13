@@ -81,7 +81,7 @@ def check_import(
 
 def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInfo]:
     if not os.path.isdir(root):
-        return [ErrorInfo(exception_message=f"The path {root} is not a directory.")]
+        return [ErrorInfo(exception_message=f"The path {root} is not a valid directory.")]
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = fs.canonical(root)
