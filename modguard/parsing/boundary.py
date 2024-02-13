@@ -1,52 +1,10 @@
-import ast
 import re
-from typing import Optional, Any
+from typing import Optional
 
 from modguard.core.boundary import BoundaryTrie
 from modguard.public import public
 from modguard.filesystem import interface as fs
 from .public import get_public_members
-from .ast_visitor import EarlyExitNodeVisitor
-
-
-class BoundaryFinder(EarlyExitNodeVisitor):
-    def __init__(self, *args: list[Any], **kwargs: dict[Any, Any]):
-        super().__init__(*args, **kwargs)
-        self.is_modguard_boundary_imported = False
-        self.found_boundary = False
-
-    def visit_ImportFrom(self, node: ast.ImportFrom):
-        # Check if 'Boundary' is imported specifically from a 'modguard'-rooted module
-        is_modguard_module_import = node.module is not None and (
-            node.module == "modguard" or node.module.startswith("modguard.")
-        )
-        if is_modguard_module_import and any(
-            alias.name == "Boundary" for alias in node.names
-        ):
-            self.is_modguard_boundary_imported = True
-
-    def visit_Import(self, node: ast.Import):
-        # Check if 'modguard' is imported
-        for alias in node.names:
-            if alias.name == "modguard":
-                self.is_modguard_boundary_imported = True
-
-    def visit_Call(self, node: ast.Call):
-        if self.is_modguard_boundary_imported:
-            if isinstance(node.func, ast.Attribute) and node.func.attr == "Boundary":
-                if (
-                    isinstance(node.func.value, ast.Name)
-                    and node.func.value.id == "modguard"
-                ):
-                    self.found_boundary = True
-                    self.set_exit()
-                    return
-            elif isinstance(node.func, ast.Name) and node.func.id == "Boundary":
-                # This handles the case where 'Boundary' is imported directly: from modguard import Boundary
-                # We are currently ignoring the case where this is still the wrong Boundary (if it has been re-assigned)
-                self.found_boundary = True
-                self.set_exit()
-                return
 
 
 @public
