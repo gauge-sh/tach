@@ -38,5 +38,5 @@ def show(boundary_trie: BoundaryTrie, write_file: bool=False) -> str:
     print(result)
     if write_file:
         with open('modguard.yaml', 'w') as f:
-            yaml.dump(dict_repr, f)
+            f.write(result)
     return result
