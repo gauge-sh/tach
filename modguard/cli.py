@@ -5,6 +5,7 @@ from typing import Optional
 
 from modguard.check import check, ErrorInfo
 from modguard.init import init_project
+from modguard.loading import stop_spinner, start_spinner
 from modguard.show import show
 from modguard.parsing.boundary import build_boundary_trie
 from modguard.colors import BCOLORS
@@ -112,9 +113,11 @@ def modguard_check(args: argparse.Namespace, exclude_paths: Optional[list[str]] 
     try:
         result: list[ErrorInfo] = check(args.path, exclude_paths=exclude_paths)
     except Exception as e:
+        stop_spinner()
         print(str(e))
         sys.exit(1)
 
+    stop_spinner()
     if result:
         print_errors(result)
         sys.exit(1)
@@ -125,20 +128,28 @@ def modguard_check(args: argparse.Namespace, exclude_paths: Optional[list[str]] 
 def modguard_show(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
     try:
         bt = build_boundary_trie(args.path, exclude_paths=exclude_paths)
-        show(bt, write_file=args.write)
+        _, pretty_result = show(bt, write_file=args.write)
     except Exception as e:
+        stop_spinner()
         print(str(e))
         sys.exit(1)
+    stop_spinner()
+    print(pretty_result)
     sys.exit(0)
 
 
 def modguard_init(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
     try:
-        init_project(args.path, exclude_paths=exclude_paths)
+        warnings = init_project(
+            args.path, exclude_paths=exclude_paths
+        )
     except Exception as e:
+        stop_spinner()
         print(str(e))
         sys.exit(1)
 
+    stop_spinner()
+    print("\n".join(warnings))
     print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
     sys.exit(0)
 
@@ -147,10 +158,13 @@ def main() -> None:
     args = parse_arguments(sys.argv[1:])
     exclude_paths = args.exclude.split(",") if args.exclude else None
     if args.command == "init":
+        start_spinner("Initializing...")
         modguard_init(args, exclude_paths)
     elif args.command == "check":
+        start_spinner("Scanning...")
         modguard_check(args, exclude_paths)
     elif args.command == "show":
+        start_spinner("Scanning...")
         modguard_show(args, exclude_paths)
     else:
         print("Unrecognized command")

@@ -1,7 +1,8 @@
 import yaml
 from modguard.colors import BCOLORS
 from modguard.core.boundary import BoundaryTrie
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
+
 
 # This type hint only works on more recent versions
 # result_dict: TypeAlias = dict[str, str | bool | 'result_dict']
@@ -54,11 +55,11 @@ def dict_to_str(dict_repr: Dict[str, Any]) -> str:
     return _recurs_build_string(str_repr, 0, dict_repr) + "\n"
 
 
-def show(boundary_trie: BoundaryTrie, write_file: bool = False) -> str:
+def show(boundary_trie: BoundaryTrie, write_file: bool = False) -> Tuple[str, str]:
     dict_repr = boundary_trie_to_dict(boundary_trie)
-    result = yaml.dump(dict_repr)
-    print(dict_to_str(dict_repr))
+    yaml_result = yaml.dump(dict_repr)
+    pretty_str_result = dict_to_str(dict_repr)
     if write_file:
         with open("modguard.yaml", "w") as f:
             yaml.dump(dict_repr, f)
-    return result
+    return yaml_result, pretty_str_result
