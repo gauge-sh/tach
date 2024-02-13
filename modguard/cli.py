@@ -4,18 +4,9 @@ import sys
 
 from modguard.check import check, ErrorInfo
 from modguard.init import init_project
-
-
-class BCOLORS:
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKCYAN = "\033[96m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
+from modguard.show import show
+from modguard.parsing.boundary import build_boundary_trie
+from modguard.colors import BCOLORS
 
 
 def print_errors(error_list: list[ErrorInfo]) -> None:
@@ -85,6 +76,36 @@ def parse_init_arguments(args: list[str]) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
+def parse_show_arguments(args: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="modguard show",
+        description="Show your exisiting boundaries in modguard",
+    )
+    parser.add_argument(
+        "path",
+        type=str,
+        help="The path of the Python project in which to show boundaries and public members.",
+    )
+    parser.add_argument(
+        "-e",
+        "--exclude",
+        required=False,
+        type=str,
+        metavar="file_or_path,...",
+        help="Comma separated path list to exclude. tests/,ci/,etc.",
+    )
+    parser.add_argument(
+        "-w",
+        "--write",
+        required=False,
+        dest="write",
+        action="store_true",
+        default=False,
+        help="Include to write the output to a `modguard.yaml` file",
+    )
+    return parser.parse_args(args)
+
+
 def handle_shared_arguments(args: argparse.Namespace):
     path = args.path
     if not os.path.isdir(path):
@@ -126,9 +147,19 @@ def modguard(args: argparse.Namespace):
     sys.exit(0)
 
 
+def modguard_show(args: argparse.Namespace):
+    shared_args = handle_shared_arguments(args)
+    try:
+        bt = build_boundary_trie(shared_args.path)
+        show(bt, write_file=args.write)
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+    sys.exit(0)
+
+
 def modguard_init(args: argparse.Namespace):
     shared_args = handle_shared_arguments(args)
-
     try:
         init_project(shared_args.path, exclude_paths=shared_args.exclude_paths)
     except Exception as e:
@@ -142,6 +173,8 @@ def modguard_init(args: argparse.Namespace):
 def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] == "init":
         modguard_init(parse_init_arguments(sys.argv[2:]))
+    elif len(sys.argv) > 1 and sys.argv[1] == "show":
+        modguard_show(parse_show_arguments(sys.argv[2:]))
     else:
         modguard(parse_base_arguments(sys.argv[1:]))
 

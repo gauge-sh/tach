@@ -5,12 +5,14 @@
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # modguard
-A Python tool to support and enforce a modular package architecture within a monorepo.
+A Python tool to support and enforce a modular, decoupled package architecture.
+
+[Full Documentation](https://never-over.github.io/modguard/)
 
 ### What is modguard?
 Modguard enables you to explicitly define the public interface for a given module. Marking a package with a `Boundary` makes all of its internals private by default, exposing only the members marked with the `@public` decorator.
 
-This enforces an architecture of decoupled and well defined modules, and ensures the communication between domains is only done through their expected public interfaces.
+This enforces an architecture of decoupled and well-defined modules, and ensures the communication between domains is only done through their expected public interfaces.
 
 Modguard is incredibly lightweight, and has no impact on the runtime of your code. Instead, its checks are performed through a static analysis CLI tool.
 
@@ -25,10 +27,10 @@ Add a `Boundary` to the `__init__.py` of the module you're creating an interface
 # project/core/__init__.py
 import modguard
 
-modguard.Boundary(__name__)
+modguard.Boundary()
 ```
 
-Add the `public` decorator to any callable in the module that should be exported.
+Add the `public` decorator to any callable in the module that should be exported. You can also export individual members by passing them to `public` as function call arguments.
 ```python
 # project/core/main.py
 import modguard
@@ -41,23 +43,26 @@ def public_function(user_id: int) -> str:
 # This function will be considered private
 def private_function():
     ...
+
+PUBLIC_CONSTANT = "Hello, world"
+# This exports PUBLIC_CONSTANT from this module
+public(PUBLIC_CONSTANT)
 ```
 Modguard will now flag any incorrect dependencies between modules.
 ```bash
-> # From the root of your python project (in this example, `project/`)
+# From the root of your python project (in this example, `project/`)
 > modguard .
 ❌ ./utils/helpers.py: Import 'core.main.private_function' in ./utils/helpers.py is blocked by boundary 'core.main'
 ```
 
 ### Setup
 Modguard also comes bundled with a command to set up and define your initial boundaries.
-```python3
+```bash
 modguard init .
 ```
-By running `modguard init` from the root of your python project, modguard will inspect and declare boundaries on each python package within your project. Additionally, each accessed member of that package will be decorated with `public`. 
+By running `modguard init` from the root of your python project, modguard will inspect and declare boundaries on each python package within your project. Additionally, each accessed member of that package will be decorated with `public`.
 
-
-This will automatically create boundaries and define your public interface for each package within your project, and instantly get your project to passing `modguard .`
+This will automatically create boundaries and define your public interface for each package within your project, and instantly get your project to a passing state for `modguard .`
 
 
 ### Advanced Usage
@@ -67,7 +72,7 @@ Modguard also supports specific allow lists within the `public()` decorator.
 def public_function(user_id: int) -> str:
     ...
 ```
-This will allow for `public_function` to be imported and used in `utils.helpers`, but restrict it's usage elsewhere. 
+This will allow for `public_function` to be imported and used in `utils.helpers`, but restrict its usage elsewhere. 
 
 Alternatively, you can mark an import with the `modguard-ignore` comment:
 ```python
@@ -76,13 +81,12 @@ from core.main import private_function
 ```
 This will stop modguard from flagging this import as a boundary violation.
 
-
 Given that python allows for dynamic importing at runtime, modguard will fail if a whole module is imported without being declared public.
 ```python
 from core import main # contains public and private members
 ```
-```shell
-> # From the root of your project
+```bash
+# From the root of your project
 > modguard .
 ❌ ./utils/helpers.py: Import 'core.main' in ./utils/helpers.py is blocked by boundary 'core.main'
 ```
