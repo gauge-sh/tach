@@ -9,6 +9,6 @@ Modguard is incredibly lightweight, and has no impact on the runtime of your cod
 
 ## Commands
 
-* [`modguard [dir-name]`](usage.md#modguard) - Check boundaries are respected throughout a directory.
+* [`modguard check [dir-name]`](usage.md#modguard) - Check boundaries are respected throughout a directory.
 * [`modguard init [dir-name]`](usage.md#modguard-init) - Initialize package boundaries in a directory.
-* `modguard show [dir-name]` - Generate a YAML representation of the boundaries in a directory.
+* `modguard show [dir-name]` - View and optionally generate a YAML representation of the boundaries in a directory.
