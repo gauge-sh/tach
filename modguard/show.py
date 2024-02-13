@@ -34,23 +34,25 @@ def boundary_trie_to_dict(boundary_trie: BoundaryTrie) -> Dict[str, Any]:
 
 
 def dict_to_str(dict_repr: Dict[str, Any]) -> str:
-    str_repr = ''
+    str_repr = ""
+
     def _recurs_build_string(str_repr: str, level: int, current: Dict[str, Any]) -> str:
         for k, v in current.items():
             if isinstance(v, dict):
-                is_boundary =  'is_boundary' in v.keys()
-                is_public =  'is_public' in v.keys()
-                str_repr += BCOLORS.ENDC + BCOLORS.ENDC +  '\n'+ '    ' * level
+                is_boundary = "is_boundary" in v.keys()
+                is_public = "is_public" in v.keys()
+                str_repr += BCOLORS.ENDC + BCOLORS.ENDC + "\n" + "  " * level
                 if is_boundary:
                     str_repr += BCOLORS.BOLD + "[B]"
                 if is_public:
                     str_repr += BCOLORS.OKGREEN + "[P]"
                 str_repr += k
-                str_repr = _recurs_build_string(str_repr, level + 1, v)
+                next_dict: Dict[str, Any] = v
+                str_repr = _recurs_build_string(str_repr, level + 1, next_dict)
         return str_repr
-    return _recurs_build_string(str_repr, 0, dict_repr)
 
-            
+    return _recurs_build_string(str_repr, 0, dict_repr)[16:]
+
 
 def show(boundary_trie: BoundaryTrie, write_file: bool = False) -> str:
     dict_repr = boundary_trie_to_dict(boundary_trie)
