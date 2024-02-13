@@ -44,4 +44,4 @@ jobs:
     - name: Check modguard
       run: |
         pip install .
-        modguard --exclude tests .
+        modguard check --exclude tests .
