@@ -29,7 +29,7 @@ def deduplicate_writes(
     writes: list[FileWriteInformation],
 ) -> list[FileWriteInformation]:
     public_writes: defaultdict[str, list[FileWriteInformation]] = defaultdict(list)
-    result = []
+    result: list[FileWriteInformation] = []
     # Basic uniqueness simplifies later checks
     writes = list(set(writes))
     for write in writes:
