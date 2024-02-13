@@ -32,81 +32,100 @@ def print_invalid_exclude(path: str) -> None:
     )
 
 
-def parse_base_arguments(args: list[str]) -> argparse.Namespace:
-    base_parser = argparse.ArgumentParser(
+def add_base_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "-e",
+        "--exclude",
+        required=False,
+        type=str,
+        metavar="file_or_path,...",
+        help="Comma separated path list to exclude. tests/, ci/, etc.",
+    )
+    parser.add_argument(
+        "path",
+        type=str,
+        help="The path of the root of your Python project.",
+    )
+
+def parse_arguments(args: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
         prog="modguard",
         add_help=True,
-        epilog="Make sure modguard is run from the root of your repo that a directory is being specified. For example: `modguard .`",
+        epilog="Make sure modguard is run from the root of your Python project and that a directory is being specified. For example: `modguard check .`",
     )
-    base_parser.add_argument(
-        "path",
-        type=str,
-        help="The path of the root of your project that contains all defined boundaries.",
-    )
-    base_parser.add_argument(
-        "-e",
-        "--exclude",
-        required=False,
-        type=str,
-        metavar="file_or_path,...",
-        help="Comma separated path list to exclude. tests/,ci/,etc.",
-    )
-    return base_parser.parse_args(args)
-
-
-def parse_init_arguments(args: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+    subparsers = parser.add_subparsers(title='commands', dest='command')
+    init_parser = subparsers.add_parser(
+        "init",
         prog="modguard init",
-        description="Initialize boundaries in a repository with modguard",
+        help="Initialize boundaries and mark imported members as public",
+        description="Initialize boundaries with modguard",
     )
-    parser.add_argument(
-        "path",
-        type=str,
-        help="The path of the Python project in which boundaries should be initialized.",
+    add_base_arguments(init_parser)
+    check_parser = subparsers.add_parser(
+        "check",
+        prog="modguard check",
+        help="Check existing boundaries against marked members",
+        description="Check boundaries with modguard",
     )
-    parser.add_argument(
-        "-e",
-        "--exclude",
-        required=False,
-        type=str,
-        metavar="file_or_path,...",
-        help="Comma separated path list to exclude. tests/,ci/,etc.",
-    )
-
-    return parser.parse_args(args)
-
-
-def parse_show_arguments(args: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+    add_base_arguments(check_parser)
+    show_parser = subparsers.add_parser(
+        "show",
         prog="modguard show",
-        description="Show your exisiting boundaries in modguard",
+        help="Show your existing boundaries and optionally write to yaml",
+        description="Show your existing boundaries in modguard",
     )
-    parser.add_argument(
-        "path",
-        type=str,
-        help="The path of the Python project in which to show boundaries and public members.",
-    )
-    parser.add_argument(
-        "-e",
-        "--exclude",
-        required=False,
-        type=str,
-        metavar="file_or_path,...",
-        help="Comma separated path list to exclude. tests/,ci/,etc.",
-    )
-    parser.add_argument(
+    add_base_arguments(show_parser)
+    show_parser.add_argument(
         "-w",
         "--write",
         required=False,
         dest="write",
         action="store_true",
         default=False,
-        help="Include to write the output to a `modguard.yaml` file",
+        help="Write the output to a `modguard.yaml` file",
     )
     return parser.parse_args(args)
 
 
-def handle_shared_arguments(args: argparse.Namespace):
+def modguard_check(args: argparse.Namespace):
+    try:
+        result: list[ErrorInfo] = check(
+            args.path, exclude_paths=args.exclude
+        )
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+
+    if result:
+        print_errors(result)
+        sys.exit(1)
+    print(f"✅ {BCOLORS.OKGREEN}All modules safely guarded!")
+    sys.exit(0)
+
+
+def modguard_show(args: argparse.Namespace):
+    try:
+        bt = build_boundary_trie(args.path)
+        show(bt, write_file=args.write)
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+    sys.exit(0)
+
+
+def modguard_init(args: argparse.Namespace):
+    try:
+        init_project(args.path, exclude_paths=args.exclude)
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+
+    print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
+    sys.exit(0)
+
+
+def main() -> None:
+    args = parse_arguments(sys.argv[1:])
     path = args.path
     if not os.path.isdir(path):
         print_invalid_path(path)
@@ -124,59 +143,15 @@ def handle_shared_arguments(args: argparse.Namespace):
                 print_invalid_exclude(exclude_path)
         if has_error:
             sys.exit(1)
-
-    return argparse.Namespace(
-        path=path, exclude_paths=exclude_paths.split(",") if exclude_paths else None
-    )
-
-
-def modguard(args: argparse.Namespace):
-    shared_args = handle_shared_arguments(args)
-    try:
-        result: list[ErrorInfo] = check(
-            shared_args.path, exclude_paths=shared_args.exclude_paths
-        )
-    except Exception as e:
-        print(str(e))
-        sys.exit(1)
-
-    if result:
-        print_errors(result)
-        sys.exit(1)
-    print(f"✅ {BCOLORS.OKGREEN}All modules safely guarded!")
-    sys.exit(0)
-
-
-def modguard_show(args: argparse.Namespace):
-    shared_args = handle_shared_arguments(args)
-    try:
-        bt = build_boundary_trie(shared_args.path)
-        show(bt, write_file=args.write)
-    except Exception as e:
-        print(str(e))
-        sys.exit(1)
-    sys.exit(0)
-
-
-def modguard_init(args: argparse.Namespace):
-    shared_args = handle_shared_arguments(args)
-    try:
-        init_project(shared_args.path, exclude_paths=shared_args.exclude_paths)
-    except Exception as e:
-        print(str(e))
-        sys.exit(1)
-
-    print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
-    sys.exit(0)
-
-
-def main() -> None:
-    if len(sys.argv) > 1 and sys.argv[1] == "init":
-        modguard_init(parse_init_arguments(sys.argv[2:]))
-    elif len(sys.argv) > 1 and sys.argv[1] == "show":
-        modguard_show(parse_show_arguments(sys.argv[2:]))
+    if args.command == 'init':
+        modguard_init(args)
+    elif args.command == 'check':
+        modguard_check(args)
+    elif args.command == 'show':
+        modguard_show(args)
     else:
-        modguard(parse_base_arguments(sys.argv[1:]))
+        print('Unrecognized command')
+        exit(1)
 
 
 if __name__ == "__main__":
