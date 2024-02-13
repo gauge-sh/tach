@@ -32,6 +32,7 @@ def print_invalid_exclude(path: str) -> None:
         file=sys.stderr,
     )
 
+
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-e",
@@ -47,13 +48,14 @@ def add_base_arguments(parser: argparse.ArgumentParser) -> None:
         help="The path of the root of your Python project.",
     )
 
+
 def parse_arguments(args: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="modguard",
         add_help=True,
         epilog="Make sure modguard is run from the root of your Python project and that a directory is being specified. For example: `modguard check .`",
     )
-    subparsers = parser.add_subparsers(title='commands', dest='command')
+    subparsers = parser.add_subparsers(title="commands", dest="command")
     init_parser = subparsers.add_parser(
         "init",
         prog="modguard init",
@@ -108,9 +110,7 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
 
 def modguard_check(args: argparse.Namespace, exclude_paths: Optional[list[str]] = None):
     try:
-        result: list[ErrorInfo] = check(
-            args.path, exclude_paths=exclude_paths
-        )
+        result: list[ErrorInfo] = check(args.path, exclude_paths=exclude_paths)
     except Exception as e:
         print(str(e))
         sys.exit(1)
@@ -145,15 +145,15 @@ def modguard_init(args: argparse.Namespace, exclude_paths: Optional[list[str]] =
 
 def main() -> None:
     args = parse_arguments(sys.argv[1:])
-    exclude_paths = args.exclude.split(',') if args.exclude else None
-    if args.command == 'init':
+    exclude_paths = args.exclude.split(",") if args.exclude else None
+    if args.command == "init":
         modguard_init(args, exclude_paths)
-    elif args.command == 'check':
+    elif args.command == "check":
         modguard_check(args, exclude_paths)
-    elif args.command == 'show':
+    elif args.command == "show":
         modguard_show(args, exclude_paths)
     else:
-        print('Unrecognized command')
+        print("Unrecognized command")
         exit(1)
 
 

@@ -51,7 +51,7 @@ def dict_to_str(dict_repr: Dict[str, Any]) -> str:
                 str_repr = _recurs_build_string(str_repr, level + 1, next_dict)
         return str_repr
 
-    return _recurs_build_string(str_repr, 0, dict_repr) + '\n'
+    return _recurs_build_string(str_repr, 0, dict_repr) + "\n"
 
 
 def show(boundary_trie: BoundaryTrie, write_file: bool = False) -> str:

@@ -19,12 +19,13 @@ def mock_isdir(mocker) -> None:
             return True
         else:
             return False
+
     mocker.patch("modguard.cli.os.path.isdir", mock_isdir)
 
 
 def test_execute_with_valid_dir(capfd, mock_isdir, mock_check):
     # Test with a valid path as mocked
-    args = cli.parse_arguments(['check',"valid_dir"])
+    args = cli.parse_arguments(["check", "valid_dir"])
     with pytest.raises(SystemExit) as sys_exit:
         cli.modguard_check(args)
     captured = capfd.readouterr()
@@ -35,7 +36,7 @@ def test_execute_with_valid_dir(capfd, mock_isdir, mock_check):
 
 def test_execute_with_error(capfd, mock_isdir, mock_check):
     # Test with a valid path as mocked
-    args = cli.parse_arguments(['check', "valid_dir"])
+    args = cli.parse_arguments(["check", "valid_dir"])
     # Mock an error returned from check
     location = "valid_dir/file.py"
     message = "Import valid_dir in valid_dir/file.py is blocked by boundary"
@@ -55,7 +56,7 @@ def test_execute_with_error(capfd, mock_isdir, mock_check):
 def test_execute_with_invalid_dir(capfd, mock_isdir):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with an invalid path as mocked
-        args = cli.parse_arguments(['check', "invalid_dir"])
+        args = cli.parse_arguments(["check", "invalid_dir"])
         cli.modguard_check(args)
     captured = capfd.readouterr()
     assert sys_exit.value.code == 1
@@ -63,9 +64,9 @@ def test_execute_with_invalid_dir(capfd, mock_isdir):
 
 
 def test_execute_with_valid_exclude(capfd, mock_isdir, mock_check):
-    with pytest.raises(SystemExit) as sys_exit: 
+    with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked
-        args = cli.parse_arguments(['check', "valid_dir", "--exclude", "valid_dir"])
+        args = cli.parse_arguments(["check", "valid_dir", "--exclude", "valid_dir"])
         cli.modguard_check(args)
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
@@ -77,7 +78,7 @@ def test_execute_with_invalid_exclude(capfd, mock_isdir):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked
         # Mock a valid return from check
-        args = cli.parse_arguments(['check', "valid_dir", "--exclude", "invalid_dir"])
+        args = cli.parse_arguments(["check", "valid_dir", "--exclude", "invalid_dir"])
         cli.modguard_check(args)
     captured = capfd.readouterr()
     assert sys_exit.value.code == 1
