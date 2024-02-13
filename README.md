@@ -20,7 +20,6 @@ Modguard is incredibly lightweight, and has no impact on the runtime of your cod
 ```bash
 pip install modguard
 ```
-
 ### Usage
 Add a `Boundary` to the `__init__.py` of the module you're creating an interface for.
 ```python
@@ -29,7 +28,6 @@ import modguard
 
 modguard.Boundary()
 ```
-
 Add the `public` decorator to any callable in the module that should be exported. You can also export individual members by passing them to `public` as function call arguments.
 ```python
 # project/core/main.py
@@ -44,17 +42,28 @@ def public_function(user_id: int) -> str:
 def private_function():
     ...
 
-PUBLIC_CONSTANT = "Hello, world"
-# This exports PUBLIC_CONSTANT from this module
+PUBLIC_CONSTANT = "Hello world"
+# Allow export of PUBLIC_CONSTANT from this module
 public(PUBLIC_CONSTANT)
 ```
 Modguard will now flag any incorrect dependencies between modules.
 ```bash
 # From the root of your python project (in this example, `project/`)
-> modguard .
+> modguard check .
 ❌ ./utils/helpers.py: Import 'core.main.private_function' in ./utils/helpers.py is blocked by boundary 'core.main'
 ```
-
+You can also view your entire project's set of dependencies and public interfaces. Boundaries will be marked with a `[B]`, and public members will be marked with a `[P]`. Note that a module can be both public and a boundary.
+```bash
+> modguard show .
+example
+  [B]core
+    main
+      [P]public_function
+      [P]PUBLIC_CONSTANT
+  [P][B]utils
+    helpers
+```
+If you want to utilize this data for other purposes, run `modguard show --write .` This will persist the data about your project in a `modguard.yaml` file.
 ### Setup
 Modguard also comes bundled with a command to set up and define your initial boundaries.
 ```bash
@@ -66,13 +75,17 @@ This will automatically create boundaries and define your public interface for e
 
 
 ### Advanced Usage
-Modguard also supports specific allow lists within the `public()` decorator.
+Modguard also supports specific allow lists within `public`.
 ```python
 @modguard.public(allowlist=['utils.helpers'])
 def public_function(user_id: int) -> str:
     ...
+
+PUBLIC_CONSTANT = "Hello world"
+public(PUBLIC_CONSTANT, allowlist=['utils.helpers'])
+
 ```
-This will allow for `public_function` to be imported and used in `utils.helpers`, but restrict its usage elsewhere. 
+This will allow for `public_function` and `PUBLIC_CONSTANT` to be imported and used in `utils.helpers`, but restrict its usage elsewhere.
 
 Alternatively, you can mark an import with the `modguard-ignore` comment:
 ```python
@@ -102,9 +115,10 @@ modguard.public()
 ```
 This syntax also supports the `allowlist` parameter.
 
-
 ### Details
-Modguard works by analyzing the abstract syntax tree (AST) of your codebase. The `Boundary` class and `@public` decorator have no runtime impact, and are detected by modguard statically. Boundary violations are detected at the import layer; specific nonstandard custom syntax to access modules/submodules such as getattr or dynamically generated namespaces may not be caught by modguard.
+Modguard works by analyzing the abstract syntax tree (AST) of your codebase. The `Boundary` class and `@public` decorator have no runtime impact, and are detected by modguard statically. 
+
+Boundary violations are detected at the import layer. This means that specific nonstandard custom syntax to access modules/submodules such as getattr or dynamically generated namespaces will not be caught by modguard.
 
 [PyPi Package](https://pypi.org/project/modguard/)
 
