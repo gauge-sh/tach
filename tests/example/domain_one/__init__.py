@@ -1,4 +1,4 @@
-from modguard import Boundary
+from modguard.boundary import Boundary
 from .interface import domain_one_interface, domain_one_var
 
 Boundary()

@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -35,7 +36,7 @@ def check_import(
     # * The module is not contained by a boundary [generally 3rd party]
     import_mod_has_boundary = nearest_boundary is not None
 
-    # * The imported module's boundary is a child of the file's boundary
+    # * The file's boundary is a child of the imported module's boundary
     import_mod_is_child_of_current = (
         import_mod_has_boundary
         and file_nearest_boundary.full_path.startswith(nearest_boundary.full_path)
@@ -47,7 +48,7 @@ def check_import(
             (
                 public_member
                 for public_member_name, public_member in nearest_boundary.public_members.items()
-                if import_mod_path.startswith(public_member_name)
+                if re.match(rf"^{public_member_name}(\.\w+)?$", import_mod_path)
             ),
             None,
         )
@@ -86,10 +87,11 @@ def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInf
     root = fs.canonical(root)
     exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
-    boundary_trie = build_boundary_trie(root, exclude_paths=exclude_paths)
+    pyfiles = list(fs.walk_pyfiles(root, exclude_paths=exclude_paths))
+    boundary_trie = build_boundary_trie(root, pyfiles=pyfiles)
 
     errors: list[ErrorInfo] = []
-    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
+    for file_path in pyfiles:
         mod_path = fs.file_to_module_path(file_path)
         nearest_boundary = boundary_trie.find_nearest(mod_path)
         assert (

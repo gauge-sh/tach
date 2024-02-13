@@ -1,38 +1,45 @@
 import ast
 import re
-from typing import Optional, Union
+from dataclasses import dataclass
+from typing import Optional, Union, Any
 
-from modguard import public, filesystem as fs
+import modguard
+from modguard import filesystem as fs
 from modguard.core.public import PublicMember
+from .ast_visitor import EarlyExitNodeVisitor
 
 
-class ModguardImportVisitor(ast.NodeVisitor):
-    def __init__(self, module_name: str):
-        self.module_name = module_name
-        self.import_found = False
-
-    def visit_ImportFrom(self, node: ast.ImportFrom):
-        if self.module_name:
-            is_modguard_module_import = node.module is not None and (
-                node.module == "modguard" or node.module.startswith("modguard.")
-            )
-            if is_modguard_module_import and any(
-                alias.name == self.module_name for alias in node.names
-            ):
-                self.import_found = True
-                return
-
-    def visit_Import(self, node: ast.Import):
-        for alias in node.names:
-            if alias.name == "modguard":
-                self.import_found = True
-                return
+@dataclass
+class ModguardImportInfo:
+    is_import_from: bool = False
+    module_name: str = ""
 
 
-def is_modguard_imported(parsed_ast: ast.AST, module_name: str = "") -> bool:
-    modguard_import_visitor = ModguardImportVisitor(module_name)
-    modguard_import_visitor.visit(parsed_ast)
-    return modguard_import_visitor.import_found
+def get_modguard_import_info(
+    file_content: str, module_name: str = ""
+) -> Optional[ModguardImportInfo]:
+    # absolute import of modguard
+    if re.search(r"(^|\n)import\s+modguard($|\n)", file_content):
+        return ModguardImportInfo()
+
+    if not module_name:
+        # If no module, only absolute import is valid
+        return None
+
+    # absolute import of modguard.<module_name>
+    if re.search(rf"(^|\n)import\s+modguard\.{module_name}($|\n)", file_content):
+        return ModguardImportInfo(is_import_from=True, module_name=module_name)
+    # from modguard import <module_name>
+    if re.search(
+        rf"(^|\n)from\s+modguard(\.\w+)?\s+import\s+{module_name}($|\n)", file_content
+    ):
+        return ModguardImportInfo(is_import_from=True, module_name=module_name)
+    # from modguard import (..., <module_name>)
+    # this is a best-effort regex that does NOT match multi-line imports correctly
+    if re.search(
+        rf"(^|\n)from\s+modguard(\.\w+)?\s+import.*{module_name}($|\n)", file_content
+    ):
+        return ModguardImportInfo(is_import_from=True, module_name=module_name)
 
 
 class PublicMemberVisitor(ast.NodeVisitor):
@@ -68,7 +75,9 @@ class PublicMemberVisitor(ast.NodeVisitor):
                     ] or None
 
     def _add_public_member_from_decorator(
-        self, node: Union[ast.FunctionDef, ast.ClassDef], decorator: ast.expr
+        self,
+        node: Union[ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef],
+        decorator: ast.expr,
     ):
         if (
             isinstance(decorator, ast.Call)
@@ -76,6 +85,19 @@ class PublicMemberVisitor(ast.NodeVisitor):
             and decorator.func.id == "public"
         ):
             # This means @public is called with arguments
+            self.public_members.append(
+                PublicMember(
+                    name=node.name, allowlist=self._extract_allowlist(decorator)
+                )
+            )
+        elif (
+            isinstance(decorator, ast.Call)
+            and isinstance(decorator.func, ast.Attribute)
+            and isinstance(decorator.func.value, ast.Name)
+            and decorator.func.value.id == "modguard"
+            and decorator.func.attr == "public"
+        ):
+            # This means @modguard.public is called with arguments
             self.public_members.append(
                 PublicMember(
                     name=node.name, allowlist=self._extract_allowlist(decorator)
@@ -89,6 +111,11 @@ class PublicMemberVisitor(ast.NodeVisitor):
                 self.public_members.append(PublicMember(name=node.name))
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
+        if self.is_modguard_public_imported:
+            for decorator in node.decorator_list:
+                self._add_public_member_from_decorator(node=node, decorator=decorator)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         if self.is_modguard_public_imported:
             for decorator in node.decorator_list:
                 self._add_public_member_from_decorator(node=node, decorator=decorator)
@@ -145,8 +172,9 @@ def get_public_members(file_path: str) -> list[PublicMember]:
     return public_member_visitor.public_members
 
 
-class MemberFinder(ast.NodeVisitor):
-    def __init__(self, member_name: str):
+class MemberFinder(EarlyExitNodeVisitor):
+    def __init__(self, member_name: str, *args: list[Any], **kwargs: dict[Any, Any]):
+        super().__init__(*args, **kwargs)
         self.member_name = member_name
         self.start_lineno: Optional[int] = None
         # For assignments, end_lineno is the end of the assignment value expression
@@ -163,6 +191,7 @@ class MemberFinder(ast.NodeVisitor):
             self.start_lineno = target.lineno
             self.end_lineno = value.end_lineno
             self.matched_assignment = True
+            self.set_exit()
             return
         elif isinstance(target, ast.List) or isinstance(target, ast.Tuple):
             for elt in target.elts:
@@ -170,6 +199,7 @@ class MemberFinder(ast.NodeVisitor):
                     self.start_lineno = target.lineno
                     self.matched_lineno = value.end_lineno
                     self.matched_assignment = True
+                    self.set_exit()
                     return
 
     def visit_Assign(self, node: ast.Assign):
@@ -184,37 +214,58 @@ class MemberFinder(ast.NodeVisitor):
         if self.member_name in node.names:
             self.start_lineno = node.lineno
             self.matched_assignment = True
+            self.set_exit()
             return
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
         if node.name == self.member_name:
             self.start_lineno = node.lineno
+            self.set_exit()
+            return
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        if node.name == self.member_name:
+            self.start_lineno = node.lineno
+            self.set_exit()
             return
 
     def visit_ClassDef(self, node: ast.ClassDef):
         if node.name == self.member_name:
             self.start_lineno = node.lineno
+            self.set_exit()
             return
 
 
-IMPORT_REGEX = re.compile(r"^(from |import )")
 WHITESPACE_REGEX = re.compile(r"^((\s)*)")
 IMPORT_MODGUARD = "import modguard"
-PUBLIC_DECORATOR = "@modguard.public"
+MODGUARD_PUBLIC_DECORATOR = "@modguard.public"
+PUBLIC_DECORATOR = "@public"
 MODGUARD_PUBLIC = "modguard.public"
+PUBLIC = "public"
 
 
-@public
+@modguard.public
 def mark_as_public(file_path: str, member_name: str = ""):
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)
-    modguard_public_is_imported = is_modguard_imported(parsed_ast, "public")
+    modguard_import_info = get_modguard_import_info(file_content, "public")
+    public_fn_name = (
+        PUBLIC
+        if modguard_import_info and modguard_import_info.is_import_from
+        else MODGUARD_PUBLIC
+    )
+    public_decorator_name = (
+        PUBLIC_DECORATOR
+        if modguard_import_info and modguard_import_info.is_import_from
+        else MODGUARD_PUBLIC_DECORATOR
+    )
+
     if not member_name or member_name == "*":
         fs.write_file(
             file_path,
-            (f"{IMPORT_MODGUARD}\n" if not modguard_public_is_imported else "")
+            (f"{IMPORT_MODGUARD}\n" if modguard_import_info is None else "")
             + file_content
-            + f"{MODGUARD_PUBLIC}()\n",
+            + f"{public_fn_name}()\n",
         )
         return
 
@@ -228,7 +279,7 @@ def mark_as_public(file_path: str, member_name: str = ""):
         # Add a public call with the member name as a string
         lines_to_write = [
             *file_lines,
-            f'{MODGUARD_PUBLIC}("{member_name}")\n',
+            f'{public_fn_name}("{member_name}")\n',
         ]
     else:
         starting_line = file_lines[member_finder.start_lineno - 1]
@@ -246,17 +297,17 @@ def mark_as_public(file_path: str, member_name: str = ""):
             # Insert a call to public for the member after the assignment
             lines_to_write = [
                 *file_lines[: member_finder.end_lineno],
-                f"{starting_whitespace_match.group(1) or ''}{MODGUARD_PUBLIC}({member_name})\n",
+                f"{starting_whitespace_match.group(1) or ''}{public_fn_name}({member_name})\n",
                 *file_lines[member_finder.end_lineno :],
             ]
         else:
             # Insert a decorator before the function or class definition
             lines_to_write = [
                 *file_lines[: member_finder.start_lineno - 1],
-                f"{starting_whitespace_match.group(1) or ''}{PUBLIC_DECORATOR}\n",
+                f"{starting_whitespace_match.group(1) or ''}{public_decorator_name}\n",
                 *file_lines[member_finder.start_lineno - 1 :],
             ]
-    if not modguard_public_is_imported:
+    if modguard_import_info is None:
         lines_to_write = [IMPORT_MODGUARD + "\n", *lines_to_write]
 
     fs.write_file(file_path, "".join(lines_to_write))

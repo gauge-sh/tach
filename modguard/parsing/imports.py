@@ -82,9 +82,7 @@ class ImportVisitor(ast.NodeVisitor):
                 continue
 
             global_mod_path = (
-                f"{base_mod_path}.{name_node.asname or name_node.name}"
-                if node.module
-                else (name_node.asname or name_node.name)
+                f"{base_mod_path}.{name_node.name}" if node.module else name_node.name
             )
             self.imports.append(global_mod_path)
 

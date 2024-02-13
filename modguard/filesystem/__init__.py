@@ -1,4 +1,7 @@
-from modguard import Boundary, public
+import modguard
+
+# ruff: noqa: F401
+# pyright: reportUnusedImport=false
 from .service import (
     get_cwd,
     chdir,
@@ -12,15 +15,5 @@ from .service import (
     module_to_file_path,
 )
 
-Boundary()
-
-public(get_cwd)
-public(chdir)
-public(canonical)
-public(read_file)
-public(write_file)
-public(parse_ast)
-public(walk_pyfiles)
-public(walk_pypackages)
-public(file_to_module_path)
-public(module_to_file_path)
+modguard.Boundary()
+modguard.public()
