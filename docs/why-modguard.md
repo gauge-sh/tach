@@ -14,7 +14,9 @@ The attempts to fix this problem almost always came up short. Inevitably, standa
 The solution was to create a set of definitions for each module and it's public interface, and enforce those domain boundaries through CI. This meant that no developer could ever violate these boundaries without explicitly changing the definition of either the interface or the boundary, a significantly smaller and well scoped set of changes that could then be maintained and managed by those who understood the correct semantics for the system.
 
 With modguard set up, you can collaborate on your codebase with confidence that developers won't violate the intentional design of your modules.
+
 Modguard is:
+
 - fully open source
 - able to be adopted incrementally
 - implemented with no runtime footprint
