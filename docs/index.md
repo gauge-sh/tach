@@ -1,7 +1,7 @@
 # Overview
 
 ## What is modguard?
-Modguard enables you to explicitly define the public interfaces for your python project's modules. Marking a package with a `Boundary` will make all of its internals private by default, exposing only the members marked with `public`.
+Modguard enables you to explicitly define a public interface for your Python modules. Marking a package with a `Boundary` will make all of its internals private by default, exposing only the members marked with `public`.
 
 This enforces an architecture of decoupled and well defined modules, and ensures the communication between domains is only done through their expected public interfaces.
 
