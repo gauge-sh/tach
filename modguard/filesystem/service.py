@@ -4,6 +4,7 @@ import threading
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional, Generator
 from modguard.errors import ModguardParseError
 
@@ -174,6 +175,19 @@ def file_to_module_path(file_path: str) -> str:
     return module_path
 
 
+def path_exists_case_sensitive(p: Path) -> bool:
+    if not p.exists():
+        return False
+
+    while True:
+        if p == p.parent:
+            return True
+        # If string representation of path is not in parent directory, return False
+        if str(p) not in map(str, p.parent.iterdir()):
+            return False
+        p = p.parent
+
+
 def module_to_file_path(
     mod_path: str, find_package_init: bool = False
 ) -> tuple[str, str]:
@@ -181,25 +195,25 @@ def module_to_file_path(
     fs_path = mod_path.replace(".", os.path.sep)
 
     # mod_path may refer to a package
-    if os.path.isdir(fs_path):
+    if path_exists_case_sensitive(Path(fs_path)):
         return (
             os.path.join(fs_path, "__init__.py") if find_package_init else fs_path
         ), ""
 
     # mod_path may refer to a file module
     file_path = fs_path + ".py"
-    if os.path.exists(file_path):
+    if path_exists_case_sensitive(Path(file_path)):
         return file_path, ""
 
     # mod_path may refer to a member within a file module
     last_sep_index = fs_path.rfind(os.path.sep)
     file_path = fs_path[:last_sep_index] + ".py"
-    if os.path.exists(file_path):
+    if path_exists_case_sensitive(Path(file_path)):
         member_name = fs_path[last_sep_index + 1 :]
         return file_path, member_name
 
     init_file_path = fs_path[:last_sep_index] + "/__init__.py"
-    if os.path.exists(init_file_path):
+    if path_exists_case_sensitive(Path(init_file_path)):
         member_name = fs_path[last_sep_index + 1 :]
         return init_file_path, member_name
 
