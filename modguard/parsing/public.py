@@ -184,12 +184,12 @@ class MemberFinder(EarlyExitNodeVisitor):
 
     def _check_assignment(
         self,
+        node: Union[ast.Assign, ast.AnnAssign],
         target: Union[ast.expr, ast.Name, ast.Attribute, ast.Subscript],
-        value: ast.expr,
     ):
         if isinstance(target, ast.Name) and target.id == self.member_name:
             self.start_lineno = target.lineno
-            self.end_lineno = value.end_lineno
+            self.end_lineno = node.end_lineno
             self.matched_assignment = True
             self.set_exit()
             return
@@ -197,18 +197,17 @@ class MemberFinder(EarlyExitNodeVisitor):
             for elt in target.elts:
                 if isinstance(elt, ast.Name) and elt.id == self.member_name:
                     self.start_lineno = target.lineno
-                    self.matched_lineno = value.end_lineno
+                    self.matched_lineno = node.end_lineno
                     self.matched_assignment = True
                     self.set_exit()
                     return
 
     def visit_Assign(self, node: ast.Assign):
         for target in node.targets:
-            self._check_assignment(target, node.value)
+            self._check_assignment(node, target)
 
     def visit_AnnAssign(self, node: ast.AnnAssign):
-        # If node.value is none, can use target itself for end_lineno
-        self._check_assignment(node.target, node.value or node.target)
+        self._check_assignment(node, node.target)
 
     def visit_Global(self, node: ast.Global):
         if self.member_name in node.names:
