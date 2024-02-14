@@ -5,16 +5,16 @@
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # modguard
-A Python tool to support and enforce a modular, decoupled package architecture.
+A Python tool to enforce a modular, decoupled package architecture.
 
 ![](https://raw.githubusercontent.com/Never-Over/modguard/main/docs/modguard_screencap.gif)
 
 [Docs](https://never-over.github.io/modguard/)
 
 ### What is modguard?
-Modguard enables you to explicitly define the public interface for a given module. Marking a package with a `Boundary` makes all of its internals private by default, exposing only the members marked with the `@public` decorator.
+Modguard enables you to define the public interface for a given module. Marking a package with a `Boundary` makes all of its internals private by default, exposing only the members marked with  `public`.
 
-This enforces an architecture of decoupled and well-defined modules, and ensures the communication between domains is only done through their expected public interfaces.
+This enforces an architecture of decoupled modules, and ensures the communication between domains only happens through their defined public interfaces.
 
 Modguard is incredibly lightweight, and has no impact on the runtime of your code. Instead, its checks are performed through a static analysis CLI tool.
 
@@ -76,7 +76,7 @@ By running `modguard init` from the root of your python project, modguard will i
 This will automatically create boundaries and define your public interface for each package within your project, and instantly get your project to a passing state for `modguard .`
 
 
-### Advanced Usage
+### Advanced
 Modguard also supports specific allow lists within `public`.
 ```python
 @modguard.public(allowlist=['utils.helpers'])
