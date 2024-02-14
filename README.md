@@ -7,6 +7,8 @@
 # modguard
 A Python tool to support and enforce a modular, decoupled package architecture.
 
+![](https://github.com/Never-Over/modguard/docs/modguard_screencap.gif)
+
 [Docs](https://never-over.github.io/modguard/)
 
 ### What is modguard?
