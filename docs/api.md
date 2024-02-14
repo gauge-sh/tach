@@ -6,9 +6,9 @@ A `Boundary` makes all internal members private by default.
 `Boundary` accepts no arguments, and has no runtime behavior. It is detected statically by `modguard`.
 ```python
 # project/core/__init__.py
-from modguard import Boundary
+import modguard
 
-Boundary()
+modguard.Boundary()
 ```
 ### In `__init__.py`
 When a `Boundary` appears in `__init__.py`, this marks the contents of the entire package as private by default.
@@ -44,22 +44,23 @@ Marking a member as `public` allows it to be imported outside its boundary. This
 
 When present, `path` identifies the object being marked as public.
 ```python
-from modguard import public
+import modguard
 
 x: int = 3
 
-public("x")
-public(x)
+# These are functionally the same
+modguard.public("x")
+modguard.public(x)
 ```
 
 When present, `allowlist` defines a list of module paths which are allowed to import the object. Modules which are descendants of the modules in the `allowlist` are also allowed. If any other modules import the object, they will be flagged as errors by `modguard`.
 ```python
 # In project/utils.py
-from modguard import public
+import modguard
 
 x: int = 3
 
-public(x, allowlist=["project.core.domain"])
+modguard.public(x, allowlist=["project.core.domain"])
 
 ...
 # In project/core/other_domain/logic.py
@@ -73,9 +74,9 @@ from project.utils import x
 `public` can also be used as a decorator to mark functions and classes as public. Its behavior is the same as when used as a function, and it accepts the same keyword arguments (the decorated object is treated as `path`)
 
 ```python
-from modguard import public
+import modguard
 
-@public(allowlist=["project.core.domain"])
+@modguard.public(allowlist=["project.core.domain"])
 def my_pub_function():
     ...
 ```
@@ -84,9 +85,9 @@ def my_pub_function():
 When `public` is used without a `path` argument, it signifies that the entire containing module is public. This means that any top-level member of the module or the module itself can be imported externally (subject to `allowlist`).
 ```python
 # In project/core/logic.py
-from modguard import public
+import modguard
 
-public()
+modguard.public()
 ...
 # In project/cli.py
 # This import is allowed because 'project.core.logic' is public 
@@ -97,10 +98,10 @@ from project.core import logic
 When `public` is used without a `path` argument in the `__init__.py` of a package, the top-level module of the package is treated as public.
 ```python
 # In project/core/__init__.py
-from modguard import Boundary, public
+import modguard
 
-Boundary()
-public()
+modguard.Boundary()
+modguard.public()
 ...
 # In project/cli.py
 # This import is allowed because 'project.core' is public 
@@ -119,3 +120,5 @@ The directive can also be specific about the import to ignore, which is particul
 from core.main import private_function, public_function
 ```
 Note: Names given to `modguard-ignore` should match the alias as it is used in the subsequent import line, not the full module path from the project root.
+
+Note: Boundary violations are detected at the import layer. This means that specific nonstandard custom syntax to access modules/submodules such as getattr or dynamically generated namespaces will not be caught by modguard.

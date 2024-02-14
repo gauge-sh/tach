@@ -7,7 +7,7 @@
 # modguard
 A Python tool to support and enforce a modular, decoupled package architecture.
 
-[Full Documentation](https://never-over.github.io/modguard/)
+[Docs](https://never-over.github.io/modguard/)
 
 ### What is modguard?
 Modguard enables you to explicitly define the public interface for a given module. Marking a package with a `Boundary` makes all of its internals private by default, exposing only the members marked with the `@public` decorator.
