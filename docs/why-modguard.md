@@ -5,7 +5,7 @@ We built `modguard` to solve a recurring problem that we've experienced on softw
 This would happen for a variety of reasons:
 - Junior or new developers had a poor understanding of the existing architecture and/or frameworks being used
 - It's significantly easier to add to an existing service rather than create a new one
-- Python doesn't prohibit you from importing or using any code living anywhere
+- Python doesn't stop you from importing any code living anywhere
 - When changes are in a 'gray area', social desire to not block others would let changes through code review
 - External deadlines and management pressure would result in "doing it properly" getting punted and/or never done
 
