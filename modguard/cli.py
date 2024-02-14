@@ -147,7 +147,8 @@ def modguard_init(args: argparse.Namespace, exclude_paths: Optional[list[str]] =
         sys.exit(1)
 
     stop_spinner()
-    print("\n".join(warnings))
+    if warnings:
+        print("\n".join(warnings))
     print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
     sys.exit(0)
 
