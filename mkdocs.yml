@@ -1,6 +1,8 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
-site_name: Modguard Documentation
+site_name: Modguard
 site_url: https://never-over.github.io/modguard/
+repo_name: modguard
+repo_url: https://github.com/Never-Over/modguard
 nav:
   - index.md
   - why-modguard.md
@@ -10,6 +12,10 @@ nav:
   - faq.md
 theme:
   name: material
+  favicon: favicon.ico
+  icon:
+    logo: fontawesome/solid/shield-halved
+    repo: fontawesome/brands/git-alt
   features:
     - navigation.instant
     - navigation.instant.progress
@@ -24,3 +30,7 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+extra:
+  social:
+    - icon: fontawesome/solid/envelope
+      link: mailto:admin@0x63problems.dev
