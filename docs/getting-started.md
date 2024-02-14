@@ -30,4 +30,4 @@ If you are adding `modguard` to an existing project, you have two main options:
 modguard check .
 ```
 
-After implementing in your project, running `modguard` from the root will check all imports to verify that packages remain correctly decoupled.
+After guarding your project, running `modguard` from the root will check all imports to verify that packages remain correctly decoupled.
