@@ -1,6 +1,6 @@
 # Why modguard?
 
-We built `modguard` to solve a particularly painful problem that we ran into time and time again - when developing on a codebase with others, the intended interface for a given module would eventually get violated and become a dumping ground for all loosely related code. Imports would tightly couple together what used to be independent modules, and create "mega-modules" of code sprawl. These would in turn be harder to test and significantly more painful to make changes to. Additionally, mis-use of existing modules would degrade performance and cause security incidents.
+We built `modguard` to solve a recurring problem that we've experienced on software teams - code sprawl. Unintended cross-module imports would tightly couple together what used to be independent domains, and eventually create "balls of mud". This makes it harder to test, and harder to make changes. Not to mention that mis-use of modules which were intended to be private can degrade performance and cause security incidents.
 
 This would happen for a variety of reasons:
 - Junior or new developers had a poor understanding of the existing architecture and/or frameworks being used
