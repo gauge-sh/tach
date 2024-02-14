@@ -3,7 +3,7 @@
 We built `modguard` to solve a recurring problem that we've experienced on software teams - code sprawl. Unintended cross-module imports would tightly couple together what used to be independent domains, and eventually create "balls of mud". This makes it harder to test, and harder to make changes. Not to mention that mis-use of modules which were intended to be private can degrade performance and cause security incidents.
 
 This would happen for a variety of reasons:
-- Junior or new developers had a poor understanding of the existing architecture and/or frameworks being used
+- Junior developers had a limited understanding of the existing architecture and/or frameworks being used
 - It's significantly easier to add to an existing service than to create a new one
 - Python doesn't stop you from importing any code living anywhere
 - When changes are in a 'gray area', social desire to not block others would let changes through code review
