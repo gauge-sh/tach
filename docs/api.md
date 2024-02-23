@@ -70,6 +70,39 @@ modguard.public(x, allowlist=["project.core.domain"])
 from project.utils import x
 ```
 
+### Module-level
+When `public` is used without a `path` argument (the most common case), it signifies that the containing module and its descendants are public. This means that any descendant of the module or the module itself can be imported externally (subject to `allowlist`). Note that adding a `Boundary` in a descendant module would prevent that module from being treated as public by default.
+```python
+# In project/core/logic.py
+import modguard
+
+modguard.public()
+...
+
+# In project/cli.py
+# This import is allowed because 'project.core.logic' is public 
+from project.core import logic
+```
+```python
+# In project/core/__init__.py
+import modguard
+
+modguard.public()
+...
+# In project/core/utils/__init__.py
+import modguard
+
+modguard.Boundary()
+...
+
+# In project/cli.py
+# This import is allowed because 'project.core' is public 
+from project.core import logic
+# This import is NOT allowed because 'project.core.utils' has
+# a Boundary and is not marked public
+from project.core import utils
+```
+
 ### As a Decorator
 `public` can also be used as a decorator to mark functions and classes as public. Its behavior is the same as when used as a function, and it accepts the same keyword arguments (the decorated object is treated as `path`)
 
@@ -81,32 +114,6 @@ def my_pub_function():
     ...
 ```
 
-### Entire Module
-When `public` is used without a `path` argument, it signifies that the entire containing module is public. This means that any top-level member of the module or the module itself can be imported externally (subject to `allowlist`).
-```python
-# In project/core/logic.py
-import modguard
-
-modguard.public()
-...
-# In project/cli.py
-# This import is allowed because 'project.core.logic' is public 
-from project.core import logic
-```
-
-### In `__init__.py`
-When `public` is used without a `path` argument in the `__init__.py` of a package, the top-level module of the package is treated as public.
-```python
-# In project/core/__init__.py
-import modguard
-
-modguard.Boundary()
-modguard.public()
-...
-# In project/cli.py
-# This import is allowed because 'project.core' is public 
-from project import core
-```
 
 ## `modguard-ignore`
 To ignore a particular import which should be allowed unconditionally, use the `modguard-ignore` comment directive.
