@@ -1,11 +1,11 @@
 [project]
 name = "modguard"
-version = "0.6.1"
+version = "0.7.0"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
 ]
-description = "A Python tool to guard against incorrect usage of python modules."
+description = "A Python tool to maintain clean dependencies across python modules."
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
