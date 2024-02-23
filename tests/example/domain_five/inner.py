@@ -1,6 +1,0 @@
-def pub_fn():
-    ...
-
-
-def private():
-    ...

@@ -4,7 +4,7 @@ import modguard
 from .domain_one.interface import domain_one_interface, domain_one_var
 from .domain_three.api import PublicForDomainTwo
 from .domain_four.subsystem import private_subsystem_call
-from .domain_five.inner import private
+from .domain_five.inner import private_fn
 
 # OK import
 import example.domain_four
@@ -18,8 +18,8 @@ modguard.Boundary()
 
 
 # Usages
-private()
 pub_fn()
+private_fn()
 domain_one_interface()
 example_usage = domain_one_var
 PublicForDomainTwo()
