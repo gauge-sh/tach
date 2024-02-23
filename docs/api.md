@@ -15,7 +15,7 @@ When a `Boundary` appears in `__init__.py`, this marks the contents of the entir
 ```python
 # project/core/inner.py
 # This function will be considered private
-# due to the boundary at 'project.core'
+# due to the boundary at "project.core"
 def private_function():
     ...
 ```
@@ -29,7 +29,7 @@ from modguard import Boundary
 Boundary()
 
 # This function will be considered private
-# due to the boundary at 'project.core.other'
+# due to the boundary at "project.core.other"
 def other_private_function():
     ...
 ```
@@ -53,22 +53,23 @@ modguard.public("x")
 modguard.public(x)
 ```
 
-When present, `allowlist` defines a list of module paths which are allowed to import the object. Modules which are descendants of the modules in the `allowlist` are also allowed. If any other modules import the object, they will be flagged as errors by `modguard`.
+When present, `allowlist` defines a list of module paths or regex strings which are allowed to import the object. Modules which are descendants of the modules in the `allowlist` are also allowed. Modules which additionally match the regex string are also allowed. If any other modules import the object, they will be flagged as errors by `modguard`.
 ```python
 # In project/utils.py
 import modguard
 
 x: int = 3
 
-modguard.public(x, allowlist=["project.core.domain"])
+modguard.public(x, allowlist=["project.core.domain", r"core\.project\.*"])
 
 ...
 # In project/core/other_domain/logic.py
 # This import is not allowed,
-# because the module ('project.core.other_domain.logic')
+# because the module ("project.core.other_domain.logic")
 # is not contained by any module in the allowlist
 from project.utils import x
 ```
+
 
 ### Module-level
 When `public` is used without a `path` argument (the most common case), it signifies that the containing module and its descendants are public. This means that any descendant of the module or the module itself can be imported externally (subject to `allowlist`). Note that adding a `Boundary` in a descendant module will prevent that module from being treated as public by default.
@@ -80,7 +81,7 @@ modguard.public()
 ...
 
 # In project/cli.py
-# This import is allowed because 'project.core.logic' is public 
+# This import is allowed because "project.core.logic" is public 
 from project.core import logic
 ```
 ```python
@@ -96,9 +97,10 @@ modguard.Boundary()
 ...
 
 # In project/cli.py
-# This import is allowed because 'project.core' is public 
+
+# This import is allowed because "project.core" is public 
 from project.core import logic
-# This import is NOT allowed because 'project.core.utils' has
+# This import is NOT allowed because "project.core.utils" has
 # a Boundary and is not marked public
 from project.core import utils
 ```

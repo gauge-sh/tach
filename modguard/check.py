@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -22,6 +23,18 @@ class ErrorInfo:
         if not all((self.location, self.import_mod_path, self.boundary_path)):
             return f"Unexpected error: ({[self.location, self.import_mod_path, self.boundary_path]})"
         return f"Import '{self.import_mod_path}' in {self.location} is blocked by boundary '{self.boundary_path}'"
+
+
+def check_allowlist(allowlist: list[str], file_mod_path: str) -> bool:
+    for allowed_path in allowlist:
+        if file_mod_path.startswith(allowed_path):
+            return True
+        try:
+            if re.match(allowed_path, file_mod_path):
+                return True
+        except re.error:
+            pass
+    return False
 
 
 def check_import(
@@ -58,11 +71,8 @@ def check_import(
         import_mod_public_member_definition is not None
         and (
             import_mod_public_member_definition.allowlist is None
-            or any(
-                (
-                    file_mod_path.startswith(allowed_path)
-                    for allowed_path in import_mod_public_member_definition.allowlist
-                )
+            or check_allowlist(
+                import_mod_public_member_definition.allowlist, file_mod_path
             )
         )
     )

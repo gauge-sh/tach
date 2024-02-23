@@ -52,7 +52,7 @@ Modguard will now flag any incorrect dependencies between modules.
 ```bash
 # From the root of your python project (in this example, `project/`)
 > modguard check .
-❌ ./utils/helpers.py: Import 'core.main.private_function' in ./utils/helpers.py is blocked by boundary 'core.main'
+❌ ./utils/helpers.py: Import "core.main.private_function" in ./utils/helpers.py is blocked by boundary "core.main"
 ```
 You can also view your entire project's set of dependencies and public interfaces. Boundaries will be marked with a `[B]`, and public members will be marked with a `[P]`. Note that a module can be both public and a boundary.
 ```bash
@@ -77,17 +77,17 @@ This will automatically create boundaries and define your public interface for e
 
 
 ### Advanced
-Modguard also supports specific allow lists within `public`.
+Modguard also supports specific allow lists within `public`. The `allowlist` parameter accepts a list of strings and regex expressions.
 ```python
-@modguard.public(allowlist=['utils.helpers'])
+@modguard.public(allowlist=["utils.helpers", r"core\.project\.*"])
 def public_function(user_id: int) -> str:
     ...
 
 PUBLIC_CONSTANT = "Hello world"
-public(PUBLIC_CONSTANT, allowlist=['utils.helpers'])
+public(PUBLIC_CONSTANT, allowlist=["utils.helpers", r"core\.project\.*"])
 
 ```
-This will allow for `public_function` and `PUBLIC_CONSTANT` to be imported and used in `utils.helpers`, but restrict its usage elsewhere.
+This will allow for `public_function` and `PUBLIC_CONSTANT` to be imported and used in `utils.helpers` and any matching regex to `core\.project\.*`, but restrict its usage elsewhere.
 
 Alternatively, you can mark an import with the `modguard-ignore` comment:
 ```python
@@ -103,7 +103,7 @@ from core import main # contains public and private members
 ```bash
 # From the root of your project
 > modguard .
-❌ ./utils/helpers.py: Import 'core.main' in ./utils/helpers.py is blocked by boundary 'core.main'
+❌ ./utils/helpers.py: Import "core.main" in ./utils/helpers.py is blocked by boundary "core.main"
 ```
 
 If you expect to be able to import the entire contents of your module, you can declare an entire module as public to avoid this:
