@@ -15,7 +15,7 @@ When a `Boundary` appears in `__init__.py`, this marks the contents of the entir
 ```python
 # project/core/inner.py
 # This function will be considered private
-# due to the boundary at 'project.core'
+# due to the boundary at "project.core"
 def private_function():
     ...
 ```
@@ -29,7 +29,7 @@ from modguard import Boundary
 Boundary()
 
 # This function will be considered private
-# due to the boundary at 'project.core.other'
+# due to the boundary at "project.core.other"
 def other_private_function():
     ...
 ```
@@ -60,12 +60,12 @@ import modguard
 
 x: int = 3
 
-modguard.public(x, allowlist=["project.core.domain", ".*utils"])
+modguard.public(x, allowlist=["project.core.domain", r"core\.project\.*"])
 
 ...
 # In project/core/other_domain/logic.py
 # This import is not allowed,
-# because the module ('project.core.other_domain.logic')
+# because the module ("project.core.other_domain.logic")
 # is not contained by any module in the allowlist
 from project.utils import x
 ```
@@ -76,7 +76,7 @@ from project.utils import x
 ```python
 import modguard
 
-@modguard.public(allowlist=["project.core.domain", ".*utils"])
+@modguard.public(allowlist=["project.core.domain", r"core\.project\.*"])
 def my_pub_function():
     ...
 ```
@@ -90,7 +90,7 @@ import modguard
 modguard.public()
 ...
 # In project/cli.py
-# This import is allowed because 'project.core.logic' is public 
+# This import is allowed because "project.core.logic" is public 
 from project.core import logic
 ```
 
@@ -104,7 +104,7 @@ modguard.Boundary()
 modguard.public()
 ...
 # In project/cli.py
-# This import is allowed because 'project.core' is public 
+# This import is allowed because "project.core" is public 
 from project import core
 ```
 
