@@ -25,11 +25,11 @@ class ErrorInfo:
         return f"Import '{self.import_mod_path}' in {self.location} is blocked by boundary '{self.boundary_path}'"
 
 
-def check_allowlist(allowlist:list[str], file_mod_path: str) -> bool:
+def check_allowlist(allowlist: list[str], file_mod_path: str) -> bool:
     for allowed_path in allowlist:
         if file_mod_path.startswith(allowed_path):
             return True
-        try: 
+        try:
             if re.match(allowed_path, file_mod_path):
                 return True
         except re.error:
@@ -71,7 +71,9 @@ def check_import(
         import_mod_public_member_definition is not None
         and (
             import_mod_public_member_definition.allowlist is None
-            or check_allowlist(import_mod_public_member_definition.allowlist, file_mod_path)
+            or check_allowlist(
+                import_mod_public_member_definition.allowlist, file_mod_path
+            )
         )
     )
 

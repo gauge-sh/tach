@@ -1,5 +1,5 @@
 import pytest
-from modguard.check import check, ErrorInfo, check_import
+from modguard.check import check, ErrorInfo, check_allowlist, check_import
 from modguard.core import BoundaryTrie, PublicMember
 
 
@@ -119,3 +119,30 @@ def test_check_example_dir_end_to_end():
     assert len(check_results) == 0, "\n".join(
         (result.message for result in check_results)
     )
+
+
+@pytest.mark.parametrize(
+    "allowlist, file_mod_path, expected",
+    [
+        # Test cases where the allowlist matches the file_mod_path
+        (["/usr", "/var"], "/usr/bin/python", True),
+        (["/usr", "/var"], "/var/log/syslog", True),
+        (["/usr", "/var"], "/bin/bash", False),  # Not in allowlist
+        # Test cases where regex patterns are used in allowlist
+        (["/usr.*", "/var"], "/usr/local/bin/python", True),
+        (["/usr.*", "/var"], "/var/www/index.html", True),
+        (["/usr.*", "/var"], "/home/user/file.txt", False),  # Not in allowlist
+        # Test cases with invalid regex patterns
+        (["[a-z", "/var"], "/usr/bin/python", False),  # Invalid regex pattern
+        ([r"/usr\d+", "/var"], "/usr123/file.txt", True),
+        (["/usr", "/var"], "/var/log/syslog", True),
+    ],
+)
+def test_check_allowlist(allowlist, file_mod_path, expected):
+    assert check_allowlist(allowlist, file_mod_path) == expected
+
+
+def test_empty_allowlist():
+    assert not check_allowlist(
+        [], "/usr/bin/python"
+    )  # Empty allowlist should always return False
