@@ -71,7 +71,7 @@ from project.utils import x
 ```
 
 ### Module-level
-When `public` is used without a `path` argument (the most common case), it signifies that the containing module and its descendants are public. This means that any descendant of the module or the module itself can be imported externally (subject to `allowlist`). Note that adding a `Boundary` in a descendant module would prevent that module from being treated as public by default.
+When `public` is used without a `path` argument (the most common case), it signifies that the containing module and its descendants are public. This means that any descendant of the module or the module itself can be imported externally (subject to `allowlist`). Note that adding a `Boundary` in a descendant module will prevent that module from being treated as public by default.
 ```python
 # In project/core/logic.py
 import modguard
