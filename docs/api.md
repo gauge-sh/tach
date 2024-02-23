@@ -53,14 +53,14 @@ modguard.public("x")
 modguard.public(x)
 ```
 
-When present, `allowlist` defines a list of module paths which are allowed to import the object. Modules which are descendants of the modules in the `allowlist` are also allowed. If any other modules import the object, they will be flagged as errors by `modguard`.
+When present, `allowlist` defines a list of module paths or regex strings which are allowed to import the object. Modules which are descendants of the modules in the `allowlist` are also allowed. Modules which additionally match the regex string are also allowed. If any other modules import the object, they will be flagged as errors by `modguard`.
 ```python
 # In project/utils.py
 import modguard
 
 x: int = 3
 
-modguard.public(x, allowlist=["project.core.domain"])
+modguard.public(x, allowlist=["project.core.domain", ".*utils"])
 
 ...
 # In project/core/other_domain/logic.py
@@ -76,7 +76,7 @@ from project.utils import x
 ```python
 import modguard
 
-@modguard.public(allowlist=["project.core.domain"])
+@modguard.public(allowlist=["project.core.domain", ".*utils"])
 def my_pub_function():
     ...
 ```

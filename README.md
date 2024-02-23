@@ -77,17 +77,17 @@ This will automatically create boundaries and define your public interface for e
 
 
 ### Advanced
-Modguard also supports specific allow lists within `public`.
+Modguard also supports specific allow lists within `public`. The `allowlist` parameter accepts a list of strings and regex expressions.
 ```python
-@modguard.public(allowlist=['utils.helpers'])
+@modguard.public(allowlist=['utils.helpers', r'.*aux.*'])
 def public_function(user_id: int) -> str:
     ...
 
 PUBLIC_CONSTANT = "Hello world"
-public(PUBLIC_CONSTANT, allowlist=['utils.helpers'])
+public(PUBLIC_CONSTANT, allowlist=['utils.helpers', r'.*aux.*])
 
 ```
-This will allow for `public_function` and `PUBLIC_CONSTANT` to be imported and used in `utils.helpers`, but restrict its usage elsewhere.
+This will allow for `public_function` and `PUBLIC_CONSTANT` to be imported and used in `utils.helpers` and any matching regex to `.*aux.*`, but restrict its usage elsewhere.
 
 Alternatively, you can mark an import with the `modguard-ignore` comment:
 ```python
