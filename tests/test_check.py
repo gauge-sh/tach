@@ -94,14 +94,14 @@ def test_check_example_dir_end_to_end():
             boundary_path="example.domain_four.subsystem",
         ),
         ErrorInfo(
+            import_mod_path="example.domain_five.inner.private_fn",
             location="example/__init__.py",
-            import_mod_path="example.domain_one.interface.domain_one_var",
-            boundary_path="example.domain_one",
+            boundary_path="example.domain_five.inner",
         ),
         ErrorInfo(
             location="example/__init__.py",
-            import_mod_path="example.domain_five.inner.private",
-            boundary_path="example.domain_five",
+            import_mod_path="example.domain_one.interface.domain_one_var",
+            boundary_path="example.domain_one",
         ),
         ErrorInfo(
             location="example/domain_three/__init__.py",

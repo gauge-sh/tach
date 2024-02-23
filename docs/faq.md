@@ -5,6 +5,7 @@ Modguard works by analyzing the abstract syntax tree (AST) of your codebase. The
 
 ### Why does `modguard` live in my application code?
 Modguard is written as a Python library for a few main reasons:
+
 - **Visibility**: When boundary information is co-located with application code, it is visible to a code reviewer or future maintainer.
 - **Maintenance**: When packages or public members are moved, renamed, or removed, in-line `modguard` will automatically match the new state (since it will move along with the code, or be removed along with the code).
 - **Extensibility**: Having `modguard` in-line will support future dynamic configuration or runtime violation monitoring.

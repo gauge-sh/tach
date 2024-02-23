@@ -1,5 +1,4 @@
 import os
-import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -60,7 +59,7 @@ def check_import(
             (
                 public_member
                 for public_member_name, public_member in nearest_boundary.public_members.items()
-                if re.match(rf"^{public_member_name}(\.[\w*]+)?$", import_mod_path)
+                if import_mod_path.startswith(public_member_name)
             ),
             None,
         )

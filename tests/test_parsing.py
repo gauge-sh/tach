@@ -29,6 +29,6 @@ def test_get_imports():
         "example.domain_four",
         "example.domain_four.subsystem.private_subsystem_call",
         "example.domain_one.interface.domain_one_var",
-        "example.domain_five.inner.private",
+        "example.domain_five.inner.private_fn",
         "example.domain_five.pub_fn",
     }
