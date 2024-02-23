@@ -23,7 +23,7 @@ Modguard is incredibly lightweight, and has no impact on the runtime of your cod
 pip install modguard
 ```
 ### Usage
-Add a `Boundary` to the `__init__.py` of the module you"re creating an interface for.
+Add a `Boundary` to the `__init__.py` of the module you're creating an interface for.
 ```python
 # project/core/__init__.py
 import modguard
@@ -54,7 +54,7 @@ Modguard will now flag any incorrect dependencies between modules.
 > modguard check .
 ❌ ./utils/helpers.py: Import "core.main.private_function" in ./utils/helpers.py is blocked by boundary "core.main"
 ```
-You can also view your entire project"s set of dependencies and public interfaces. Boundaries will be marked with a `[B]`, and public members will be marked with a `[P]`. Note that a module can be both public and a boundary.
+You can also view your entire project's set of dependencies and public interfaces. Boundaries will be marked with a `[B]`, and public members will be marked with a `[P]`. Note that a module can be both public and a boundary.
 ```bash
 > modguard show .
 example
