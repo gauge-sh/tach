@@ -54,12 +54,17 @@ def dict_to_str(dict_repr: Dict[str, Any]) -> str:
     return _recurs_build_string(str_repr, 0, dict_repr) + "\n"
 
 
-def dict_to_yaml(data, indent=0):
+from typing import Any, Union
+
+
+def dict_to_yaml(
+    data: Union[dict, list, str, int, float, bool], indent: int = 0
+) -> str:
     """
-    Recursively converts a Python dictionary to a YAML-formatted string.
+    Recursively converts a Python dictionary or list to a YAML-formatted string.
 
     Args:
-        data (dict or list or str or int or float): The data to convert to YAML.
+        data (Union[dict, list, str, int, float, bool]): The data to convert to YAML.
         indent (int): The current indentation level (used for recursive calls).
 
     Returns:
@@ -73,20 +78,16 @@ def dict_to_yaml(data, indent=0):
                 yaml_str += "\n" + dict_to_yaml(value, indent + 2)
             else:
                 if isinstance(value, bool):
-                    if value:
-                        yaml_str += " true\n"
-                    else:
-                        yaml_str += " false\n"
+                    yaml_str += " true\n" if value else " false\n"
                 else:
                     yaml_str += " " + str(value) + "\n"
     elif isinstance(data, list):
         for item in data:
             yaml_str += " " * indent + "- "
             if isinstance(item, (dict, list)):
-                # For nested lists or dicts, adjust the alignment
                 yaml_str += "\n" + dict_to_yaml(item, indent + 2).lstrip()
+            else:
                 yaml_str += str(item) + "\n"
-        # For primitive data types, just convert to string
     else:
         yaml_str = " " * indent + str(data) + "\n"
 
