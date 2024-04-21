@@ -80,6 +80,11 @@ def dict_to_yaml(data, indent=0):
                 # For nested lists or dicts, adjust the alignment
                 yaml_str += "\n" + dict_to_yaml(item, indent + 2).lstrip()
             else:
+                if type(item) == bool:
+                    if item:
+                        yaml_str += 'true\n'
+                    else:
+                        yaml_str += 'false\n'
                 yaml_str += str(item) + "\n"
     else:
         # For primitive data types, just convert to string
