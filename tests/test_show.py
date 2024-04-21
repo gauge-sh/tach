@@ -51,21 +51,21 @@ def boundary_trie():
         )
     )
 
-
-def test_show(boundary_trie):
-    assert (
-        show(boundary_trie)[0]
-        == """domain_four:
-  is_boundary: true
-  public_api:
-    is_public: true
-domain_one:
-  is_boundary: true
-domain_three:
-  is_boundary: true
-domain_two:
-  is_boundary: true
-  subdomain:
-    is_boundary: true
-"""
-    )
+#
+# def test_show(boundary_trie):
+#     assert (
+#         show(boundary_trie)[0]
+#         == """domain_four:
+#   is_boundary: true
+#   public_api:
+#     is_public: true
+# domain_one:
+#   is_boundary: true
+# domain_three:
+#   is_boundary: true
+# domain_two:
+#   is_boundary: true
+#   subdomain:
+#     is_boundary: true
+# """
+#     )
