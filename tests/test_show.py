@@ -51,6 +51,7 @@ def boundary_trie():
         )
     )
 
+
 #
 # def test_show(boundary_trie):
 #     assert (
