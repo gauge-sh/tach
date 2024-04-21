@@ -72,22 +72,22 @@ def dict_to_yaml(data, indent=0):
             if isinstance(value, (dict, list)):
                 yaml_str += "\n" + dict_to_yaml(value, indent + 2)
             else:
-                yaml_str += " " + str(value) + "\n"
+                if isinstance(value, bool):
+                    if value:
+                        yaml_str += " true\n"
+                    else:
+                        yaml_str += " false\n"
+                else:
+                    yaml_str += " " + str(value) + "\n"
     elif isinstance(data, list):
         for item in data:
             yaml_str += " " * indent + "- "
             if isinstance(item, (dict, list)):
                 # For nested lists or dicts, adjust the alignment
                 yaml_str += "\n" + dict_to_yaml(item, indent + 2).lstrip()
-            else:
-                if isinstance(item, bool):
-                    if item:
-                        yaml_str += "true\n"
-                    else:
-                        yaml_str += "false\n"
                 yaml_str += str(item) + "\n"
-    else:
         # For primitive data types, just convert to string
+    else:
         yaml_str = " " * indent + str(data) + "\n"
 
     return yaml_str
