@@ -1,8 +1,6 @@
-import yaml
 from modguard.colors import BCOLORS
 from modguard.core.boundary import BoundaryTrie
-from typing import Any, Dict, Tuple
-
+from typing import Any, Dict, Tuple, Union
 
 # This type hint only works on more recent versions
 # result_dict: TypeAlias = dict[str, str | bool | 'result_dict']
@@ -55,11 +53,48 @@ def dict_to_str(dict_repr: Dict[str, Any]) -> str:
     return _recurs_build_string(str_repr, 0, dict_repr) + "\n"
 
 
+def dict_to_yaml(
+    data: Union[dict, list, str, int, float, bool], indent: int = 0
+) -> str:
+    """
+    Recursively converts a Python dictionary or list to a YAML-formatted string.
+
+    Args:
+        data (Union[dict, list, str, int, float, bool]): The data to convert to YAML.
+        indent (int): The current indentation level (used for recursive calls).
+
+    Returns:
+        str: A string formatted as YAML.
+    """
+    yaml_str = ""
+    if isinstance(data, dict):
+        for key, value in data.items():
+            yaml_str += " " * indent + str(key) + ":"
+            if isinstance(value, (dict, list)):
+                yaml_str += "\n" + dict_to_yaml(value, indent + 2)
+            else:
+                if isinstance(value, bool):
+                    yaml_str += " true\n" if value else " false\n"
+                else:
+                    yaml_str += " " + str(value) + "\n"
+    elif isinstance(data, list):
+        for item in data:
+            yaml_str += " " * indent + "- "
+            if isinstance(item, (dict, list)):
+                yaml_str += "\n" + dict_to_yaml(item, indent + 2).lstrip()
+            else:
+                yaml_str += str(item) + "\n"
+    else:
+        yaml_str = " " * indent + str(data) + "\n"
+
+    return yaml_str
+
+
 def show(boundary_trie: BoundaryTrie, write_file: bool = False) -> Tuple[str, str]:
     dict_repr = boundary_trie_to_dict(boundary_trie)
-    yaml_result = yaml.dump(dict_repr)
+    yaml_result = dict_to_yaml(dict_repr)
     pretty_str_result = dict_to_str(dict_repr)
     if write_file:
         with open("modguard.yaml", "w") as f:
-            yaml.dump(dict_repr, f)
+            f.write(yaml_result)
     return yaml_result, pretty_str_result

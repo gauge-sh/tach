@@ -1,6 +1,6 @@
 [project]
 name = "modguard"
-version = "0.7.0"
+version = "0.7.1"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
@@ -34,7 +34,6 @@ Issues = "https://github.com/never-over/modguard/issues"
 [tool.pyright]
 include = ["modguard"]
 exclude = ["**/__pycache__"]
-strict = ["modguard"]
 
 
 [build-system]

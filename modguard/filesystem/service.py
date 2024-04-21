@@ -42,9 +42,9 @@ def chdir(path: str):
 def _get_file_cache() -> dict[str, FileInfo]:
     if not hasattr(thread_local, "file_caches_by_cwd"):
         thread_local.file_caches_by_cwd = defaultdict(dict)
-    file_caches_by_cwd: defaultdict[
-        str, dict[str, FileInfo]
-    ] = thread_local.file_caches_by_cwd  # type: ignore
+    file_caches_by_cwd: defaultdict[str, dict[str, FileInfo]] = (
+        thread_local.file_caches_by_cwd
+    )  # type: ignore
     return file_caches_by_cwd[get_cwd()]
 
 
