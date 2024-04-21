@@ -1,6 +1,6 @@
 import pytest
 
-from modguard.show import show
+# from modguard.show import show
 from modguard.core import BoundaryTrie, PublicMember, BoundaryNode
 
 
