@@ -123,6 +123,10 @@ This will expand the set of modules that "utils" can access to include all modul
     depends_on: ["shared.*"] # Allow imports from any module with a tag starting with "shared"
 ```
 
+There are also additional options for `modguard init`:
+`--strict` will additionally write and enforce the imported public interface for each module.
+`--depth=[N]` will recurse and create submodules, up to the depth that you specify. Each submodule will have a unique `tag` based on its path.
+
 ### Details
 Modguard works by analyzing the abstract syntax tree (AST) of your codebase. `interface.py` has no runtime impact, and are read by modguard statically. 
 
