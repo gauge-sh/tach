@@ -1,0 +1,9 @@
+pyright==1.1.360
+ruff==0.4.1
+setuptools==69.5.1
+twine==5.0.0
+pytest==8.1.1
+pytest-mock==3.14.0
+coverage==7.5.0
+build==1.2.1
+mkdocs-material==9.5.18
