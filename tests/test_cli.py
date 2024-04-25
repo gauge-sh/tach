@@ -1,3 +1,4 @@
+import os
 from unittest.mock import Mock
 import pytest
 
@@ -23,9 +24,20 @@ def mock_isdir(mocker) -> None:
     mocker.patch("modguard.cli.os.path.isdir", mock_isdir)
 
 
-def test_execute_with_valid_dir(capfd, mock_isdir, mock_check):
+@pytest.fixture
+def mock_path_exists(mocker) -> None:
+    def mock_path_exists(path: str) -> bool:
+        if path == "modguard.yml":
+            return True
+        else:
+            return os.path.exists(path)
+
+    mocker.patch("modguard.cli.os.path.exists", mock_path_exists)
+
+
+def test_execute_with_modguard_yml(capfd, mock_path_exists, mock_check):
     # Test with a valid path as mocked
-    args = cli.parse_arguments(["check", "valid_dir"])
+    args = cli.parse_arguments(["check"])
     exclude_paths = args.exclude.split(",") if args.exclude else None
     with pytest.raises(SystemExit) as sys_exit:
         cli.modguard_check(exclude_paths=exclude_paths)
@@ -35,9 +47,8 @@ def test_execute_with_valid_dir(capfd, mock_isdir, mock_check):
     assert "All modules safely guarded!" in captured.out
 
 
-def test_execute_with_error(capfd, mock_isdir, mock_check):
-    # Test with a valid path as mocked
-    args = cli.parse_arguments(["check", "valid_dir"])
+def test_execute_with_error(capfd, mock_path_exists, mock_check):
+    args = cli.parse_arguments(["check"])
     exclude_paths = args.exclude.split(",") if args.exclude else None
     # Mock an error returned from check
     location = "valid_dir/file.py"
@@ -55,21 +66,21 @@ def test_execute_with_error(capfd, mock_isdir, mock_check):
     assert message in captured.err
 
 
-def test_execute_with_invalid_dir(capfd, mock_isdir):
+def test_execute_with_no_modguard_yml(capfd):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with an invalid path as mocked
-        args = cli.parse_arguments(["check", "invalid_dir"])
+        args = cli.parse_arguments(["check"])
         exclude_paths = args.exclude.split(",") if args.exclude else None
         cli.modguard_check(exclude_paths=exclude_paths)
     captured = capfd.readouterr()
     assert sys_exit.value.code == 1
-    assert "invalid_dir is not a valid directory" in captured.err
+    assert "modguard.(yml|yaml) not found" in captured.err
 
 
-def test_execute_with_valid_exclude(capfd, mock_isdir, mock_check):
+def test_execute_with_valid_exclude(capfd, mock_isdir, mock_path_exists, mock_check):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked
-        args = cli.parse_arguments(["check", "valid_dir", "--exclude", "valid_dir"])
+        args = cli.parse_arguments(["check", "--exclude", "valid_dir"])
         exclude_paths = args.exclude.split(",") if args.exclude else None
         cli.modguard_check(exclude_paths=exclude_paths)
     captured = capfd.readouterr()
@@ -78,11 +89,11 @@ def test_execute_with_valid_exclude(capfd, mock_isdir, mock_check):
     assert "All modules safely guarded!" in captured.out
 
 
-def test_execute_with_invalid_exclude(capfd, mock_isdir):
+def test_execute_with_invalid_exclude(capfd, mock_isdir, mock_path_exists):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked
         # Mock a valid return from check
-        args = cli.parse_arguments(["check", "valid_dir", "--exclude", "invalid_dir"])
+        args = cli.parse_arguments(["check", "--exclude", "invalid_dir"])
         exclude_paths = args.exclude.split(",") if args.exclude else None
         cli.modguard_check(exclude_paths=exclude_paths)
     captured = capfd.readouterr()
