@@ -12,7 +12,7 @@ A Python tool to enforce a modular, decoupled package architecture.
 [Docs](https://never-over.github.io/modguard/)
 
 ### What is modguard?
-Modguard allows you to enforce boundaries and dependencies between your Python modules. Each module can also define it's public interface.
+Modguard allows you to define boundaries and control dependencies between your Python modules. Each module can also define its public interface.
 
 This enforces an architecture of decoupled modules, and avoids modules becoming tightly intertwined.
 If a module tries to import from another module that is not listed as a dependency, modguard will throw an exception.
@@ -25,7 +25,7 @@ Modguard is incredibly lightweight, and has no impact on your runtime. Instead, 
 pip install modguard
 ```
 ### Usage
-Add a `module.yml` to the root directory of each module you're creating a boundary for. Create a `tag` that will be used to specify module dependencies:
+To define a module, add a `module.yml` to the corresponding Python package. Add at least one 'tag' to identify the module:
 ```python
 # core/module.yml
 tags: ["core"]
@@ -38,7 +38,7 @@ tags: ["db"]
 # utils/module.yml
 tags: ["utils"]
 ```
-Next, specify the dependencies in `modguard.yml` in the root of your project:
+Next, specify the allowed dependencies for each tag in `modguard.yml` in the root of your project:
 ```yaml
 # [root]/modguard.yml
 tags:
@@ -49,7 +49,7 @@ tags:
   - utils:
     depends_on: []
 ```
-With these rules in place, `core` can import from `db` and `utils`. `db` can only import from `utils`, and `utils` cannot import from any other modules in the project. 
+With these rules in place, modules with tag `core` can import from modules with tag `db` or `utils`. Modules tagged with `db` can only import from `utils`, and modules tagged with `utils` cannot import from any other modules in the project. 
 
 Modguard will now flag any violation of these boundaries.
 ```bash
@@ -58,7 +58,7 @@ Modguard will now flag any violation of these boundaries.
 ❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
 ```
 
-If you want to enforce a public interface for the module, import and reference each object you want exposed in the module's `__init__.py`:
+If you want to define a public interface for the module, import and reference each object you want exposed in the module's `__init__.py`:
 ```python
 # db/__init__.py
 from db.service import PublicAPI
@@ -82,7 +82,7 @@ Modguard will now flag any import that is not from `__init__.py` in the `db` mod
 ❌ ./core/main.py: Import "db.PrivateAPI" is blocked by boundary "db". "db" does not list "db.PrivateAPI" in its public interface.
 ```
 
-You can also view your entire project's set of dependencies and public interfaces. Run `modguard show` to generate a url where you can interact with the dependency graph, as well as view your public interfaces:
+You can also view your entire project's set of dependencies and public interfaces. Run `modguard show` to generate a URL where you can interact with the dependency graph, as well as view your public interfaces:
 ```bash
 > modguard show .
 modguard.com/project/id
@@ -94,8 +94,8 @@ Modguard also comes bundled with a command to set up and define your initial bou
 ```bash
 modguard init .
 ```
-By running `modguard init` from the root of your Python project, modguard will inspect and declare boundaries on each Python module visible from your project root. Each module will receive a `module.yml` with a single tag based on the folder name. 
-The tool will take into consideration the usages between modules, and write a matching set of dependencies to `modguard.yml`.
+By running `modguard init` from the root of your Python project, modguard will inspect and define each top-level Python package as a module. Each module will receive a `module.yml` with a single tag based on the folder name. 
+The tool will take into consideration the usages between modules, and write a matching set of dependencies to `modguard.yml` in the project root.
 ```bash
 > modguard check
 #TODO show passing state here
