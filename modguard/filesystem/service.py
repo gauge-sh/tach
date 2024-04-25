@@ -232,11 +232,16 @@ def module_to_file_path(
     )
 
 
+if hasattr(sys, "stdlib_module_names"):
+    stdlib_module_names = getattr(sys, "stdlib_module_names")
+else:
+    import stdlib_list
+
+    stdlib_module_names = stdlib_list.stdlib_list()
+
+
 def is_standard_lib_or_builtin_import(module_base: str) -> bool:
-    return (
-        module_base in sys.stdlib_module_names
-        or module_base in sys.builtin_module_names
-    )
+    return module_base in stdlib_module_names or module_base in sys.builtin_module_names
 
 
 def is_project_import(project_root: str, mod_path: str) -> bool:
