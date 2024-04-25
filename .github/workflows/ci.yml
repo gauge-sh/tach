@@ -34,16 +34,19 @@ jobs:
         uv pip install -e .
     - name: Check ruff
       run: |
+        source .venv/bin/activate
         ruff check .
         ruff format --check .
     - name: Test with pytest and report coverage
       run: |
+        source .venv/bin/activate
         cd tests
         coverage run --branch --source=../ -m pytest
         coverage report
         cd ..
     - name: Check types with pyright
       run: |
+        source .venv/bin/activate
         pyright .
     - name: Check modguard
       run: |
