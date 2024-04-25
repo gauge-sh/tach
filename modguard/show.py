@@ -1,3 +1,6 @@
+# pyright: reportUnknownParameterType=false, reportMissingTypeArgument=false
+# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false
+
 from modguard.colors import BCOLORS
 from modguard.core.boundary import BoundaryTrie
 from typing import Any, Dict, Tuple, Union
@@ -73,10 +76,13 @@ def dict_to_yaml(
             if isinstance(value, (dict, list)):
                 yaml_str += "\n" + dict_to_yaml(value, indent + 2)
             else:
-                if isinstance(value, bool):
-                    yaml_str += " true\n" if value else " false\n"
-                else:
-                    yaml_str += " " + str(value) + "\n"
+                yaml_str += (
+                    " " + str(value) + "\n"
+                    if not isinstance(value, bool)
+                    else " true\n"
+                    if value
+                    else " false\n"
+                )
     elif isinstance(data, list):
         for item in data:
             yaml_str += " " * indent + "- "

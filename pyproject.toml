@@ -36,8 +36,8 @@ Issues = "https://github.com/never-over/modguard/issues"
 
 [tool.pyright]
 include = ["modguard"]
-exclude = ["**/__pycache__"]
-
+exclude = ["**/__pycache__", ".venv"]
+strict = ["modguard"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
