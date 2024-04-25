@@ -3,6 +3,7 @@ import pytest
 
 from modguard import cli
 from modguard.check import ErrorInfo
+from modguard.constants import CONFIG_FILE_NAME
 
 
 @pytest.fixture
@@ -26,12 +27,12 @@ def mock_isdir(mocker) -> None:
 @pytest.fixture
 def mock_path_exists(mocker) -> None:
     def mock_path_exists(path: str) -> bool:
-        if path == "modguard.yml":
+        if CONFIG_FILE_NAME in path:
             return True
         else:
             return False
 
-    mocker.patch("modguard.cli.os.path.exists", mock_path_exists)
+    mocker.patch("modguard.filesystem.project.os.path.exists", mock_path_exists)
 
 
 def test_execute_with_modguard_yml(capfd, mock_path_exists, mock_check):

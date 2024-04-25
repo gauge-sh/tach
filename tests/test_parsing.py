@@ -1,5 +1,8 @@
 # TODO: move this test
+from modguard.core.config import ProjectConfig, ScopeDependencyRules, ModuleConfig
 from modguard.filesystem import file_to_module_path
+from modguard.filesystem.module import parse_module_config
+from modguard.filesystem.project import parse_project_config
 from modguard.parsing.boundary import has_boundary
 from modguard.parsing.imports import get_imports
 
@@ -32,3 +35,30 @@ def test_get_imports():
         "example.domain_five.inner.private_fn",
         "example.domain_five.pub_fn",
     }
+
+
+def test_parse_valid_project_config():
+    result = parse_project_config("example/valid/")
+    assert result == ProjectConfig(
+        ignore=["domain_three"],
+        tags={
+            "one": ScopeDependencyRules(depends_on=["two"]),
+            "two": ScopeDependencyRules(depends_on=["one"]),
+            "shared": ScopeDependencyRules(),
+        },
+    )
+
+
+def test_parse_valid_strict_module_config():
+    result = parse_module_config("example/valid/domain_one")
+    assert result == ModuleConfig(strict=True, tags=["one"])
+
+
+def test_parse_valid_multi_tag_module_config():
+    result = parse_module_config("example/valid/domain_two")
+    assert result == ModuleConfig(strict=False, tags=["two", "shared"])
+
+
+def test_module_with_no_config():
+    result = parse_module_config("example/valid/domain_three")
+    assert result is None

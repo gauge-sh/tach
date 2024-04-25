@@ -4,8 +4,10 @@ import sys
 from typing import Optional
 
 from modguard.check import check, ErrorInfo
-from modguard.constants import CONFIG_FILE_NAME
-from modguard.filesystem.project import validate_config_exists
+from modguard.filesystem.project import (
+    validate_project_config_path,
+    print_invalid_exclude,
+)
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
 from modguard.show import show
@@ -20,21 +22,6 @@ def print_errors(error_list: list[ErrorInfo]) -> None:
             f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.WARNING}: {error.message}",
             file=sys.stderr,
         )
-
-
-def print_no_modguard_yml() -> None:
-    print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}",
-        file=sys.stderr,
-    )
-
-
-def print_invalid_exclude(path: str) -> None:
-    print(
-        f"{BCOLORS.FAIL} {path} is not a valid dir or file. "
-        f"Make sure the exclude list is comma separated and valid.",
-        file=sys.stderr,
-    )
 
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
@@ -96,12 +83,13 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     parsed_args = parser.parse_args(args)
 
     if not args[0] == "init":
-        validate_config_exists()
+        validate_project_config_path()
 
     exclude_paths = parsed_args.exclude
     if exclude_paths:
         exclude_paths = exclude_paths.split(",")
         has_error = False
+        # TODO move to fs
         for exclude_path in exclude_paths:
             if (
                 exclude_path
