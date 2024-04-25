@@ -1,6 +1,6 @@
-[![image](https://img.shields.io/pypi/v/modguard.svg)](https://pypi.python.org/pypi/modguard)
-[![image](https://img.shields.io/pypi/l/modguard.svg)](https://pypi.python.org/pypi/modguard)
-[![image](https://img.shields.io/pypi/pyversions/modguard.svg)](https://pypi.python.org/pypi/modguard)
+[![image](https://img.shields.io/pypi/v/modguard.svg)](https://pypi.Python.org/pypi/modguard)
+[![image](https://img.shields.io/pypi/l/modguard.svg)](https://pypi.Python.org/pypi/modguard)
+[![image](https://img.shields.io/pypi/pyversions/modguard.svg)](https://pypi.Python.org/pypi/modguard)
 [![image](https://github.com/Never-Over/modguard/actions/workflows/ci.yml/badge.svg)](https://github.com/Never-Over/modguard/actions/workflows/ci.yml)
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -12,7 +12,7 @@ A Python tool to enforce a modular, decoupled package architecture.
 [Docs](https://never-over.github.io/modguard/)
 
 ### What is modguard?
-Modguard allows you to enforce boundaries and dependencies between your python modules. Each module can also define it's public interface.
+Modguard allows you to enforce boundaries and dependencies between your Python modules. Each module can also define it's public interface.
 
 This enforces an architecture of decoupled modules, and avoids modules becoming tightly intertwined.
 If a module tries to import from another module that is not listed as a dependency, modguard will throw an exception.
@@ -26,15 +26,15 @@ pip install modguard
 ```
 ### Usage
 Add a `module.yml` to the root directory of each module you're creating a boundary for. Create a `tag` that will be used to specify module dependencies:
-```python
+python
 # core/module.yml
 tags: ["core"]
 ```
-```python
+python
 # db/module.yml
 tags: ["db"]
 ```
-```python
+python
 # utils/module.yml
 tags: ["utils"]
 ```
@@ -53,13 +53,13 @@ With these rules in place, `core` can import from `db` and `utils`. `db` can onl
 
 Modguard will now flag any violation of these boundaries.
 ```bash
-# From the root of your python project (in this example, `project/`)
+# From the root of your Python project (in this example, `project/`)
 > modguard check
 ❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
 ```
 
 If you want to enforce a public interface for the module, import and reference each object you want exposed in the module's `__init__.py`:
-```python
+python
 # db/__init__.py
 from db.service import PublicAPI
 
@@ -71,13 +71,13 @@ Turning on `strict: true` in the module's `module.yml` will then enforce that al
 tags: ["db"]
 strict: true
 ```
-```python3
+python3
 # The only valid import from "db"
 from db import PublicAPI 
 ```
 Modguard will now flag any import that is not from `__init__.py` in the `db` module, in addition to enforcing the dependencies defined above.
 ```bash
-# From the root of your python project (in this example, `project/`)
+# From the root of your Python project (in this example, `project/`)
 > modguard check
 ❌ ./core/main.py: Import "db.PrivateAPI" is blocked by boundary "db". "db" does not list "db.PrivateAPI" in its public interface.
 ```
@@ -94,7 +94,7 @@ Modguard also comes bundled with a command to set up and define your initial bou
 ```bash
 modguard init .
 ```
-By running `modguard init` from the root of your python project, modguard will inspect and declare boundaries on each python module visible from your project root. Each module will receive an `interface.py` with a single tag based on the folder name. 
+By running `modguard init` from the root of your Python project, modguard will inspect and declare boundaries on each Python module visible from your project root. Each module will receive an `interface.py` with a single tag based on the folder name. 
 The tool will take into consideration the usages between modules, and write a matching set of dependencies to `modguard.yml`.
 ```bash
 > modguard check
@@ -103,14 +103,14 @@ The tool will take into consideration the usages between modules, and write a ma
 
 ### Advanced
 Modguard supports specific exceptions. You can mark an import with the `modguard-ignore` comment:
-```python
+python
 # modguard-ignore
 from db.main import PrivateAPI
 ```
 This will stop modguard from flagging this import as a boundary violation.
 
 You can also specify multiple tags for a given module:
-```python
+python
 # utils/module.yml
 tags: ["core", "utils"]
 ```
