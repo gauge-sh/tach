@@ -1,5 +1,5 @@
-from .config import ModuleConfig, ScopeDependencyRules, ProjectConfig
-from .module import ModuleNode, ModuleTrie
+from modguard.core.config import ModuleConfig, ScopeDependencyRules, ProjectConfig
+from modguard.core.module import ModuleNode, ModuleTrie
 
 __all__ = [
     "ModuleConfig",

@@ -1,4 +1,4 @@
-from .service import (
+from modguard.filesystem.service import (
     get_cwd,
     chdir,
     canonical,
