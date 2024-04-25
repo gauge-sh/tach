@@ -1,148 +1,100 @@
 import pytest
-from modguard.check import check, ErrorInfo, check_allowlist, check_import
-from modguard.core import BoundaryTrie, PublicMember
+from modguard.core import (
+    ModuleConfig,
+    ModuleTrie,
+    ModuleNode,
+    ProjectConfig,
+    ScopeDependencyRules,
+)
+from modguard.check import check_import
 
 
 @pytest.fixture
-def boundary_trie() -> BoundaryTrie:
-    trie = BoundaryTrie()
-    trie.insert("")
-    trie.insert("domain_one")
-    trie.insert("domain_two")
-    trie.insert("domain_three")
-    trie.insert("domain_four", [PublicMember(name="domain_four.public_api")])
-    return trie
+def test_config() -> ModuleConfig:
+    return ModuleConfig(tags=["test"], strict=False)
 
 
-def _test_check_import(
-    boundary_trie: BoundaryTrie, file_mod_path: str, import_mod_path: str
-):
-    file_boundary = boundary_trie.find_nearest(file_mod_path)
-    assert file_boundary is not None, f"Couldn't find boundary for {file_mod_path}"
-    return check_import(
-        boundary_trie=boundary_trie,
-        import_mod_path=import_mod_path,
-        file_nearest_boundary=file_boundary,
-        file_mod_path=file_mod_path,
+@pytest.fixture
+def project_config() -> ProjectConfig:
+    return ProjectConfig(
+        dependency_rules={
+            "domain_one": ScopeDependencyRules(
+                depends_on=["domain_one", "domain_three"]
+            ),
+            "domain_two": ScopeDependencyRules(depends_on=["domain_one"]),
+            "domain_three": ScopeDependencyRules(depends_on=[]),
+        }
     )
 
 
-def test_check_import_across_boundary_public(boundary_trie):
-    assert (
-        _test_check_import(
-            boundary_trie,
-            file_mod_path="domain_one",
-            import_mod_path="domain_four.public_api",
+@pytest.fixture
+def module_trie() -> ModuleTrie:
+    return ModuleTrie(
+        root=ModuleNode(
+            is_end_of_path=False,
+            full_path="",
+            config=None,
+            children={
+                "domain_one": ModuleNode(
+                    is_end_of_path=True,
+                    full_path="domain_one",
+                    config=ModuleConfig(tags=["domain_one"], strict=False),
+                    children={
+                        "subdomain": ModuleNode(
+                            is_end_of_path=True,
+                            full_path="domain_one.subdomain",
+                            config=ModuleConfig(tags=["domain_one"], strict=False),
+                            children={},
+                        )
+                    },
+                ),
+                "domain_two": ModuleNode(
+                    is_end_of_path=True,
+                    full_path="domain_two",
+                    config=ModuleConfig(tags=["domain_two"], strict=False),
+                    children={
+                        "subdomain": ModuleNode(
+                            is_end_of_path=True,
+                            full_path="domain_two.subdomain",
+                            config=ModuleConfig(tags=["domain_two"], strict=False),
+                            children={},
+                        )
+                    },
+                ),
+                "domain_three": ModuleNode(
+                    is_end_of_path=True,
+                    full_path="domain_three",
+                    config=ModuleConfig(tags=["domain_three"], strict=False),
+                    children={},
+                ),
+            },
         )
-        is None
-    )
-
-
-def test_check_import_within_boundary(boundary_trie):
-    assert (
-        _test_check_import(
-            boundary_trie,
-            file_mod_path="domain_one",
-            import_mod_path="domain_one.private_api",
-        )
-        is None
-    )
-
-
-def test_check_import_external_module(boundary_trie):
-    assert (
-        _test_check_import(
-            boundary_trie,
-            file_mod_path="domain_one",
-            import_mod_path="external_domain",
-        )
-        is None
-    )
-
-
-def test_check_import_across_boundary_private(boundary_trie):
-    assert (
-        _test_check_import(
-            boundary_trie,
-            file_mod_path="domain_one",
-            import_mod_path="domain_four.private_api",
-        )
-        is not None
-    )
-
-
-def test_check_example_dir_end_to_end():
-    expected_errors = [
-        ErrorInfo(
-            import_mod_path="example.domain_one.interface.domain_one_interface",
-            location="example/__init__.py",
-            boundary_path="example.domain_one",
-        ),
-        ErrorInfo(
-            import_mod_path="example.domain_three.api.PublicForDomainTwo",
-            location="example/__init__.py",
-            boundary_path="example.domain_three",
-        ),
-        ErrorInfo(
-            import_mod_path="example.domain_one.interface.domain_one_interface",
-            location="example/domain_three/__init__.py",
-            boundary_path="example.domain_one",
-        ),
-        ErrorInfo(
-            import_mod_path="example.domain_four.subsystem.private_subsystem_call",
-            location="example/__init__.py",
-            boundary_path="example.domain_four.subsystem",
-        ),
-        ErrorInfo(
-            import_mod_path="example.domain_five.inner.private_fn",
-            location="example/__init__.py",
-            boundary_path="example.domain_five.inner",
-        ),
-        ErrorInfo(
-            location="example/__init__.py",
-            import_mod_path="example.domain_one.interface.domain_one_var",
-            boundary_path="example.domain_one",
-        ),
-        ErrorInfo(
-            location="example/domain_three/__init__.py",
-            import_mod_path="example.domain_one.interface.domain_one_var",
-            boundary_path="example.domain_one",
-        ),
-    ]
-    check_results = check("example")
-
-    for expected_error in expected_errors:
-        assert (
-            expected_error in check_results
-        ), f"Missing error: {expected_error.message}"
-        check_results.remove(expected_error)
-    assert len(check_results) == 0, "\n".join(
-        (result.message for result in check_results)
     )
 
 
 @pytest.mark.parametrize(
-    "allowlist, file_mod_path, expected",
+    "file_mod_path,import_mod_path,expected_result",
     [
-        # Test cases where the allowlist matches the file_mod_path
-        (["/usr", "/var"], "/usr/bin/python", True),
-        (["/usr", "/var"], "/var/log/syslog", True),
-        (["/usr", "/var"], "/bin/bash", False),  # Not in allowlist
-        # Test cases where regex patterns are used in allowlist
-        (["/usr.*", "/var"], "/usr/local/bin/python", True),
-        (["/usr.*", "/var"], "/var/www/index.html", True),
-        (["/usr.*", "/var"], "/home/user/file.txt", False),  # Not in allowlist
-        # Test cases with invalid regex patterns
-        (["[a-z", "/var"], "/usr/bin/python", False),  # Invalid regex pattern
-        ([r"/usr\d+", "/var"], "/usr123/file.txt", True),
-        (["/usr", "/var"], "/var/log/syslog", True),
+        ("domain_one", "domain_one", True),
+        ("domain_one", "domain_one.subdomain", True),
+        ("domain_one", "domain_three", True),
+        ("domain_two", "domain_one", True),
+        ("domain_two.subdomain", "domain_one", True),
+        ("domain_two", "external", True),
+        ("external", "external", True),
+        ("domain_three", "domain_one", False),
+        ("domain_two", "domain_three", False),
+        ("domain_two", "domain_two.subdomain", False),
+        ("external", "domain_three", False),
     ],
 )
-def test_check_allowlist(allowlist, file_mod_path, expected):
-    assert check_allowlist(allowlist, file_mod_path) == expected
-
-
-def test_empty_allowlist():
-    assert not check_allowlist(
-        [], "/usr/bin/python"
-    )  # Empty allowlist should always return False
+def test_check_import(
+    project_config, module_trie, file_mod_path, import_mod_path, expected_result
+):
+    result = check_import(
+        project_config=project_config,
+        module_trie=module_trie,
+        file_mod_path=file_mod_path,
+        import_mod_path=import_mod_path,
+    )
+    assert result.ok == expected_result

@@ -1,4 +1,10 @@
-from .boundary import BoundaryNode, BoundaryTrie
-from .public import PublicMember
+from .config import ModuleConfig, ScopeDependencyRules, ProjectConfig
+from .module import ModuleNode, ModuleTrie
 
-__all__ = ["BoundaryNode", "BoundaryTrie", "PublicMember"]
+__all__ = [
+    "ModuleConfig",
+    "ScopeDependencyRules",
+    "ProjectConfig",
+    "ModuleNode",
+    "ModuleTrie",
+]

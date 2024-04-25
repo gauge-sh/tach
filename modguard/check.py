@@ -1,94 +1,127 @@
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
-from . import filesystem as fs
-from .core.boundary import BoundaryTrie, BoundaryNode
-from .parsing.boundary import build_boundary_trie
-from .parsing.imports import get_imports
+from modguard import filesystem as fs
+from modguard.core import ModuleTrie, ModuleNode, ProjectConfig
+from modguard.parsing.modules import build_module_trie
+from modguard.parsing.imports import get_project_imports
 
 
 @dataclass
 class ErrorInfo:
     location: str = ""
     import_mod_path: str = ""
-    boundary_path: str = ""
+    source_tag: str = ""
+    allowed_tags: list[str] = field(default_factory=list)
     exception_message: str = ""
 
     @property
     def message(self) -> str:
         if self.exception_message:
             return self.exception_message
-        if not all((self.location, self.import_mod_path, self.boundary_path)):
-            return f"Unexpected error: ({[self.location, self.import_mod_path, self.boundary_path]})"
-        return f"Import '{self.import_mod_path}' in {self.location} is blocked by boundary '{self.boundary_path}'"
+        if not all(
+            (
+                self.location,
+                self.import_mod_path,
+                self.source_tag,
+            )
+        ):
+            return f"Unexpected error: ({[self.location, self.import_mod_path, self.source_tag, self.allowed_tags]})"
+        if not self.allowed_tags:
+            return (
+                f"Import '{self.import_mod_path}' in {self.location} is blocked. "
+                f"Tag '{self.source_tag}' can only depend on tags '{self.allowed_tags}'."
+            )
+        return (
+            f"Import '{self.import_mod_path}' in {self.location} is blocked. "
+            f"Tag '{self.source_tag}' can only depend on tags '{self.allowed_tags}'."
+        )
 
 
-def check_allowlist(allowlist: list[str], file_mod_path: str) -> bool:
-    for allowed_path in allowlist:
-        if file_mod_path.startswith(allowed_path):
-            return True
-        try:
-            if re.match(allowed_path, file_mod_path):
-                return True
-        except re.error:
-            pass
-    return False
+@dataclass
+class CheckResult:
+    ok: bool
+    error_info: Optional[ErrorInfo] = None
+
+    @classmethod
+    def success(cls) -> "CheckResult":
+        return cls(ok=True)
+
+    @classmethod
+    def fail(cls, error_info: ErrorInfo) -> "CheckResult":
+        return cls(ok=False, error_info=error_info)
 
 
 def check_import(
-    boundary_trie: BoundaryTrie,
+    project_config: ProjectConfig,
+    module_trie: ModuleTrie,
     import_mod_path: str,
-    file_nearest_boundary: BoundaryNode,
     file_mod_path: str,
-) -> Optional[BoundaryNode]:
-    nearest_boundary = boundary_trie.find_nearest(import_mod_path)
-    # An imported module is allowed only in the following cases:
-    # * The module is not contained by a boundary [generally 3rd party]
-    import_mod_has_boundary = nearest_boundary is not None
+    file_nearest_module: Optional[ModuleNode] = None,
+) -> CheckResult:
+    import_nearest_module = module_trie.find_nearest(import_mod_path)
+    if import_nearest_module is None:
+        # This shouldn't happen since we intend to filter out any external imports,
+        # but we should allow external imports if they have made it here.
+        return CheckResult.success()
 
-    # * The file's boundary is a child of the imported module's boundary
-    import_mod_is_child_of_current = (
-        import_mod_has_boundary
-        and file_nearest_boundary.full_path.startswith(nearest_boundary.full_path)
-    )
-
-    # * The module is exported as public by its boundary and is allowed in the current path
-    import_mod_public_member_definition = (
-        next(
-            (
-                public_member
-                for public_member_name, public_member in nearest_boundary.public_members.items()
-                if import_mod_path.startswith(public_member_name)
-            ),
-            None,
-        )
-        if import_mod_has_boundary
-        else None
-    )
-    import_mod_is_public_and_allowed = (
-        import_mod_public_member_definition is not None
-        and (
-            import_mod_public_member_definition.allowlist is None
-            or check_allowlist(
-                import_mod_public_member_definition.allowlist, file_mod_path
+    # Lookup file_mod_path if module not given
+    if file_nearest_module is None:
+        file_nearest_module = module_trie.find_nearest(file_mod_path)
+    # If module not found, we should fail since the implication is that
+    # an external module is importing directly from our project
+    if file_nearest_module is None:
+        return CheckResult.fail(
+            error_info=ErrorInfo(
+                exception_message=f"Module '{file_mod_path}' not found in project."
             )
         )
-    )
 
-    if (
-        not import_mod_has_boundary
-        or import_mod_is_child_of_current
-        or import_mod_is_public_and_allowed
-    ):
-        return None
+    # Imports within the same module are always allowed
+    if import_nearest_module == file_nearest_module:
+        return CheckResult.success()
 
-    # In error case, return path of the violated boundary
-    return nearest_boundary
+    # The import must be explicitly allowed based on the tags and top-level config
+    if not file_nearest_module.config or not import_nearest_module.config:
+        return CheckResult.fail(
+            error_info=ErrorInfo(exception_message="Could not find config for modules.")
+        )
+    file_tags = file_nearest_module.config.tags
+    import_tags = import_nearest_module.config.tags
+
+    for file_tag in file_tags:
+        dependency_tags = (
+            project_config.dependency_rules[file_tag].depends_on
+            if file_tag in project_config.dependency_rules
+            else []
+        )
+        if any(
+            any(
+                re.match(dependency_tag, import_tag)
+                for dependency_tag in dependency_tags
+            )
+            for import_tag in import_tags
+        ):
+            # The import has at least one tag which matches at least one expected dependency
+            continue
+        # This means the import has scopes which the file cannot depend on
+        return CheckResult.fail(
+            error_info=ErrorInfo(
+                location=file_mod_path,
+                import_mod_path=import_mod_path,
+                source_tag=file_tag,
+                allowed_tags=dependency_tags,
+            )
+        )
+
+    return CheckResult.success()
 
 
-def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInfo]:
+def check(
+    root: str, project_config: ProjectConfig, exclude_paths: Optional[list[str]] = None
+) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [
             ErrorInfo(exception_message=f"The path {root} is not a valid directory.")
@@ -98,34 +131,28 @@ def check(root: str, exclude_paths: Optional[list[str]] = None) -> list[ErrorInf
     root = fs.canonical(root)
     exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
-    pyfiles = list(fs.walk_pyfiles(root, exclude_paths=exclude_paths))
-    boundary_trie = build_boundary_trie(root, pyfiles=pyfiles)
+    module_trie = build_module_trie(root, exclude_paths=exclude_paths)
 
     errors: list[ErrorInfo] = []
-    for file_path in pyfiles:
+    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
         mod_path = fs.file_to_module_path(file_path)
-        nearest_boundary = boundary_trie.find_nearest(mod_path)
-        assert (
-            nearest_boundary is not None
-        ), f"Checking file ({file_path}) outside of boundaries!"
-        import_mod_paths = get_imports(file_path)
+        nearest_module = module_trie.find_nearest(mod_path)
+        if nearest_module is None:
+            continue
+        import_mod_paths = get_project_imports(root, file_path)
+        # This should only give us imports from within our project
+        # (excluding stdlib, builtins, and 3rd party packages)
         for import_mod_path in import_mod_paths:
-            violated_boundary = check_import(
-                boundary_trie=boundary_trie,
+            check_result = check_import(
+                project_config=project_config,
+                module_trie=module_trie,
                 import_mod_path=import_mod_path,
-                file_nearest_boundary=nearest_boundary,
+                file_nearest_module=nearest_module,
                 file_mod_path=mod_path,
             )
-            if violated_boundary is None:
-                # This import is OK
+            if check_result.ok or check_result.error_info is None:
                 continue
 
-            errors.append(
-                ErrorInfo(
-                    import_mod_path=import_mod_path,
-                    boundary_path=violated_boundary.full_path,
-                    location=file_path,
-                )
-            )
+            errors.append(check_result.error_info)
 
     return errors
