@@ -25,6 +25,9 @@ classifiers = [
     "Topic :: Software Development :: Quality Assurance",
 ]
 keywords = ['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass', 'domain', 'architecture']
+dependencies = [
+    "pydantic==2.5.3"
+]
 
 [project.urls]
 Homepage = "https://github.com/never-over/modguard"
