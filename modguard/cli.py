@@ -25,7 +25,7 @@ def print_errors(error_list: list[ErrorInfo]) -> None:
 
 def print_no_modguard_yml() -> None:
     print(
-        f"{BCOLORS.FAIL} {MODGUARD_CONFIG_FILE_NAME}.(yml|yaml) not found.",
+        f"{BCOLORS.FAIL} {MODGUARD_CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}",
         file=sys.stderr,
     )
 
