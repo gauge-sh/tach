@@ -25,18 +25,18 @@ Modguard is incredibly lightweight, and has no impact on the runtime of your cod
 pip install modguard
 ```
 ### Usage
-Add an `interface.py` to the root directory of the module you're creating an interface for. Create a `tag` that will be used to specify module dependencies:
+Add an `module.yml` to the root directory of the module you're creating an interface for. Create a `tag` that will be used to specify module dependencies:
 ```python
-# core/interface.py
-__tags__ = ["core"]
+# core/module.yml
+tags: ["core"]
 ```
 ```python
-# db/interface.py
-__tags__ = ["db"]
+# db/module.yml
+tags: ["db"]
 ```
 ```python
-# utils/interface.py
-__tags__ = ["utils"]
+# utils/module.yml
+tags: ["utils"]
 ```
 Next, specify the dependencies in `modguard.yml` in the root of your project:
 ```yaml
@@ -58,39 +58,37 @@ Modguard will now flag any violation of these boundaries.
 ❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
 ```
 
-If you want to enforce a public interface for the module, import and reference each object you want exposed:
+If you want to enforce a public interface for the module, import and reference each object you want exposed in the module's `__init__.py`:
 ```python
-# db/interface.py
+# db/__init__.py
 from db.service import PublicAPI
 
-__tags__ = ["db"]
 __all__ = ["PublicAPI"]
+```
+Turning on `strict: true` in the module's `module.yml` will then enforce that all imports from this module occur through `__init__.py`
+```yaml
+# db/module.yml
+tags: ["db"]
+strict: true
 ```
 ```python3
 # The only valid import from "db"
 from db.interface import PublicAPI 
 ```
-
-Modguard will now flag any import that is not in `__all__` in `interface.py`, in addition to enforcing the dependencies defined above. Imports for this module must flow through `interface.py`
+Modguard will now flag any import that is not from `__init__.py` in the `db` module, in addition to enforcing the dependencies defined above.
 ```bash
 # From the root of your python project (in this example, `project/`)
 > modguard check .
 ❌ ./core/main.py: Import "db.PrivateAPI" is blocked by boundary "db". "db" does not list "db.PrivateAPI" in its public interface.
 ```
 
-#TODO: Show can utilize ERD diagrams. Look into ERAlchemy, mermaid
-You can also view your entire project's set of dependencies and public interfaces. Boundaries will be marked with a `[B]`, and public members will be marked with a `[P]`. Note that a module can be both public and a boundary.
+You can also view your entire project's set of dependencies and public interfaces. Run `modguard show` to generate a url where you can interact with the dependency graph, as well as view your public interfaces:
 ```bash
 > modguard show .
-example
-  [B]core
-    main
-      [P]public_function
-      [P]PUBLIC_CONSTANT
-  [P][B]utils
-    helpers
+modguard.com/project/id
 ```
-If you want to utilize this data for other purposes, run `modguard show --write .` This will persist the data about your project in a `modguard.yaml` file.
+If you want to utilize this data for other purposes, run `modguard show --write .` This will persist the data about your project in a `modguard.json` file.
+
 ### Setup
 Modguard also comes bundled with a command to set up and define your initial boundaries.
 ```bash
@@ -124,11 +122,10 @@ This will expand the set of modules that "utils" can access to include all modul
 ```
 
 There are also additional options for `modguard init`:
-`--strict` will additionally write and enforce the imported public interface for each module.
 `--depth=[N]` will recurse and create submodules, up to the depth that you specify. Each submodule will have a unique `tag` based on its path.
 
 ### Details
-Modguard works by analyzing the abstract syntax tree (AST) of your codebase. `interface.py` has no runtime impact, and are read by modguard statically. 
+Modguard works by analyzing the abstract syntax tree (AST) of your codebase. It has no runtime impact, and all operations are performed statically. 
 
 Boundary violations are detected at the import layer. This means that specific nonstandard custom syntax to access modules/submodules such as getattr or dynamically generated namespaces will not be caught by modguard.
 
