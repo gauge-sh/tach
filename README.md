@@ -14,11 +14,11 @@ A Python tool to enforce a modular, decoupled package architecture.
 ### What is modguard?
 Modguard allows you to enforce boundaries and dependencies between your python modules. Each module can also define it's public interface.
 
-This enforces an architecture of decoupled modules, and ensures the communication between domains only happens through their defined public interfaces.
-If another module tries to import from a module that is not an explicitly listed dependency, Modguard will throw an exception.
-If another module tries to import from a module outside of its public interface, modguard will throw an exception.
+This enforces an architecture of decoupled modules, and avoids modules becoming tightly intertwined.
+If a module tries to import from another module that is not listed as a dependency, Modguard will throw an exception.
+If a module tries to import from another module and does not use its public interface, with `strict: true` set Modguard will throw an exception.
 
-Modguard is incredibly lightweight, and has no impact on the runtime of your code. Instead, its checks are performed through as a lint check through its CLI.
+Modguard is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed through as a lint check through the CLI.
 
 ### Installation
 ```bash
@@ -97,7 +97,8 @@ modguard init .
 By running `modguard init` from the root of your python project, modguard will inspect and declare boundaries on each python module visible from your project root. Each module will receive an `interface.py` with a single tag based on the folder name. 
 The tool will take into consideration the usages between modules, and write a matching set of dependencies to `modguard.yml`.
 ```bash
-modguard check
+> modguard check
+#TODO show passing state here
 ```
 
 ### Advanced
