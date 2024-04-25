@@ -4,7 +4,8 @@ import sys
 from typing import Optional
 
 from modguard.check import check, ErrorInfo
-from modguard.constants import MODGUARD_CONFIG_FILE_NAME
+from modguard.constants import CONFIG_FILE_NAME
+from modguard.filesystem.project import validate_config_exists
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
 from modguard.show import show
@@ -23,7 +24,7 @@ def print_errors(error_list: list[ErrorInfo]) -> None:
 
 def print_no_modguard_yml() -> None:
     print(
-        f"{BCOLORS.FAIL} {MODGUARD_CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}",
+        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}",
         file=sys.stderr,
     )
 
@@ -94,12 +95,9 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if not args[0] == "init" and not (
-        os.path.exists(f"{MODGUARD_CONFIG_FILE_NAME}.yml")
-        or os.path.exists(f"{MODGUARD_CONFIG_FILE_NAME}.yaml")
-    ):
-        print_no_modguard_yml()
-        sys.exit(1)
+    if not args[0] == "init":
+        validate_config_exists()
+
     exclude_paths = parsed_args.exclude
     if exclude_paths:
         exclude_paths = exclude_paths.split(",")

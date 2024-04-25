@@ -8,7 +8,7 @@ class ModuleConfig(BaseModel):
     Configuration for a single module within a project.
     """
 
-    scopes: List[str] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
     strict: bool = False
 
     @classmethod
@@ -30,4 +30,5 @@ class ProjectConfig(BaseModel):
     Configuration applied globally to a project.
     """
 
-    dependency_rules: Dict[str, ScopeDependencyRules] = Field(default_factory=dict)
+    tags: Dict[str, ScopeDependencyRules] = Field(default_factory=dict)
+    ignore: List[str] = Field(default_factory=list)

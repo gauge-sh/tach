@@ -1,1 +1,2 @@
-MODGUARD_CONFIG_FILE_NAME = "modguard"
+CONFIG_FILE_NAME = "modguard"
+MODULE_FILE_NAME = "module"
