@@ -1,5 +1,5 @@
 import pytest
-from modguard.check import check, ErrorInfo, check_import
+from modguard.check import check_import
 from modguard.core import BoundaryTrie
 
 
