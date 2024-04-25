@@ -94,7 +94,7 @@ Modguard also comes bundled with a command to set up and define your initial bou
 ```bash
 modguard init .
 ```
-By running `modguard init` from the root of your Python project, modguard will inspect and declare boundaries on each Python module visible from your project root. Each module will receive an `interface.py` with a single tag based on the folder name. 
+By running `modguard init` from the root of your Python project, modguard will inspect and declare boundaries on each Python module visible from your project root. Each module will receive a `module.yml` with a single tag based on the folder name. 
 The tool will take into consideration the usages between modules, and write a matching set of dependencies to `modguard.yml`.
 ```bash
 > modguard check
