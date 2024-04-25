@@ -26,15 +26,15 @@ pip install modguard
 ```
 ### Usage
 Add a `module.yml` to the root directory of each module you're creating a boundary for. Create a `tag` that will be used to specify module dependencies:
-python
+```python
 # core/module.yml
 tags: ["core"]
 ```
-python
+```python
 # db/module.yml
 tags: ["db"]
 ```
-python
+```python
 # utils/module.yml
 tags: ["utils"]
 ```
@@ -59,7 +59,7 @@ Modguard will now flag any violation of these boundaries.
 ```
 
 If you want to enforce a public interface for the module, import and reference each object you want exposed in the module's `__init__.py`:
-python
+```python
 # db/__init__.py
 from db.service import PublicAPI
 
@@ -71,7 +71,7 @@ Turning on `strict: true` in the module's `module.yml` will then enforce that al
 tags: ["db"]
 strict: true
 ```
-python3
+```python
 # The only valid import from "db"
 from db import PublicAPI 
 ```
@@ -103,14 +103,14 @@ The tool will take into consideration the usages between modules, and write a ma
 
 ### Advanced
 Modguard supports specific exceptions. You can mark an import with the `modguard-ignore` comment:
-python
+```python
 # modguard-ignore
 from db.main import PrivateAPI
 ```
 This will stop modguard from flagging this import as a boundary violation.
 
 You can also specify multiple tags for a given module:
-python
+```python
 # utils/module.yml
 tags: ["core", "utils"]
 ```
