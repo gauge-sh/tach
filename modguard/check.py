@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from . import filesystem as fs
-from .core.boundary import BoundaryTrie, BoundaryNode
+from .core.module import ModuleTrie, ModuleNode
 from .parsing.boundary import build_boundary_trie
 from .parsing.imports import get_imports
 
@@ -25,11 +25,11 @@ class ErrorInfo:
 
 
 def check_import(
-    boundary_trie: BoundaryTrie,
+    boundary_trie: ModuleTrie,
     import_mod_path: str,
-    file_nearest_boundary: BoundaryNode,
+    file_nearest_boundary: ModuleNode,
     file_mod_path: str,
-) -> Optional[BoundaryNode]:
+) -> Optional[ModuleNode]:
     nearest_boundary = boundary_trie.find_nearest(import_mod_path)
     # An imported module is allowed only in the following cases:
     # * The module is not contained by a boundary [generally 3rd party]
@@ -41,10 +41,7 @@ def check_import(
         and file_nearest_boundary.full_path.startswith(nearest_boundary.full_path)
     )
 
-    if (
-        not import_mod_has_boundary
-        or import_mod_is_child_of_current
-    ):
+    if not import_mod_has_boundary or import_mod_is_child_of_current:
         return None
 
     # In error case, return path of the violated boundary

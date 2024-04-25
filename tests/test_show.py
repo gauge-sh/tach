@@ -1,22 +1,22 @@
 import pytest
 
-from modguard.core import BoundaryTrie, BoundaryNode
+from modguard.core import ModuleTrie, ModuleNode
 from modguard.show import show
 
 
 @pytest.fixture
 def boundary_trie():
-    return BoundaryTrie(
-        root=BoundaryNode(
+    return ModuleTrie(
+        root=ModuleNode(
             children={
-                "domain_one": BoundaryNode(
+                "domain_one": ModuleNode(
                     children={},
                     is_end_of_path=True,
                     full_path="domain_one",
                 ),
-                "domain_two": BoundaryNode(
+                "domain_two": ModuleNode(
                     children={
-                        "subdomain": BoundaryNode(
+                        "subdomain": ModuleNode(
                             children={},
                             is_end_of_path=True,
                             full_path="domain_two.subdomain",
@@ -25,12 +25,12 @@ def boundary_trie():
                     is_end_of_path=True,
                     full_path="domain_two",
                 ),
-                "domain_three": BoundaryNode(
+                "domain_three": ModuleNode(
                     children={},
                     is_end_of_path=True,
                     full_path="domain_three",
                 ),
-                "domain_four": BoundaryNode(
+                "domain_four": ModuleNode(
                     children={},
                     is_end_of_path=True,
                     full_path="domain_four",

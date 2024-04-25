@@ -1,12 +1,12 @@
 from modguard.colors import BCOLORS
-from modguard.core.boundary import BoundaryTrie
+from modguard.core.module import ModuleTrie
 from typing import Any, Dict, Tuple, Union
 
 # This type hint only works on more recent versions
 # result_dict: TypeAlias = dict[str, str | bool | 'result_dict']
 
 
-def boundary_trie_to_dict(boundary_trie: BoundaryTrie) -> Dict[str, Any]:
+def boundary_trie_to_dict(boundary_trie: ModuleTrie) -> Dict[str, Any]:
     result: Dict[str, Any] = dict()
     for node in boundary_trie:
         path = node.full_path
@@ -78,7 +78,7 @@ def dict_to_yaml(
     return yaml_str
 
 
-def show(boundary_trie: BoundaryTrie, write_file: bool = False) -> Tuple[str, str]:
+def show(boundary_trie: ModuleTrie, write_file: bool = False) -> Tuple[str, str]:
     dict_repr = boundary_trie_to_dict(boundary_trie)
     yaml_result = dict_to_yaml(dict_repr)
     pretty_str_result = dict_to_str(dict_repr)

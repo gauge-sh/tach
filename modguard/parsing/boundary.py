@@ -2,7 +2,7 @@ import re
 from typing import Optional
 
 from modguard import filesystem as fs
-from modguard.core.boundary import BoundaryTrie
+from modguard.core.module import ModuleTrie
 
 
 def has_boundary(file_path: str) -> bool:
@@ -34,8 +34,8 @@ def build_boundary_trie(
     root: str,
     exclude_paths: Optional[list[str]] = None,
     pyfiles: Optional[list[str]] = None,
-) -> BoundaryTrie:
-    boundary_trie = BoundaryTrie()
+) -> ModuleTrie:
+    boundary_trie = ModuleTrie()
     # Add an 'outer boundary' containing the entire root path
     # This means a project will pass 'check' by default
     boundary_trie.insert(fs.file_to_module_path(root))
