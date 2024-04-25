@@ -25,7 +25,7 @@ Modguard is incredibly lightweight, and has no impact on the runtime of your cod
 pip install modguard
 ```
 ### Usage
-Add an `module.yml` to the root directory of the module you're creating an interface for. Create a `tag` that will be used to specify module dependencies:
+Add a `module.yml` to the root directory of each module you're creating a boundary for. Create a `tag` that will be used to specify module dependencies:
 ```python
 # core/module.yml
 tags: ["core"]
@@ -54,7 +54,7 @@ With these rules in place, `core` can import from `db` and `utils`. `db` can onl
 Modguard will now flag any violation of these boundaries.
 ```bash
 # From the root of your python project (in this example, `project/`)
-> modguard check .
+> modguard check
 ❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
 ```
 
@@ -73,12 +73,12 @@ strict: true
 ```
 ```python3
 # The only valid import from "db"
-from db.interface import PublicAPI 
+from db import PublicAPI 
 ```
 Modguard will now flag any import that is not from `__init__.py` in the `db` module, in addition to enforcing the dependencies defined above.
 ```bash
 # From the root of your python project (in this example, `project/`)
-> modguard check .
+> modguard check
 ❌ ./core/main.py: Import "db.PrivateAPI" is blocked by boundary "db". "db" does not list "db.PrivateAPI" in its public interface.
 ```
 
@@ -110,8 +110,8 @@ This will stop modguard from flagging this import as a boundary violation.
 
 You can also specify multiple tags for a given module:
 ```python
-# utils/interface.py
-__tags__ = ["core", "utils"]
+# utils/module.yml
+tags: ["core", "utils"]
 ```
 This will expand the set of modules that "utils" can access to include all modules that "core" and "utils" `depends_on` as defined in `modguard.yml`.
 
@@ -120,9 +120,6 @@ This will expand the set of modules that "utils" can access to include all modul
     depends_on: [".*"] # Allow imports from anywhere
     depends_on: ["shared.*"] # Allow imports from any module with a tag starting with "shared"
 ```
-
-There are also additional options for `modguard init`:
-`--depth=[N]` will recurse and create submodules, up to the depth that you specify. Each submodule will have a unique `tag` based on its path.
 
 ### Details
 Modguard works by analyzing the abstract syntax tree (AST) of your codebase. It has no runtime impact, and all operations are performed statically. 
