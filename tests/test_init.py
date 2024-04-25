@@ -70,27 +70,6 @@ def test_init_project_with_valid_root(test_root):
             content = f.read()
             assert BOUNDARY_PRELUDE in content
 
-    # Check if public members have been marked as expected
-    expected_public_files = [
-        (
-            "package1/module1.py",
-            "import modguard\n@modguard.public\nclass Package1Class:\n    pass\n",
-        ),
-        (
-            "package2/module2.py",
-            "import modguard\n@modguard.public\ndef package_2_func():\n    pass\n",
-        ),
-        (
-            "package6/subpackage/module6.py",
-            "import modguard\nx = 3\nmodguard.public(x)\n",
-        ),
-        ("package3/module3.py", "import modguard\nmodguard.public()\n"),
-    ]
-    for file_path, expected_state in expected_public_files:
-        with open(os.path.join(test_root, file_path)) as f:
-            content = f.read()
-            assert content == expected_state
-
 
 def test_init_project_with_invalid_root():
     with pytest.raises(errors.ModguardSetupError):

@@ -1,5 +1,4 @@
 import os
-import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -25,18 +24,6 @@ class ErrorInfo:
         return f"Import '{self.import_mod_path}' in {self.location} is blocked by boundary '{self.boundary_path}'"
 
 
-def check_allowlist(allowlist: list[str], file_mod_path: str) -> bool:
-    for allowed_path in allowlist:
-        if file_mod_path.startswith(allowed_path):
-            return True
-        try:
-            if re.match(allowed_path, file_mod_path):
-                return True
-        except re.error:
-            pass
-    return False
-
-
 def check_import(
     boundary_trie: BoundaryTrie,
     import_mod_path: str,
@@ -54,33 +41,9 @@ def check_import(
         and file_nearest_boundary.full_path.startswith(nearest_boundary.full_path)
     )
 
-    # * The module is exported as public by its boundary and is allowed in the current path
-    import_mod_public_member_definition = (
-        next(
-            (
-                public_member
-                for public_member_name, public_member in nearest_boundary.public_members.items()
-                if import_mod_path.startswith(public_member_name)
-            ),
-            None,
-        )
-        if import_mod_has_boundary
-        else None
-    )
-    import_mod_is_public_and_allowed = (
-        import_mod_public_member_definition is not None
-        and (
-            import_mod_public_member_definition.allowlist is None
-            or check_allowlist(
-                import_mod_public_member_definition.allowlist, file_mod_path
-            )
-        )
-    )
-
     if (
         not import_mod_has_boundary
         or import_mod_is_child_of_current
-        or import_mod_is_public_and_allowed
     ):
         return None
 

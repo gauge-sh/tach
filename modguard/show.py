@@ -20,15 +20,6 @@ def boundary_trie_to_dict(boundary_trie: BoundaryTrie) -> Dict[str, Any]:
             current = current[section]
         current["is_boundary"] = True
 
-        for member in node.public_members.keys():
-            current: Dict[str, Any] = result
-            sections = member.split(".")
-            for section in sections:
-                if section not in current:
-                    current[section] = dict()
-                current = current[section]
-            current["is_public"] = True
-
     return result
 
 
@@ -39,12 +30,9 @@ def dict_to_str(dict_repr: Dict[str, Any]) -> str:
         for k, v in current.items():
             if isinstance(v, dict):
                 is_boundary = "is_boundary" in v.keys()
-                is_public = "is_public" in v.keys()
                 str_repr += BCOLORS.ENDC + BCOLORS.ENDC + "\n" + "  " * level
                 if is_boundary:
                     str_repr += BCOLORS.BOLD + "[B]"
-                if is_public:
-                    str_repr += BCOLORS.OKGREEN + "[P]"
                 str_repr += k
                 next_dict: Dict[str, Any] = v
                 str_repr = _recurs_build_string(str_repr, level + 1, next_dict)

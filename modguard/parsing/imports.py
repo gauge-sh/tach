@@ -4,7 +4,6 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 from modguard import filesystem as fs
-from modguard.public import public
 
 
 @dataclass
@@ -98,7 +97,6 @@ class ImportVisitor(ast.NodeVisitor):
         )
 
 
-@public
 def get_imports(file_path: str) -> list[str]:
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)

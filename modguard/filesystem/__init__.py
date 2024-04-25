@@ -16,4 +16,3 @@ from .service import (
 )
 
 modguard.Boundary()
-modguard.public()
