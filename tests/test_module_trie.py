@@ -5,7 +5,7 @@ from modguard.core import ModuleTrie, ModuleNode, ModuleConfig
 
 @pytest.fixture
 def test_config() -> ModuleConfig:
-    return ModuleConfig(scopes=["test"], strict=False)
+    return ModuleConfig(tags=["test"], strict=False)
 
 
 @pytest.fixture
@@ -19,12 +19,12 @@ def module_trie() -> ModuleTrie:
                 "domain_one": ModuleNode(
                     is_end_of_path=True,
                     full_path="domain_one",
-                    config=ModuleConfig(scopes=["test"], strict=False),
+                    config=ModuleConfig(tags=["test"], strict=False),
                     children={
                         "subdomain": ModuleNode(
                             is_end_of_path=True,
                             full_path="domain_one.subdomain",
-                            config=ModuleConfig(scopes=["test"], strict=False),
+                            config=ModuleConfig(tags=["test"], strict=False),
                             children={},
                         )
                     },
@@ -32,12 +32,12 @@ def module_trie() -> ModuleTrie:
                 "domain_two": ModuleNode(
                     is_end_of_path=True,
                     full_path="domain_two",
-                    config=ModuleConfig(scopes=["test"], strict=False),
+                    config=ModuleConfig(tags=["test"], strict=False),
                     children={
                         "subdomain": ModuleNode(
                             is_end_of_path=True,
                             full_path="domain_two.subdomain",
-                            config=ModuleConfig(scopes=["test"], strict=False),
+                            config=ModuleConfig(tags=["test"], strict=False),
                             children={},
                         )
                     },
@@ -45,7 +45,7 @@ def module_trie() -> ModuleTrie:
                 "domain_three": ModuleNode(
                     is_end_of_path=True,
                     full_path="domain_three",
-                    config=ModuleConfig(scopes=["test"], strict=False),
+                    config=ModuleConfig(tags=["test"], strict=False),
                     children={},
                 ),
             },
