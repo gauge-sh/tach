@@ -87,7 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
         dest="write",
         action="store_true",
         default=False,
-        help="Write the output to a `interface.yaml` file",
+        help="Write the output to an `interface.yaml` file",
     )
     return parser
 
