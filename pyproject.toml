@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "pyyaml==6.0.1",
+    "pydantic==2.7.1",
 ]
 keywords = ['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass', 'domain', 'architecture']
 
