@@ -7,7 +7,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "docs" ]
 
 jobs:
   build:
@@ -51,4 +51,4 @@ jobs:
     - name: Check modguard
       run: |
         pip install .
-        modguard check --exclude tests .
+        modguard check --exclude tests
