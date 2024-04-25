@@ -122,7 +122,9 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
 
 def modguard_check(exclude_paths: Optional[list[str]] = None):
     try:
-        result: list[ErrorInfo] = check(".", ProjectConfig(), exclude_paths=exclude_paths)
+        result: list[ErrorInfo] = check(
+            ".", ProjectConfig(), exclude_paths=exclude_paths
+        )
     except Exception as e:
         stop_spinner()
         print(str(e))
