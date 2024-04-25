@@ -1,7 +1,7 @@
 # TODO: move this test
 from modguard.filesystem import file_to_module_path
-from modguard.parsing.boundary import has_boundary
-from modguard.parsing.imports import get_imports
+from modguard.parsing.modules import has_boundary
+from modguard.parsing.imports import get_project_imports
 
 
 def test_file_to_mod_path():
@@ -16,13 +16,13 @@ def test_has_boundary():
 
 
 def test_get_imports():
-    assert get_imports("example/domain_one/interface.py") == []
-    assert set(get_imports("example/domain_one/__init__.py")) == {
+    assert get_project_imports("example/domain_one/interface.py") == []
+    assert set(get_project_imports("example/domain_one/__init__.py")) == {
         "modguard.boundary.Boundary",
         "example.domain_one.interface.domain_one_interface",
         "example.domain_one.interface.domain_one_var",
     }
-    assert set(get_imports("example/__init__.py")) == {
+    assert set(get_project_imports("example/__init__.py")) == {
         "modguard",
         "example.domain_one.interface.domain_one_interface",
         "example.domain_three.api.PublicForDomainTwo",

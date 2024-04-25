@@ -1,11 +1,12 @@
 import os
 import ast
+import sys
 import threading
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Generator
+from typing import Optional, Generator, Tuple
 from modguard.errors import ModguardParseError
 
 
@@ -156,6 +157,15 @@ def walk_pypackages(
             yield filepath[: -len(init_file_ending)]
 
 
+def walk_modules(
+    root: str, exclude_paths: Optional[list[str]] = None
+) -> Generator[Tuple[str, str], None, None]:
+    for dirpath in walk_pypackages(root, exclude_paths=exclude_paths):
+        module_yml_path = os.path.join(dirpath, "module.yml")
+        if os.path.isfile(module_yml_path):
+            yield dirpath, module_yml_path
+
+
 @lru_cache(maxsize=None)
 def file_to_module_path(file_path: str) -> str:
     # Assuming that the file_path has been 'canonicalized' and does not traverse multiple directories
@@ -220,3 +230,23 @@ def module_to_file_path(
     raise ModguardParseError(
         f"Failed to translate module path {mod_path} into file path"
     )
+
+
+def is_standard_lib_or_builtin_import(module_base: str) -> bool:
+    return (
+        module_base in sys.stdlib_module_names
+        or module_base in sys.builtin_module_names
+    )
+
+
+def is_project_import(project_root: str, mod_path: str) -> bool:
+    module_base = mod_path.split(".", 1)[0]
+    if is_standard_lib_or_builtin_import(module_base):
+        return False
+    if canonical(project_root).endswith(module_base):
+        return True
+    if os.path.isdir(os.path.join(project_root, module_base)) or os.path.isfile(
+        os.path.join(project_root, f"{module_base}.py")
+    ):
+        return True
+    return False

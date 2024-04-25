@@ -4,7 +4,7 @@ import shutil
 import os
 from modguard import errors, filesystem as fs
 from modguard.init import init_project
-from modguard.parsing.boundary import BOUNDARY_PRELUDE
+from modguard.parsing.modules import BOUNDARY_PRELUDE
 
 
 def init_project_from_root(root) -> None:

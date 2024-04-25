@@ -8,7 +8,7 @@ from modguard.core.config import ModuleConfig
 @dataclass
 class ModuleNode:
     """
-    A node in the boundary trie.
+    A node in the module trie.
 
     If 'is_end_of_path' is True, this node represents a module in the project,
     and must have 'config' and 'full_path' set.
@@ -46,7 +46,7 @@ class ModuleTrie:
     root: ModuleNode = field(default_factory=ModuleNode.empty)
 
     def __iter__(self):
-        return boundary_trie_iterator(self)
+        return module_trie_iterator(self)
 
     @staticmethod
     def _split_mod_path(path: str) -> list[str]:
@@ -92,7 +92,7 @@ class ModuleTrie:
         return nearest_parent if nearest_parent.is_end_of_path else None
 
 
-def boundary_trie_iterator(trie: ModuleTrie) -> Generator[ModuleNode, None, None]:
+def module_trie_iterator(trie: ModuleTrie) -> Generator[ModuleNode, None, None]:
     stack = deque([trie.root])
 
     while stack:
