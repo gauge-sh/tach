@@ -84,6 +84,10 @@ def check_import(
         return CheckResult.success()
 
     # The import must be explicitly allowed based on the tags and top-level config
+    if not file_nearest_module.config or not import_nearest_module.config:
+        return CheckResult.fail(
+            error_info=ErrorInfo(exception_message="Could not find config for modules.")
+        )
     file_tags = file_nearest_module.config.tags
     import_tags = import_nearest_module.config.tags
 
@@ -146,7 +150,7 @@ def check(
                 file_nearest_module=nearest_module,
                 file_mod_path=mod_path,
             )
-            if check_result.ok:
+            if check_result.ok or check_result.error_info is None:
                 continue
 
             errors.append(check_result.error_info)
