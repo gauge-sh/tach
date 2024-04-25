@@ -8,13 +8,13 @@ class ModuleConfig(BaseModel):
     Configuration for a single module within a project.
     """
 
-    scopes: List[str] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
     strict: bool = False
 
     @classmethod
     def from_yml(cls, content: str) -> "ModuleConfig":
         # TODO: Mocking for now
-        return cls(scopes=["test"], strict=False)
+        return cls(tags=["test"], strict=False)
 
 
 class ScopeDependencyRules(BaseModel):

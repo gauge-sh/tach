@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -12,8 +13,8 @@ from modguard.parsing.imports import get_project_imports
 class ErrorInfo:
     location: str = ""
     import_mod_path: str = ""
-    source_scope: str = ""
-    allowed_scopes: list[str] = field(default_factory=list)
+    source_tag: str = ""
+    allowed_tags: list[str] = field(default_factory=list)
     exception_message: str = ""
 
     @property
@@ -24,18 +25,18 @@ class ErrorInfo:
             (
                 self.location,
                 self.import_mod_path,
-                self.source_scope,
+                self.source_tag,
             )
         ):
-            return f"Unexpected error: ({[self.location, self.import_mod_path, self.source_scope, self.allowed_scopes]})"
-        if not self.allowed_scopes:
+            return f"Unexpected error: ({[self.location, self.import_mod_path, self.source_tag, self.allowed_tags]})"
+        if not self.allowed_tags:
             return (
                 f"Import '{self.import_mod_path}' in {self.location} is blocked. "
-                f"Scope '{self.source_scope}' can only depend on scopes '{self.allowed_scopes}'."
+                f"Tag '{self.source_tag}' can only depend on tags '{self.allowed_tags}'."
             )
         return (
             f"Import '{self.import_mod_path}' in {self.location} is blocked. "
-            f"Scope '{self.source_scope}' can only depend on scopes '{self.allowed_scopes}'."
+            f"Tag '{self.source_tag}' can only depend on tags '{self.allowed_tags}'."
         )
 
 
@@ -82,27 +83,32 @@ def check_import(
     if import_nearest_module == file_nearest_module:
         return CheckResult.success()
 
-    # The import must be explicitly allowed based on the scopes and top-level config
-    file_scopes = file_nearest_module.config.scopes
-    import_scopes = import_nearest_module.config.scopes
+    # The import must be explicitly allowed based on the tags and top-level config
+    file_tags = file_nearest_module.config.tags
+    import_tags = import_nearest_module.config.tags
 
-    for scope in file_scopes:
+    for file_tag in file_tags:
         dependency_tags = (
-            project_config.dependency_rules[scope].depends_on
-            if scope in project_config.dependency_rules
+            project_config.dependency_rules[file_tag].depends_on
+            if file_tag in project_config.dependency_rules
             else []
         )
-        if "*" in dependency_tags:
-            continue
-        if any((scope in dependency_tags for scope in import_scopes)):
+        if any(
+            any(
+                re.match(dependency_tag, import_tag)
+                for dependency_tag in dependency_tags
+            )
+            for import_tag in import_tags
+        ):
+            # The import has at least one tag which matches at least one expected dependency
             continue
         # This means the import has scopes which the file cannot depend on
         return CheckResult.fail(
             error_info=ErrorInfo(
                 location=file_mod_path,
                 import_mod_path=import_mod_path,
-                source_scope=scope,
-                allowed_scopes=dependency_tags,
+                source_tag=file_tag,
+                allowed_tags=dependency_tags,
             )
         )
 
@@ -130,6 +136,8 @@ def check(
         if nearest_module is None:
             continue
         import_mod_paths = get_project_imports(root, file_path)
+        # This should only give us imports from within our project
+        # (excluding stdlib, builtins, and 3rd party packages)
         for import_mod_path in import_mod_paths:
             check_result = check_import(
                 project_config=project_config,
@@ -139,7 +147,6 @@ def check(
                 file_mod_path=mod_path,
             )
             if check_result.ok:
-                # This import is OK
                 continue
 
             errors.append(check_result.error_info)
