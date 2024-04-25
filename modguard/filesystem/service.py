@@ -240,10 +240,11 @@ def is_standard_lib_or_builtin_import(module_base: str) -> bool:
 
 
 def is_project_import(project_root: str, mod_path: str) -> bool:
+    root_base = os.path.basename(os.path.realpath(project_root))
     module_base = mod_path.split(".", 1)[0]
     if is_standard_lib_or_builtin_import(module_base):
         return False
-    if canonical(project_root).endswith(module_base):
+    if root_base == module_base:
         return True
     if os.path.isdir(os.path.join(project_root, module_base)) or os.path.isfile(
         os.path.join(project_root, f"{module_base}.py")

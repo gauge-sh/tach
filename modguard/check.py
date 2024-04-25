@@ -25,11 +25,18 @@ class ErrorInfo:
                 self.location,
                 self.import_mod_path,
                 self.source_scope,
-                self.allowed_scopes,
             )
         ):
             return f"Unexpected error: ({[self.location, self.import_mod_path, self.source_scope, self.allowed_scopes]})"
-        return f"Import '{self.import_mod_path}' in {self.location} is blocked. Scope '{self.source_scope}' can only depend on scopes '{self.allowed_scopes}'."
+        if not self.allowed_scopes:
+            return (
+                f"Import '{self.import_mod_path}' in {self.location} is blocked. "
+                f"Scope '{self.source_scope}' can only depend on scopes '{self.allowed_scopes}'."
+            )
+        return (
+            f"Import '{self.import_mod_path}' in {self.location} is blocked. "
+            f"Scope '{self.source_scope}' can only depend on scopes '{self.allowed_scopes}'."
+        )
 
 
 @dataclass
@@ -50,13 +57,29 @@ def check_import(
     project_config: ProjectConfig,
     module_trie: ModuleTrie,
     import_mod_path: str,
-    file_nearest_module: ModuleNode,
     file_mod_path: str,
+    file_nearest_module: Optional[ModuleNode] = None,
 ) -> CheckResult:
     import_nearest_module = module_trie.find_nearest(import_mod_path)
     if import_nearest_module is None:
         # This shouldn't happen since we intend to filter out any external imports,
         # but we should allow external imports if they have made it here.
+        return CheckResult.success()
+
+    # Lookup file_mod_path if module not given
+    if file_nearest_module is None:
+        file_nearest_module = module_trie.find_nearest(file_mod_path)
+    # If module not found, we should fail since the implication is that
+    # an external module is importing directly from our project
+    if file_nearest_module is None:
+        return CheckResult.fail(
+            error_info=ErrorInfo(
+                exception_message=f"Module '{file_mod_path}' not found in project."
+            )
+        )
+
+    # Imports within the same module are always allowed
+    if import_nearest_module == file_nearest_module:
         return CheckResult.success()
 
     # The import must be explicitly allowed based on the scopes and top-level config
