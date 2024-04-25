@@ -1,6 +1,6 @@
 from typing import List, Dict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class ModuleConfig(BaseModel):
@@ -8,7 +8,7 @@ class ModuleConfig(BaseModel):
     Configuration for a single module within a project.
     """
 
-    tags: List[str] = Field(default_factory=list)
+    tags: List[str]
     strict: bool = False
 
     @classmethod
@@ -22,7 +22,7 @@ class ScopeDependencyRules(BaseModel):
     Dependency rules for a particular scope.
     """
 
-    depends_on: List[str] = Field(default_factory=list)
+    depends_on: List[str]
 
 
 class ProjectConfig(BaseModel):
@@ -30,5 +30,5 @@ class ProjectConfig(BaseModel):
     Configuration applied globally to a project.
     """
 
-    tags: Dict[str, ScopeDependencyRules] = Field(default_factory=dict)
-    ignore: List[str] = Field(default_factory=list)
+    tags: Dict[str, ScopeDependencyRules]
+    ignore: List[str]
