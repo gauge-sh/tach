@@ -1,0 +1,1 @@
+MODGUARD_CONFIG_FILE_NAME = "modguard"

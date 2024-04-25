@@ -4,14 +4,12 @@ import sys
 from typing import Optional
 
 from modguard.check import check, ErrorInfo
+from modguard.constants import MODGUARD_CONFIG_FILE_NAME
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
 from modguard.show import show
 from modguard.parsing.boundary import build_boundary_trie
 from modguard.colors import BCOLORS
-
-
-MODGUARD_CONFIG_FILE_NAME = "modguard"
 
 
 def print_errors(error_list: list[ErrorInfo]) -> None:
