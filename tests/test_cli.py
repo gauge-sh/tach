@@ -1,4 +1,3 @@
-import os
 from unittest.mock import Mock
 import pytest
 
@@ -30,7 +29,7 @@ def mock_path_exists(mocker) -> None:
         if path == "modguard.yml":
             return True
         else:
-            return os.path.exists(path)
+            return False
 
     mocker.patch("modguard.cli.os.path.exists", mock_path_exists)
 
