@@ -22,8 +22,8 @@ class ModuleInitResult:
 def init_modules(
     root: str, depth: int, exclude_paths: Optional[list[str]] = None
 ) -> ModuleInitResult:
-    module_paths = []
-    warnings = []
+    module_paths: list[str] = []
+    warnings: list[str] = []
     for dir_path in fs.walk_pypackages(root, depth=depth, exclude_paths=exclude_paths):
         module_yml_path = os.path.join(dir_path, f"{MODULE_FILE_NAME}.yml")
         module_paths.append(dir_path)
@@ -57,7 +57,9 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
     for error in check_errors:
         if error.is_tag_error:
             existing_dependencies = set(
-                project_config.constraints.get(error.source_tag, {})
+                project_config.constraints.get(
+                    error.source_tag, ScopeDependencyRules(depends_on=[])
+                ).depends_on
             )
             project_config.constraints[error.source_tag] = ScopeDependencyRules(
                 depends_on=list(existing_dependencies | set(error.invalid_tags))
