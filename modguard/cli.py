@@ -102,7 +102,6 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
 
 def modguard_check(
     exclude_paths: Optional[list[str]] = None,
-    ignore_hidden_paths: Optional[bool] = True,
 ):
     try:
         project_config = parse_project_config()

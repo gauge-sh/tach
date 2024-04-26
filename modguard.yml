@@ -1,5 +1,7 @@
-ignore: ['tests/', 'docs/', '.github', '.venv']
-ignore_hidden_paths: true
+ignore: [
+  'tests/',
+  'docs/',
+]
 constraints:
   scope:root:
     depends_on: ['scope:core', 'scope:filesystem', 'scope:parsing', 'scope:utils']

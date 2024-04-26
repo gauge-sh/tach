@@ -156,7 +156,9 @@ def check(
     root = fs.canonical(root)
     exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
-    module_trie = build_module_trie(root, exclude_paths=exclude_paths)
+    module_trie = build_module_trie(
+        root, exclude_paths=exclude_paths, ignore_hidden_paths=ignore_hidden_paths
+    )
 
     errors: list[ErrorInfo] = []
     for file_path in fs.walk_pyfiles(
