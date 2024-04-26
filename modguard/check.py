@@ -85,13 +85,18 @@ def check_import(
 
     import_module_config = import_nearest_module.config
     if (
-        import_module_config.strict
+        import_module_config
+        and import_module_config.strict
         and import_mod_path != import_nearest_module.full_path
     ):
         # Must import from module's full path exactly in strict mode
         return CheckResult.fail(
             error_info=ErrorInfo(
-                exception_message=f"Module '{import_nearest_module.full_path}' is in strict mode. The import '{import_mod_path}' must exactly match the module itself ('{import_nearest_module.full_path}')."
+                exception_message=(
+                    f"Module '{import_nearest_module.full_path}' is in strict mode. "
+                    "Only imports from the root of this module are allowed. "
+                    f"The import '{import_mod_path}' does not match the root ('{import_nearest_module.full_path}')."
+                )
             )
         )
 
