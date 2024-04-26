@@ -1,14 +1,15 @@
 import ast
 import os
+from typing import Any
 
 from modguard import filesystem as fs
 from modguard.parsing.ast_visitor import EarlyExitNodeVisitor
 
 
 class InterfaceVisitor(EarlyExitNodeVisitor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.members = []
+        self.members: list[str] = []
 
     def visit_Assign(self, node: ast.Assign):
         # Check if the node is an assignment
@@ -19,11 +20,11 @@ class InterfaceVisitor(EarlyExitNodeVisitor):
             # Ensure the value is a list and process each element
             if isinstance(node.value, ast.List):
                 for element in node.value.elts:
-                    if isinstance(element, ast.Str):  # Supports Python 3.7 and below
+                    if isinstance(element, ast.Str):  # pyright: ignore
+                        # Supports Python 3.7 and below
                         self.members.append(element.s)
-                    elif isinstance(
-                        element, ast.Constant
-                    ):  # Supports Python 3.8 and above
+                    elif isinstance(element, ast.Constant):
+                        # Supports Python 3.8 and above
                         if isinstance(element.value, str):
                             self.members.append(element.value)
                 # Early exit

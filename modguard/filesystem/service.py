@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Generator, Tuple
+from typing import Optional, Generator
 from modguard import errors
 
 
@@ -159,11 +159,11 @@ def walk_pypackages(
 
 def walk_modules(
     root: str, exclude_paths: Optional[list[str]] = None
-) -> Generator[Tuple[str, str], None, None]:
+) -> Generator[str, None, None]:
     for dirpath in walk_pypackages(root, exclude_paths=exclude_paths):
         module_yml_path = os.path.join(dirpath, "module.yml")
         if os.path.isfile(module_yml_path):
-            yield dirpath, module_yml_path
+            yield dirpath
 
 
 @lru_cache(maxsize=None)

@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 from pydantic import BaseModel, Field
 
@@ -30,4 +30,4 @@ class ProjectConfig(Config):
     """
 
     constraints: Dict[str, ScopeDependencyRules] = Field(default_factory=dict)
-    ignore: Optional[List[str]] = Field(default_factory=list)
+    ignore: List[str] = Field(default_factory=list)
