@@ -177,7 +177,7 @@ def walk_modules(
     ):
         module_yml_path = os.path.join(dirpath, "module.yml")
         if os.path.isfile(module_yml_path):
-            yield dirpath, module_yml_path
+            yield dirpath
 
 
 @lru_cache(maxsize=None)

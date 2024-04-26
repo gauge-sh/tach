@@ -54,8 +54,12 @@ class CheckResult:
 
 
 def is_top_level_module_import(mod_path: str, module: ModuleNode) -> bool:
-    mod_base_path = mod_path.rsplit(".", 1)[0]
-    return mod_path == module.full_path or mod_base_path == module.full_path
+    return mod_path == module.full_path
+
+
+def import_matches_interface_members(mod_path: str, module: ModuleNode) -> bool:
+    mod_path_basename = mod_path.rsplit(".", 1)[-1]
+    return mod_path_basename in module.interface_members
 
 
 def check_import(
@@ -88,22 +92,25 @@ def check_import(
         return CheckResult.success()
 
     import_module_config = import_nearest_module.config
-    if (
-        import_module_config
-        and import_module_config.strict
-        and not is_top_level_module_import(import_mod_path, import_nearest_module)
-    ):
-        # Must import from module's full path exactly in strict mode
-        return CheckResult.fail(
-            error_info=ErrorInfo(
-                exception_message=(
-                    f"Module '{import_nearest_module.full_path}' is in strict mode. "
-                    "Only imports from the root of this module are allowed. "
-                    f"The import '{import_mod_path}' (in '{file_mod_path}') "
-                    f"does not come from the root."
+    if import_module_config and import_module_config.strict:
+        if not is_top_level_module_import(
+            import_mod_path, import_nearest_module
+        ) and not import_matches_interface_members(
+            import_mod_path, import_nearest_module
+        ):
+            # In strict mode, import must be of the module itself or one of the
+            # interface members (defined in __all__)
+            return CheckResult.fail(
+                error_info=ErrorInfo(
+                    location=file_mod_path,
+                    exception_message=(
+                        f"Module '{import_nearest_module.full_path}' is in strict mode. "
+                        "Only imports from the root of this module are allowed. "
+                        f"The import '{import_mod_path}' (in '{file_mod_path}') "
+                        f"is not included in __all__."
+                    ),
                 )
             )
-        )
 
     # The import must be explicitly allowed based on the tags and top-level config
     if not file_nearest_module.config or not import_nearest_module.config:

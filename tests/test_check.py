@@ -39,6 +39,7 @@ def module_trie() -> ModuleTrie:
                     is_end_of_path=True,
                     full_path="domain_one",
                     config=ModuleConfig(tags=["domain_one"], strict=True),
+                    interface_members=["public_fn"],
                     children={
                         "subdomain": ModuleNode(
                             is_end_of_path=True,
@@ -80,9 +81,11 @@ def module_trie() -> ModuleTrie:
         ("domain_one", "domain_one.core", True),
         ("domain_one", "domain_three", True),
         ("domain_two", "domain_one", True),
+        ("domain_two", "domain_one.public_fn", True),
         ("domain_two.subdomain", "domain_one", True),
         ("domain_two", "external", True),
         ("external", "external", True),
+        ("domain_two", "domain_one.private_fn", False),
         ("domain_three", "domain_one", False),
         ("domain_two", "domain_one.core", False),
         ("domain_two.subdomain", "domain_one.core", False),

@@ -82,19 +82,19 @@ def test_get_actual_path(module_trie):
 
 def test_insert_empty_path(test_config):
     trie = ModuleTrie()
-    trie.insert(test_config, "")
+    trie.insert(test_config, "", [])
     assert set((node.full_path for node in trie)) == {""}
 
 
 def test_insert_single_level_path(test_config):
     trie = ModuleTrie()
-    trie.insert(test_config, "domain")
+    trie.insert(test_config, "domain", [])
     assert set((node.full_path for node in trie)) == {"domain"}
 
 
 def test_insert_multi_level_path(test_config):
     trie = ModuleTrie()
-    trie.insert(test_config, "domain.subdomain")
+    trie.insert(test_config, "domain.subdomain", [])
     assert set((node.full_path for node in trie)) == {"domain.subdomain"}
 
 

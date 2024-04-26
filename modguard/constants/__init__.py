@@ -1,2 +1,4 @@
 CONFIG_FILE_NAME = "modguard"
 MODULE_FILE_NAME = "module"
+
+__all__ = ["CONFIG_FILE_NAME", "MODULE_FILE_NAME"]
