@@ -1,8 +1,8 @@
 from typing import Optional
 
 from modguard import filesystem as fs
-from modguard.core import ModuleConfig
-from modguard.core.module import ModuleTrie
+from modguard.core import ModuleTrie
+from modguard.parsing import parse_module_config
 
 
 def build_module_trie(
@@ -13,7 +13,7 @@ def build_module_trie(
 
     for dir_path, config_path in fs.walk_modules(root, exclude_paths=exclude_paths):
         boundary_trie.insert(
-            ModuleConfig.from_yml(fs.read_file(config_path)),
+            parse_module_config(dir_path),
             fs.file_to_module_path(dir_path),
         )
 

@@ -5,8 +5,7 @@ from typing import Optional
 
 from modguard import filesystem as fs
 from modguard.core import ModuleTrie, ModuleNode, ProjectConfig
-from modguard.parsing.modules import build_module_trie
-from modguard.parsing.imports import get_project_imports
+from modguard.parsing import build_module_trie, get_project_imports
 
 
 @dataclass
@@ -54,6 +53,11 @@ class CheckResult:
         return cls(ok=False, error_info=error_info)
 
 
+def is_top_level_module_import(mod_path: str, module: ModuleNode) -> bool:
+    mod_base_path = mod_path.rsplit(".", 1)[0]
+    return mod_path == module.full_path or mod_base_path == module.full_path
+
+
 def check_import(
     project_config: ProjectConfig,
     module_trie: ModuleTrie,
@@ -87,7 +91,7 @@ def check_import(
     if (
         import_module_config
         and import_module_config.strict
-        and import_mod_path != import_nearest_module.full_path
+        and not is_top_level_module_import(import_mod_path, import_nearest_module)
     ):
         # Must import from module's full path exactly in strict mode
         return CheckResult.fail(
@@ -95,7 +99,8 @@ def check_import(
                 exception_message=(
                     f"Module '{import_nearest_module.full_path}' is in strict mode. "
                     "Only imports from the root of this module are allowed. "
-                    f"The import '{import_mod_path}' does not match the root ('{import_nearest_module.full_path}')."
+                    f"The import '{import_mod_path}' (in '{file_mod_path}') "
+                    f"does not come from the root."
                 )
             )
         )

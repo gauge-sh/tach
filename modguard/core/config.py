@@ -15,11 +15,6 @@ class ModuleConfig(Config):
     tags: List[str]
     strict: bool = False
 
-    @classmethod
-    def from_yml(cls, content: str) -> "ModuleConfig":
-        # TODO: Mocking for now
-        return cls(tags=["test"], strict=False)
-
 
 class ScopeDependencyRules(Config):
     """
@@ -34,5 +29,5 @@ class ProjectConfig(Config):
     Configuration applied globally to a project.
     """
 
-    constraints: Dict[str, ScopeDependencyRules]
+    constraints: Dict[str, ScopeDependencyRules] = Field(default_factory=dict)
     ignore: Optional[List[str]] = Field(default_factory=list)

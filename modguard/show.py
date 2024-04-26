@@ -2,7 +2,7 @@
 # pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false
 
 from modguard.colors import BCOLORS
-from modguard.core.module import ModuleTrie
+from modguard.core import ModuleTrie
 from typing import Any, Dict, Tuple, Union
 
 # This type hint only works on more recent versions

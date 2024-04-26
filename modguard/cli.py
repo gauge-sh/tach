@@ -4,15 +4,11 @@ import sys
 from typing import Optional
 
 from modguard.check import check, ErrorInfo
-from modguard.filesystem.project import (
-    validate_project_config_path,
-    print_invalid_exclude,
-)
-from modguard.core import ProjectConfig
+from modguard import filesystem as fs
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
+from modguard.parsing import parse_project_config, build_module_trie
 from modguard.show import show
-from modguard.parsing.modules import build_module_trie
 from modguard.colors import BCOLORS
 
 
@@ -84,7 +80,7 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     parsed_args = parser.parse_args(args)
 
     if not args[0] == "init":
-        validate_project_config_path()
+        fs.validate_project_config_path()
 
     exclude_paths = parsed_args.exclude
     if exclude_paths:
@@ -98,7 +94,7 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
                 and not os.path.isfile(exclude_path)
             ):
                 has_error = True
-                print_invalid_exclude(exclude_path)
+                fs.print_invalid_exclude(exclude_path)
         if has_error:
             sys.exit(1)
     return parsed_args
@@ -106,8 +102,13 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
 
 def modguard_check(exclude_paths: Optional[list[str]] = None):
     try:
+        project_config = parse_project_config()
+        if exclude_paths:
+            exclude_paths.extend(project_config.ignore)
+        else:
+            exclude_paths = project_config.ignore
         result: list[ErrorInfo] = check(
-            ".", ProjectConfig(constraints={}), exclude_paths=exclude_paths
+            ".", project_config, exclude_paths=exclude_paths
         )
     except Exception as e:
         stop_spinner()

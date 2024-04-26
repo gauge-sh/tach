@@ -4,6 +4,7 @@ import pytest
 from modguard import cli
 from modguard.check import ErrorInfo
 from modguard.constants import CONFIG_FILE_NAME
+from modguard.core import ProjectConfig
 
 
 @pytest.fixture
@@ -35,7 +36,17 @@ def mock_path_exists(mocker) -> None:
     mocker.patch("modguard.filesystem.project.os.path.exists", mock_path_exists)
 
 
-def test_execute_with_modguard_yml(capfd, mock_path_exists, mock_check):
+@pytest.fixture
+def mock_project_config(mocker) -> None:
+    def mock_project_config() -> ProjectConfig:
+        return ProjectConfig()
+
+    mocker.patch("modguard.cli.parse_project_config", mock_project_config)
+
+
+def test_execute_with_modguard_yml(
+    capfd, mock_path_exists, mock_check, mock_project_config
+):
     # Test with a valid path as mocked
     args = cli.parse_arguments(["check"])
     assert args.command == "check"
@@ -47,7 +58,7 @@ def test_execute_with_modguard_yml(capfd, mock_path_exists, mock_check):
     assert "All modules safely guarded!" in captured.out
 
 
-def test_execute_with_error(capfd, mock_path_exists, mock_check):
+def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_project_config):
     # Mock an error returned from check
     location = "valid_dir/file.py"
     message = "Import valid_dir in valid_dir/file.py is blocked by boundary"
@@ -91,7 +102,9 @@ def test_invalid_command(capfd):
     assert "invalid choice: 'help" in captured.err
 
 
-def test_execute_with_valid_exclude(capfd, mock_isdir, mock_path_exists, mock_check):
+def test_execute_with_valid_exclude(
+    capfd, mock_isdir, mock_path_exists, mock_check, mock_project_config
+):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked
         args = cli.parse_arguments(["check", "--exclude", "valid_dir"])
