@@ -66,6 +66,17 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
     modguard_yml_path = os.path.join(root, CONFIG_FILE_NAME)
     modguard_yml_content = yaml.dump(project_config.model_dump())
     fs.write_file(modguard_yml_path, modguard_yml_content)
+
+    check_errors = check(
+        root, project_config=project_config, exclude_paths=exclude_paths
+    )
+    if check_errors:
+        return InitRootResult(
+            warnings=[
+                "Could not auto-detect all dependencies, use 'modguard check' to finish initialization manually."
+            ]
+        )
+
     return InitRootResult(warnings=[])
 
 
