@@ -17,7 +17,7 @@ def test_config() -> ModuleConfig:
 @pytest.fixture
 def project_config() -> ProjectConfig:
     return ProjectConfig(
-        dependency_rules={
+        constraints={
             "domain_one": ScopeDependencyRules(
                 depends_on=["domain_one", "domain_three"]
             ),

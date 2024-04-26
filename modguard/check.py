@@ -93,8 +93,8 @@ def check_import(
 
     for file_tag in file_tags:
         dependency_tags = (
-            project_config.dependency_rules[file_tag].depends_on
-            if file_tag in project_config.dependency_rules
+            project_config.constraints[file_tag].depends_on
+            if file_tag in project_config.constraints
             else []
         )
         if any(
