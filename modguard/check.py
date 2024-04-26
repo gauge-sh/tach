@@ -13,28 +13,31 @@ class ErrorInfo:
     location: str = ""
     import_mod_path: str = ""
     source_tag: str = ""
+    invalid_tags: list[str] = field(default_factory=list)
     allowed_tags: list[str] = field(default_factory=list)
     exception_message: str = ""
+
+    @property
+    def is_tag_error(self) -> bool:
+        return all(
+            (self.location, self.import_mod_path, self.source_tag, self.invalid_tags)
+        )
 
     @property
     def message(self) -> str:
         if self.exception_message:
             return self.exception_message
-        if not all(
-            (
-                self.location,
-                self.import_mod_path,
-                self.source_tag,
-            )
-        ):
+        if not self.is_tag_error:
             return f"Unexpected error: ({[self.location, self.import_mod_path, self.source_tag, self.allowed_tags]})"
         if not self.allowed_tags:
             return (
-                f"Import '{self.import_mod_path}' in {self.location} is blocked. "
-                f"Tag '{self.source_tag}' can only depend on tags '{self.allowed_tags}'."
+                f"Import '{self.import_mod_path}' with tags '{self.invalid_tags}' "
+                f"in {self.location} is blocked. "
+                f"Tag '{self.source_tag}' has no allowed dependency tags."
             )
         return (
-            f"Import '{self.import_mod_path}' in {self.location} is blocked. "
+            f"Import '{self.import_mod_path}' with tags '{self.invalid_tags}' "
+            f"in {self.location} is blocked. "
             f"Tag '{self.source_tag}' can only depend on tags '{self.allowed_tags}'."
         )
 
@@ -135,12 +138,13 @@ def check_import(
         ):
             # The import has at least one tag which matches at least one expected dependency
             continue
-        # This means the import has scopes which the file cannot depend on
+        # This means the import has no tags which the file can depend on
         return CheckResult.fail(
             error_info=ErrorInfo(
                 location=file_mod_path,
                 import_mod_path=import_mod_path,
                 source_tag=file_tag,
+                invalid_tags=import_tags,
                 allowed_tags=dependency_tags,
             )
         )
