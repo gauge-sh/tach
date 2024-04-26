@@ -1,9 +1,13 @@
+import os
+
 import pytest
 from pydantic import ValidationError
 
+from modguard.check import check, ErrorInfo
 from modguard.core.config import ProjectConfig, ScopeDependencyRules, ModuleConfig
 from modguard.parsing.config import parse_project_config, parse_module_config
 from modguard.filesystem import file_to_module_path
+from modguard import filesystem as fs
 
 
 def test_file_to_mod_path():
@@ -57,3 +61,29 @@ def test_invalid_module_config():
 def test_empty_module_config():
     with pytest.raises(ValueError):
         parse_module_config("example/invalid")
+
+
+def test_ignore_hidden_paths_fails():
+    current_dir = os.getcwd()
+    hidden_project = "./example/invalid/hidden/"
+    fs.chdir(hidden_project)
+    project_config = parse_project_config()
+    assert project_config.ignore_hidden_paths is False
+    results = check(
+        ".",
+        project_config,
+        ignore_hidden_paths=project_config.ignore_hidden_paths,
+    )
+    assert len(results) == 1
+    assert results[0] == ErrorInfo(
+        location="hidden",
+        import_mod_path="",
+        source_tag="",
+        allowed_tags=[],
+        exception_message="Module 'unhidden' is in strict mode. Only imports from the root of"
+        " this module are allowed. The import 'unhidden.secret.shhhh' (in 'hidden') is not included in __all__.",
+    )
+
+    project_config.ignore_hidden_paths = True
+    assert check(".", project_config, ignore_hidden_paths=True) == []
+    fs.chdir(current_dir)

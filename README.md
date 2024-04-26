@@ -38,15 +38,15 @@ tags: ["db"]
 # utils/module.yml
 tags: ["utils"]
 ```
-Next, specify the allowed dependencies for each tag in `modguard.yml` in the root of your project:
+Next, specify the constraints for each tag in `modguard.yml` in the root of your project:
 ```yaml
 # [root]/modguard.yml
-tags:
-  - core:
+constraints:
+  core:
     depends_on: ["db", "utils"]
-  - db:
+  db:
     depends_on: ["utils"]
-  - utils:
+  utils:
     depends_on: []
 ```
 With these rules in place, modules with tag `core` can import from modules with tag `db` or `utils`. Modules tagged with `db` can only import from `utils`, and modules tagged with `utils` cannot import from any other modules in the project. 

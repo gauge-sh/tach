@@ -116,6 +116,7 @@ def modguard_check(
             ignore_hidden_paths=project_config.ignore_hidden_paths,
         )
     except Exception as e:
+        raise e
         stop_spinner()
         print(str(e))
         sys.exit(1)

@@ -154,6 +154,7 @@ def check(
     exclude_paths: Optional[list[str]] = None,
     ignore_hidden_paths: Optional[bool] = True,
 ) -> list[ErrorInfo]:
+    print(root, project_config, exclude_paths, ignore_hidden_paths)
     if not os.path.isdir(root):
         return [
             ErrorInfo(exception_message=f"The path {root} is not a valid directory.")

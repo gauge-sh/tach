@@ -12,7 +12,7 @@ def build_module_trie(
 ) -> ModuleTrie:
     boundary_trie = ModuleTrie()
 
-    for dir_path, config_path in fs.walk_modules(
+    for dir_path in fs.walk_modules(
         root,
         exclude_paths=exclude_paths,
         ignore_hidden_paths=ignore_hidden_paths,

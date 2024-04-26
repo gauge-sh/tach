@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Generator, Tuple
+from typing import Optional, Generator
 from modguard import errors
 
 
@@ -171,7 +171,7 @@ def walk_modules(
     root: str,
     exclude_paths: Optional[list[str]] = None,
     ignore_hidden_paths: Optional[bool] = True,
-) -> Generator[Tuple[str, str], None, None]:
+) -> Generator[str, None, None]:
     for dirpath in walk_pypackages(
         root, exclude_paths=exclude_paths, ignore_hidden_paths=ignore_hidden_paths
     ):
