@@ -65,7 +65,7 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
                 depends_on=list(existing_dependencies | set(error.invalid_tags))
             )
 
-    modguard_yml_path = os.path.join(root, CONFIG_FILE_NAME)
+    modguard_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     modguard_yml_content = yaml.dump(project_config.model_dump())
     fs.write_file(modguard_yml_path, modguard_yml_content)
 

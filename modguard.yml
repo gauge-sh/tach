@@ -1,8 +1,14 @@
-ignore: ['tests/', 'docs/', '.github', '.venv']
 constraints:
-  scope:root:
-    depends_on: ['scope:core', 'scope:filesystem', 'scope:parsing', 'scope:utils']
-  scope:parsing:
-    depends_on: ['scope:core', 'scope:filesystem', 'scope:utils']
   scope:filesystem:
-    depends_on: ['scope:utils']
+    depends_on:
+    - scope:utils
+  scope:parsing:
+    depends_on:
+    - scope:filesystem
+    - scope:utils
+  scope:root:
+    depends_on:
+    - scope:filesystem
+    - scope:parsing
+    - scope:utils
+ignore: []
