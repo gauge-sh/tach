@@ -8,10 +8,11 @@ from modguard.filesystem.project import (
     validate_project_config_path,
     print_invalid_exclude,
 )
+from modguard.core import ProjectConfig
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
 from modguard.show import show
-from modguard.parsing.boundary import build_boundary_trie
+from modguard.parsing.modules import build_module_trie
 from modguard.colors import BCOLORS
 
 
@@ -105,7 +106,9 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
 
 def modguard_check(exclude_paths: Optional[list[str]] = None):
     try:
-        result: list[ErrorInfo] = check(".", exclude_paths=exclude_paths)
+        result: list[ErrorInfo] = check(
+            ".", ProjectConfig(constraints={}), exclude_paths=exclude_paths
+        )
     except Exception as e:
         stop_spinner()
         print(str(e))
@@ -121,8 +124,8 @@ def modguard_check(exclude_paths: Optional[list[str]] = None):
 
 def modguard_show(write_file: bool, exclude_paths: Optional[list[str]] = None):
     try:
-        bt = build_boundary_trie(".", exclude_paths=exclude_paths)
-        _, pretty_result = show(bt, write_file=write_file)
+        mt = build_module_trie(".", exclude_paths=exclude_paths)
+        _, pretty_result = show(mt, write_file=write_file)
     except Exception as e:
         stop_spinner()
         print(str(e))

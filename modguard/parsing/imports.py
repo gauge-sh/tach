@@ -4,7 +4,6 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 from modguard import filesystem as fs
-from modguard.public import public
 
 
 @dataclass
@@ -36,10 +35,12 @@ def get_ignore_directives(file_content: str) -> dict[int, IgnoreDirective]:
 class ImportVisitor(ast.NodeVisitor):
     def __init__(
         self,
+        project_root: str,
         current_mod_path: str,
         is_package: bool = False,
         ignore_directives: Optional[dict[int, IgnoreDirective]] = None,
     ):
+        self.project_root = project_root
         self.current_mod_path = current_mod_path
         self.is_package = is_package
         self.ignored_imports = ignore_directives or {}
@@ -72,11 +73,7 @@ class ImportVisitor(ast.NodeVisitor):
             return
 
         for name_node in node.names:
-            local_mod_path = (
-                f"{'.' * node.level}{node.module}.{name_node.asname or name_node.name}"
-                if node.module
-                else f"{'.' * node.level}{name_node.asname or name_node.name}"
-            )
+            local_mod_path = f"{'.' * node.level}{node.module or ''}.{name_node.asname or name_node.name}"
             if ignored_modules is not None and (local_mod_path in ignored_modules):
                 # This import is ignored by a modguard-ignore directive
                 continue
@@ -84,7 +81,8 @@ class ImportVisitor(ast.NodeVisitor):
             global_mod_path = (
                 f"{base_mod_path}.{name_node.name}" if node.module else name_node.name
             )
-            self.imports.append(global_mod_path)
+            if fs.is_project_import(self.project_root, global_mod_path):
+                self.imports.append(global_mod_path)
 
     def visit_Import(self, node: ast.Import):
         ignored_modules = self._get_ignored_modules(node.lineno)
@@ -93,18 +91,21 @@ class ImportVisitor(ast.NodeVisitor):
             return
 
         ignored_modules = ignored_modules or []
-        self.imports.extend(
-            (alias.name for alias in node.names if alias.name not in ignored_modules)
-        )
+        for alias in node.names:
+            if alias.name in ignored_modules or not fs.is_project_import(
+                self.project_root, alias.name
+            ):
+                continue
+            self.imports.append(alias.name)
 
 
-@public
-def get_imports(file_path: str) -> list[str]:
+def get_project_imports(project_root: str, file_path: str) -> list[str]:
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)
     ignore_directives = get_ignore_directives(file_content)
     mod_path = fs.file_to_module_path(file_path)
     import_visitor = ImportVisitor(
+        project_root=project_root,
         is_package=file_path.endswith("__init__.py"),
         current_mod_path=mod_path,
         ignore_directives=ignore_directives,

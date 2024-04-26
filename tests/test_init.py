@@ -4,7 +4,6 @@ import shutil
 import os
 from modguard import errors, filesystem as fs
 from modguard.init import init_project
-from modguard.parsing.boundary import BOUNDARY_PRELUDE
 
 
 def init_project_from_root(root) -> None:
@@ -64,32 +63,7 @@ def test_init_project_with_valid_root(test_root):
     # Call init_project with the test root
     init_project_from_root(test_root)
 
-    # Check if __init__.py files have been modified as expected
-    for d in test_dirs:
-        with open(os.path.join(test_root, d, "__init__.py")) as f:
-            content = f.read()
-            assert BOUNDARY_PRELUDE in content
-
-    # Check if public members have been marked as expected
-    expected_public_files = [
-        (
-            "package1/module1.py",
-            "import modguard\n@modguard.public\nclass Package1Class:\n    pass\n",
-        ),
-        (
-            "package2/module2.py",
-            "import modguard\n@modguard.public\ndef package_2_func():\n    pass\n",
-        ),
-        (
-            "package6/subpackage/module6.py",
-            "import modguard\nx = 3\nmodguard.public(x)\n",
-        ),
-        ("package3/module3.py", "import modguard\nmodguard.public()\n"),
-    ]
-    for file_path, expected_state in expected_public_files:
-        with open(os.path.join(test_root, file_path)) as f:
-            content = f.read()
-            assert content == expected_state
+    # TODO: test new behavior
 
 
 def test_init_project_with_invalid_root():

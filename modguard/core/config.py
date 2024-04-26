@@ -1,6 +1,6 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Config(BaseModel):
@@ -34,5 +34,5 @@ class ProjectConfig(Config):
     Configuration applied globally to a project.
     """
 
-    tags: Dict[str, ScopeDependencyRules]
-    ignore: List[str]
+    constraints: Dict[str, ScopeDependencyRules]
+    ignore: Optional[List[str]] = Field(default_factory=list)

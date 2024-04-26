@@ -1,5 +1,5 @@
 ignore: ["domain_three"]
-tags:
+constraints:
   one:
     depends_on: ["two"]
   two:

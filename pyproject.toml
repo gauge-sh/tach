@@ -27,8 +27,10 @@ classifiers = [
 dependencies = [
     "pyyaml==6.0.1",
     "pydantic==2.7.1",
+    "stdlib-list==0.10.0"
 ]
 keywords = ['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass', 'domain', 'architecture']
+
 
 [project.urls]
 Homepage = "https://github.com/never-over/modguard"
