@@ -1,5 +1,4 @@
 import argparse
-import os
 import sys
 from typing import Optional
 
@@ -85,18 +84,7 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     exclude_paths = parsed_args.exclude
     if exclude_paths:
         exclude_paths = exclude_paths.split(",")
-        has_error = False
-        # TODO move to fs
-        for exclude_path in exclude_paths:
-            if (
-                exclude_path
-                and not os.path.isdir(exclude_path)
-                and not os.path.isfile(exclude_path)
-            ):
-                has_error = True
-                fs.print_invalid_exclude(exclude_path)
-        if has_error:
-            sys.exit(1)
+        fs.validate_exclude_paths(exclude_paths)
     return parsed_args
 
 

@@ -22,7 +22,7 @@ def mock_isdir(mocker) -> None:
         else:
             return False
 
-    mocker.patch("modguard.cli.os.path.isdir", mock_isdir)
+    mocker.patch("modguard.filesystem.project.os.path.isdir", mock_isdir)
 
 
 @pytest.fixture
