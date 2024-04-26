@@ -1,4 +1,7 @@
 # TODO: move this test
+import pytest
+from pydantic import ValidationError
+
 from modguard.core.config import ProjectConfig, ScopeDependencyRules, ModuleConfig
 from modguard.filesystem import file_to_module_path
 from modguard.filesystem.module import parse_module_config
@@ -44,7 +47,7 @@ def test_parse_valid_project_config():
         tags={
             "one": ScopeDependencyRules(depends_on=["two"]),
             "two": ScopeDependencyRules(depends_on=["one"]),
-            "shared": ScopeDependencyRules(),
+            "shared": ScopeDependencyRules(depends_on=[]),
         },
     )
 
@@ -62,3 +65,23 @@ def test_parse_valid_multi_tag_module_config():
 def test_module_with_no_config():
     result = parse_module_config("example/valid/domain_three")
     assert result is None
+
+
+def test_invalid_project_config():
+    with pytest.raises(ValidationError):
+        parse_project_config("example/invalid/")
+
+
+def test_empty_project_config():
+    with pytest.raises(ValueError):
+        parse_project_config("example/invalid/empty")
+
+
+def test_invalid_module_config():
+    with pytest.raises(ValidationError):
+        parse_module_config("example/invalid")
+
+
+def test_empty_module_config():
+    with pytest.raises(ValueError):
+        parse_module_config("example/invalid")

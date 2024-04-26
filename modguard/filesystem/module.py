@@ -21,5 +21,7 @@ def parse_module_config(root=".") -> Optional[ModuleConfig]:
     file_path = validate_module_config(root)
     if file_path:
         with open(file_path, "r") as f:
-            results = yaml.safe_load(f)
-        return ModuleConfig(**results)
+            result = yaml.safe_load(f)
+            if not result or not isinstance(result, dict):
+                raise ValueError(f"Empty or invalid module config file: {file_path}")
+        return ModuleConfig(**result)

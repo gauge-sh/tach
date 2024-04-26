@@ -36,5 +36,7 @@ def validate_project_config_path(root=".") -> str:
 def parse_project_config(root=".") -> ProjectConfig:
     file_path = validate_project_config_path(root)
     with open(file_path, "r") as f:
-        results = yaml.safe_load(f)
-    return ProjectConfig(**results)
+        result = yaml.safe_load(f)
+        if not result or not isinstance(result, dict):
+            raise ValueError(f"Empty or invalid module config file: {file_path}")
+    return ProjectConfig(**result)

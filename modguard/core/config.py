@@ -3,7 +3,11 @@ from typing import List, Dict
 from pydantic import BaseModel
 
 
-class ModuleConfig(BaseModel):
+class Config(BaseModel):
+    model_config = {"extra": "forbid"}
+
+
+class ModuleConfig(Config):
     """
     Configuration for a single module within a project.
     """
@@ -17,7 +21,7 @@ class ModuleConfig(BaseModel):
         return cls(scopes=["test"], strict=False)
 
 
-class ScopeDependencyRules(BaseModel):
+class ScopeDependencyRules(Config):
     """
     Dependency rules for a particular scope.
     """
@@ -25,7 +29,7 @@ class ScopeDependencyRules(BaseModel):
     depends_on: List[str]
 
 
-class ProjectConfig(BaseModel):
+class ProjectConfig(Config):
     """
     Configuration applied globally to a project.
     """
