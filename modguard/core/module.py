@@ -20,20 +20,20 @@ class ModuleNode:
     is_end_of_path: bool
     full_path: str
     config: Optional[ModuleConfig]
+    interface_members: list[str] = field(default_factory=list)
     children: dict[str, "ModuleNode"] = field(default_factory=dict)
 
     @classmethod
     def empty(cls) -> "ModuleNode":
         return ModuleNode(is_end_of_path=False, full_path="", config=None)
 
-    @classmethod
-    def build(cls, config: ModuleConfig, full_path: str) -> "ModuleNode":
-        return ModuleNode(is_end_of_path=True, full_path=full_path, config=config)
-
-    def fill(self, config: ModuleConfig, full_path: str):
+    def fill(
+        self, config: ModuleConfig, full_path: str, interface_members: list[str]
+    ) -> None:
         self.is_end_of_path = True
         self.config = config
         self.full_path = full_path
+        self.interface_members = interface_members
 
 
 @dataclass
@@ -65,7 +65,7 @@ class ModuleTrie:
 
         return node if node.is_end_of_path else None
 
-    def insert(self, config: ModuleConfig, path: str):
+    def insert(self, config: ModuleConfig, path: str, interface_members: list[str]):
         node = self.root
         parts = self._split_mod_path(path)
 
@@ -74,7 +74,7 @@ class ModuleTrie:
                 node.children[part] = ModuleNode.empty()
             node = node.children[part]
 
-        node.fill(config, path)
+        node.fill(config, path, interface_members)
 
     def find_nearest(self, path: str) -> Optional[ModuleNode]:
         node = self.root
