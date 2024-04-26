@@ -24,4 +24,5 @@ def parse_module_config(root: str = ".") -> Optional[ModuleConfig]:
             result = yaml.safe_load(f)
             if not result or not isinstance(result, dict):
                 raise ValueError(f"Empty or invalid module config file: {file_path}")
-        return ModuleConfig(**result)  # type: ignore we want to error here for now
+        # We want to error on type issues here for now
+        return ModuleConfig(**result)  # type: ignore

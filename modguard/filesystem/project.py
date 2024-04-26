@@ -39,4 +39,5 @@ def parse_project_config(root: str = ".") -> ProjectConfig:
         result = yaml.safe_load(f)
         if not result or not isinstance(result, dict):
             raise ValueError(f"Empty or invalid module config file: {file_path}")
-    return ProjectConfig(**result)  # type: ignore we want to error here for now
+    # We want to error on type issues here for now
+    return ProjectConfig(**result)  # type: ignore
