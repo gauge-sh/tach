@@ -22,7 +22,7 @@ def print_invalid_exclude(path: str) -> None:
     )
 
 
-def validate_project_config_path(root=".") -> str:
+def validate_project_config_path(root: str = ".") -> str:
     file_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     if os.path.exists(file_path):
         return file_path
@@ -33,10 +33,10 @@ def validate_project_config_path(root=".") -> str:
     sys.exit(1)
 
 
-def parse_project_config(root=".") -> ProjectConfig:
+def parse_project_config(root: str = ".") -> ProjectConfig:
     file_path = validate_project_config_path(root)
     with open(file_path, "r") as f:
         result = yaml.safe_load(f)
         if not result or not isinstance(result, dict):
             raise ValueError(f"Empty or invalid module config file: {file_path}")
-    return ProjectConfig(**result)
+    return ProjectConfig(**result)  # type: ignore we want to error here for now
