@@ -142,7 +142,10 @@ def check_import(
 
 
 def check(
-    root: str, project_config: ProjectConfig, exclude_paths: Optional[list[str]] = None
+    root: str,
+    project_config: ProjectConfig,
+    exclude_paths: Optional[list[str]] = None,
+    ignore_hidden_paths: Optional[bool] = True,
 ) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [
@@ -156,7 +159,9 @@ def check(
     module_trie = build_module_trie(root, exclude_paths=exclude_paths)
 
     errors: list[ErrorInfo] = []
-    for file_path in fs.walk_pyfiles(root, exclude_paths=exclude_paths):
+    for file_path in fs.walk_pyfiles(
+        root, exclude_paths=exclude_paths, ignore_hidden_paths=ignore_hidden_paths
+    ):
         mod_path = fs.file_to_module_path(file_path)
         nearest_module = module_trie.find_nearest(mod_path)
         if nearest_module is None:
