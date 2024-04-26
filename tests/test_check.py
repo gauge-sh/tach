@@ -38,12 +38,12 @@ def module_trie() -> ModuleTrie:
                 "domain_one": ModuleNode(
                     is_end_of_path=True,
                     full_path="domain_one",
-                    config=ModuleConfig(tags=["domain_one"], strict=False),
+                    config=ModuleConfig(tags=["domain_one"], strict=True),
                     children={
                         "subdomain": ModuleNode(
                             is_end_of_path=True,
                             full_path="domain_one.subdomain",
-                            config=ModuleConfig(tags=["domain_one"], strict=False),
+                            config=ModuleConfig(tags=["domain_one"], strict=True),
                             children={},
                         )
                     },
@@ -77,12 +77,15 @@ def module_trie() -> ModuleTrie:
     [
         ("domain_one", "domain_one", True),
         ("domain_one", "domain_one.subdomain", True),
+        ("domain_one", "domain_one.core", True),
         ("domain_one", "domain_three", True),
         ("domain_two", "domain_one", True),
         ("domain_two.subdomain", "domain_one", True),
         ("domain_two", "external", True),
         ("external", "external", True),
         ("domain_three", "domain_one", False),
+        ("domain_two", "domain_one.core", False),
+        ("domain_two.subdomain", "domain_one.core", False),
         ("domain_two", "domain_three", False),
         ("domain_two", "domain_two.subdomain", False),
         ("external", "domain_three", False),

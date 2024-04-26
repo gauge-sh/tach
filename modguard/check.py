@@ -83,6 +83,18 @@ def check_import(
     if import_nearest_module == file_nearest_module:
         return CheckResult.success()
 
+    import_module_config = import_nearest_module.config
+    if (
+        import_module_config.strict
+        and import_mod_path != import_nearest_module.full_path
+    ):
+        # Must import from module's full path exactly in strict mode
+        return CheckResult.fail(
+            error_info=ErrorInfo(
+                exception_message=f"Module '{import_nearest_module.full_path}' is in strict mode. The import '{import_mod_path}' must exactly match the module itself ('{import_nearest_module.full_path}')."
+            )
+        )
+
     # The import must be explicitly allowed based on the tags and top-level config
     if not file_nearest_module.config or not import_nearest_module.config:
         return CheckResult.fail(
