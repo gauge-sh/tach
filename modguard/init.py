@@ -46,7 +46,6 @@ def init_project(
     if depth is None:
         result = init_modules(root, depth=1, exclude_paths=exclude_paths)
         warnings.extend(result.warnings)
-        print(result.module_paths)
         if len(result.module_paths) == 1:
             result = init_modules(
                 result.module_paths[0], depth=1, exclude_paths=exclude_paths
