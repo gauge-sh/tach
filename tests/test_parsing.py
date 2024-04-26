@@ -2,8 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from modguard.core.config import ProjectConfig, ScopeDependencyRules, ModuleConfig
-from modguard.filesystem.module import parse_module_config
-from modguard.filesystem.project import parse_project_config
+from modguard.parsing.config import parse_project_config, parse_module_config
 from modguard.filesystem import file_to_module_path
 
 

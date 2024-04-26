@@ -15,11 +15,6 @@ class ModuleConfig(Config):
     tags: List[str]
     strict: bool = False
 
-    @classmethod
-    def from_yml(cls, content: str) -> "ModuleConfig":
-        # TODO: Mocking for now
-        return cls(tags=["test"], strict=False)
-
 
 class ScopeDependencyRules(Config):
     """
