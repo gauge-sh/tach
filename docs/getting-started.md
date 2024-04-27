@@ -20,14 +20,14 @@ modguard -h
 
 If you are adding `modguard` to an existing project, you have two main options:
 
-1. Use [`modguard init`](usage.md#modguard-init) to automatically set up package boundaries and identify necessary public members
-2. Manually mark boundaries and public members in your code ([See API docs](api.md))
+1. Use [`modguard init`](usage.md#modguard-init) to automatically set up modules and identify necessary dependencies
+2. Manually configure your [modules](configuration.md#moduleyml) and [dependency rules](configuration.md#modguardyml)
 
 ## Checking Boundaries
 
 ```bash
 # From the root of your Python project
-modguard check .
+modguard check
 ```
 
-After guarding your project, running `modguard` from the root will check all imports to verify that packages remain correctly decoupled.
+After guarding your project, running `modguard check` from the root will check all imports to verify that packages remain correctly decoupled.

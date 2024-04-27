@@ -1,13 +1,17 @@
 # Overview
 
 ## What is modguard?
-Modguard enables you to explicitly define a public interface for your Python modules. Marking a package with a `Boundary` will make all of its internals private by default, exposing only the members marked with `public`.
+`modguard` allows you to define boundaries and control dependencies between your Python modules.
+Modules can also define an explicit public interface through `__all__` to prevent deep coupling.
 
-This enforces an architecture of decoupled and well defined modules, and ensures the communication between domains is only done through their expected public interfaces.
+This enforces a decoupled, modular architecture, which makes maintenance and feature development easier.
 
-Modguard is incredibly lightweight, and has no impact on the runtime of your code. Instead, its checks are performed through a static analysis CLI tool.
+If a module tries to import from another module that is not listed as a dependency, `modguard` will throw an exception.
+
+When a module is in 'strict mode', if another module tries to import from it without using its public interface, `modguard` will throw an exception.
+
+`modguard` runs on the CLI, and is ideal for pre-commit hooks and CI checks.
 
 ## Commands
-* [`modguard init [dir-name]`](usage.md#modguard-init) - Initialize package boundaries in a directory.
-* [`modguard check [dir-name]`](usage.md#modguard-check) - Check boundaries are respected throughout a directory.
-* [`modguard show [dir-name]`](usage.md#modguard-show) - View and optionally generate a YAML representation of the boundaries in a directory.
+* [`modguard init`](usage.md#modguard-init) - Initialize package boundaries in your Python project.
+* [`modguard check`](usage.md#modguard-check) - Check boundaries are respected throughout your Python project.
