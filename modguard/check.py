@@ -152,7 +152,7 @@ def check(
     root: str,
     project_config: ProjectConfig,
     exclude_paths: Optional[list[str]] = None,
-    ignore_hidden_paths: Optional[bool] = True,
+    exclude_hidden_paths: Optional[bool] = True,
 ) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [
@@ -164,12 +164,12 @@ def check(
     exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
     module_trie = build_module_trie(
-        root, exclude_paths=exclude_paths, ignore_hidden_paths=ignore_hidden_paths
+        root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
     )
 
     errors: list[ErrorInfo] = []
     for file_path in fs.walk_pyfiles(
-        root, exclude_paths=exclude_paths, ignore_hidden_paths=ignore_hidden_paths
+        root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
     ):
         mod_path = fs.file_to_module_path(file_path)
         nearest_module = module_trie.find_nearest(mod_path)

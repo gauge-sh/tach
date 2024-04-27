@@ -81,10 +81,6 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     if not args[0] == "init":
         fs.validate_project_config_path()
 
-    exclude_paths = parsed_args.exclude
-    if exclude_paths:
-        exclude_paths = exclude_paths.split(",")
-        fs.validate_exclude_paths(exclude_paths)
     return parsed_args
 
 
@@ -94,14 +90,14 @@ def modguard_check(
     try:
         project_config = parse_project_config()
         if exclude_paths:
-            exclude_paths.extend(project_config.ignore)
+            exclude_paths.extend(project_config.exclude)
         else:
-            exclude_paths = project_config.ignore
+            exclude_paths = project_config.exclude
         result: list[ErrorInfo] = check(
             ".",
             project_config,
             exclude_paths=exclude_paths,
-            ignore_hidden_paths=project_config.ignore_hidden_paths,
+            exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
     except Exception as e:
         raise e
@@ -120,11 +116,11 @@ def modguard_check(
 def modguard_show(
     write_file: bool,
     exclude_paths: Optional[list[str]] = None,
-    ignore_hidden_paths: Optional[bool] = True,
+    exclude_hidden_paths: Optional[bool] = True,
 ):
     try:
         mt = build_module_trie(
-            ".", exclude_paths=exclude_paths, ignore_hidden_paths=ignore_hidden_paths
+            ".", exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
         )
         _, pretty_result = show(mt, write_file=write_file)
     except Exception as e:

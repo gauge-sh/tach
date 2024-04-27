@@ -121,9 +121,9 @@ This will expand the set of modules that "utils" can access to include all modul
     depends_on: [".*"] # Allow imports from anywhere
     depends_on: ["shared.*"] # Allow imports from any module with a tag starting with "shared"
 ```
-By default, modguard ignores hidden directories and files (paths starting with `.`). To override this behavior, set `ignore_hidden_paths` in `modguard.yml`
+By default, modguard ignores hidden directories and files (paths starting with `.`). To override this behavior, set `exclude_hidden_paths` in `modguard.yml`
 ```yaml
-ignore_hidden_paths: false
+exclude_hidden_paths: false
 ```
 
 ### Details

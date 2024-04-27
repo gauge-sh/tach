@@ -4,7 +4,6 @@ import yaml
 
 from modguard.core import ProjectConfig, ModuleConfig
 from modguard import filesystem as fs
-from modguard.filesystem import validate_exclude_paths
 
 
 def parse_project_config(root: str = ".") -> ProjectConfig:
@@ -15,8 +14,6 @@ def parse_project_config(root: str = ".") -> ProjectConfig:
             raise ValueError(f"Empty or invalid module config file: {file_path}")
     # We want to error on type issues here for now
     project_config = ProjectConfig(**result)  # type: ignore
-    if project_config.exclude_paths:
-        validate_exclude_paths(project_config.exclude_paths)
     return project_config
 
 

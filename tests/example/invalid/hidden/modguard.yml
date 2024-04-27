@@ -1,4 +1,4 @@
-ignore_hidden_paths: false
+exclude_hidden_paths: false
 constraints:
   unhidden:
     depends_on: []

@@ -14,9 +14,7 @@ from modguard.filesystem.service import (
 )
 from modguard.filesystem.project import (
     validate_project_config_path,
-    print_invalid_exclude,
     print_no_modguard_yml,
-    validate_exclude_paths,
 )
 from modguard.filesystem.module import validate_module_config
 
@@ -34,8 +32,6 @@ __all__ = [
     "module_to_file_path",
     "is_project_import",
     "validate_project_config_path",
-    "print_invalid_exclude",
     "print_no_modguard_yml",
     "validate_module_config",
-    "validate_exclude_paths",
 ]

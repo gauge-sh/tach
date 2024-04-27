@@ -30,5 +30,5 @@ class ProjectConfig(Config):
     """
 
     constraints: Dict[str, ScopeDependencyRules] = Field(default_factory=dict)
-    ignore: Optional[List[str]] = Field(default_factory=list)
-    ignore_hidden_paths: Optional[bool] = True
+    exclude: Optional[List[str]] = Field(default_factory=list)
+    exclude_hidden_paths: Optional[bool] = True

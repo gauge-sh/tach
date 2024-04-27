@@ -19,7 +19,7 @@ def test_file_to_mod_path():
 def test_parse_valid_project_config():
     result = parse_project_config("example/valid/")
     assert result == ProjectConfig(
-        ignore=["domain_three"],
+        exclude=["domain_three"],
         constraints={
             "one": ScopeDependencyRules(depends_on=["two"]),
             "two": ScopeDependencyRules(depends_on=["one"]),
@@ -63,16 +63,16 @@ def test_empty_module_config():
         parse_module_config("example/invalid")
 
 
-def test_ignore_hidden_paths_fails():
+def test_exclude_hidden_paths_fails():
     current_dir = os.getcwd()
     hidden_project = "./example/invalid/hidden/"
     fs.chdir(hidden_project)
     project_config = parse_project_config()
-    assert project_config.ignore_hidden_paths is False
+    assert project_config.exclude_hidden_paths is False
     results = check(
         ".",
         project_config,
-        ignore_hidden_paths=project_config.ignore_hidden_paths,
+        exclude_hidden_paths=project_config.exclude_hidden_paths,
     )
     assert len(results) == 1
     assert results[0] == ErrorInfo(
@@ -84,6 +84,6 @@ def test_ignore_hidden_paths_fails():
         " this module are allowed. The import 'unhidden.secret.shhhh' (in 'hidden') is not included in __all__.",
     )
 
-    project_config.ignore_hidden_paths = True
-    assert check(".", project_config, ignore_hidden_paths=True) == []
+    project_config.exclude_hidden_paths = True
+    assert check(".", project_config, exclude_hidden_paths=True) == []
     fs.chdir(current_dir)
