@@ -89,7 +89,7 @@ def modguard_check(
 ):
     try:
         project_config = parse_project_config()
-        if exclude_paths:
+        if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
         else:
             exclude_paths = project_config.exclude
