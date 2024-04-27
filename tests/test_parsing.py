@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from modguard.check import check, ErrorInfo
-from modguard.core.config import ProjectConfig, ScopeDependencyRules, ModuleConfig
+from modguard.core.config import ModuleConfig, ScopeDependencyRules, ProjectConfig
 from modguard.parsing.config import parse_project_config, parse_module_config
 from modguard.filesystem import file_to_module_path
 from modguard import filesystem as fs
@@ -19,13 +19,32 @@ def test_file_to_mod_path():
 def test_parse_valid_project_config():
     result = parse_project_config("example/valid/")
     assert result == ProjectConfig(
-        exclude=["domain_three"],
         constraints={
             "one": ScopeDependencyRules(depends_on=["two"]),
             "two": ScopeDependencyRules(depends_on=["one"]),
-            "shared": ScopeDependencyRules(depends_on=[]),
+            "three": ScopeDependencyRules(depends_on=[]),
         },
+        exclude=["domain_thr.*"],
+        exclude_hidden_paths=True,
     )
+
+
+def test_run_valid_project_config():
+    current_dir = os.getcwd()
+    try:
+        project = "./example/valid/"
+        fs.chdir(project)
+        project_config = parse_project_config()
+        results = check(
+            ".",
+            project_config,
+            exclude_paths=project_config.exclude,
+            exclude_hidden_paths=project_config.exclude_hidden_paths,
+        )
+        assert results == []
+    finally:
+        # Make sure not to dirty the test directory state
+        fs.chdir(current_dir)
 
 
 def test_parse_valid_strict_module_config():
@@ -39,7 +58,7 @@ def test_parse_valid_multi_tag_module_config():
 
 
 def test_module_with_no_config():
-    result = parse_module_config("example/valid/domain_three")
+    result = parse_module_config("example/")
     assert result is None
 
 
@@ -67,23 +86,26 @@ def test_exclude_hidden_paths_fails():
     current_dir = os.getcwd()
     hidden_project = "./example/invalid/hidden/"
     fs.chdir(hidden_project)
-    project_config = parse_project_config()
-    assert project_config.exclude_hidden_paths is False
-    results = check(
-        ".",
-        project_config,
-        exclude_hidden_paths=project_config.exclude_hidden_paths,
-    )
-    assert len(results) == 1
-    assert results[0] == ErrorInfo(
-        location="hidden",
-        import_mod_path="",
-        source_tag="",
-        allowed_tags=[],
-        exception_message="Module 'unhidden' is in strict mode. Only imports from the root of"
-        " this module are allowed. The import 'unhidden.secret.shhhh' (in 'hidden') is not included in __all__.",
-    )
+    try:
+        project_config = parse_project_config()
+        assert project_config.exclude_hidden_paths is False
+        results = check(
+            ".",
+            project_config,
+            exclude_hidden_paths=project_config.exclude_hidden_paths,
+        )
+        assert len(results) == 1
+        assert results[0] == ErrorInfo(
+            location="hidden",
+            import_mod_path="",
+            source_tag="",
+            allowed_tags=[],
+            exception_message="Module 'unhidden' is in strict mode. Only imports from the root of"
+            " this module are allowed. The import 'unhidden.secret.shhhh' (in 'hidden') is not included in __all__.",
+        )
 
-    project_config.exclude_hidden_paths = True
-    assert check(".", project_config, exclude_hidden_paths=True) == []
-    fs.chdir(current_dir)
+        project_config.exclude_hidden_paths = True
+        assert check(".", project_config, exclude_hidden_paths=True) == []
+    finally:
+        # Make sure not to dirty the test directory state
+        fs.chdir(current_dir)
