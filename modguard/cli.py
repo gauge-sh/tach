@@ -71,6 +71,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Write the output to an `interface.yaml` file",
     )
+    add_parser = subparsers.add_parser(
+        "add",
+        prog="modguard add",
+        help="Create a new module boundary around an existing file or folder",
+        description="Initialize boundaries between top-level modules and write dependencies to "
+        "`modguard.yml`",
+    )
+    add_parser.add_argument(
+        "path",
+        type=str,
+        metavar="path",
+        help="The path of the file or directory to create a module boundary around.",
+    )
     return parser
 
 
@@ -100,7 +113,6 @@ def modguard_check(
             exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
     except Exception as e:
-        raise e
         stop_spinner()
         print(str(e))
         sys.exit(1)
@@ -149,6 +161,9 @@ def modguard_init(exclude_paths: Optional[list[str]] = None):
 
 def main() -> None:
     args = parse_arguments(sys.argv[1:])
+    if args.command == "add":
+        modguard_add(path=args.path)
+        return
     exclude_paths = args.exclude.split(",") if args.exclude else None
     if args.command == "init":
         start_spinner("Initializing...")
@@ -162,6 +177,11 @@ def main() -> None:
     else:
         print("Unrecognized command")
         exit(1)
+
+
+def modguard_add(path: str) -> None:
+    fs.validate_path(path)
+    fs.build_module(path, tags=["yolo"])
 
 
 if __name__ == "__main__":
