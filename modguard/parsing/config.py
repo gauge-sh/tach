@@ -13,7 +13,8 @@ def parse_project_config(root: str = ".") -> ProjectConfig:
         if not result or not isinstance(result, dict):
             raise ValueError(f"Empty or invalid module config file: {file_path}")
     # We want to error on type issues here for now
-    return ProjectConfig(**result)  # type: ignore
+    project_config = ProjectConfig(**result)  # type: ignore
+    return project_config
 
 
 def parse_module_config(root: str = ".") -> Optional[ModuleConfig]:

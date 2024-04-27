@@ -1,5 +1,6 @@
 import os
 import ast
+import re
 import sys
 import threading
 from collections import defaultdict
@@ -133,44 +134,71 @@ def parse_ast(path: str) -> ast.AST:
 
 
 def walk_pyfiles(
-    root: str, depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None
+    root: str,
+    depth: Optional[int] = None,
+    exclude_paths: Optional[list[str]] = None,
+    exclude_hidden_paths: Optional[bool] = True,
 ) -> Generator[str, None, None]:
     canonical_root = canonical(root)
     base_depth = 0 if canonical_root == "." else canonical_root.count(os.path.sep) + 1
     for dirpath, _, filenames in os.walk(canonical_root):
         dirpath = canonical(dirpath)
+
         if dirpath == canonical_root:
             continue
 
+        if exclude_hidden_paths and os.path.basename(dirpath).startswith("."):
+            continue
+
         if exclude_paths is not None and any(
-            dirpath.startswith(exclude_path) for exclude_path in exclude_paths
+            dirpath.startswith(exclude_path) or re.match(exclude_path, dirpath)
+            for exclude_path in exclude_paths
         ):
             # Treat excluded paths as invisible
             continue
+
         if depth:
             # Ignore anything past requested depth
             current_depth = dirpath.count(os.path.sep)
             if current_depth >= base_depth + depth:
                 continue
         for filename in filenames:
+            if exclude_hidden_paths and filename.startswith("."):
+                continue
             file_path = os.path.join(dirpath, filename)
             if filename.endswith(".py"):
                 yield file_path
 
 
 def walk_pypackages(
-    root: str, depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None
+    root: str,
+    depth: Optional[int] = None,
+    exclude_paths: Optional[list[str]] = None,
+    exclude_hidden_paths: Optional[bool] = True,
 ) -> Generator[str, None, None]:
-    for filepath in walk_pyfiles(root, depth=depth, exclude_paths=exclude_paths):
+    for filepath in walk_pyfiles(
+        root,
+        depth=depth,
+        exclude_paths=exclude_paths,
+        exclude_hidden_paths=exclude_hidden_paths,
+    ):
         init_file_ending = f"{os.path.sep}__init__.py"
         if filepath.endswith(init_file_ending):
             yield filepath[: -len(init_file_ending)]
 
 
 def walk_modules(
-    root: str, depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None
+    root: str,
+    depth: Optional[int] = None,
+    exclude_paths: Optional[list[str]] = None,
+    exclude_hidden_paths: Optional[bool] = True,
 ) -> Generator[str, None, None]:
-    for dirpath in walk_pypackages(root, depth=depth, exclude_paths=exclude_paths):
+    for dirpath in walk_pypackages(
+        root,
+        depth=depth,
+        exclude_paths=exclude_paths,
+        exclude_hidden_paths=exclude_hidden_paths,
+    ):
         module_yml_path = os.path.join(dirpath, "module.yml")
         if os.path.isfile(module_yml_path):
             yield dirpath

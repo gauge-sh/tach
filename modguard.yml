@@ -1,3 +1,4 @@
+exclude: ['tests/', 'docs/']
 constraints:
   scope:filesystem:
     depends_on:
@@ -12,4 +13,3 @@ constraints:
     - scope:utils
     - scope:core
     - scope:filesystem
-ignore: []

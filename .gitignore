@@ -163,3 +163,4 @@ cython_debug/
 .idea/
 
 .python-version
+.env.leave

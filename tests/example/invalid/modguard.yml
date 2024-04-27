@@ -1,4 +1,4 @@
-ignore: ["domain_three"]
+exclude: ["domain_three"]
 constraints:
   one:
     depends_on: ["two"]
