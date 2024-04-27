@@ -91,7 +91,7 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if not args[0] == "init":
+    if args[0] not in ["init", "add"]:
         fs.validate_project_config_path()
 
     return parsed_args
