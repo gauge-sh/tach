@@ -20,7 +20,7 @@ from modguard.filesystem.project import (
 from modguard.filesystem.module import (
     validate_module_config,
     build_module,
-    validate_path,
+    validate_path_for_add,
 )
 
 __all__ = [
@@ -41,5 +41,5 @@ __all__ = [
     "print_no_modguard_yml",
     "validate_module_config",
     "build_module",
-    "validate_path",
+    "validate_path_for_add",
 ]

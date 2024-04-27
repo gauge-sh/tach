@@ -180,7 +180,7 @@ def main() -> None:
 
 
 def modguard_add(path: str) -> None:
-    fs.validate_path(path)
+    fs.validate_path_for_add(path)
     fs.build_module(path, tags=["yolo"])
 
 
