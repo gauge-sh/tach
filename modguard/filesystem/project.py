@@ -12,14 +12,6 @@ def print_no_modguard_yml() -> None:
     )
 
 
-def print_invalid_exclude(path: str) -> None:
-    print(
-        f"{BCOLORS.FAIL} {path} is not a valid dir or file. "
-        f"Make sure the exclude list is comma separated and valid.",
-        file=sys.stderr,
-    )
-
-
 def get_project_config_path(root: str = ".") -> str:
     file_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     if os.path.exists(file_path):

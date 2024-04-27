@@ -1,5 +1,4 @@
 import argparse
-import os
 import sys
 from typing import Optional
 
@@ -82,35 +81,26 @@ def parse_arguments(args: list[str]) -> argparse.Namespace:
     if not args[0] == "init":
         fs.validate_project_config_path()
 
-    exclude_paths = parsed_args.exclude
-    if exclude_paths:
-        exclude_paths = exclude_paths.split(",")
-        has_error = False
-        # TODO move to fs
-        for exclude_path in exclude_paths:
-            if (
-                exclude_path
-                and not os.path.isdir(exclude_path)
-                and not os.path.isfile(exclude_path)
-            ):
-                has_error = True
-                fs.print_invalid_exclude(exclude_path)
-        if has_error:
-            sys.exit(1)
     return parsed_args
 
 
-def modguard_check(exclude_paths: Optional[list[str]] = None):
+def modguard_check(
+    exclude_paths: Optional[list[str]] = None,
+):
     try:
         project_config = parse_project_config()
-        if exclude_paths:
-            exclude_paths.extend(project_config.ignore)
+        if exclude_paths is not None and project_config.exclude is not None:
+            exclude_paths.extend(project_config.exclude)
         else:
-            exclude_paths = project_config.ignore
+            exclude_paths = project_config.exclude
         result: list[ErrorInfo] = check(
-            ".", project_config, exclude_paths=exclude_paths
+            ".",
+            project_config,
+            exclude_paths=exclude_paths,
+            exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
     except Exception as e:
+        raise e
         stop_spinner()
         print(str(e))
         sys.exit(1)
@@ -123,9 +113,15 @@ def modguard_check(exclude_paths: Optional[list[str]] = None):
     sys.exit(0)
 
 
-def modguard_show(write_file: bool, exclude_paths: Optional[list[str]] = None):
+def modguard_show(
+    write_file: bool,
+    exclude_paths: Optional[list[str]] = None,
+    exclude_hidden_paths: Optional[bool] = True,
+):
     try:
-        mt = build_module_trie(".", exclude_paths=exclude_paths)
+        mt = build_module_trie(
+            ".", exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
+        )
         _, pretty_result = show(mt, write_file=write_file)
     except Exception as e:
         stop_spinner()

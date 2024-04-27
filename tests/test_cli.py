@@ -22,7 +22,7 @@ def mock_isdir(mocker) -> None:
         else:
             return False
 
-    mocker.patch("modguard.cli.os.path.isdir", mock_isdir)
+    mocker.patch("modguard.filesystem.project.os.path.isdir", mock_isdir)
 
 
 @pytest.fixture
@@ -114,15 +114,3 @@ def test_execute_with_valid_exclude(
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
     assert "All modules safely guarded!" in captured.out
-
-
-def test_execute_with_invalid_exclude(capfd, mock_isdir, mock_path_exists):
-    with pytest.raises(SystemExit) as sys_exit:
-        # Test with a valid path as mocked
-        # Mock a valid return from check
-        args = cli.parse_arguments(["check", "--exclude", "invalid_dir"])
-        exclude_paths = args.exclude.split(",")
-        cli.modguard_check(exclude_paths=exclude_paths)
-    captured = capfd.readouterr()
-    assert sys_exit.value.code == 1
-    assert "invalid_dir is not a valid dir or file" in captured.err
