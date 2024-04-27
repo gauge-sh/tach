@@ -30,10 +30,13 @@ def build_module(path: str, tags: list[str]) -> None:
     if os.path.isdir(path):
         with open(f"{path}/{MODULE_FILE_NAME}.yml", "w") as f:
             f.write(f"tags: [{','.join(tags)}]\n")
+            # TODO should we write this into your modguard.yml as a set of minimum deps?
             return
     else:
-        os.mkdir(path.replace(".py", ""))
+        dirname = path.replace(".py", "")
+        os.mkdir(dirname)
         with open(path, "r") as original_file:
-            with open(f"{path}/main.py", "w") as new_file:
+            with open(f"{dirname}/main.py", "w") as new_file:
                 new_file.write(original_file.read())
+                # TODO write init.py, validate existing folder with same name doesn't already exist, write import, write module.yml
         os.remove(path)
