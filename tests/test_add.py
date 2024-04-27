@@ -38,8 +38,10 @@ def test_directory_without_init_py():
 
 def test_valid_directory():
     def mock_exists(path):
-        return not path.endswith("yml") and not path.endswith(
-            "yaml"
+        return (
+            not path.endswith("yml")
+            and not path.endswith("yaml")
+            or CONFIG_FILE_NAME in path
         )  # Everything exists for this test
 
     def mock_validate_project_config_path(path):

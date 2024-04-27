@@ -6,7 +6,7 @@ from typing import Optional
 
 from modguard.constants import MODULE_FILE_NAME, CONFIG_FILE_NAME
 from modguard.errors import ModguardError
-from modguard.filesystem import validate_project_config_path
+from modguard.filesystem import get_project_config_path
 
 
 def validate_module_config(root: str = ".") -> Optional[str]:
@@ -32,11 +32,7 @@ def validate_path_for_add(path: str) -> None:
                 f"{path} is not a valid Python package (no __init__.py found)."
             )
         # check for project config
-        try:
-            validate_project_config_path(path)
-        except SystemError:
-            pass
-        else:
+        if get_project_config_path(path):
             return
     # this is a file
     else:
@@ -47,11 +43,7 @@ def validate_path_for_add(path: str) -> None:
     path_obj = Path(path)
     # Iterate upwards, looking for project config
     for parent in path_obj.parents:
-        try:
-            validate_project_config_path(str(parent))
-        except SystemError:
-            continue
-        else:
+        if get_project_config_path(str(parent)):
             return
     raise ModguardError(f"{CONFIG_FILE_NAME} does not exist in any parent directories")
 
