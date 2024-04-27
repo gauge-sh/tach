@@ -1,6 +1,5 @@
 import os
 import ast
-import re
 import sys
 import threading
 from collections import defaultdict
@@ -179,7 +178,7 @@ def walk_pypackages(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
-        exclude_hidden_paths=exclude_hidden_paths
+        exclude_hidden_paths=exclude_hidden_paths,
     ):
         init_file_ending = f"{os.path.sep}__init__.py"
         if filepath.endswith(init_file_ending):
@@ -196,7 +195,7 @@ def walk_modules(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
-        exclude_hidden_paths=exclude_hidden_paths
+        exclude_hidden_paths=exclude_hidden_paths,
     ):
         module_yml_path = os.path.join(dirpath, "module.yml")
         if os.path.isfile(module_yml_path):
