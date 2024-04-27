@@ -1,5 +1,6 @@
 import os
 import ast
+import re
 import sys
 import threading
 from collections import defaultdict
@@ -150,7 +151,8 @@ def walk_pyfiles(
             continue
 
         if exclude_paths is not None and any(
-            dirpath.startswith(exclude_path) for exclude_path in exclude_paths
+            dirpath.startswith(exclude_path) or re.match(exclude_path, dirpath)
+            for exclude_path in exclude_paths
         ):
             # Treat excluded paths as invisible
             continue
