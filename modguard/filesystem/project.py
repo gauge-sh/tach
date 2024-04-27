@@ -12,12 +12,20 @@ def print_no_modguard_yml() -> None:
     )
 
 
-def validate_project_config_path(root: str = ".") -> str:
+def get_project_config_path(root: str = ".") -> str:
     file_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     if os.path.exists(file_path):
         return file_path
     file_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yaml")
     if os.path.exists(file_path):
         return file_path
-    print_no_modguard_yml()
-    sys.exit(1)
+    return ""
+
+
+def validate_project_config_path(root: str = ".") -> str:
+    project_config_path = get_project_config_path(root)
+    if not project_config_path:
+        print_no_modguard_yml()
+        sys.exit(1)
+    else:
+        return project_config_path

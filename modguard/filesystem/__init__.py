@@ -13,6 +13,7 @@ from modguard.filesystem.service import (
     is_project_import,
 )
 from modguard.filesystem.project import (
+    get_project_config_path,
     validate_project_config_path,
     print_no_modguard_yml,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "file_to_module_path",
     "module_to_file_path",
     "is_project_import",
+    "get_project_config_path",
     "validate_project_config_path",
     "print_no_modguard_yml",
     "validate_module_config",
