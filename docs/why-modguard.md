@@ -23,5 +23,4 @@ With `modguard` set up, you can collaborate on your codebase with confidence tha
 - fully open source
 - able to be adopted incrementally
 - implemented with no runtime footprint
-- a standalone library with no external dependencies
-- interoperable with your existing system (cli, generated config)
+- interoperable with your existing CI tools

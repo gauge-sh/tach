@@ -18,7 +18,7 @@ This enforces an architecture of decoupled modules, and avoids modules becoming 
 If a module tries to import from another module that is not listed as a dependency, modguard will throw an exception.
 If a module tries to import from another module and does not use its public interface, with `strict: true` set modguard will throw an exception.
 
-Modguard is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed through as a lint check through the CLI.
+Modguard is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed as a lint check through the CLI.
 
 ### Installation
 ```bash
