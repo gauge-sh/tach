@@ -26,6 +26,7 @@ def validate_path(path: str) -> None:
         or not os.path.exists(os.path.join(path, "__init__.py"))
     ):
         # TODO validate it's a python file, validate the dir of the same name doesn't exist
+        # TODO validate parent modguard.yml
         raise ValueError()
 
 
@@ -34,6 +35,9 @@ def build_module(path: str, tags: list[str]) -> None:
         with open(f"{path}/{MODULE_FILE_NAME}.yml", "w") as f:
             f.write(f"tags: [{','.join(tags)}]\n")
             # TODO should we write this into your modguard.yml as a set of minimum deps?
+            # move to parent dir
+            # run init check logic
+            # only iterate over errors belonging to the new module
             return
     else:
         dirname = path.replace(".py", "")
