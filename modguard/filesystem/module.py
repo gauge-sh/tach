@@ -61,6 +61,6 @@ from .main import *
         os.rename(path, f"{dirname}/main.py")
     # Write the module.yml
     with open(f"{dirname}/{MODULE_FILE_NAME}.yml", "w") as f:
-        f.write(f"tags: [{','.join(tags)}]\n")
+        f.write(f"tags: [\"{'","'.join(tags)}\"]\n")
     if not tags:
         return tag
