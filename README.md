@@ -12,11 +12,11 @@ A Python tool to enforce a modular, decoupled package architecture.
 [Docs](https://never-over.github.io/modguard/)
 
 ### What is modguard?
-Modguard allows you to define boundaries and control dependencies between your Python modules. Each module can also define its public interface.
+Modguard allows you to define boundaries and control dependencies between your Python packages. Each package can also define its public interface.
 
-This enforces an architecture of decoupled modules, and avoids modules becoming tightly intertwined.
-If a module tries to import from another module that is not listed as a dependency, modguard will throw an exception.
-If a module tries to import from another module and does not use its public interface, with `strict: true` set modguard will throw an exception.
+This enforces a decoupled, modular architecture, and prevents tight coupling.
+If a package tries to import from another package that is not listed as a dependency, modguard will throw an exception.
+If a package tries to import from another package and does not use its public interface, with `strict: true` set modguard will throw an exception.
 
 Modguard is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed as a lint check through the CLI.
 
@@ -25,17 +25,17 @@ Modguard is incredibly lightweight, and has no impact on your runtime. Instead, 
 pip install modguard
 ```
 ### Usage
-To define a module, add a `module.yml` to the corresponding Python package. Add at least one 'tag' to identify the module:
+To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:
 ```python
-# core/module.yml
+# core/package.yml
 tags: ["core"]
 ```
 ```python
-# db/module.yml
+# db/package.yml
 tags: ["db"]
 ```
 ```python
-# utils/module.yml
+# utils/package.yml
 tags: ["utils"]
 ```
 Next, specify the constraints for each tag in `modguard.yml` in the root of your project:
@@ -49,7 +49,7 @@ constraints:
   utils:
     depends_on: []
 ```
-With these rules in place, modules with tag `core` can import from modules with tag `db` or `utils`. Modules tagged with `db` can only import from `utils`, and modules tagged with `utils` cannot import from any other modules in the project. 
+With these rules in place, packages with tag `core` can import from packages with tag `db` or `utils`. Packages tagged with `db` can only import from `utils`, and packages tagged with `utils` cannot import from any other packages in the project. 
 
 Modguard will now flag any violation of these boundaries.
 ```bash
@@ -58,16 +58,16 @@ Modguard will now flag any violation of these boundaries.
 ❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
 ```
 
-If you want to define a public interface for the module, import and reference each object you want exposed in the module's `__init__.py`:
+If you want to define a public interface for the package, import and reference each object you want exposed in the package's `__init__.py`:
 ```python
 # db/__init__.py
 from db.service import PublicAPI
 
 __all__ = ["PublicAPI"]
 ```
-Turning on `strict: true` in the module's `module.yml` will then enforce that all imports from this module occur through `__init__.py`
+Turning on `strict: true` in the package's `package.yml` will then enforce that all imports from this package occur through `__init__.py`
 ```yaml
-# db/module.yml
+# db/package.yml
 tags: ["db"]
 strict: true
 ```
@@ -75,7 +75,7 @@ strict: true
 # The only valid import from "db"
 from db import PublicAPI 
 ```
-Modguard will now flag any import that is not from `__init__.py` in the `db` module, in addition to enforcing the dependencies defined above.
+Modguard will now flag any import that is not from `__init__.py` in the `db` package, in addition to enforcing the dependencies defined above.
 ```bash
 # From the root of your Python project (in this example, `project/`)
 > modguard check
@@ -94,8 +94,8 @@ Modguard also comes bundled with a command to set up and define your initial bou
 ```bash
 modguard init .
 ```
-By running `modguard init` from the root of your Python project, modguard will inspect and define each top-level Python package as a module. Each module will receive a `module.yml` with a single tag based on the folder name. 
-The tool will take into consideration the usages between modules, and write a matching set of dependencies to `modguard.yml` in the project root.
+By running `modguard init` from the root of your Python project, modguard will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
+The tool will take into consideration the usages between packages, and write a matching set of dependencies to `modguard.yml` in the project root.
 ```bash
 > modguard check
 #TODO show passing state here
@@ -109,17 +109,17 @@ from db.main import PrivateAPI
 ```
 This will stop modguard from flagging this import as a boundary violation.
 
-You can also specify multiple tags for a given module:
+You can also specify multiple tags for a given package:
 ```python
-# utils/module.yml
+# utils/package.yml
 tags: ["core", "utils"]
 ```
-This will expand the set of modules that "utils" can access to include all modules that "core" and "utils" `depends_on` as defined in `modguard.yml`.
+This will expand the set of packages that "utils" can access to include all packages that "core" and "utils" `depends_on` as defined in `modguard.yml`.
 
 `modguard.yml` also accepts regex syntax:
 ```yaml
     depends_on: [".*"] # Allow imports from anywhere
-    depends_on: ["shared.*"] # Allow imports from any module with a tag starting with "shared"
+    depends_on: ["shared.*"] # Allow imports from any package with a tag starting with "shared"
 ```
 By default, modguard ignores hidden directories and files (paths starting with `.`). To override this behavior, set `exclude_hidden_paths` in `modguard.yml`
 ```yaml
@@ -129,7 +129,7 @@ exclude_hidden_paths: false
 ### Details
 Modguard works by analyzing the abstract syntax tree (AST) of your codebase. It has no runtime impact, and all operations are performed statically. 
 
-Boundary violations are detected at the import layer. This means that specific nonstandard custom syntax to access modules/submodules such as getattr or dynamically generated namespaces will not be caught by modguard.
+Boundary violations are detected at the import layer. This means that specific nonstandard custom syntax to access packages such as `getattr` or dynamically generated namespaces will not be caught by modguard.
 
 [PyPi Package](https://pypi.org/project/modguard/)
 

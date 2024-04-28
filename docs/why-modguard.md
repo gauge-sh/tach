@@ -1,7 +1,7 @@
 # Why modguard?
 
 ## The Problem
-We built `modguard` to solve a recurring problem that we've experienced on software teams -- **code sprawl**. Unintended cross-module imports would tightly couple together what used to be independent domains, and eventually create **"balls of mud"**. This made it harder to test, and harder to make changes. Mis-use of modules which were intended to be private would then degrade performance and even cause security incidents.
+We built `modguard` to solve a recurring problem that we've experienced on software teams -- **code sprawl**. Unintended cross-package imports would tightly couple together what used to be independent domains, and eventually create **"balls of mud"**. This made it harder to test, and harder to make changes. Mis-use of packages which were intended to be private would then degrade performance and even cause security incidents.
 
 This would happen for a variety of reasons:
 
@@ -14,9 +14,9 @@ This would happen for a variety of reasons:
 The attempts to fix this problem almost always came up short. Inevitably, standards guides would be written and stricter and stricter attempts would be made to enforce style guides, lead developer education efforts, and restrict code review. However, each of these approaches had their own flaws. 
 
 ## The Solution
-The solution was to explicitly define a module's **boundary** and **public interface** in code, and enforce those domain boundaries through CI. This meant that no developer could introduce a new cross-module dependency without explicitly changing the public interface or the boundary itself. This was a significantly smaller and well-scoped set of changes that could be maintained and managed by those who understood the intended design of the system.
+The solution was to explicitly define a package's **boundary** and **public interface** in code, and enforce those domain boundaries through CI. This meant that no developer could introduce a new cross-package dependency without explicitly changing the public interface or the boundary itself. This was a significantly smaller and well-scoped set of changes that could be maintained and managed by those who understood the intended design of the system.
 
-With `modguard` set up, you can collaborate on your codebase with confidence that the intentional design of your modules will always be preserved.
+With `modguard` set up, you can collaborate on your codebase with confidence that the intentional design of your packages will always be preserved.
 
 `modguard` is:
 

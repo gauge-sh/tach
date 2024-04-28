@@ -1,4 +1,4 @@
 CONFIG_FILE_NAME = "modguard"
-MODULE_FILE_NAME = "module"
+PACKAGE_FILE_NAME = "package"
 
-__all__ = ["CONFIG_FILE_NAME", "MODULE_FILE_NAME"]
+__all__ = ["CONFIG_FILE_NAME", "PACKAGE_FILE_NAME"]

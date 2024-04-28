@@ -1,10 +1,10 @@
-from modguard.core.config import ModuleConfig, ScopeDependencyRules, ProjectConfig
-from modguard.core.module import ModuleNode, ModuleTrie
+from modguard.core.config import PackageConfig, ScopeDependencyRules, ProjectConfig
+from modguard.core.package import PackageNode, PackageTrie
 
 __all__ = [
-    "ModuleConfig",
+    "PackageConfig",
     "ScopeDependencyRules",
     "ProjectConfig",
-    "ModuleNode",
-    "ModuleTrie",
+    "PackageNode",
+    "PackageTrie",
 ]

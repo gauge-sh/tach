@@ -31,14 +31,14 @@ ignore: ['tests', 'docs']
 ```
 
 
-## `module.yml`
+## `package.yml`
 
-This is the module-level configuration file which should exist in each module in your project.
+This is the package-level configuration file which should exist in each package in your project.
 It accepts `tags` and `strict` as top-level keys.
 
 `tags` accepts a list of string tags which map onto project-level `constraints`
 
-`strict` accepts a boolean which enables ['Strict Mode'](strict-mode.md) for the module
+`strict` accepts a boolean which enables ['Strict Mode'](strict-mode.md) for the package
 
 ```yaml
 tags: ['scope:utils']

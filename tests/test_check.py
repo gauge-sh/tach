@@ -1,8 +1,8 @@
 import pytest
 from modguard.core import (
-    ModuleConfig,
-    ModuleTrie,
-    ModuleNode,
+    PackageConfig,
+    PackageTrie,
+    PackageNode,
     ProjectConfig,
     ScopeDependencyRules,
 )
@@ -10,8 +10,8 @@ from modguard.check import check_import
 
 
 @pytest.fixture
-def test_config() -> ModuleConfig:
-    return ModuleConfig(tags=["test"], strict=False)
+def test_config() -> PackageConfig:
+    return PackageConfig(tags=["test"], strict=False)
 
 
 @pytest.fixture
@@ -28,44 +28,44 @@ def project_config() -> ProjectConfig:
 
 
 @pytest.fixture
-def module_trie() -> ModuleTrie:
-    return ModuleTrie(
-        root=ModuleNode(
+def package_trie() -> PackageTrie:
+    return PackageTrie(
+        root=PackageNode(
             is_end_of_path=False,
             full_path="",
             config=None,
             children={
-                "domain_one": ModuleNode(
+                "domain_one": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_one",
-                    config=ModuleConfig(tags=["domain_one"], strict=True),
+                    config=PackageConfig(tags=["domain_one"], strict=True),
                     interface_members=["public_fn"],
                     children={
-                        "subdomain": ModuleNode(
+                        "subdomain": PackageNode(
                             is_end_of_path=True,
                             full_path="domain_one.subdomain",
-                            config=ModuleConfig(tags=["domain_one"], strict=True),
+                            config=PackageConfig(tags=["domain_one"], strict=True),
                             children={},
                         )
                     },
                 ),
-                "domain_two": ModuleNode(
+                "domain_two": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_two",
-                    config=ModuleConfig(tags=["domain_two"], strict=False),
+                    config=PackageConfig(tags=["domain_two"], strict=False),
                     children={
-                        "subdomain": ModuleNode(
+                        "subdomain": PackageNode(
                             is_end_of_path=True,
                             full_path="domain_two.subdomain",
-                            config=ModuleConfig(tags=["domain_two"], strict=False),
+                            config=PackageConfig(tags=["domain_two"], strict=False),
                             children={},
                         )
                     },
                 ),
-                "domain_three": ModuleNode(
+                "domain_three": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_three",
-                    config=ModuleConfig(tags=["domain_three"], strict=False),
+                    config=PackageConfig(tags=["domain_three"], strict=False),
                     children={},
                 ),
             },
@@ -95,11 +95,11 @@ def module_trie() -> ModuleTrie:
     ],
 )
 def test_check_import(
-    project_config, module_trie, file_mod_path, import_mod_path, expected_result
+    project_config, package_trie, file_mod_path, import_mod_path, expected_result
 ):
     result = check_import(
         project_config=project_config,
-        module_trie=module_trie,
+        package_trie=package_trie,
         file_mod_path=file_mod_path,
         import_mod_path=import_mod_path,
     )
