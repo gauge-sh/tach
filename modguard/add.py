@@ -52,6 +52,7 @@ def update_project_config(root: str, tags: set[str]):
 
 
 def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
+    new_tags = set()
     # Validate paths
     for path in paths:
         fs.validate_path_for_add(path=path)
@@ -59,10 +60,10 @@ def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
     for path in paths:
         new_tag = fs.build_module(path=path, tags=tags)
         if new_tag:
-            tags.add(new_tag)
+            new_tags.add(new_tag)
     # Update project config
     project_root = fs.find_project_config_root(path=".")
-    warning = update_project_config(root=project_root, tags=tags)
+    warning = update_project_config(root=project_root, tags=tags if tags else new_tags)
     if warning:
         return [warning]
     return []
