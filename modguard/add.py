@@ -11,34 +11,42 @@ from modguard.parsing import parse_project_config
 
 
 def update_project_config(root: str, tags: set[str]):
-    project_config = parse_project_config(root)
-    check_errors = check(
-        root,
-        project_config=project_config,
-        exclude_paths=project_config.exclude,
-    )
-    for error in check_errors:
-        if error.is_tag_error:
-            invalid_tags = set(error.invalid_tags)
-            if error.source_tag in tags or invalid_tags & tags:
-            existing_dependencies = set(
-                project_config.constraints.get(
-                    error.source_tag, ScopeDependencyRules(depends_on=[])
-                ).depends_on
-            )
-            project_config.constraints[error.source_tag] = ScopeDependencyRules(
-                depends_on=list(existing_dependencies | (invalid_tags & tags))
-            )
+    current_dir = os.getcwd()
+    try:
+        os.chdir(root)
+        project_config = parse_project_config()
+        check_errors = check(
+            root,
+            project_config=project_config,
+            exclude_paths=project_config.exclude,
+        )
+        for error in check_errors:
+            if error.is_tag_error:
+                invalid_tags = set(error.invalid_tags)
+                if error.source_tag in tags or invalid_tags & tags:
+                existing_dependencies = set(
+                    project_config.constraints.get(
+                        error.source_tag, ScopeDependencyRules(depends_on=[])
+                    ).depends_on
+                )
+                project_config.constraints[error.source_tag] = ScopeDependencyRules(
+                    depends_on=list(existing_dependencies | (invalid_tags & tags))
+                )
 
-    modguard_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-    modguard_yml_content = yaml.dump(project_config.model_dump())
-    fs.write_file(modguard_yml_path, modguard_yml_content)
+        modguard_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
+        modguard_yml_content = yaml.dump(project_config.model_dump())
+        fs.write_file(modguard_yml_path, modguard_yml_content)
 
-    check_errors = check(
-        root, project_config=project_config, exclude_paths=project_config.exclude
-    )
-    if check_errors:
-        return "Could not auto-detect all dependencies, use 'modguard check' to finish initialization manually."
+        check_errors = check(
+            root, project_config=project_config, exclude_paths=project_config.exclude
+        )
+        if check_errors:
+            return "Could not auto-detect all dependencies, use 'modguard check' to finish initialization manually."
+    except Exception as e:
+        os.chdir(current_dir)
+        raise e
+    os.chdir(current_dir)
+
 
 
 def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
