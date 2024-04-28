@@ -1,6 +1,6 @@
 import argparse
 import sys
-from typing import Optional
+from typing import Optional, Iterable
 
 from modguard.check import check, ErrorInfo
 from modguard import filesystem as fs
@@ -81,8 +81,18 @@ def build_parser() -> argparse.ArgumentParser:
     add_parser.add_argument(
         "path",
         type=str,
-        metavar="path",
-        help="The path of the file or directory to create a module boundary around.",
+        metavar="file_or_path,...",
+        help="The path(s) of the file or directory to create a module boundary around. "
+        "Use a comma-separated list for multiple.",
+    )
+    add_parser.add_argument(
+        "-t",
+        "--tags",
+        required=False,
+        type=str,
+        metavar="tag,...",
+        help="The tag for the module to be initialized with."
+        "Use a comma-separated list for multiple.",
     )
     return parser
 
@@ -162,7 +172,9 @@ def modguard_init(exclude_paths: Optional[list[str]] = None):
 def main() -> None:
     args = parse_arguments(sys.argv[1:])
     if args.command == "add":
-        modguard_add(path=args.path)
+        paths = set(args.paths.split(","))
+        tags = set(args.tags.split(",")) if args.tags else None
+        modguard_add(paths=paths, tags=tags)
         return
     exclude_paths = args.exclude.split(",") if args.exclude else None
     if args.command == "init":
@@ -179,9 +191,11 @@ def main() -> None:
         exit(1)
 
 
-def modguard_add(path: str) -> None:
-    fs.validate_path_for_add(path)
-    fs.build_module(path, tags=["yolo"])
+def modguard_add(paths: Iterable[str], tags: Optional[Iterable[str]] = None) -> None:
+    for path in paths:
+        fs.validate_path_for_add(path)
+    for path in paths:
+        fs.build_module(path, tags=tags)
 
 
 if __name__ == "__main__":
