@@ -25,6 +25,7 @@ def get_project_config_path(root: str = ".") -> str:
 
 
 def find_project_config_root(path: str) -> Optional[str]:
+    path = os.path.abspath(path)
     if os.path.isdir(path):
         if get_project_config_path(path):
             return path
