@@ -7,6 +7,7 @@ from modguard import filesystem as fs
 from modguard.check import check
 from modguard.constants import CONFIG_FILE_NAME
 from modguard.core import ScopeDependencyRules
+from modguard.errors import ModguardError
 from modguard.parsing import parse_project_config
 
 
@@ -58,7 +59,7 @@ def update_project_config(root: str, tags: set[str]):
 
 
 def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
-    new_tags = set()
+    new_tags: set[str] = set()
     # Validate paths
     for path in paths:
         fs.validate_path_for_add(path=path)
@@ -69,6 +70,8 @@ def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
             new_tags.add(new_tag)
     # Update project config
     project_root = fs.find_project_config_root(path=".")
+    if not project_root:
+        raise ModguardError(f"{CONFIG_FILE_NAME} not found.")
     warning = update_project_config(root=project_root, tags=tags if tags else new_tags)
     if warning:
         return [warning]

@@ -43,7 +43,7 @@ def validate_path_for_add(path: str) -> None:
         )
 
 
-def build_module(path: str, tags: Optional[set[str]]) -> str:
+def build_module(path: str, tags: Optional[set[str]]) -> Optional[str]:
     dirname = path.removesuffix(".py")
     new_tag = os.path.basename(dirname)
     if not tags:

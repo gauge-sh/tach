@@ -1,6 +1,6 @@
 import argparse
 import sys
-from typing import Optional, Iterable
+from typing import Optional
 
 from modguard.add import add_modules
 from modguard.check import check, ErrorInfo
@@ -170,7 +170,7 @@ def modguard_init(exclude_paths: Optional[list[str]] = None):
     sys.exit(0)
 
 
-def modguard_add(paths: Iterable[str], tags: set[Iterable[str]] = None) -> None:
+def modguard_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
     try:
         warnings = add_modules(paths, tags)
     except Exception as e:
