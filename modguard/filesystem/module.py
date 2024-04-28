@@ -38,11 +38,16 @@ def validate_path_for_add(path: str) -> None:
             raise ModguardError("{path} already has a directory of the same name.")
     root = find_project_config_root(path)
     if not root:
-        raise ModguardError(f"{CONFIG_FILE_NAME} does not exist in any parent directories")
+        raise ModguardError(
+            f"{CONFIG_FILE_NAME} does not exist in any parent directories"
+        )
 
 
-def build_module(path: str, tags: Optional[set[str]]) -> None:
+def build_module(path: str, tags: Optional[set[str]]) -> str:
     dirname = path.removesuffix(".py")
+    tag = os.path.basename(dirname)
+    if not tags:
+        tags = [tag]
     if os.path.isfile(path):
         # Create the package directory
         os.mkdir(dirname)
@@ -57,3 +62,5 @@ from .main import *
     # Write the module.yml
     with open(f"{path}/{MODULE_FILE_NAME}.yml", "w") as f:
         f.write(f"tags: [{','.join(tags)}]\n")
+    if not tags:
+        return tag

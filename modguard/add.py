@@ -41,12 +41,14 @@ def update_project_config(root: str, tags: set[str]):
             root, project_config=project_config, exclude_paths=project_config.exclude
         )
         if check_errors:
-            return "Could not auto-detect all dependencies, use 'modguard check' to finish initialization manually."
+            return (
+                "Could not auto-detect all dependencies, "
+                "use 'modguard check' to finish initialization manually."
+            )
     except Exception as e:
         fs.chdir(current_dir)
         raise e
     fs.chdir(current_dir)
-
 
 
 def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
@@ -55,9 +57,11 @@ def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
         fs.validate_path_for_add(path=path)
     # Build modules
     for path in paths:
-        fs.build_module(path=path, tags=tags)
+        new_tag = fs.build_module(path=path, tags=tags)
+        if new_tag:
+            tags.add(new_tag)
     # Update project config
-    project_root = fs.find_project_root()
+    project_root = fs.find_project_config_root(path=".")
     warning = update_project_config(root=project_root, tags=tags)
     if warning:
         return [warning]
