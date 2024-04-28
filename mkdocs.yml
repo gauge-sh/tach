@@ -8,7 +8,9 @@ nav:
   - why-modguard.md
   - getting-started.md
   - usage.md
-  - api.md
+  - configuration.md
+  - strict-mode.md
+  - modguard-ignore.md
   - faq.md
 theme:
   name: material
