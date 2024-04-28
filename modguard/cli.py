@@ -188,7 +188,7 @@ def modguard_add(paths: Iterable[str], tags: set[Iterable[str]] = None) -> None:
 def main() -> None:
     args = parse_arguments(sys.argv[1:])
     if args.command == "add":
-        paths = set(args.paths.split(","))
+        paths = set(args.path.split(","))
         tags = set(args.tags.split(",")) if args.tags else None
         modguard_add(paths=paths, tags=tags)
         return
