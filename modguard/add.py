@@ -23,6 +23,8 @@ def update_project_config(root: str, tags: set[str]):
         for error in check_errors:
             if error.is_tag_error:
                 invalid_tags = set(error.invalid_tags)
+                print(tags, error.source_tag, invalid_tags)
+                print()
                 if error.source_tag in tags or invalid_tags & tags:
                     existing_dependencies = set(
                         project_config.constraints.get(

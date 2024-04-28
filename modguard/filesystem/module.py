@@ -45,9 +45,11 @@ def validate_path_for_add(path: str) -> None:
 
 def build_module(path: str, tags: Optional[set[str]]) -> str:
     dirname = path.removesuffix(".py")
-    tag = os.path.basename(dirname)
+    new_tag = os.path.basename(dirname)
     if not tags:
-        tags = [tag]
+        tags_to_write = [tag]
+    else:
+        tags_to_write = tags
     if os.path.isfile(path):
         # Create the package directory
         os.mkdir(dirname)
@@ -61,6 +63,6 @@ from .main import *
         os.rename(path, f"{dirname}/main.py")
     # Write the module.yml
     with open(f"{dirname}/{MODULE_FILE_NAME}.yml", "w") as f:
-        f.write(f"tags: [\"{'","'.join(tags)}\"]\n")
+        f.write(f"tags: [\"{'","'.join(tags_to_write)}\"]\n")
     if not tags:
-        return tag
+        return new_tag
