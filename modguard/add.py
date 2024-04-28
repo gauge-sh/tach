@@ -29,10 +29,12 @@ def update_project_config(root: str, tags: set[str]):
                     ).depends_on
                 )
                 if error.source_tag in tags:
+                    # This is updating the config for a new tag
                     project_config.constraints[error.source_tag] = ScopeDependencyRules(
                         depends_on=list(existing_dependencies | invalid_tags)
                     )
                 if invalid_tags & tags:
+                    # This is updating the config for an existing tag
                     project_config.constraints[error.source_tag] = ScopeDependencyRules(
                         depends_on=list(existing_dependencies | (invalid_tags & tags))
                     )
