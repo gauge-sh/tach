@@ -13,7 +13,7 @@ from modguard.parsing import parse_project_config
 def update_project_config(root: str, tags: set[str]):
     current_dir = os.getcwd()
     try:
-        os.chdir(root)
+        fs.chdir(root)
         project_config = parse_project_config()
         check_errors = check(
             root,
@@ -43,9 +43,9 @@ def update_project_config(root: str, tags: set[str]):
         if check_errors:
             return "Could not auto-detect all dependencies, use 'modguard check' to finish initialization manually."
     except Exception as e:
-        os.chdir(current_dir)
+        fs.chdir(current_dir)
         raise e
-    os.chdir(current_dir)
+    fs.chdir(current_dir)
 
 
 
