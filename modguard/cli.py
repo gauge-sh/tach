@@ -2,6 +2,7 @@ import argparse
 import sys
 from typing import Optional, Iterable
 
+from modguard.add import add_modules
 from modguard.check import check, ErrorInfo
 from modguard import filesystem as fs
 from modguard.init import init_project
@@ -169,6 +170,21 @@ def modguard_init(exclude_paths: Optional[list[str]] = None):
     sys.exit(0)
 
 
+def modguard_add(paths: Iterable[str], tags: set[Iterable[str]] = None) -> None:
+    try:
+        warnings = add_modules(paths, tags)
+    except Exception as e:
+        stop_spinner()
+        print(str(e))
+        sys.exit(1)
+
+    stop_spinner()
+    if warnings:
+        print("\n".join(warnings))
+    print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
+    sys.exit(0)
+
+
 def main() -> None:
     args = parse_arguments(sys.argv[1:])
     if args.command == "add":
@@ -189,13 +205,6 @@ def main() -> None:
     else:
         print("Unrecognized command")
         exit(1)
-
-
-def modguard_add(paths: Iterable[str], tags: Optional[Iterable[str]] = None) -> None:
-    for path in paths:
-        fs.validate_path_for_add(path)
-    for path in paths:
-        fs.build_module(path, tags=tags)
 
 
 if __name__ == "__main__":

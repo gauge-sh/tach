@@ -1,5 +1,7 @@
 import os
 import sys
+from pathlib import Path
+from typing import Optional
 
 from modguard.colors import BCOLORS
 from modguard.constants import CONFIG_FILE_NAME
@@ -20,6 +22,17 @@ def get_project_config_path(root: str = ".") -> str:
     if os.path.exists(file_path):
         return file_path
     return ""
+
+
+def find_project_config_root(path: str) -> Optional[str]:
+    if os.path.isdir(path):
+        if get_project_config_path(path):
+            return path
+    path_obj = Path(path)
+    # Iterate upwards, looking for project config
+    for parent in path_obj.parents:
+        if get_project_config_path(str(parent)):
+            return str(parent)
 
 
 def validate_project_config_path(root: str = ".") -> str:

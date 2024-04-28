@@ -1,12 +1,11 @@
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 
 from modguard.constants import MODULE_FILE_NAME, CONFIG_FILE_NAME
 from modguard.errors import ModguardError
-from modguard.filesystem import get_project_config_path
+from modguard.filesystem.project import find_project_config_root
 
 
 def validate_module_config(root: str = ".") -> Optional[str]:
@@ -31,24 +30,18 @@ def validate_path_for_add(path: str) -> None:
             raise ModguardError(
                 f"{path} is not a valid Python package (no __init__.py found)."
             )
-        # check for project config
-        if get_project_config_path(path):
-            return
     # this is a file
     else:
         if not path.endswith(".py"):
             raise ModguardError(f"{path} is not a Python file.")
         if os.path.exists(path.removesuffix(".py")):
             raise ModguardError("{path} already has a directory of the same name.")
-    path_obj = Path(path)
-    # Iterate upwards, looking for project config
-    for parent in path_obj.parents:
-        if get_project_config_path(str(parent)):
-            return
-    raise ModguardError(f"{CONFIG_FILE_NAME} does not exist in any parent directories")
+    root = find_project_config_root(path)
+    if not root:
+        raise ModguardError(f"{CONFIG_FILE_NAME} does not exist in any parent directories")
 
 
-def build_module(path: str, tags: Optional[list[str]]) -> None:
+def build_module(path: str, tags: Optional[set[str]]) -> None:
     dirname = path.removesuffix(".py")
     if os.path.isfile(path):
         # Create the package directory
