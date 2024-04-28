@@ -23,14 +23,16 @@ def update_project_config(root: str, tags: set[str]):
         for error in check_errors:
             if error.is_tag_error:
                 invalid_tags = set(error.invalid_tags)
-                print(tags, error.source_tag, invalid_tags)
-                print()
-                if error.source_tag in tags or invalid_tags & tags:
-                    existing_dependencies = set(
-                        project_config.constraints.get(
-                            error.source_tag, ScopeDependencyRules(depends_on=[])
-                        ).depends_on
+                existing_dependencies = set(
+                    project_config.constraints.get(
+                        error.source_tag, ScopeDependencyRules(depends_on=[])
+                    ).depends_on
+                )
+                if error.source_tag in tags:
+                    project_config.constraints[error.source_tag] = ScopeDependencyRules(
+                        depends_on=list(existing_dependencies | invalid_tags)
                     )
+                if invalid_tags & tags:
                     project_config.constraints[error.source_tag] = ScopeDependencyRules(
                         depends_on=list(existing_dependencies | (invalid_tags & tags))
                     )

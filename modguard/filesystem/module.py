@@ -47,7 +47,7 @@ def build_module(path: str, tags: Optional[set[str]]) -> str:
     dirname = path.removesuffix(".py")
     new_tag = os.path.basename(dirname)
     if not tags:
-        tags_to_write = [tag]
+        tags_to_write = [new_tag]
     else:
         tags_to_write = tags
     if os.path.isfile(path):
