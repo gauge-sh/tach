@@ -143,6 +143,7 @@ def walk_pyfiles(
     base_depth = 0 if canonical_root == "." else canonical_root.count(os.path.sep) + 1
     for dirpath, _, filenames in os.walk(canonical_root):
         dirpath = canonical(dirpath)
+        dirpath_for_matching = f"{dirpath}/"
 
         if dirpath == canonical_root:
             continue
@@ -151,7 +152,8 @@ def walk_pyfiles(
             continue
 
         if exclude_paths is not None and any(
-            dirpath.startswith(exclude_path) or re.match(exclude_path, dirpath)
+            dirpath_for_matching.startswith(exclude_path)
+            or re.match(exclude_path, dirpath_for_matching)
             for exclude_path in exclude_paths
         ):
             # Treat excluded paths as invisible

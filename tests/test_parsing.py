@@ -57,7 +57,7 @@ def test_parse_valid_multi_tag_package_config():
     assert result == PackageConfig(strict=False, tags=["two", "shared"])
 
 
-def test_module_with_no_config():
+def test_package_with_no_config():
     result = parse_package_config("example/")
     assert result is None
 

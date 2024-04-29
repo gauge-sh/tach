@@ -2,12 +2,12 @@ import argparse
 import sys
 from typing import Optional
 
+from modguard.add import add_packages
 from modguard.check import check, ErrorInfo
 from modguard import filesystem as fs
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
-from modguard.parsing import parse_project_config, build_package_trie
-from modguard.show import show
+from modguard.parsing import parse_project_config
 from modguard.colors import BCOLORS
 
 
@@ -55,33 +55,42 @@ def build_parser() -> argparse.ArgumentParser:
         description="Check existing boundaries against your dependencies and package interfaces",
     )
     add_base_arguments(check_parser)
-    show_parser = subparsers.add_parser(
-        "show",
-        prog="modguard show",
-        help="Show your existing boundaries",
-        description="Show your existing boundaries",
+    add_parser = subparsers.add_parser(
+        "add",
+        prog="modguard add",
+        help="Create a new module boundary around an existing file or folder",
+        description="Initialize boundaries between top-level modules and write dependencies to "
+        "`modguard.yml`",
     )
-    add_base_arguments(show_parser)
-    show_parser.add_argument(
-        "-w",
-        "--write",
+    add_parser.add_argument(
+        "path",
+        type=str,
+        metavar="file_or_path,...",
+        help="The path(s) of the file or directory to create a module boundary around. "
+        "Use a comma-separated list for multiple.",
+    )
+    add_parser.add_argument(
+        "-t",
+        "--tags",
         required=False,
-        dest="write",
-        action="store_true",
-        default=False,
-        help="Write the output to an `interface.yaml` file",
+        type=str,
+        metavar="tag,...",
+        help="The tag for the module to be initialized with."
+        "Use a comma-separated list for multiple.",
     )
     return parser
 
 
-def parse_arguments(args: list[str]) -> argparse.Namespace:
+def parse_arguments(
+    args: list[str],
+) -> tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if not args[0] == "init":
+    if args[0] not in ["init", "add"]:
         fs.validate_project_config_path()
 
-    return parsed_args
+    return parsed_args, parser
 
 
 def modguard_check(
@@ -100,7 +109,6 @@ def modguard_check(
             exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
     except Exception as e:
-        raise e
         stop_spinner()
         print(str(e))
         sys.exit(1)
@@ -110,25 +118,6 @@ def modguard_check(
         print_errors(result)
         sys.exit(1)
     print(f"✅ {BCOLORS.OKGREEN}All packages safely guarded!")
-    sys.exit(0)
-
-
-def modguard_show(
-    write_file: bool,
-    exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
-):
-    try:
-        mt = build_package_trie(
-            ".", exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
-        )
-        _, pretty_result = show(mt, write_file=write_file)
-    except Exception as e:
-        stop_spinner()
-        print(str(e))
-        sys.exit(1)
-    stop_spinner()
-    print(pretty_result)
     sys.exit(0)
 
 
@@ -147,8 +136,31 @@ def modguard_init(exclude_paths: Optional[list[str]] = None):
     sys.exit(0)
 
 
+def modguard_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
+    try:
+        warnings = add_packages(paths, tags)
+    except Exception as e:
+        stop_spinner()
+        print(str(e))
+        sys.exit(1)
+
+    stop_spinner()
+    if warnings:
+        print("\n".join(warnings))
+    if len(paths) > 1:
+        print(f"✅ {BCOLORS.OKGREEN}Packages added.")
+    else:
+        print(f"✅ {BCOLORS.OKGREEN}Package added.")
+    sys.exit(0)
+
+
 def main() -> None:
-    args = parse_arguments(sys.argv[1:])
+    args, parser = parse_arguments(sys.argv[1:])
+    if args.command == "add":
+        paths = set(args.path.split(","))
+        tags = set(args.tags.split(",")) if args.tags else None
+        modguard_add(paths=paths, tags=tags)
+        return
     exclude_paths = args.exclude.split(",") if args.exclude else None
     if args.command == "init":
         start_spinner("Initializing...")
@@ -156,11 +168,9 @@ def main() -> None:
     elif args.command == "check":
         start_spinner("Scanning...")
         modguard_check(exclude_paths=exclude_paths)
-    elif args.command == "show":
-        start_spinner("Scanning...")
-        modguard_show(write_file=args.write, exclude_paths=exclude_paths)
     else:
         print("Unrecognized command")
+        parser.print_help()
         exit(1)
 
 
