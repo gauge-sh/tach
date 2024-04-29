@@ -147,7 +147,10 @@ def modguard_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
     stop_spinner()
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}Modguard initialized.")
+    if len(paths) > 1:
+        print(f"✅ {BCOLORS.OKGREEN}Packages added.")
+    else:
+        print(f"✅ {BCOLORS.OKGREEN}Package added.")
     sys.exit(0)
 
 

@@ -22,6 +22,8 @@ def validate_path_for_add(path: str) -> None:
     if not os.path.exists(path):
         raise ModguardError(f"{path} does not exist.")
     if os.path.isdir(path):
+        # 'path' points to a directory
+        # so we validate that it is a Python package without an existing package config
         if os.path.exists(
             os.path.join(path, f"{PACKAGE_FILE_NAME}.yml")
         ) or os.path.exists(os.path.join(path, f"{PACKAGE_FILE_NAME}.yaml")):
@@ -30,8 +32,9 @@ def validate_path_for_add(path: str) -> None:
             raise ModguardError(
                 f"{path} is not a valid Python package (no __init__.py found)."
             )
-    # this is a file
     else:
+        # 'path' points to a file
+        # so we validate that it is a Python file we can 'pivot' to a package
         if not path.endswith(".py"):
             raise ModguardError(f"{path} is not a Python file.")
         if os.path.exists(path.removesuffix(".py")):
