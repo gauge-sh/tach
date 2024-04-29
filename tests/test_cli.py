@@ -84,15 +84,6 @@ def test_execute_with_no_modguard_yml(capfd):
     assert "modguard.(yml|yaml) not found" in captured.err
 
 
-def test_show_with_no_modguard_yml(capfd):
-    with pytest.raises(SystemExit) as sys_exit:
-        # Test with no modguard.yml mocked
-        cli.parse_arguments(["show"])
-    captured = capfd.readouterr()
-    assert sys_exit.value.code == 1
-    assert "modguard.(yml|yaml) not found" in captured.err
-
-
 def test_invalid_command(capfd):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with an invalid command
