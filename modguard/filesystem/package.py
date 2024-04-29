@@ -3,16 +3,16 @@ from datetime import datetime
 from typing import Optional
 
 
-from modguard.constants import MODULE_FILE_NAME, CONFIG_FILE_NAME
+from modguard.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
 from modguard.errors import ModguardError
 from modguard.filesystem.project import find_project_config_root
 
 
-def validate_module_config(root: str = ".") -> Optional[str]:
-    file_path = os.path.join(root, f"{MODULE_FILE_NAME}.yml")
+def validate_package_config(root: str = ".") -> Optional[str]:
+    file_path = os.path.join(root, f"{PACKAGE_FILE_NAME}.yml")
     if os.path.exists(file_path):
         return file_path
-    file_path = os.path.join(root, f"{MODULE_FILE_NAME}.yaml")
+    file_path = os.path.join(root, f"{PACKAGE_FILE_NAME}.yaml")
     if os.path.exists(file_path):
         return file_path
     return
@@ -23,9 +23,9 @@ def validate_path_for_add(path: str) -> None:
         raise ModguardError(f"{path} does not exist.")
     if os.path.isdir(path):
         if os.path.exists(
-            os.path.join(path, f"{MODULE_FILE_NAME}.yml")
-        ) or os.path.exists(os.path.join(path, f"{MODULE_FILE_NAME}.yaml")):
-            raise ModguardError(f"{path} already contains a {MODULE_FILE_NAME}.yml")
+            os.path.join(path, f"{PACKAGE_FILE_NAME}.yml")
+        ) or os.path.exists(os.path.join(path, f"{PACKAGE_FILE_NAME}.yaml")):
+            raise ModguardError(f"{path} already contains a {PACKAGE_FILE_NAME}.yml")
         if not os.path.exists(os.path.join(path, "__init__.py")):
             raise ModguardError(
                 f"{path} is not a valid Python package (no __init__.py found)."
@@ -43,7 +43,7 @@ def validate_path_for_add(path: str) -> None:
         )
 
 
-def build_module(path: str, tags: Optional[set[str]]) -> Optional[str]:
+def build_package(path: str, tags: Optional[set[str]]) -> Optional[str]:
     dirname = path.removesuffix(".py")
     new_tag = os.path.basename(dirname)
     if not tags:
@@ -61,8 +61,9 @@ from .main import *
             """)
         # Move and rename the file
         os.rename(path, f"{dirname}/main.py")
-    # Write the module.yml
-    with open(f"{dirname}/{MODULE_FILE_NAME}.yml", "w") as f:
-        f.write(f"tags: [\"{'","'.join(tags_to_write)}\"]\n")
+    # Write the package.yml
+    with open(f"{dirname}/{PACKAGE_FILE_NAME}.yml", "w") as f:
+        comma_separated_tags = ",".join(map(lambda tag: f'"{tag}"', tags_to_write))
+        f.write(f"tags: [{comma_separated_tags}]\n")
     if not tags:
         return new_tag

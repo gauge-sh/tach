@@ -58,14 +58,14 @@ def update_project_config(root: str, tags: set[str]):
     fs.chdir(current_dir)
 
 
-def add_modules(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
+def add_packages(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
     new_tags: set[str] = set()
     # Validate paths
     for path in paths:
         fs.validate_path_for_add(path=path)
-    # Build modules
+    # Build packages
     for path in paths:
-        new_tag = fs.build_module(path=path, tags=tags)
+        new_tag = fs.build_package(path=path, tags=tags)
         if new_tag:
             new_tags.add(new_tag)
     # Update project config

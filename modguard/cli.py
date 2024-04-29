@@ -2,12 +2,12 @@ import argparse
 import sys
 from typing import Optional
 
-from modguard.add import add_modules
+from modguard.add import add_packages
 from modguard.check import check, ErrorInfo
 from modguard import filesystem as fs
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
-from modguard.parsing import parse_project_config, build_module_trie
+from modguard.parsing import parse_project_config, build_package_trie
 from modguard.show import show
 from modguard.colors import BCOLORS
 
@@ -43,17 +43,17 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser = subparsers.add_parser(
         "init",
         prog="modguard init",
-        help="Initialize boundaries between top-level modules and write dependencies to "
+        help="Initialize boundaries between top-level packages and write dependencies to "
         "`modguard.yml`",
-        description="Initialize boundaries between top-level modules and write dependencies to "
+        description="Initialize boundaries between top-level packages and write dependencies to "
         "`modguard.yml`",
     )
     add_base_arguments(init_parser)
     check_parser = subparsers.add_parser(
         "check",
         prog="modguard check",
-        help="Check existing boundaries against your dependencies and module interfaces",
-        description="Check existing boundaries against your dependencies and module interfaces",
+        help="Check existing boundaries against your dependencies and package interfaces",
+        description="Check existing boundaries against your dependencies and package interfaces",
     )
     add_base_arguments(check_parser)
     show_parser = subparsers.add_parser(
@@ -132,7 +132,7 @@ def modguard_check(
     if result:
         print_errors(result)
         sys.exit(1)
-    print(f"✅ {BCOLORS.OKGREEN}All modules safely guarded!")
+    print(f"✅ {BCOLORS.OKGREEN}All packages safely guarded!")
     sys.exit(0)
 
 
@@ -142,7 +142,7 @@ def modguard_show(
     exclude_hidden_paths: Optional[bool] = True,
 ):
     try:
-        mt = build_module_trie(
+        mt = build_package_trie(
             ".", exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
         )
         _, pretty_result = show(mt, write_file=write_file)
@@ -172,7 +172,7 @@ def modguard_init(exclude_paths: Optional[list[str]] = None):
 
 def modguard_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
     try:
-        warnings = add_modules(paths, tags)
+        warnings = add_packages(paths, tags)
     except Exception as e:
         stop_spinner()
         print(str(e))

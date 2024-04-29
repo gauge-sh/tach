@@ -4,8 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from modguard.check import check, ErrorInfo
-from modguard.core.config import ModuleConfig, ScopeDependencyRules, ProjectConfig
-from modguard.parsing.config import parse_project_config, parse_module_config
+from modguard.core.config import PackageConfig, ScopeDependencyRules, ProjectConfig
+from modguard.parsing.config import parse_project_config, parse_package_config
 from modguard.filesystem import file_to_module_path
 from modguard import filesystem as fs
 
@@ -47,18 +47,18 @@ def test_run_valid_project_config():
         fs.chdir(current_dir)
 
 
-def test_parse_valid_strict_module_config():
-    result = parse_module_config("example/valid/domain_one")
-    assert result == ModuleConfig(strict=True, tags=["one"])
+def test_parse_valid_strict_package_config():
+    result = parse_package_config("example/valid/domain_one")
+    assert result == PackageConfig(strict=True, tags=["one"])
 
 
-def test_parse_valid_multi_tag_module_config():
-    result = parse_module_config("example/valid/domain_two")
-    assert result == ModuleConfig(strict=False, tags=["two", "shared"])
+def test_parse_valid_multi_tag_package_config():
+    result = parse_package_config("example/valid/domain_two")
+    assert result == PackageConfig(strict=False, tags=["two", "shared"])
 
 
-def test_module_with_no_config():
-    result = parse_module_config("example/")
+def test_package_with_no_config():
+    result = parse_package_config("example/")
     assert result is None
 
 
@@ -72,14 +72,14 @@ def test_empty_project_config():
         parse_project_config("example/invalid/empty")
 
 
-def test_invalid_module_config():
+def test_invalid_package_config():
     with pytest.raises(ValidationError):
-        parse_module_config("example/invalid")
+        parse_package_config("example/invalid")
 
 
-def test_empty_module_config():
+def test_empty_package_config():
     with pytest.raises(ValueError):
-        parse_module_config("example/invalid")
+        parse_package_config("example/invalid")
 
 
 def test_exclude_hidden_paths_fails():
@@ -100,8 +100,8 @@ def test_exclude_hidden_paths_fails():
             import_mod_path="",
             source_tag="",
             allowed_tags=[],
-            exception_message="Module 'unhidden' is in strict mode. Only imports from the root of"
-            " this module are allowed. The import 'unhidden.secret.shhhh' (in 'hidden') is not included in __all__.",
+            exception_message="Package 'unhidden' is in strict mode. Only imports from the root of"
+            " this package are allowed. The import 'unhidden.secret.shhhh' (in 'hidden') is not included in __all__.",
         )
 
         project_config.exclude_hidden_paths = True

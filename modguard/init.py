@@ -7,35 +7,35 @@ import yaml
 from modguard import errors
 from modguard import filesystem as fs
 from modguard.check import check
-from modguard.constants import MODULE_FILE_NAME, CONFIG_FILE_NAME
+from modguard.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
 from modguard.core import ProjectConfig, ScopeDependencyRules
 
-__module_yml_template = """tags: ['{dir_name}']\n"""
+__package_yml_template = """tags: ['{dir_name}']\n"""
 
 
 @dataclass
-class ModuleInitResult:
-    module_paths: list[str] = field(default_factory=list)
+class PackageInitResult:
+    package_paths: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 
-def init_modules(
+def init_packages(
     root: str, depth: int, exclude_paths: Optional[list[str]] = None
-) -> ModuleInitResult:
-    module_paths: list[str] = []
+) -> PackageInitResult:
+    package_paths: list[str] = []
     warnings: list[str] = []
     for dir_path in fs.walk_pypackages(root, depth=depth, exclude_paths=exclude_paths):
-        module_yml_path = os.path.join(dir_path, f"{MODULE_FILE_NAME}.yml")
-        module_paths.append(dir_path)
-        if os.path.exists(module_yml_path):
-            warnings.append(f"Module file '{module_yml_path}' already exists.")
+        package_yml_path = os.path.join(dir_path, f"{PACKAGE_FILE_NAME}.yml")
+        package_paths.append(dir_path)
+        if os.path.exists(package_yml_path):
+            warnings.append(f"Package file '{package_yml_path}' already exists.")
             continue
-        module_yml_content = __module_yml_template.format(
+        package_yml_content = __package_yml_template.format(
             dir_name=dir_path.replace(os.path.sep, ".")
         )
-        fs.write_file(module_yml_path, module_yml_content)
+        fs.write_file(package_yml_path, package_yml_content)
 
-    return ModuleInitResult(module_paths=module_paths, warnings=warnings)
+    return PackageInitResult(package_paths=package_paths, warnings=warnings)
 
 
 @dataclass
@@ -91,18 +91,20 @@ def init_project(
     warnings: list[str] = []
 
     if depth is None:
-        module_init_result = init_modules(root, depth=1, exclude_paths=exclude_paths)
-        warnings.extend(module_init_result.warnings)
-        if len(module_init_result.module_paths) == 1:
-            result = init_modules(
-                module_init_result.module_paths[0], depth=1, exclude_paths=exclude_paths
+        package_init_result = init_packages(root, depth=1, exclude_paths=exclude_paths)
+        warnings.extend(package_init_result.warnings)
+        if len(package_init_result.package_paths) == 1:
+            result = init_packages(
+                package_init_result.package_paths[0],
+                depth=1,
+                exclude_paths=exclude_paths,
             )
             warnings.extend(result.warnings)
     else:
-        module_init_result = init_modules(
+        package_init_result = init_packages(
             root, depth=depth, exclude_paths=exclude_paths
         )
-        warnings.extend(module_init_result.warnings)
+        warnings.extend(package_init_result.warnings)
 
     init_root_result = init_root(root, exclude_paths=exclude_paths)
     warnings.extend(init_root_result.warnings)

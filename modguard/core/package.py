@@ -2,33 +2,33 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Optional, Generator
 
-from modguard.core.config import ModuleConfig
+from modguard.core.config import PackageConfig
 
 
 @dataclass
-class ModuleNode:
+class PackageNode:
     """
-    A node in the module trie.
+    A node in the package trie.
 
-    If 'is_end_of_path' is True, this node represents a module in the project,
+    If 'is_end_of_path' is True, this node represents a package in the project,
     and must have 'config' and 'full_path' set.
 
-    If 'is_end_of_path' is False, this node does not represent a real module,
+    If 'is_end_of_path' is False, this node does not represent a real package,
     and must have 'config' None and 'full_path' as the empty string.
     """
 
     is_end_of_path: bool
     full_path: str
-    config: Optional[ModuleConfig]
+    config: Optional[PackageConfig]
     interface_members: list[str] = field(default_factory=list)
-    children: dict[str, "ModuleNode"] = field(default_factory=dict)
+    children: dict[str, "PackageNode"] = field(default_factory=dict)
 
     @classmethod
-    def empty(cls) -> "ModuleNode":
-        return ModuleNode(is_end_of_path=False, full_path="", config=None)
+    def empty(cls) -> "PackageNode":
+        return PackageNode(is_end_of_path=False, full_path="", config=None)
 
     def fill(
-        self, config: ModuleConfig, full_path: str, interface_members: list[str]
+        self, config: PackageConfig, full_path: str, interface_members: list[str]
     ) -> None:
         self.is_end_of_path = True
         self.config = config
@@ -37,16 +37,16 @@ class ModuleNode:
 
 
 @dataclass
-class ModuleTrie:
+class PackageTrie:
     """
-    The core data structure for modguard, representing the modules in a project
-    with a trie structure for module prefix lookups.
+    The core data structure for modguard, representing the packages in a project
+    with a trie structure for package prefix lookups.
     """
 
-    root: ModuleNode = field(default_factory=ModuleNode.empty)
+    root: PackageNode = field(default_factory=PackageNode.empty)
 
     def __iter__(self):
-        return module_trie_iterator(self)
+        return package_trie_iterator(self)
 
     @staticmethod
     def _split_mod_path(path: str) -> list[str]:
@@ -54,7 +54,7 @@ class ModuleTrie:
         # so we want to remove any whitespace path components
         return [part for part in path.split(".") if part]
 
-    def get(self, path: str) -> Optional[ModuleNode]:
+    def get(self, path: str) -> Optional[PackageNode]:
         node = self.root
         parts = self._split_mod_path(path)
 
@@ -65,18 +65,18 @@ class ModuleTrie:
 
         return node if node.is_end_of_path else None
 
-    def insert(self, config: ModuleConfig, path: str, interface_members: list[str]):
+    def insert(self, config: PackageConfig, path: str, interface_members: list[str]):
         node = self.root
         parts = self._split_mod_path(path)
 
         for part in parts:
             if part not in node.children:
-                node.children[part] = ModuleNode.empty()
+                node.children[part] = PackageNode.empty()
             node = node.children[part]
 
         node.fill(config, path, interface_members)
 
-    def find_nearest(self, path: str) -> Optional[ModuleNode]:
+    def find_nearest(self, path: str) -> Optional[PackageNode]:
         node = self.root
         parts = self._split_mod_path(path)
         nearest_parent = node
@@ -92,7 +92,7 @@ class ModuleTrie:
         return nearest_parent if nearest_parent.is_end_of_path else None
 
 
-def module_trie_iterator(trie: ModuleTrie) -> Generator[ModuleNode, None, None]:
+def package_trie_iterator(trie: PackageTrie) -> Generator[PackageNode, None, None]:
     stack = deque([trie.root])
 
     while stack:
