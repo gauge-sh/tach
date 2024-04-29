@@ -48,7 +48,7 @@ def test_execute_with_modguard_yml(
     capfd, mock_path_exists, mock_check, mock_project_config
 ):
     # Test with a valid path as mocked
-    args = cli.parse_arguments(["check"])
+    args, _ = cli.parse_arguments(["check"])
     assert args.command == "check"
     with pytest.raises(SystemExit) as sys_exit:
         cli.modguard_check()
@@ -107,7 +107,7 @@ def test_execute_with_valid_exclude(
 ):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked
-        args = cli.parse_arguments(["check", "--exclude", "valid_dir"])
+        args, _ = cli.parse_arguments(["check", "--exclude", "valid_dir"])
         exclude_paths = args.exclude.split(",")
         cli.modguard_check(exclude_paths=exclude_paths)
     captured = capfd.readouterr()

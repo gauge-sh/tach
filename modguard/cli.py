@@ -7,8 +7,7 @@ from modguard.check import check, ErrorInfo
 from modguard import filesystem as fs
 from modguard.init import init_project
 from modguard.loading import stop_spinner, start_spinner
-from modguard.parsing import parse_project_config, build_package_trie
-from modguard.show import show
+from modguard.parsing import parse_project_config
 from modguard.colors import BCOLORS
 
 
@@ -56,22 +55,6 @@ def build_parser() -> argparse.ArgumentParser:
         description="Check existing boundaries against your dependencies and package interfaces",
     )
     add_base_arguments(check_parser)
-    show_parser = subparsers.add_parser(
-        "show",
-        prog="modguard show",
-        help="Show your existing boundaries",
-        description="Show your existing boundaries",
-    )
-    add_base_arguments(show_parser)
-    show_parser.add_argument(
-        "-w",
-        "--write",
-        required=False,
-        dest="write",
-        action="store_true",
-        default=False,
-        help="Write the output to an `interface.yaml` file",
-    )
     add_parser = subparsers.add_parser(
         "add",
         prog="modguard add",
@@ -98,14 +81,16 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_arguments(args: list[str]) -> argparse.Namespace:
+def parse_arguments(
+    args: list[str],
+) -> tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
     if args[0] not in ["init", "add"]:
         fs.validate_project_config_path()
 
-    return parsed_args
+    return parsed_args, parser
 
 
 def modguard_check(
@@ -133,25 +118,6 @@ def modguard_check(
         print_errors(result)
         sys.exit(1)
     print(f"✅ {BCOLORS.OKGREEN}All packages safely guarded!")
-    sys.exit(0)
-
-
-def modguard_show(
-    write_file: bool,
-    exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
-):
-    try:
-        mt = build_package_trie(
-            ".", exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
-        )
-        _, pretty_result = show(mt, write_file=write_file)
-    except Exception as e:
-        stop_spinner()
-        print(str(e))
-        sys.exit(1)
-    stop_spinner()
-    print(pretty_result)
     sys.exit(0)
 
 
@@ -186,7 +152,7 @@ def modguard_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
 
 
 def main() -> None:
-    args = parse_arguments(sys.argv[1:])
+    args, parser = parse_arguments(sys.argv[1:])
     if args.command == "add":
         paths = set(args.path.split(","))
         tags = set(args.tags.split(",")) if args.tags else None
@@ -199,11 +165,9 @@ def main() -> None:
     elif args.command == "check":
         start_spinner("Scanning...")
         modguard_check(exclude_paths=exclude_paths)
-    elif args.command == "show":
-        start_spinner("Scanning...")
-        modguard_show(write_file=args.write, exclude_paths=exclude_paths)
     else:
         print("Unrecognized command")
+        parser.print_help()
         exit(1)
 
 
