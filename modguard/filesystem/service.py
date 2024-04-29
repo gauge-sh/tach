@@ -187,7 +187,7 @@ def walk_pypackages(
             yield filepath[: -len(init_file_ending)]
 
 
-def walk_modules(
+def walk_configured_packages(
     root: str,
     depth: Optional[int] = None,
     exclude_paths: Optional[list[str]] = None,
@@ -199,8 +199,8 @@ def walk_modules(
         exclude_paths=exclude_paths,
         exclude_hidden_paths=exclude_hidden_paths,
     ):
-        module_yml_path = os.path.join(dirpath, "module.yml")
-        if os.path.isfile(module_yml_path):
+        package_yml_path = os.path.join(dirpath, "package.yml")
+        if os.path.isfile(package_yml_path):
             yield dirpath
 
 

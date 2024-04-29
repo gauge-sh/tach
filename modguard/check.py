@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from modguard import filesystem as fs
-from modguard.core import ModuleTrie, ModuleNode, ProjectConfig
-from modguard.parsing import build_module_trie, get_project_imports
+from modguard.core import PackageTrie, PackageNode, ProjectConfig
+from modguard.parsing import build_package_trie, get_project_imports
 
 
 @dataclass
@@ -56,59 +56,59 @@ class CheckResult:
         return cls(ok=False, error_info=error_info)
 
 
-def is_top_level_module_import(mod_path: str, module: ModuleNode) -> bool:
-    return mod_path == module.full_path
+def is_top_level_package_import(mod_path: str, package: PackageNode) -> bool:
+    return mod_path == package.full_path
 
 
-def import_matches_interface_members(mod_path: str, module: ModuleNode) -> bool:
+def import_matches_interface_members(mod_path: str, package: PackageNode) -> bool:
     mod_path_basename = mod_path.rsplit(".", 1)[-1]
-    return mod_path_basename in module.interface_members
+    return mod_path_basename in package.interface_members
 
 
 def check_import(
     project_config: ProjectConfig,
-    module_trie: ModuleTrie,
+    package_trie: PackageTrie,
     import_mod_path: str,
     file_mod_path: str,
-    file_nearest_module: Optional[ModuleNode] = None,
+    file_nearest_package: Optional[PackageNode] = None,
 ) -> CheckResult:
-    import_nearest_module = module_trie.find_nearest(import_mod_path)
-    if import_nearest_module is None:
+    import_nearest_package = package_trie.find_nearest(import_mod_path)
+    if import_nearest_package is None:
         # This shouldn't happen since we intend to filter out any external imports,
         # but we should allow external imports if they have made it here.
         return CheckResult.success()
 
-    # Lookup file_mod_path if module not given
-    if file_nearest_module is None:
-        file_nearest_module = module_trie.find_nearest(file_mod_path)
-    # If module not found, we should fail since the implication is that
-    # an external module is importing directly from our project
-    if file_nearest_module is None:
+    # Lookup file_mod_path if package not given
+    if file_nearest_package is None:
+        file_nearest_package = package_trie.find_nearest(file_mod_path)
+    # If package not found, we should fail since the implication is that
+    # an external package is importing directly from our project
+    if file_nearest_package is None:
         return CheckResult.fail(
             error_info=ErrorInfo(
-                exception_message=f"Module '{file_mod_path}' not found in project."
+                exception_message=f"Package containing '{file_mod_path}' not found in project."
             )
         )
 
-    # Imports within the same module are always allowed
-    if import_nearest_module == file_nearest_module:
+    # Imports within the same package are always allowed
+    if import_nearest_package == file_nearest_package:
         return CheckResult.success()
 
-    import_module_config = import_nearest_module.config
-    if import_module_config and import_module_config.strict:
-        if not is_top_level_module_import(
-            import_mod_path, import_nearest_module
+    import_package_config = import_nearest_package.config
+    if import_package_config and import_package_config.strict:
+        if not is_top_level_package_import(
+            import_mod_path, import_nearest_package
         ) and not import_matches_interface_members(
-            import_mod_path, import_nearest_module
+            import_mod_path, import_nearest_package
         ):
-            # In strict mode, import must be of the module itself or one of the
+            # In strict mode, import must be of the package itself or one of the
             # interface members (defined in __all__)
             return CheckResult.fail(
                 error_info=ErrorInfo(
                     location=file_mod_path,
                     exception_message=(
-                        f"Module '{import_nearest_module.full_path}' is in strict mode. "
-                        "Only imports from the root of this module are allowed. "
+                        f"Package '{import_nearest_package.full_path}' is in strict mode. "
+                        "Only imports from the root of this package are allowed. "
                         f"The import '{import_mod_path}' (in '{file_mod_path}') "
                         f"is not included in __all__."
                     ),
@@ -116,12 +116,14 @@ def check_import(
             )
 
     # The import must be explicitly allowed based on the tags and top-level config
-    if not file_nearest_module.config or not import_nearest_module.config:
+    if not file_nearest_package.config or not import_nearest_package.config:
         return CheckResult.fail(
-            error_info=ErrorInfo(exception_message="Could not find config for modules.")
+            error_info=ErrorInfo(
+                exception_message="Could not find config for packages."
+            )
         )
-    file_tags = file_nearest_module.config.tags
-    import_tags = import_nearest_module.config.tags
+    file_tags = file_nearest_package.config.tags
+    import_tags = import_nearest_package.config.tags
 
     for file_tag in file_tags:
         dependency_tags = (
@@ -167,7 +169,7 @@ def check(
     root = fs.canonical(root)
     exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
 
-    module_trie = build_module_trie(
+    package_trie = build_package_trie(
         root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
     )
 
@@ -176,8 +178,8 @@ def check(
         root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
     ):
         mod_path = fs.file_to_module_path(file_path)
-        nearest_module = module_trie.find_nearest(mod_path)
-        if nearest_module is None:
+        nearest_package = package_trie.find_nearest(mod_path)
+        if nearest_package is None:
             continue
         import_mod_paths = get_project_imports(root, file_path)
         # This should only give us imports from within our project
@@ -185,9 +187,9 @@ def check(
         for import_mod_path in import_mod_paths:
             check_result = check_import(
                 project_config=project_config,
-                module_trie=module_trie,
+                package_trie=package_trie,
                 import_mod_path=import_mod_path,
-                file_nearest_module=nearest_module,
+                file_nearest_package=nearest_package,
                 file_mod_path=mod_path,
             )
             if check_result.ok or check_result.error_info is None:

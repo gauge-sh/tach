@@ -5,7 +5,7 @@ authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
 ]
-description = "A Python tool to maintain clean dependencies across python modules."
+description = "A Python tool to maintain a modular package architecture."
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -29,7 +29,7 @@ dependencies = [
     "pydantic==2.7.1",
     "stdlib-list==0.10.0"
 ]
-keywords = ['python', 'module', 'guard', 'enforcement', 'enforcer', 'decorator', 'subclass', 'domain', 'architecture']
+keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 
 
 [project.urls]

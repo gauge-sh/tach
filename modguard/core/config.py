@@ -7,9 +7,9 @@ class Config(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class ModuleConfig(Config):
+class PackageConfig(Config):
     """
-    Configuration for a single module within a project.
+    Configuration for a single package within a project.
     """
 
     tags: List[str]
