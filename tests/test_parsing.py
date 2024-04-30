@@ -3,11 +3,11 @@ import os
 import pytest
 from pydantic import ValidationError
 
-from modguard.check import check, ErrorInfo
-from modguard.core.config import PackageConfig, ScopeDependencyRules, ProjectConfig
-from modguard.parsing.config import parse_project_config, parse_package_config
-from modguard.filesystem import file_to_module_path
-from modguard import filesystem as fs
+from tach.check import check, ErrorInfo
+from tach.core.config import PackageConfig, ScopeDependencyRules, ProjectConfig
+from tach.parsing.config import parse_project_config, parse_package_config
+from tach.filesystem import file_to_module_path
+from tach import filesystem as fs
 
 
 def test_file_to_mod_path():

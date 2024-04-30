@@ -3,12 +3,12 @@ from typing import Iterable, Optional
 
 import yaml
 
-from modguard import filesystem as fs
-from modguard.check import check
-from modguard.constants import CONFIG_FILE_NAME
-from modguard.core import ScopeDependencyRules
-from modguard.errors import ModguardError
-from modguard.parsing import parse_project_config
+from tach import filesystem as fs
+from tach.check import check
+from tach.constants import CONFIG_FILE_NAME
+from tach.core import ScopeDependencyRules
+from tach.errors import TachError
+from tach.parsing import parse_project_config
 
 
 def update_project_config(root: str, tags: set[str]):
@@ -40,9 +40,9 @@ def update_project_config(root: str, tags: set[str]):
                         depends_on=list(existing_dependencies | (invalid_tags & tags))
                     )
 
-        modguard_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-        modguard_yml_content = yaml.dump(project_config.model_dump())
-        fs.write_file(modguard_yml_path, modguard_yml_content)
+        tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
+        tach_yml_content = yaml.dump(project_config.model_dump())
+        fs.write_file(tach_yml_path, tach_yml_content)
 
         check_errors = check(
             root, project_config=project_config, exclude_paths=project_config.exclude
@@ -50,7 +50,7 @@ def update_project_config(root: str, tags: set[str]):
         if check_errors:
             return (
                 "Could not auto-detect all dependencies, "
-                "use 'modguard check' to finish initialization manually."
+                "use 'tach check' to finish initialization manually."
             )
     except Exception as e:
         fs.chdir(current_dir)
@@ -71,7 +71,7 @@ def add_packages(paths: set[str], tags: Optional[set[str]]) -> Iterable[str]:
     # Update project config
     project_root = fs.find_project_config_root(path=".")
     if not project_root:
-        raise ModguardError(f"{CONFIG_FILE_NAME} not found.")
+        raise TachError(f"{CONFIG_FILE_NAME} not found.")
     warning = update_project_config(root=project_root, tags=tags if tags else new_tags)
     if warning:
         return [warning]

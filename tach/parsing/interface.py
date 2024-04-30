@@ -2,8 +2,8 @@ import ast
 import os
 from typing import Any
 
-from modguard import filesystem as fs
-from modguard.parsing.ast_visitor import EarlyExitNodeVisitor
+from tach import filesystem as fs
+from tach.parsing.ast_visitor import EarlyExitNodeVisitor
 
 
 class InterfaceVisitor(EarlyExitNodeVisitor):

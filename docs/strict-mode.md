@@ -8,35 +8,36 @@ This creates an explicit public interface for the package which prevents couplin
 
 ## Example
 
-Given packages called 'core' and 'parsing', we may have `package.yml` and `modguard.yml` contents like this:
+Given packages called 'core' and 'parsing', we may have `package.yml` and `tach.yml` contents like this:
 
-`core/package.yml`
 ```yaml
+# core/package.yml
 tags: ['core']
 strict: true
 ```
 
-`parsing/package.yml`
 ```yaml
+# parsing/package.yml
 tags: ['parsing']
 ```
 
-`modguard.yml`
+
 ```yaml
+# tach.yml
 constraints:
   parsing:
     depends_on:
     - core
 ```
 
-Then, in a file within the 'parsing' package, we might have:
+Then, in a file within the 'parsing' package, we may have:
 ```python
 from core.main import get_data  # This import fails
 
 get_data()
 ```
 
-This import would **fail** `modguard check` with the following error:
+This import would **fail** `tach check` with the following error:
 ```shell
 ❌ parsing: Package 'core' is in strict mode. Only imports from the root of this package are allowed. The import 'core.main.get_data' (in 'parsing') is not included in __all__.
 ```
@@ -56,4 +57,8 @@ which would allow 'parsing' to depend on this interface:
 from core import get_data  # This import is OK
 
 get_data()
+```
+`tach check` will now pass!
+```bash
+✅ All packages safely guarded!
 ```

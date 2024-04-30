@@ -1,5 +1,5 @@
 [project]
-name = "modguard"
+name = "tach"
 version = "0.7.1"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
@@ -29,22 +29,22 @@ dependencies = [
     "pydantic==2.7.1",
     "stdlib-list==0.10.0"
 ]
-keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
+keywords = ['python', 'tach', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 
 
 [project.urls]
-Homepage = "https://github.com/never-over/modguard"
-Issues = "https://github.com/never-over/modguard/issues"
+Homepage = "https://github.com/never-over/tach"
+Issues = "https://github.com/never-over/tach/issues"
 
 
 [tool.pyright]
-include = ["modguard"]
+include = ["tach"]
 exclude = ["**/__pycache__", ".venv"]
-strict = ["modguard"]
+strict = ["tach"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-modguard = "modguard.cli:main"
+tach = "tach.cli:main"
