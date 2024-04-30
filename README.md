@@ -13,7 +13,8 @@ a Python tool to enforce modular design
 [Discord](https://discord.gg/7crTTJwDv9) - come say hi!
 
 
-![](https://raw.githubusercontent.com/Never-Over/tach/main/docs/tach_demo.mp4)
+ <video loop src="https://github.com/Never-Over/tach/assets/10570340/a9d8d4df-d262-4b2b-b69a-adbc30d069aa">Tach Demo</video> 
+
 
 ### What is tach?
 `tach` allows you to define boundaries and control dependencies between your Python packages. Each package can also define its public interface.
