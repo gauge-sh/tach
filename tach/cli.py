@@ -38,7 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="Make sure tach is run from the root of your Python project,"
         " and `tach.yml` is present",
     )
-    subparsers = parser.add_subparsers(title="commands", dest="command")
+    subparsers = parser.add_subparsers(title="commands", dest="command", required=True)
     init_parser = subparsers.add_parser(
         "init",
         prog="tach init",
@@ -87,7 +87,7 @@ def parse_arguments(
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if args[0] not in ["init", "add"]:
+    if args and args[0] not in ["init", "add"]:
         fs.validate_project_config_path()
 
     return parsed_args, parser

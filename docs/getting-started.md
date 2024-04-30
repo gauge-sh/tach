@@ -16,11 +16,11 @@ Verify your installation is working correctly
 tach -h
 ```
 
-## Guarding a Project
+## Adding to a Project
 
 If you are adding `tach` to an existing project, you have two main options:
 
-1. Use [`tach init`](usage.md#tach-init) to automatically set up packages and identify necessary dependencies
+1. Use [`tach init`](usage.md#tach-init)  and [`tach add`](usage.md#tach-init) to automatically set up packages and identify necessary dependencies
 2. Manually configure your [packages](configuration.md#packageyml) and [dependency rules](configuration.md#tachyml)
 
 ## Checking Boundaries

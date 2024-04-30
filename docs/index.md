@@ -4,14 +4,15 @@
 `tach` allows you to define boundaries and control dependencies between your Python packages.
 Packages can also define an explicit public interface through `__all__` to prevent deep coupling.
 
-This enforces a decoupled, modular architecture, which makes maintenance and feature development easier.
+This enforces a decoupled, modular architecture, which makes maintenance and development easier.
 
 If a package tries to import from another package that is not listed as a dependency, `tach` will throw an exception.
 
-When a package is in 'strict mode', if another package tries to import from it without using its public interface, `tach` will throw an exception.
+When a package is in ['strict mode'](strict-mode.md), if another package tries to import from it without using its public interface, `tach` will throw an exception.
 
 `tach` runs on the CLI, and is ideal for pre-commit hooks and CI checks.
 
 ## Commands
 * [`tach init`](usage.md#tach-init) - Initialize package boundaries in your Python project.
 * [`tach check`](usage.md#tach-check) - Check boundaries are respected throughout your Python project.
+* [`tach add`]()
