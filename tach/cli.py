@@ -107,12 +107,6 @@ def tach_check(
 ):
     try:
         project_config = parse_project_config()
-        if not project_config.constraints:
-            stop_spinner()
-            print(
-                f"{BCOLORS.OKCYAN} No constraints specified in '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}"
-            )
-            sys.exit(0)
 
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
