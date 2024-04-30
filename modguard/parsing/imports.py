@@ -3,7 +3,7 @@ import re
 from typing import Optional
 from dataclasses import dataclass, field
 
-from modguard import filesystem as fs
+from tach import filesystem as fs
 
 
 @dataclass
@@ -12,7 +12,7 @@ class IgnoreDirective:
     modules: list[str] = field(default_factory=list)
 
 
-MODGUARD_IGNORE_REGEX = re.compile(r"# *modguard-ignore(( [\w.]+)*)$")
+MODGUARD_IGNORE_REGEX = re.compile(r"# *tach-ignore(( [\w.]+)*)$")
 
 
 def get_ignore_directives(file_content: str) -> dict[int, IgnoreDirective]:
@@ -75,7 +75,7 @@ class ImportVisitor(ast.NodeVisitor):
         for name_node in node.names:
             local_mod_path = f"{'.' * node.level}{node.module or ''}.{name_node.asname or name_node.name}"
             if ignored_modules is not None and (local_mod_path in ignored_modules):
-                # This import is ignored by a modguard-ignore directive
+                # This import is ignored by a tach-ignore directive
                 continue
 
             global_mod_path = (

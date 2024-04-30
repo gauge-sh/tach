@@ -3,11 +3,11 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from modguard.colors import BCOLORS
-from modguard.constants import CONFIG_FILE_NAME
+from tach.colors import BCOLORS
+from tach.constants import CONFIG_FILE_NAME
 
 
-def print_no_modguard_yml() -> None:
+def print_no_tach_yml() -> None:
     print(
         f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}",
         file=sys.stderr,
@@ -39,7 +39,7 @@ def find_project_config_root(path: str) -> Optional[str]:
 def validate_project_config_path(root: str = ".") -> str:
     project_config_path = get_project_config_path(root)
     if not project_config_path:
-        print_no_modguard_yml()
+        print_no_tach_yml()
         sys.exit(1)
     else:
         return project_config_path

@@ -1,4 +1,4 @@
-CONFIG_FILE_NAME = "modguard"
+CONFIG_FILE_NAME = "tach"
 PACKAGE_FILE_NAME = "package"
 
 __all__ = ["CONFIG_FILE_NAME", "PACKAGE_FILE_NAME"]

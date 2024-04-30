@@ -1,6 +1,6 @@
 import pytest
 
-from modguard.core import PackageTrie, PackageNode, PackageConfig
+from tach.core import PackageTrie, PackageNode, PackageConfig
 
 
 @pytest.fixture

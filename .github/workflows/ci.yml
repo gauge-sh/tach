@@ -48,7 +48,7 @@ jobs:
       run: |
         source .venv/bin/activate
         pyright .
-    - name: Check modguard
+    - name: Check tach
       run: |
         pip install .
-        modguard check --exclude tests
+        tach check --exclude tests

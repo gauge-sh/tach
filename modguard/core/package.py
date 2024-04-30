@@ -2,7 +2,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Optional, Generator
 
-from modguard.core.config import PackageConfig
+from tach.core.config import PackageConfig
 
 
 @dataclass
@@ -39,7 +39,7 @@ class PackageNode:
 @dataclass
 class PackageTrie:
     """
-    The core data structure for modguard, representing the packages in a project
+    The core data structure for tach, representing the packages in a project
     with a trie structure for package prefix lookups.
     """
 

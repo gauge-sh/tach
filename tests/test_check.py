@@ -1,12 +1,12 @@
 import pytest
-from modguard.core import (
+from tach.core import (
     PackageConfig,
     PackageTrie,
     PackageNode,
     ProjectConfig,
     ScopeDependencyRules,
 )
-from modguard.check import check_import
+from tach.check import check_import
 
 
 @pytest.fixture

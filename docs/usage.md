@@ -1,12 +1,12 @@
 # Usage
 
-## modguard check
-`modguard` will flag any unwanted imports between packages. It is recommended to run `modguard check` in a similar way as a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
+## tach check
+`tach` will flag any unwanted imports between packages. It is recommended to run `tach check` in a similar way as a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
-usage: modguard check [-h] [-e file_or_path,...]
+usage: tach check [-h] [-e file_or_path,...]
 
-Check boundaries with modguard
+Check boundaries with tach
 
 options:
   -h, --help            show this help message and exit
@@ -15,19 +15,19 @@ options:
 ```
 
 
-## modguard init
-`modguard` comes bundled with a command to set up and define your initial boundaries.
+## tach init
+`tach` comes bundled with a command to set up and define your initial boundaries.
 
-By running `modguard init` from the root of your Python project, `modguard` will create an initial set of `package.yml` files to identify your Python packages.
+By running `tach init` from the root of your Python project, `tach` will create an initial set of `package.yml` files to identify your Python packages.
 
 These initial packages will receive a single 'tag' based on their path from the project root. The packages will _not_ be in strict mode by default, but setting `strict: true` in the `package.yml` file will enable this. See ['Strict Mode'](strict-mode.md) for details.
 
-In addition to their tags, the `package.yml` files will contain a `depends_on` key which includes all the dependencies that `modguard` was able to detect automatically for the package, which means that after running `modguard init`, your project will be in a permissive, but passing state.
+In addition to their tags, the `package.yml` files will contain a `depends_on` key which includes all the dependencies that `tach` was able to detect automatically for the package, which means that after running `tach init`, your project will be in a permissive, but passing state.
 
 ```bash
-usage: modguard init [-h] [-e file_or_path,...]
+usage: tach init [-h] [-e file_or_path,...]
 
-Initialize boundaries with modguard
+Initialize boundaries with tach
 
 options:
   -h, --help            show this help message and exit

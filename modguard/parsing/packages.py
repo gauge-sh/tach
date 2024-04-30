@@ -1,8 +1,8 @@
 from typing import Optional
 
-from modguard import filesystem as fs
-from modguard.core import PackageTrie
-from modguard.parsing import parse_package_config, parse_interface_members
+from tach import filesystem as fs
+from tach.core import PackageTrie
+from tach.parsing import parse_package_config, parse_interface_members
 
 
 def build_package_trie(

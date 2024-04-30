@@ -1,10 +1,10 @@
 # Configuration
 
-Running `modguard init` will create the files below, but you will likely want to configure them further.
+Running `tach init` will create the files below, but you will likely want to configure them further.
 The configuration fields are described on this page.
 
 
-## `modguard.yml`
+## `tach.yml`
 
 This is the project-level configuration file which should be in the root of your project.
 It accepts `exclude` and `constraints` as top-level keys.

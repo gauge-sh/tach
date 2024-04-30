@@ -1,7 +1,7 @@
-from modguard.parsing.config import parse_package_config, parse_project_config
-from modguard.parsing.imports import get_project_imports
-from modguard.parsing.interface import parse_interface_members
-from modguard.parsing.packages import build_package_trie
+from tach.parsing.config import parse_package_config, parse_project_config
+from tach.parsing.imports import get_project_imports
+from tach.parsing.interface import parse_interface_members
+from tach.parsing.packages import build_package_trie
 
 
 __all__ = [

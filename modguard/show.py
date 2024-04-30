@@ -1,8 +1,8 @@
 # pyright: reportUnknownParameterType=false, reportMissingTypeArgument=false
 # pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false
 
-from modguard.colors import BCOLORS
-from modguard.core import PackageTrie
+from tach.colors import BCOLORS
+from tach.core import PackageTrie
 from typing import Any, Dict, Tuple, Union
 
 # This type hint only works on more recent versions
@@ -89,6 +89,6 @@ def show(boundary_trie: PackageTrie, write_file: bool = False) -> Tuple[str, str
     yaml_result = dict_to_yaml(dict_repr)
     pretty_str_result = dict_to_str(dict_repr)
     if write_file:
-        with open("modguard.yaml", "w") as f:
+        with open("tach.yaml", "w") as f:
             f.write(yaml_result)
     return yaml_result, pretty_str_result
