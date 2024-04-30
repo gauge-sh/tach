@@ -63,6 +63,6 @@ tach add utils -t shared
 ```
 `tach` will take each file or directory and turn it into a python package with a `package.yml`. It will also update your `tach.yml` and attempt to get you to a passing state.
 
-Note that if you have [`strict:True`]() set, you may end up in a failing state due to imports that used to be within a module now crossing a package boundary.
+Note that if you have [`strict:True`](strict-mode.md) set, you may end up in a failing state due to imports that used to be within a module now crossing a package boundary.
 
 If you have relative imports in a file that is turned into a package, they will also likely break due to the creation of the new package. Both issues should be easily solved by hand.

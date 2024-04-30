@@ -29,7 +29,7 @@ dependencies = [
     "pydantic==2.7.1",
     "stdlib-list==0.10.0"
 ]
-keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
+keywords = ['python', 'tach', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 
 
 [project.urls]
