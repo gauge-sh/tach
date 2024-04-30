@@ -16,7 +16,7 @@ a Python tool to enforce modular design
  <video loop src="https://github.com/Never-Over/tach/assets/10570340/a9d8d4df-d262-4b2b-b69a-adbc30d069aa">Tach Demo</video> 
 
 
-### What is tach?
+## What is tach?
 `tach` allows you to define boundaries and control dependencies between your Python packages. Each package can also define its public interface.
 
 This enforces a decoupled, modular architecture, and prevents tight coupling.
@@ -25,11 +25,12 @@ If a package tries to import from another package and does not use its public in
 
 `tach` is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed as a lint check through the CLI.
 
-### Installation
+## Installation
 ```bash
 pip install tach
 ```
-### Defining Packages
+
+## Defining Packages
 To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:
 ```python
 # core/package.yml
@@ -63,7 +64,7 @@ With these rules in place, packages with tag `core` can import from packages wit
 ❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
 ```
 
-### Defining Interfaces
+## Defining Interfaces
 If you want to define a public interface for the package, import and reference each object you want exposed in the package's `__init__.py` and add its name to `__all__`:
 ```python
 # db/__init__.py
@@ -82,7 +83,7 @@ strict: true
 from db import PublicAPI 
 ```
 
-### Setup
+## Initial Setup
 `tach` also comes bundled with a command to set up and define your initial boundaries.
 ```bash
 tach init
@@ -96,7 +97,7 @@ tach add [file_or_path]
 ```
 This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
 
-### Advanced
+## Advanced
 `tach` supports specific exceptions. You can mark an import with the `tach-ignore` comment:
 ```python
 # tach-ignore
@@ -121,10 +122,10 @@ By default, `tach` ignores hidden directories and files (paths starting with `.`
 exclude_hidden_paths: false
 ```
 
-### Details
+## Details
 `tach` works by analyzing the abstract syntax tree (AST) of your codebase. It has no runtime impact, and all operations are performed statically. 
 
-Boundary violations are detected at the import layer. This means that specific nonstandard custom syntax to access packages such as `getattr` or dynamically generated namespaces will not be caught by tach.
+Boundary violations are detected at the import layer. This means that dynamic imports using `importlib` or similar approaches will not be caught by tach.
 
 [PyPi Package](https://pypi.org/project/tach/)
 
