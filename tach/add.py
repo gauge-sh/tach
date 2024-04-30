@@ -6,6 +6,7 @@ import yaml
 
 from tach import filesystem as fs
 from tach.check import check
+from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, PACKAGE_FILE_NAME
 from tach.core import ScopeDependencyRules
 from tach.errors import TachError
@@ -112,7 +113,8 @@ def validate_path(path: str) -> None:
         # 'path' points to a file
         # so we validate that it is a Python file we can 'pivot' to a package
         print(
-            f"{path} will be moved into a new package. You may need to update relative imports within this file."
+            f"{BCOLORS.WARNING}'{path}' will be moved into a new package. "
+            f"You may need to update relative imports within this file.{BCOLORS.ENDC}"
         )
         if not path.endswith(".py"):
             raise TachError(f"{path} is not a Python file.")
@@ -124,8 +126,8 @@ def validate_path(path: str) -> None:
             # this is a file we are pivoting out from a strict package
             # so any of its imports from siblings will start to fail, actually all relative imports will fail
             print(
-                f"{path} is contained by a strict package. "
-                f"You may need to update imports from '{dirname}' to come through __all__ in __init__.py"
+                f"{BCOLORS.WARNING}'{path}' is contained by a strict package. "
+                f"You may need to update imports from '{dirname}' to come through __all__ in __init__.py{BCOLORS.ENDC}"
             )
     root = fs.find_project_config_root(path)
     if not root:
