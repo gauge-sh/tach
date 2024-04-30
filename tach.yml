@@ -1,4 +1,3 @@
-exclude: ['tests/', 'docs/']
 constraints:
   scope:filesystem:
     depends_on:
@@ -9,7 +8,12 @@ constraints:
     - scope:filesystem
   scope:root:
     depends_on:
-    - scope:parsing
     - scope:utils
     - scope:core
     - scope:filesystem
+    - scope:parsing
+    - loading
+exclude:
+- tests/
+- docs/
+exclude_hidden_paths: true
