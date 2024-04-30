@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.7.1"
+version = "0.1.0"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
@@ -29,7 +29,7 @@ dependencies = [
     "pydantic==2.7.1",
     "stdlib-list==0.10.0"
 ]
-keywords = ['python', 'tach', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
+keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 
 
 [project.urls]

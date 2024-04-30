@@ -38,7 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="Make sure tach is run from the root of your Python project,"
         " and `tach.yml` is present",
     )
-    subparsers = parser.add_subparsers(title="commands", dest="command", required=True)
+    subparsers = parser.add_subparsers(title="commands", dest="command")
     init_parser = subparsers.add_parser(
         "init",
         prog="tach init",
@@ -46,6 +46,14 @@ def build_parser() -> argparse.ArgumentParser:
         "`tach.yml`",
         description="Initialize boundaries between top-level packages and write dependencies to "
         "`tach.yml`",
+    )
+    init_parser.add_argument(
+        "-d",
+        "--depth",
+        type=int,
+        nargs="?",
+        default=None,
+        help="The number of child directories to search for packages to initialize",
     )
     add_base_arguments(init_parser)
     check_parser = subparsers.add_parser(
@@ -75,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=False,
         type=str,
         metavar="tag,...",
-        help="The tag for the module to be initialized with. "
+        help="The tag for the module to be initialized with."
         "Use a comma-separated list for multiple.",
     )
     return parser
@@ -87,7 +95,7 @@ def parse_arguments(
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if args and args[0] not in ["init", "add"]:
+    if args[0] not in ["init", "add"]:
         fs.validate_project_config_path()
 
     return parsed_args, parser
@@ -121,9 +129,9 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_init(exclude_paths: Optional[list[str]] = None):
+def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None):
     try:
-        warnings = init_project(root=".", exclude_paths=exclude_paths)
+        warnings = init_project(root=".", depth=depth, exclude_paths=exclude_paths)
     except Exception as e:
         stop_spinner()
         print(str(e))
@@ -132,7 +140,7 @@ def tach_init(exclude_paths: Optional[list[str]] = None):
     stop_spinner()
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}Tach initialized.")
+    print(f"✅ {BCOLORS.OKGREEN}tach initialized.")
     sys.exit(0)
 
 
@@ -164,7 +172,7 @@ def main() -> None:
     exclude_paths = args.exclude.split(",") if args.exclude else None
     if args.command == "init":
         start_spinner("Initializing...")
-        tach_init(exclude_paths=exclude_paths)
+        tach_init(depth=args.depth, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
         tach_check(exclude_paths=exclude_paths)
