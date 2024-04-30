@@ -88,6 +88,9 @@ def init_project(
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a directory.")
 
+    if exclude_paths is None:
+        exclude_paths = ["tests/", "docs/"]
+
     warnings: list[str] = []
 
     if depth is None:

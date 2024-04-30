@@ -30,5 +30,5 @@ class ProjectConfig(Config):
     """
 
     constraints: Dict[str, ScopeDependencyRules] = Field(default_factory=dict)
-    exclude: Optional[List[str]] = Field(default_factory=list)
+    exclude: Optional[List[str]] = Field(default_factory=lambda: ["tests", "docs"])
     exclude_hidden_paths: Optional[bool] = True
