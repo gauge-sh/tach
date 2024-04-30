@@ -55,7 +55,7 @@ def test_execute_with_tach_yml(
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All packages safely guarded!" in captured.out
+    assert "All package dependencies validated!" in captured.out
 
 
 def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_project_config):
@@ -104,4 +104,4 @@ def test_execute_with_valid_exclude(
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All packages safely guarded!" in captured.out
+    assert "All package dependencies validated!" in captured.out

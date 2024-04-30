@@ -117,7 +117,7 @@ def tach_check(
     if result:
         print_errors(result)
         sys.exit(1)
-    print(f"✅ {BCOLORS.OKGREEN}All packages safely guarded!")
+    print(f"✅ {BCOLORS.OKGREEN}All package dependencies validated!")
     sys.exit(0)
 
 

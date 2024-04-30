@@ -92,7 +92,7 @@ By running `tach init` from the root of your Python project, `tach` will initial
 The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root.
 ```bash
 > tach check
-✅ All packages safely guarded!
+✅ All package dependencies validated!
 ```
 
 If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:

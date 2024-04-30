@@ -60,5 +60,5 @@ get_data()
 ```
 `tach check` will now pass!
 ```bash
-✅ All packages safely guarded!
+✅ All package dependencies validated!
 ```
