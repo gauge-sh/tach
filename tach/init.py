@@ -86,7 +86,7 @@ def init_project(
     root: str, depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None
 ) -> list[str]:
     if not os.path.isdir(root):
-        raise errors.tachSetupError(f"The path {root} is not a directory.")
+        raise errors.TachSetupError(f"The path {root} is not a directory.")
 
     warnings: list[str] = []
 

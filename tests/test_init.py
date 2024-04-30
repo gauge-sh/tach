@@ -67,5 +67,5 @@ def test_init_project_with_valid_root(test_root):
 
 
 def test_init_project_with_invalid_root():
-    with pytest.raises(errors.tachSetupError):
+    with pytest.raises(errors.TachSetupError):
         init_project("nonexistent_directory")

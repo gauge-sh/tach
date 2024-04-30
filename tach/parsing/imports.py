@@ -12,7 +12,7 @@ class IgnoreDirective:
     modules: list[str] = field(default_factory=list)
 
 
-tach_IGNORE_REGEX = re.compile(r"# *tach-ignore(( [\w.]+)*)$")
+TACH_IGNORE_REGEX = re.compile(r"# *tach-ignore(( [\w.]+)*)$")
 
 
 def get_ignore_directives(file_content: str) -> dict[int, IgnoreDirective]:
@@ -20,7 +20,7 @@ def get_ignore_directives(file_content: str) -> dict[int, IgnoreDirective]:
     lines = file_content.splitlines()
     for lineno, line in enumerate(lines):
         normal_lineno = lineno + 1
-        match = tach_IGNORE_REGEX.match(line)
+        match = TACH_IGNORE_REGEX.match(line)
         if match:
             ignored_modules = match.group(1)
             if ignored_modules:
