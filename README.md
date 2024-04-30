@@ -20,8 +20,8 @@ a Python tool to enforce modular design
 `tach` allows you to define boundaries and control dependencies between your Python packages. Each package can also define its public interface.
 
 This enforces a decoupled, modular architecture, and prevents tight coupling.
-If a package tries to import from another package that is not listed as a dependency, tach will throw an exception.
-If a package tries to import from another package and does not use its public interface, with `strict: true` set, `tach` will throw an exception.
+If a package tries to import from another package that is not listed as a dependency, tach will report an error.
+If a package tries to import from another package and does not use its public interface, with `strict: true` set, `tach` will report an error.
 
 `tach` is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed as a lint check through the CLI.
 
@@ -29,7 +29,7 @@ If a package tries to import from another package and does not use its public in
 ```bash
 pip install tach
 ```
-### Usage
+### Defining Packages
 To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:
 ```python
 # core/package.yml
@@ -63,14 +63,15 @@ With these rules in place, packages with tag `core` can import from packages wit
 ❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
 ```
 
-If you want to define a public interface for the package, import and reference each object you want exposed in the package's `__init__.py`:
+### Defining Interfaces
+If you want to define a public interface for the package, import and reference each object you want exposed in the package's `__init__.py` and add its name to `__all__`:
 ```python
 # db/__init__.py
 from db.service import PublicAPI
 
 __all__ = ["PublicAPI"]
 ```
-Turning on `strict: true` in the package's `package.yml` will then enforce that all imports from this package occur through `__init__.py`
+Turning on `strict: true` in the package's `package.yml` will then enforce that all imports from this package occur through `__init__.py` and are listed in `__all__`
 ```yaml
 # db/package.yml
 tags: ["db"]
@@ -80,12 +81,6 @@ strict: true
 # The only valid import from "db"
 from db import PublicAPI 
 ```
-`tach` will now flag any import that is not from `__init__.py` in the `db` package, in addition to enforcing the dependencies defined above.
-```bash
-# From the root of your Python project (in this example, `project/`)
-> tach check
-❌ ./core/main.py: Import "db.PrivateAPI" is blocked by boundary "db". "db" does not list "db.PrivateAPI" in its public interface.
-```
 
 ### Setup
 `tach` also comes bundled with a command to set up and define your initial boundaries.
@@ -94,10 +89,6 @@ tach init
 ```
 By running `tach init` from the root of your Python project, `tach` will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
 The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root.
-```bash
-> tach check
-✅ All package dependencies validated!
-```
 
 If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
 ```bash
@@ -120,7 +111,7 @@ tags: ["core", "utils"]
 ```
 This will expand the set of packages that "utils" can access to include all packages that "core" and "utils" `depends_on` as defined in `tach.yml`.
 
-`tach.yml` also accepts regex syntax:
+`tach.yml` also accepts regex patterns:
 ```yaml
     depends_on: [".*"] # Allow imports from anywhere
     depends_on: ["shared.*"] # Allow imports from any package with a tag starting with "shared"
