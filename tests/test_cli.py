@@ -4,7 +4,7 @@ import pytest
 from tach import cli
 from tach.check import ErrorInfo
 from tach.constants import CONFIG_FILE_NAME
-from tach.core import ProjectConfig
+from tach.core import ProjectConfig, ScopeDependencyRules
 
 
 @pytest.fixture
@@ -39,7 +39,9 @@ def mock_path_exists(mocker) -> None:
 @pytest.fixture
 def mock_project_config(mocker) -> None:
     def mock_project_config() -> ProjectConfig:
-        return ProjectConfig()
+        return ProjectConfig(
+            constraints={"mocked": ScopeDependencyRules(depends_on=["mocked"])}
+        )
 
     mocker.patch("tach.cli.parse_project_config", mock_project_config)
 
