@@ -1,0 +1,9 @@
+exclude: ["domain_three"]
+constraints:
+  one:
+    depends_on: ["two"]
+  two:
+    depends_on: ["one"]
+  shared:
+    depends_on: []
+unknown: 88

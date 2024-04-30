@@ -7,7 +7,7 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "docs" ]
 
 jobs:
   build:
@@ -27,21 +27,28 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install ruff pytest pytest-mock coverage pyright
+        python -m pip install uv
+        uv venv
+        source .venv/bin/activate
+        uv pip install -r dev-requirements.txt
+        uv pip install -e .
     - name: Check ruff
       run: |
+        source .venv/bin/activate
         ruff check .
         ruff format --check .
     - name: Test with pytest and report coverage
       run: |
+        source .venv/bin/activate
         cd tests
         coverage run --branch --source=../ -m pytest
         coverage report
         cd ..
     - name: Check types with pyright
       run: |
+        source .venv/bin/activate
         pyright .
-    - name: Check modguard
+    - name: Check tach
       run: |
         pip install .
-        modguard check --exclude tests .
+        tach check --exclude tests

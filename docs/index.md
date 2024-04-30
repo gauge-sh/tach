@@ -1,13 +1,19 @@
 # Overview
 
-## What is modguard?
-Modguard enables you to explicitly define a public interface for your Python modules. Marking a package with a `Boundary` will make all of its internals private by default, exposing only the members marked with `public`.
+## What is tach?
+`tach` allows you to define boundaries and control dependencies between your Python packages.
+Packages can also define an explicit public interface through `__all__` to prevent deep coupling.
 
-This enforces an architecture of decoupled and well defined modules, and ensures the communication between domains is only done through their expected public interfaces.
+This enforces a decoupled, modular architecture, which makes maintenance and development easier.
 
-Modguard is incredibly lightweight, and has no impact on the runtime of your code. Instead, its checks are performed through a static analysis CLI tool.
+If a package tries to import from another package that is not listed as a dependency, `tach` will throw an exception.
+
+When a package is in ['strict mode'](strict-mode.md), if another package tries to import from it without using its public interface, `tach` will throw an exception.
+
+`tach` runs on the CLI, and is ideal for pre-commit hooks and CI checks.
 
 ## Commands
-* [`modguard init [dir-name]`](usage.md#modguard-init) - Initialize package boundaries in a directory.
-* [`modguard check [dir-name]`](usage.md#modguard-check) - Check boundaries are respected throughout a directory.
-* [`modguard show [dir-name]`](usage.md#modguard-show) - View and optionally generate a YAML representation of the boundaries in a directory.
+* [`tach init`](usage.md#tach-init) - Initialize package boundaries in your Python project.
+* [`tach add`](usage.md#tach-add) - Add a new package around a file or directory to your existing config. 
+* [`tach check`](usage.md#tach-check) - Check that boundaries are respected.
+

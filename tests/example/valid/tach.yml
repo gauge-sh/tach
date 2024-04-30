@@ -1,0 +1,8 @@
+exclude: ["domain_thr.*"]
+constraints:
+  one:
+    depends_on: ["two"]
+  two:
+    depends_on: ["one"]
+  three:
+    depends_on: []
