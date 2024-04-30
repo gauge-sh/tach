@@ -7,7 +7,6 @@
 # tach
 a Python tool to enforce modular design
 
-![](https://raw.githubusercontent.com/Never-Over/tach/main/docs/tach_screencap_2x.gif)
 
 [Docs](https://never-over.github.io/tach/)
 
