@@ -8,28 +8,29 @@ This creates an explicit public interface for the package which prevents couplin
 
 ## Example
 
-Given packages called 'core' and 'parsing', we have `package.yml` and `tach.yml` contents like this:
+Given packages called 'core' and 'parsing', we may have `package.yml` and `tach.yml` contents like this:
 
-`core/package.yml`
 ```yaml
+# core/package.yml
 tags: ['core']
 strict: true
 ```
 
-`parsing/package.yml`
 ```yaml
+# parsing/package.yml
 tags: ['parsing']
 ```
 
-`tach.yml`
+
 ```yaml
+# tach.yml
 constraints:
   parsing:
     depends_on:
     - core
 ```
 
-Then, in a file within the 'parsing' package, we have:
+Then, in a file within the 'parsing' package, we may have:
 ```python
 from core.main import get_data  # This import fails
 

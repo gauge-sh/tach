@@ -35,6 +35,7 @@ These initial packages will receive a single 'tag' based on their path from the 
 
 In addition to their tags, the `package.yml` files will contain a `depends_on` key which includes all the dependencies that `tach` was able to detect automatically for the package, which means that after running `tach init`, your project will be in a permissive, but passing state.
 
+If `tach init` detects a only a single package in the root of your project where it's run, it will set boundaries within that package as well. Otherwise, it will simply create boundaries and dependencies for all top-level packages. 
 
 
 ## tach add
