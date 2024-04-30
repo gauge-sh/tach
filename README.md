@@ -95,6 +95,12 @@ The tool will take into consideration the usages between packages, and write a m
 ✅ All packages safely guarded!
 ```
 
+If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
+```bash
+tach add [file_or_path]
+```
+This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
+
 ### Advanced
 `tach` supports specific exceptions. You can mark an import with the `tach-ignore` comment:
 ```python
