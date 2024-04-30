@@ -80,9 +80,7 @@ def test_valid_python_file():
 
     with patch(
         "tach.filesystem.package.os.path.exists", side_effect=mock_exists
-    ), patch(
-        "tach.filesystem.validate_project_config_path", side_effect=SystemError
-    ):
+    ), patch("tach.filesystem.validate_project_config_path", side_effect=SystemError):
         with pytest.raises(TachError) as excinfo:
             validate_path_for_add("/some/file.py")
     assert f"{CONFIG_FILE_NAME} does not exist in any parent directories" in str(

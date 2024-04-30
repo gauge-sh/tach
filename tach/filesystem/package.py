@@ -41,9 +41,7 @@ def validate_path_for_add(path: str) -> None:
             raise TachError("{path} already has a directory of the same name.")
     root = find_project_config_root(path)
     if not root:
-        raise TachError(
-            f"{CONFIG_FILE_NAME} does not exist in any parent directories"
-        )
+        raise TachError(f"{CONFIG_FILE_NAME} does not exist in any parent directories")
 
 
 def build_package(path: str, tags: Optional[set[str]]) -> Optional[str]:
