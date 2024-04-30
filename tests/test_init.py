@@ -2,8 +2,8 @@ import pytest
 import tempfile
 import shutil
 import os
-from modguard import errors, filesystem as fs
-from modguard.init import init_project
+from tach import errors, filesystem as fs
+from tach.init import init_project
 
 
 def init_project_from_root(root) -> None:
@@ -67,5 +67,5 @@ def test_init_project_with_valid_root(test_root):
 
 
 def test_init_project_with_invalid_root():
-    with pytest.raises(errors.ModguardSetupError):
+    with pytest.raises(errors.tachSetupError):
         init_project("nonexistent_directory")

@@ -8,7 +8,7 @@ This creates an explicit public interface for the package which prevents couplin
 
 ## Example
 
-Given packages called 'core' and 'parsing', we may have `package.yml` and `modguard.yml` contents like this:
+Given packages called 'core' and 'parsing', we may have `package.yml` and `tach.yml` contents like this:
 
 `core/package.yml`
 ```yaml
@@ -21,7 +21,7 @@ strict: true
 tags: ['parsing']
 ```
 
-`modguard.yml`
+`tach.yml`
 ```yaml
 constraints:
   parsing:
@@ -36,7 +36,7 @@ from core.main import get_data  # This import fails
 get_data()
 ```
 
-This import would **fail** `modguard check` with the following error:
+This import would **fail** `tach check` with the following error:
 ```shell
 ❌ parsing: Package 'core' is in strict mode. Only imports from the root of this package are allowed. The import 'core.main.get_data' (in 'parsing') is not included in __all__.
 ```

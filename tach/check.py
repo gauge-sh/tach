@@ -3,9 +3,9 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-from modguard import filesystem as fs
-from modguard.core import PackageTrie, PackageNode, ProjectConfig
-from modguard.parsing import build_package_trie, get_project_imports
+from tach import filesystem as fs
+from tach.core import PackageTrie, PackageNode, ProjectConfig
+from tach.parsing import build_package_trie, get_project_imports
 
 
 @dataclass

@@ -2,7 +2,7 @@ import os
 from typing import Optional
 
 
-from modguard.constants import PACKAGE_FILE_NAME
+from tach.constants import PACKAGE_FILE_NAME
 
 
 def validate_package_config(root: str = ".") -> Optional[str]:

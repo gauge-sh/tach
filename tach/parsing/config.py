@@ -2,8 +2,8 @@ from typing import Optional
 
 import yaml
 
-from modguard.core import ProjectConfig, PackageConfig
-from modguard import filesystem as fs
+from tach.core import ProjectConfig, PackageConfig
+from tach import filesystem as fs
 
 
 def parse_project_config(root: str = ".") -> ProjectConfig:

@@ -1,16 +1,16 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
-site_name: Modguard
-site_url: https://never-over.github.io/modguard/
-repo_name: modguard
-repo_url: https://github.com/Never-Over/modguard
+site_name: tach
+site_url: https://never-over.github.io/tach/
+repo_name: tach
+repo_url: https://github.com/Never-Over/tach
 nav:
   - index.md
-  - why-modguard.md
+  - why-tach.md
   - getting-started.md
   - usage.md
   - configuration.md
   - strict-mode.md
-  - modguard-ignore.md
+  - tach-ignore.md
   - faq.md
 theme:
   name: material

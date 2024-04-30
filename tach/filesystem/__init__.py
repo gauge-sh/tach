@@ -1,4 +1,4 @@
-from modguard.filesystem.service import (
+from tach.filesystem.service import (
     get_cwd,
     chdir,
     canonical,
@@ -12,13 +12,13 @@ from modguard.filesystem.service import (
     module_to_file_path,
     is_project_import,
 )
-from modguard.filesystem.project import (
+from tach.filesystem.project import (
     get_project_config_path,
     validate_project_config_path,
-    print_no_modguard_yml,
+    print_no_config_yml,
     find_project_config_root,
 )
-from modguard.filesystem.package import (
+from tach.filesystem.package import (
     validate_package_config,
 )
 
@@ -37,7 +37,7 @@ __all__ = [
     "is_project_import",
     "get_project_config_path",
     "validate_project_config_path",
-    "print_no_modguard_yml",
+    "print_no_config_yml",
     "validate_package_config",
     "find_project_config_root",
 ]

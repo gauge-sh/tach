@@ -1,4 +1,0 @@
-CONFIG_FILE_NAME = "modguard"
-PACKAGE_FILE_NAME = "package"
-
-__all__ = ["CONFIG_FILE_NAME", "PACKAGE_FILE_NAME"]

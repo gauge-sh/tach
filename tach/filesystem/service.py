@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Generator
-from modguard import errors
+from tach import errors
 
 
 @dataclass
@@ -115,14 +115,14 @@ def parse_ast(path: str) -> ast.AST:
         try:
             ast_result = ast.parse(cached_file.content)
         except SyntaxError as e:
-            raise errors.ModguardParseError(f"Syntax error in {path}: {e}")
+            raise errors.tachParseError(f"Syntax error in {path}: {e}")
     else:
         with open(path, "r") as f:
             content = f.read()
         try:
             ast_result = ast.parse(content)
         except SyntaxError as e:
-            raise errors.ModguardParseError(f"Syntax error in {path}: {e}")
+            raise errors.tachParseError(f"Syntax error in {path}: {e}")
 
     if cached_file:
         cached_file.content = content
@@ -267,7 +267,7 @@ def module_to_file_path(
         member_name = fs_path[last_sep_index + 1 :]
         return init_file_path, member_name
 
-    raise errors.ModguardParseError(
+    raise errors.tachParseError(
         f"Failed to translate module path {mod_path} into file path"
     )
 

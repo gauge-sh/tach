@@ -4,11 +4,11 @@ from typing import Optional
 
 import yaml
 
-from modguard import errors
-from modguard import filesystem as fs
-from modguard.check import check
-from modguard.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
-from modguard.core import ProjectConfig, ScopeDependencyRules
+from tach import errors
+from tach import filesystem as fs
+from tach.check import check
+from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
+from tach.core import ProjectConfig, ScopeDependencyRules
 
 __package_yml_template = """tags: ['{dir_name}']\n"""
 
@@ -65,9 +65,9 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
                 depends_on=list(existing_dependencies | set(error.invalid_tags))
             )
 
-    modguard_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-    modguard_yml_content = yaml.dump(project_config.model_dump())
-    fs.write_file(modguard_yml_path, modguard_yml_content)
+    tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
+    tach_yml_content = yaml.dump(project_config.model_dump())
+    fs.write_file(tach_yml_path, tach_yml_content)
 
     check_errors = check(
         root, project_config=project_config, exclude_paths=exclude_paths
@@ -75,7 +75,7 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
     if check_errors:
         return InitRootResult(
             warnings=[
-                "Could not auto-detect all dependencies, use 'modguard check' to finish initialization manually."
+                "Could not auto-detect all dependencies, use 'tach check' to finish initialization manually."
             ]
         )
 
@@ -86,7 +86,7 @@ def init_project(
     root: str, depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None
 ) -> list[str]:
     if not os.path.isdir(root):
-        raise errors.ModguardSetupError(f"The path {root} is not a directory.")
+        raise errors.tachSetupError(f"The path {root} is not a directory.")
 
     warnings: list[str] = []
 
