@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=False,
         type=str,
         metavar="tag,...",
-        help="The tag for the module to be initialized with."
+        help="The tag for the module to be initialized with. "
         "Use a comma-separated list for multiple.",
     )
     return parser
