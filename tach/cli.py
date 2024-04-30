@@ -5,6 +5,7 @@ from typing import Optional
 from tach.add import add_packages
 from tach.check import check, ErrorInfo
 from tach import filesystem as fs
+from tach.constants import CONFIG_FILE_NAME
 from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
 from tach.parsing import parse_project_config
@@ -140,7 +141,7 @@ def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = 
     stop_spinner()
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}tach initialized.")
+    print(f"✅ {BCOLORS.OKGREEN}Initialized {CONFIG_FILE_NAME}.yml.")
     sys.exit(0)
 
 
