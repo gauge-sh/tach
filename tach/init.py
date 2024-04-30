@@ -7,6 +7,7 @@ import yaml
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
+from tach.colors import BCOLORS
 from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
 from tach.core import ProjectConfig, ScopeDependencyRules
 
@@ -28,7 +29,9 @@ def init_packages(
         package_yml_path = os.path.join(dir_path, f"{PACKAGE_FILE_NAME}.yml")
         package_paths.append(dir_path)
         if os.path.exists(package_yml_path):
-            warnings.append(f"Package file '{package_yml_path}' already exists.")
+            warnings.append(
+                f"{BCOLORS.OKCYAN}Package file '{package_yml_path}' already exists.{BCOLORS.ENDC}"
+            )
             continue
         package_yml_content = __package_yml_template.format(
             dir_name=dir_path.replace(os.path.sep, ".")
@@ -47,7 +50,9 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
     project_config_path = fs.get_project_config_path(root)
     if project_config_path:
         return InitRootResult(
-            warnings=[f"Project already contains {CONFIG_FILE_NAME}.yml"]
+            warnings=[
+                f"{BCOLORS.OKCYAN}Project already contains {CONFIG_FILE_NAME}.yml{BCOLORS.ENDC}"
+            ]
         )
 
     project_config = ProjectConfig()

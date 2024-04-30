@@ -9,7 +9,7 @@ from tach.constants import CONFIG_FILE_NAME
 
 def print_no_config_yml() -> None:
     print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}",
+        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}{BCOLORS.ENDC}",
         file=sys.stderr,
     )
 

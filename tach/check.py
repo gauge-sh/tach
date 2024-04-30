@@ -61,8 +61,15 @@ def is_top_level_package_import(mod_path: str, package: PackageNode) -> bool:
 
 
 def import_matches_interface_members(mod_path: str, package: PackageNode) -> bool:
-    mod_path_basename = mod_path.rsplit(".", 1)[-1]
-    return mod_path_basename in package.interface_members
+    mod_path_segments = mod_path.rsplit(".", 1)
+    if len(mod_path_segments) == 1:
+        return mod_path_segments[0] == package.full_path
+    else:
+        mod_pkg_path, mod_member_name = mod_path_segments
+        return (
+            mod_pkg_path == package.full_path
+            and mod_member_name in package.interface_members
+        )
 
 
 def check_import(
@@ -164,6 +171,9 @@ def check(
         return [
             ErrorInfo(exception_message=f"The path {root} is not a valid directory.")
         ]
+
+    if not project_config.constraints:
+        return []
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = fs.canonical(root)

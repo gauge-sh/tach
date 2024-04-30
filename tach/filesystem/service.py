@@ -9,6 +9,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Generator
 from tach import errors
+from tach.colors import BCOLORS
 
 
 @dataclass
@@ -96,6 +97,7 @@ def read_file(path: str) -> str:
 def write_file(path: str, content: str):
     with open(path, "w") as f:
         f.write(content)
+        print(f"{BCOLORS.WARNING}Wrote '{canonical(path)}'{BCOLORS.ENDC}")
 
     cached_file = _cached_file(path)
     if cached_file:
