@@ -47,6 +47,14 @@ def build_parser() -> argparse.ArgumentParser:
         description="Initialize boundaries between top-level packages and write dependencies to "
         "`modguard.yml`",
     )
+    init_parser.add_argument(
+        "-d",
+        "--depth",
+        type=int,
+        nargs="?",
+        default=None,
+        help="The number of child directories to search for packages to initialize",
+    )
     add_base_arguments(init_parser)
     check_parser = subparsers.add_parser(
         "check",
@@ -121,9 +129,11 @@ def modguard_check(
     sys.exit(0)
 
 
-def modguard_init(exclude_paths: Optional[list[str]] = None):
+def modguard_init(
+    depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None
+):
     try:
-        warnings = init_project(root=".", exclude_paths=exclude_paths)
+        warnings = init_project(root=".", depth=depth, exclude_paths=exclude_paths)
     except Exception as e:
         stop_spinner()
         print(str(e))
@@ -164,7 +174,7 @@ def main() -> None:
     exclude_paths = args.exclude.split(",") if args.exclude else None
     if args.command == "init":
         start_spinner("Initializing...")
-        modguard_init(exclude_paths=exclude_paths)
+        modguard_init(depth=args.depth, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
         modguard_check(exclude_paths=exclude_paths)
