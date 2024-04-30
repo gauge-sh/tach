@@ -3,12 +3,12 @@ from unittest.mock import patch, MagicMock
 
 from modguard.constants import CONFIG_FILE_NAME
 from modguard.errors import ModguardError
-from modguard.filesystem.package import validate_path_for_add
+from modguard.add import validate_path
 
 
 def test_path_does_not_exist():
     with pytest.raises(ModguardError) as excinfo:
-        validate_path_for_add("/non/existent/path")
+        validate_path("/non/existent/path")
     assert "/non/existent/path does not exist." in str(excinfo.value)
 
 
@@ -18,7 +18,7 @@ def test_path_is_directory_with_package_file():
         MagicMock(side_effect=lambda x: x.endswith(".yml") or x.endswith("dir")),
     ), patch("modguard.filesystem.package.os.path.isdir", return_value=True):
         with pytest.raises(ModguardError) as excinfo:
-            validate_path_for_add("/some/dir")
+            validate_path("/some/dir")
     assert "/some/dir already contains a package.yml" in str(excinfo.value)
 
 
@@ -30,7 +30,7 @@ def test_directory_without_init_py():
         "modguard.filesystem.package.os.path.isdir", return_value=True
     ):
         with pytest.raises(ModguardError) as excinfo:
-            validate_path_for_add("/some/dir")
+            validate_path("/some/dir")
     assert "/some/dir is not a valid Python package (no __init__.py found)." in str(
         excinfo.value
     )
@@ -52,13 +52,13 @@ def test_valid_directory():
         mock_validate_project_config_path,
     ), patch("modguard.filesystem.package.os.path.isdir", return_value=True):
         # No exception should be raised
-        validate_path_for_add("/some/dir")
+        validate_path("/some/dir")
 
 
 def test_non_python_file():
     with patch("modguard.filesystem.package.os.path.exists", return_value=True):
         with pytest.raises(ModguardError) as excinfo:
-            validate_path_for_add("/some/file.txt")
+            validate_path("/some/file.txt")
     assert "/some/file.txt is not a Python file." in str(excinfo.value)
 
 
@@ -70,7 +70,7 @@ def test_python_file_with_matching_directory():
 
     with patch("modguard.filesystem.package.os.path.exists", mock_exists):
         with pytest.raises(ModguardError) as excinfo:
-            validate_path_for_add("/some/file.py")
+            validate_path("/some/file.py")
     assert "{path} already has a directory of the same name." in str(excinfo.value)
 
 
@@ -84,7 +84,7 @@ def test_valid_python_file():
         "modguard.filesystem.validate_project_config_path", side_effect=SystemError
     ):
         with pytest.raises(ModguardError) as excinfo:
-            validate_path_for_add("/some/file.py")
+            validate_path("/some/file.py")
     assert f"{CONFIG_FILE_NAME} does not exist in any parent directories" in str(
         excinfo.value
     )
