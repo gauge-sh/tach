@@ -16,7 +16,7 @@ def print_errors(error_list: list[ErrorInfo]) -> None:
     sorted_results = sorted(error_list, key=lambda e: e.location)
     for error in sorted_results:
         print(
-            f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.WARNING}: {error.message}",
+            f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.ENDC}{BCOLORS.WARNING}: {error.message}{BCOLORS.ENDC}",
             file=sys.stderr,
         )
 
@@ -110,7 +110,7 @@ def tach_check(
         if not project_config.constraints:
             stop_spinner()
             print(
-                f"{BCOLORS.OKCYAN} No constraints specified in '{CONFIG_FILE_NAME}.yml'"
+                f"{BCOLORS.OKCYAN} No constraints specified in '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}"
             )
             sys.exit(0)
 
@@ -134,7 +134,7 @@ def tach_check(
     if result:
         print_errors(result)
         sys.exit(1)
-    print(f"✅ {BCOLORS.OKGREEN}All package dependencies validated!")
+    print(f"✅ {BCOLORS.OKGREEN}All package dependencies validated!{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -142,14 +142,12 @@ def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = 
     try:
         warnings = init_project(root=".", depth=depth, exclude_paths=exclude_paths)
     except Exception as e:
-        stop_spinner()
         print(str(e))
         sys.exit(1)
 
-    stop_spinner()
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'")
+    print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -165,9 +163,9 @@ def tach_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
     if warnings:
         print("\n".join(warnings))
     if len(paths) > 1:
-        print(f"✅ {BCOLORS.OKGREEN}Packages added.")
+        print(f"✅ {BCOLORS.OKGREEN}Packages added.{BCOLORS.ENDC}")
     else:
-        print(f"✅ {BCOLORS.OKGREEN}Package added.")
+        print(f"✅ {BCOLORS.OKGREEN}Package added.{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -180,7 +178,6 @@ def main() -> None:
         return
     exclude_paths = args.exclude.split(",") if args.exclude else None
     if args.command == "init":
-        start_spinner("Initializing...")
         tach_init(depth=args.depth, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
