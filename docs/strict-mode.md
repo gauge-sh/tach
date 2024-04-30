@@ -10,26 +10,27 @@ This creates an explicit public interface for the package which prevents couplin
 
 Given packages called 'core' and 'parsing', we may have `package.yml` and `tach.yml` contents like this:
 
-`core/package.yml`
 ```yaml
+# core/package.yml
 tags: ['core']
 strict: true
 ```
 
-`parsing/package.yml`
 ```yaml
+# parsing/package.yml
 tags: ['parsing']
 ```
 
-`tach.yml`
+
 ```yaml
+# tach.yml
 constraints:
   parsing:
     depends_on:
     - core
 ```
 
-Then, in a file within the 'parsing' package, we might have:
+Then, in a file within the 'parsing' package, we may have:
 ```python
 from core.main import get_data  # This import fails
 
@@ -56,4 +57,8 @@ which would allow 'parsing' to depend on this interface:
 from core import get_data  # This import is OK
 
 get_data()
+```
+`tach check` will now pass!
+```bash
+✅ All packages safely guarded!
 ```

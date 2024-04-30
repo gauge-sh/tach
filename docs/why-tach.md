@@ -1,26 +1,25 @@
-# Why tach?
+# Why `tach`?
 
 ## The Problem
-We built `tach` to solve a recurring problem that we've experienced on software teams -- **code sprawl**. Unintended cross-package imports would tightly couple together what used to be independent domains, and eventually create **"balls of mud"**. This made it harder to test, and harder to make changes. Mis-use of packages which were intended to be private would then degrade performance and even cause security incidents.
+By default, Python allows you to import and use anything, anywhere. Over time, this results in modules that were intended to be separate getting tightly coupled together, and domain boundaries breaking down. We experienced this first-hand at a unicorn startup, where the entire engineering team paused development for over a year in an attempt to split up tightly coupled packages into independent micro-services. This ultimately failed, and resulted in the CTO getting fired.
 
-This would happen for a variety of reasons:
+This problem occurs because:
+- It's much easier to add to an existing package rather than create a new one
+- Junior devs have a limited understanding of the existing architecture
+- External pressure leading to shortcuts and overlooking best practices
 
-- Junior developers had a limited understanding of the existing architecture and/or frameworks being used
-- It's significantly easier to add to an existing service than to create a new one
-- Python doesn't stop you from importing any code living anywhere
-- When changes are in a 'gray area', social desire to not block others would let changes through code review
-- External deadlines and management pressure would result in "doing it properly" getting punted and/or never done
-
-The attempts to fix this problem almost always came up short. Inevitably, standards guides would be written and stricter and stricter attempts would be made to enforce style guides, lead developer education efforts, and restrict code review. However, each of these approaches had their own flaws. 
+Attempts we've seen to fix this problem always came up short. A patchwork of solutions would attempt to solve this from different angles, such as developer education, CODEOWNERs, standard guides, refactors, and more. However, none of these addressed the root cause. 
 
 ## The Solution
-The solution was to explicitly define a package's **boundary** and **public interface** in code, and enforce those domain boundaries through CI. This meant that no developer could introduce a new cross-package dependency without explicitly changing the public interface or the boundary itself. This was a significantly smaller and well-scoped set of changes that could be maintained and managed by those who understood the intended design of the system.
+With `tach`, you can:
+1. Declare your packages ([`package.yml`](configuration.md#packageyml))
+2. Define dependencies between packages ([`tach.yml`](configuration.md#tachyml))
+3. Enforce those dependencies ([`tach check`](usage.md#tach-check))
 
-With `tach` set up, you can collaborate on your codebase with confidence that the intentional design of your packages will always be preserved.
+You can also enforce a strict interface for each package. This means that only imports that are directly listed in `__init__.py` can be imported by other packages.
 
 `tach` is:
-
 - fully open source
-- able to be adopted incrementally
+- able to be adopted incrementally ([`tach init`](usage.md#tach-init) and [`tach add`](usage.md#tach-add))
 - implemented with no runtime footprint
-- interoperable with your existing CI tools
+- interoperable with your existing tooling

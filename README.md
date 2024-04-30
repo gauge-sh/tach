@@ -5,20 +5,21 @@
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # tach
-A Python tool to enforce a modular, decoupled package architecture.
+a Python tool to enforce modular design
 
-![](https://raw.githubusercontent.com/Never-Over/tach/main/docs/tach_screencap_2x.gif)
 
 [Docs](https://never-over.github.io/tach/)
 
+[Discord](https://discord.gg/7crTTJwDv9) - come say hi!
+
 ### What is tach?
-tach allows you to define boundaries and control dependencies between your Python packages. Each package can also define its public interface.
+`tach` allows you to define boundaries and control dependencies between your Python packages. Each package can also define its public interface.
 
 This enforces a decoupled, modular architecture, and prevents tight coupling.
 If a package tries to import from another package that is not listed as a dependency, tach will throw an exception.
-If a package tries to import from another package and does not use its public interface, with `strict: true` set tach will throw an exception.
+If a package tries to import from another package and does not use its public interface, with `strict: true` set, `tach` will throw an exception.
 
-tach is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed as a lint check through the CLI.
+`tach` is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed as a lint check through the CLI.
 
 ### Installation
 ```bash
@@ -51,7 +52,7 @@ constraints:
 ```
 With these rules in place, packages with tag `core` can import from packages with tag `db` or `utils`. Packages tagged with `db` can only import from `utils`, and packages tagged with `utils` cannot import from any other packages in the project. 
 
-tach will now flag any violation of these boundaries.
+`tach` will now flag any violation of these boundaries.
 ```bash
 # From the root of your Python project (in this example, `project/`)
 > tach check
@@ -75,39 +76,38 @@ strict: true
 # The only valid import from "db"
 from db import PublicAPI 
 ```
-tach will now flag any import that is not from `__init__.py` in the `db` package, in addition to enforcing the dependencies defined above.
+`tach` will now flag any import that is not from `__init__.py` in the `db` package, in addition to enforcing the dependencies defined above.
 ```bash
 # From the root of your Python project (in this example, `project/`)
 > tach check
 ❌ ./core/main.py: Import "db.PrivateAPI" is blocked by boundary "db". "db" does not list "db.PrivateAPI" in its public interface.
 ```
 
-You can also view your entire project's set of dependencies and public interfaces. Run `tach show` to generate a URL where you can interact with the dependency graph, as well as view your public interfaces:
-```bash
-> tach show .
-tach.com/project/id
-```
-If you want to utilize this data for other purposes, run `tach show --write .` This will persist the data about your project in a `tach.json` file.
-
 ### Setup
-tach also comes bundled with a command to set up and define your initial boundaries.
+`tach` also comes bundled with a command to set up and define your initial boundaries.
 ```bash
-tach init .
+tach init
 ```
-By running `tach init` from the root of your Python project, tach will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
+By running `tach init` from the root of your Python project, `tach` will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
 The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root.
 ```bash
 > tach check
-#TODO show passing state here
+✅ All packages safely guarded!
 ```
 
+If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
+```bash
+tach add [file_or_path]
+```
+This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
+
 ### Advanced
-tach supports specific exceptions. You can mark an import with the `tach-ignore` comment:
+`tach` supports specific exceptions. You can mark an import with the `tach-ignore` comment:
 ```python
 # tach-ignore
 from db.main import PrivateAPI
 ```
-This will stop tach from flagging this import as a boundary violation.
+This will stop `tach` from flagging this import as a boundary violation.
 
 You can also specify multiple tags for a given package:
 ```python
@@ -121,13 +121,13 @@ This will expand the set of packages that "utils" can access to include all pack
     depends_on: [".*"] # Allow imports from anywhere
     depends_on: ["shared.*"] # Allow imports from any package with a tag starting with "shared"
 ```
-By default, tach ignores hidden directories and files (paths starting with `.`). To override this behavior, set `exclude_hidden_paths` in `tach.yml`
+By default, `tach` ignores hidden directories and files (paths starting with `.`). To override this behavior, set `exclude_hidden_paths` in `tach.yml`
 ```yaml
 exclude_hidden_paths: false
 ```
 
 ### Details
-tach works by analyzing the abstract syntax tree (AST) of your codebase. It has no runtime impact, and all operations are performed statically. 
+`tach` works by analyzing the abstract syntax tree (AST) of your codebase. It has no runtime impact, and all operations are performed statically. 
 
 Boundary violations are detected at the import layer. This means that specific nonstandard custom syntax to access packages such as `getattr` or dynamically generated namespaces will not be caught by tach.
 
