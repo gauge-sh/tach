@@ -25,6 +25,8 @@ Initialize boundaries with tach
 
 options:
   -h, --help            show this help message and exit
+  -d [depth], --depth [depth]
+                        The number of child directories to search for packages to initialize
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests,ci,...
 ```
