@@ -1,18 +1,4 @@
-constraints:
-  scope:filesystem:
-    depends_on:
-    - scope:utils
-  scope:parsing:
-    depends_on:
-    - scope:core
-    - scope:filesystem
-  scope:root:
-    depends_on:
-    - scope:utils
-    - scope:core
-    - scope:filesystem
-    - scope:parsing
-    - loading
+constraints: {}
 exclude:
 - tests/
 - docs/

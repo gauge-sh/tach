@@ -165,6 +165,9 @@ def check(
             ErrorInfo(exception_message=f"The path {root} is not a valid directory.")
         ]
 
+    if not project_config.constraints:
+        return []
+
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = fs.canonical(root)
     exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None

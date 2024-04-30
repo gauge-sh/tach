@@ -107,10 +107,18 @@ def tach_check(
 ):
     try:
         project_config = parse_project_config()
+        if not project_config.constraints:
+            stop_spinner()
+            print(
+                f"{BCOLORS.OKCYAN} No constraints specified in '{CONFIG_FILE_NAME}.yml'"
+            )
+            sys.exit(0)
+
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
         else:
             exclude_paths = project_config.exclude
+
         result: list[ErrorInfo] = check(
             ".",
             project_config,
@@ -141,7 +149,7 @@ def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = 
     stop_spinner()
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}Initialized {CONFIG_FILE_NAME}.yml.")
+    print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'")
     sys.exit(0)
 
 
