@@ -97,9 +97,7 @@ def read_file(path: str) -> str:
 def write_file(path: str, content: str):
     with open(path, "w") as f:
         f.write(content)
-        print(
-            f"{BCOLORS.WARNING}Wrote '{os.path.relpath(path, start=get_cwd())}'{BCOLORS.ENDC}"
-        )
+        print(f"{BCOLORS.WARNING}Wrote '{canonical(path)}'{BCOLORS.ENDC}")
 
     cached_file = _cached_file(path)
     if cached_file:
