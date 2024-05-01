@@ -1,6 +1,7 @@
 import os
 import ast
 import re
+import stat
 import sys
 import threading
 from collections import defaultdict
@@ -105,6 +106,13 @@ def write_file(path: str, content: str):
         cached_file.ast = None
     else:
         _set_cached_file(path, FileInfo(path=path, content=content))
+
+
+def mark_executable(path: str):
+    file_path = Path(path)
+    file_path.chmod(
+        file_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    )
 
 
 def parse_ast(path: str) -> ast.AST:

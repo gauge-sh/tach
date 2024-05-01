@@ -1,11 +1,13 @@
 import argparse
 import sys
+from enum import Enum
 from typing import Optional
 
 from tach.add import add_packages
 from tach.check import check, ErrorInfo
 from tach import filesystem as fs
 from tach.constants import CONFIG_FILE_NAME
+from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
 from tach.parsing import parse_project_config
@@ -87,6 +89,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="The tag for the module to be initialized with."
         "Use a comma-separated list for multiple.",
     )
+    install_parser = subparsers.add_parser(
+        "install",
+        prog="tach install",
+        help="Install tach into your workflow (e.g. as a pre-commit hook)",
+        description="Install tach into your workflow (e.g. as a pre-commit hook)",
+    )
+    install_parser.add_argument(
+        "target",
+        choices=InstallTarget.choices(),
+        help="What kind of installation to perform (e.g. pre-commit)",
+    )
+    install_parser.add_argument(
+        "-p",
+        "--path",
+        required=False,
+        type=str,
+        default=".",
+        help="The path where this installation should occur (default '.')",
+    )
     return parser
 
 
@@ -163,6 +184,36 @@ def tach_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
     sys.exit(0)
 
 
+class InstallTarget(Enum):
+    PRE_COMMIT = "pre-commit"
+
+    @classmethod
+    def choices(cls) -> list[str]:
+        return [item.value for item in cls]
+
+
+def tach_install(path: str, target: InstallTarget) -> None:
+    try:
+        if target == InstallTarget.PRE_COMMIT:
+            installed, warning = install_pre_commit(path=path)
+        else:
+            raise NotImplementedError(f"Target {target} is not supported by 'install'.")
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+
+    if installed:
+        print(
+            f"✅ {BCOLORS.OKGREEN}Pre-commit hook installed to '.git/hooks/pre-commit'.{BCOLORS.ENDC}"
+        )
+        sys.exit(0)
+    else:
+        print(
+            f"{BCOLORS.WARNING}Pre-commit hook could not be installed: {warning} {BCOLORS.ENDC}"
+        )
+        sys.exit(1)
+
+
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
     if args.command == "add":
@@ -170,12 +221,19 @@ def main() -> None:
         tags = set(args.tags.split(",")) if args.tags else None
         tach_add(paths=paths, tags=tags)
         return
-    exclude_paths = args.exclude.split(",") if args.exclude else None
+    exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
     if args.command == "init":
         tach_init(depth=args.depth, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
         tach_check(exclude_paths=exclude_paths)
+    elif args.command == "install":
+        try:
+            install_target = InstallTarget(args.target)
+        except ValueError:
+            print(f"{args.target} is not a valid installation target.")
+            sys.exit(1)
+        tach_install(path=args.path, target=install_target)
     else:
         print("Unrecognized command")
         parser.print_help()

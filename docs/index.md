@@ -16,4 +16,5 @@ When a package is in ['strict mode'](strict-mode.md), if another package tries t
 * [`tach init`](usage.md#tach-init) - Initialize package boundaries in your Python project.
 * [`tach add`](usage.md#tach-add) - Add a new package around a file or directory to your existing config. 
 * [`tach check`](usage.md#tach-check) - Check that boundaries are respected.
+* [`tach install`](usage.md#tach-install) - Install `tach` into your development workflow (e.g. pre-commit)
 

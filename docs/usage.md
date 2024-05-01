@@ -69,3 +69,32 @@ tach add utils -t shared
 Note that if you have [`strict:True`](strict-mode.md) set, you may end up in a failing state due to imports that used to be within a module now crossing a package boundary.
 
 If you have relative imports in a file that is turned into a package, they will also likely break due to the creation of the new package. Both issues should be easily solved by hand.
+
+## tach install
+`tach` can be installed into your development workflow automatically as a pre-commit hook. This means `tach check` will run from the root of your repo before any commit is created.
+
+
+### With pre-commit framework
+If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit), you can add the following to your `.pre-commit-hooks.yaml`:
+
+```yaml
+repos:
+-   repo: https://github.com/Never-Over/tach
+    rev: v0.1.2
+    hooks:
+    -   id: tach
+```
+
+Note that you should specify the version you are using in the `rev` key.
+
+
+### Standard install
+If you don't already have pre-commit hooks set up, you can run:
+
+```bash
+tach install pre-commit
+```
+
+The command above will install `tach check` as a pre-commit hook, directly into `.git/hooks/pre-commit`.
+
+If that file already exists, you will need to manually add `tach check` to your existing `.git/hooks/pre-commit` file.
