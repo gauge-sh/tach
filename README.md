@@ -97,6 +97,11 @@ tach add [file_or_path]
 ```
 This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
 
+
+### Pre-Commit Hook
+`tach` can be installed as a pre-commit hook. See the [docs](https://never-over.github.io/tach/usage/#tach-install) for installation instructions.
+
+
 ## Advanced
 `tach` supports specific exceptions. You can mark an import with the `tach-ignore` comment:
 ```python

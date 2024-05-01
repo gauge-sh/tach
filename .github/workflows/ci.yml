@@ -51,4 +51,4 @@ jobs:
     - name: Check tach
       run: |
         pip install .
-        tach check --exclude tests
+        tach check --exclude tests,build
