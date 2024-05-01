@@ -1,0 +1,6 @@
+- id: tach
+  name: tach
+  description: Validate package dependencies
+  entry: tach check
+  language: python
+  pass_filenames: false
