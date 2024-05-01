@@ -21,6 +21,7 @@ from tach.filesystem.project import (
 from tach.filesystem.package import (
     validate_package_config,
 )
+from tach.filesystem.install import install_pre_commit
 
 __all__ = [
     "get_cwd",
@@ -40,4 +41,5 @@ __all__ = [
     "print_no_config_yml",
     "validate_package_config",
     "find_project_config_root",
+    "install_pre_commit",
 ]
