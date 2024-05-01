@@ -42,13 +42,8 @@ include = ["tach"]
 exclude = ["**/__pycache__", ".venv"]
 strict = ["tach"]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["tach*"]
-namespaces = false
-
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
