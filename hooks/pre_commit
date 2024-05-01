@@ -1,0 +1,4 @@
+#!/bin/sh
+# Pre-commit script that validates dependencies locally
+
+exec tach check
