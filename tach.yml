@@ -16,4 +16,5 @@ constraints:
 exclude:
 - tests/
 - docs/
+- build/
 exclude_hidden_paths: true
