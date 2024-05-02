@@ -1,9 +1,15 @@
-from typing import Optional
+from typing import Optional, Any
 
 import yaml
 
 from tach.colors import BCOLORS
-from tach.core import ProjectConfig, PackageConfig, FullConfig, PackageTrie
+from tach.core import (
+    ProjectConfig,
+    PackageConfig,
+    FullConfig,
+    PackageTrie,
+    TagDependencyRules,
+)
 from tach import filesystem as fs
 from tach.parsing.interface import parse_interface_members
 
@@ -64,7 +70,59 @@ def build_package_trie_from_yml(
     return package_trie
 
 
-def parse_pyproject_toml_config(root: str = ".") -> Optional[FullConfig]: ...
+def parse_toml_project_config(toml_config: dict[str, Any]) -> ProjectConfig:
+    project_config = ProjectConfig()
+    if "exclude" in toml_config:
+        project_config.exclude = toml_config["exclude"]
+    if "exclude_hidden_paths" in toml_config:
+        project_config.exclude_hidden_paths = toml_config["exclude_hidden_paths"]
+    if "constraints" in toml_config:
+        project_config.constraints = [
+            TagDependencyRules(
+                tag=constraint["tag"], depends_on=constraint["depends_on"]
+            )
+            for constraint in toml_config["constraints"]
+        ]
+    return project_config
+
+
+def parse_toml_packages(toml_config: dict[str, Any]) -> PackageTrie:
+    packages = PackageTrie()
+    for package in toml_config.get("packages", []):
+        packages.insert(
+            config=PackageConfig(
+                tags=package["tags"], strict=package.get("strict", False)
+            ),
+            path=fs.file_to_module_path(package["path"]),
+            interface_members=parse_interface_members(package["path"]),
+        )
+    return packages
+
+
+def parse_pyproject_toml_config(root: str = ".") -> Optional[FullConfig]:
+    config_path = fs.get_toml_config_path(root=root)
+    if not config_path:
+        return None
+
+    content = fs.read_file(config_path)
+    try:
+        import tomllib
+
+        config = tomllib.loads(content)
+    except ImportError:
+        import toml
+
+        config = toml.loads(content)
+
+    try:
+        full_config_dict = config["tool"]["tach"]
+    except KeyError:
+        return None
+
+    return FullConfig(
+        project=parse_toml_project_config(full_config_dict),
+        packages=parse_toml_packages(full_config_dict),
+    )
 
 
 def parse_config(

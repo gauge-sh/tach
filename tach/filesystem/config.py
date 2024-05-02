@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from tach.colors import BCOLORS
-from tach.constants import CONFIG_FILE_NAME
+from tach.constants import CONFIG_FILE_NAME, TOML_CONFIG_FILE_NAME
 
 
 def print_no_config_yml() -> None:
@@ -43,3 +43,10 @@ def validate_project_config_yml_path(root: str = ".") -> str:
         sys.exit(1)
     else:
         return project_config_path
+
+
+def get_toml_config_path(root: str = ".") -> str:
+    toml_config_path = os.path.join(root, TOML_CONFIG_FILE_NAME)
+    if os.path.exists(toml_config_path):
+        return toml_config_path
+    return ""

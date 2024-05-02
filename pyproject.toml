@@ -43,6 +43,63 @@ include = ["tach"]
 exclude = ["**/__pycache__", ".venv"]
 strict = ["tach"]
 
+
+[tool.tach]
+exclude = ["tests/", "docs/", "build/"]
+exclude_hidden_paths = true
+
+[[tool.tach.packages]]
+path = "tach/core"
+tags = ["scope:core"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/filesystem"
+tags = ["scope:filesystem"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/parsing"
+tags = ["scope:parsing"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach"
+tags = ["scope:root"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/colors"
+tags = ["scope:utils"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/constants"
+tags = ["scope:utils"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/errors"
+tags = ["scope:utils"]
+strict = true
+
+[[tool.tach.constraints]]
+tag = "scope:core"
+depends_on = ["scope:utils"]
+
+[[tool.tach.constraints]]
+tag = "scope:filesystem"
+depends_on = ["scope:utils"]
+
+[[tool.tach.constraints]]
+tag = "scope:parsing"
+depends_on = ["scope:core", "scope:filesystem", "scope:utils"]
+
+[[tool.tach.constraints]]
+tag = "scope:root"
+depends_on = ["scope:utils", "scope:core", "scope:filesystem", "scope:parsing"]
+
+
 [build-system]
 requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"

@@ -17,12 +17,12 @@ class FullConfig(Config):
 
     def merge_project_config(self, project_config: ProjectConfig):
         # Overwrite all conflicting attributes
-        for attr, value in project_config.model_dump():
-            if value != getattr(self.project, attr):
+        for attr in project_config.model_dump().keys():
+            if getattr(project_config, attr) != getattr(self.project, attr):
                 print(
                     f"{BCOLORS.WARNING} Overwriting {attr} in project configuration.{BCOLORS.ENDC}"
                 )
-                setattr(self.project, attr, value)
+                setattr(self.project, attr, getattr(project_config, attr))
 
     def merge_exclude_paths(self, exclude_paths: Optional[list[str]] = None):
         self.project.merge_exclude_paths(exclude_paths=exclude_paths)
@@ -32,7 +32,8 @@ class FullConfig(Config):
         for package in packages:
             if package.config is None:
                 continue
-            if self.packages.get(package.full_path) is not None:
+            existing_package = self.packages.get(package.full_path)
+            if existing_package is not None and existing_package != package:
                 print(
                     f"{BCOLORS.WARNING} Overwriting package configuration at {package.full_path}{BCOLORS.ENDC}"
                 )
