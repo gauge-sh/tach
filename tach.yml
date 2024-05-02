@@ -1,4 +1,7 @@
 constraints:
+- tag: scope:core
+  depends_on:
+  - scope:utils
 - tag: scope:filesystem
   depends_on:
   - scope:utils
