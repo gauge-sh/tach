@@ -25,9 +25,9 @@ tags: ['parsing']
 ```yaml
 # tach.yml
 constraints:
-  parsing:
-    depends_on:
-    - core
+- tag: parsing
+  depends_on:
+  - core
 ```
 
 Then, in a file within the 'parsing' package, we may have:
