@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from tach import filesystem as fs
-from tach.core import PackageTrie, PackageNode, ProjectConfig
-from tach.parsing import build_package_trie, get_project_imports
+from tach.core import PackageNode, FullConfig
+from tach.parsing import get_project_imports
 
 
 @dataclass
@@ -73,13 +73,14 @@ def import_matches_interface_members(mod_path: str, package: PackageNode) -> boo
 
 
 def check_import(
-    project_config: ProjectConfig,
-    package_trie: PackageTrie,
+    config: FullConfig,
     import_mod_path: str,
     file_mod_path: str,
     file_nearest_package: Optional[PackageNode] = None,
 ) -> CheckResult:
-    import_nearest_package = package_trie.find_nearest(import_mod_path)
+    project_config = config.project
+    packages = config.packages
+    import_nearest_package = packages.find_nearest(import_mod_path)
     if import_nearest_package is None:
         # This shouldn't happen since we intend to filter out any external imports,
         # but we should allow external imports if they have made it here.
@@ -87,7 +88,7 @@ def check_import(
 
     # Lookup file_mod_path if package not given
     if file_nearest_package is None:
-        file_nearest_package = package_trie.find_nearest(file_mod_path)
+        file_nearest_package = packages.find_nearest(file_mod_path)
     # If package not found, we should fail since the implication is that
     # an external package is importing directly from our project
     if file_nearest_package is None:
@@ -157,12 +158,7 @@ def check_import(
     return CheckResult.success()
 
 
-def check(
-    root: str,
-    project_config: ProjectConfig,
-    exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
-) -> list[ErrorInfo]:
+def check(root: str, config: FullConfig) -> list[ErrorInfo]:
     if not os.path.isdir(root):
         return [
             ErrorInfo(exception_message=f"The path {root} is not a valid directory.")
@@ -170,18 +166,17 @@ def check(
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = fs.canonical(root)
-    exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
-
-    package_trie = build_package_trie(
-        root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
-    )
+    exclude_paths = list(map(fs.canonical, config.project.exclude))
+    packages = config.packages
 
     errors: list[ErrorInfo] = []
     for file_path in fs.walk_pyfiles(
-        root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
+        root,
+        exclude_paths=exclude_paths,
+        exclude_hidden_paths=config.project.exclude_hidden_paths,
     ):
         mod_path = fs.file_to_module_path(file_path)
-        nearest_package = package_trie.find_nearest(mod_path)
+        nearest_package = packages.find_nearest(mod_path)
         if nearest_package is None:
             continue
         import_mod_paths = get_project_imports(root, file_path)
@@ -189,8 +184,7 @@ def check(
         # (excluding stdlib, builtins, and 3rd party packages)
         for import_mod_path in import_mod_paths:
             check_result = check_import(
-                project_config=project_config,
-                package_trie=package_trie,
+                config=config,
                 import_mod_path=import_mod_path,
                 file_nearest_package=nearest_package,
                 file_mod_path=mod_path,

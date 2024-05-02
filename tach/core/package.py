@@ -1,8 +1,17 @@
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional, Generator
+from typing import Optional, Generator, List
 
-from tach.core.config import PackageConfig
+from tach.core.base import Config
+
+
+class PackageConfig(Config):
+    """
+    Configuration for a single package within a project.
+    """
+
+    tags: List[str]
+    strict: bool = False
 
 
 @dataclass

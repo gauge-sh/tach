@@ -1,10 +1,12 @@
-from tach.core.config import PackageConfig, TagDependencyRules, ProjectConfig
-from tach.core.package import PackageNode, PackageTrie
+from tach.core.project import TagDependencyRules, ProjectConfig
+from tach.core.package import PackageNode, PackageTrie, PackageConfig
+from tach.core.config import FullConfig
 
 __all__ = [
-    "PackageConfig",
-    "TagDependencyRules",
-    "ProjectConfig",
     "PackageNode",
     "PackageTrie",
+    "PackageConfig",
+    "ProjectConfig",
+    "TagDependencyRules",
+    "FullConfig",
 ]

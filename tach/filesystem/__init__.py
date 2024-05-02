@@ -13,10 +13,10 @@ from tach.filesystem.service import (
     is_project_import,
 )
 from tach.filesystem.project import (
-    get_project_config_path,
-    validate_project_config_path,
+    get_project_config_yml_path,
+    validate_project_config_yml_path,
     print_no_config_yml,
-    find_project_config_root,
+    find_project_config_yml_root,
 )
 from tach.filesystem.package import (
     validate_package_config,
@@ -36,10 +36,10 @@ __all__ = [
     "file_to_module_path",
     "module_to_file_path",
     "is_project_import",
-    "get_project_config_path",
-    "validate_project_config_path",
+    "get_project_config_yml_path",
+    "validate_project_config_yml_path",
     "print_no_config_yml",
     "validate_package_config",
-    "find_project_config_root",
+    "find_project_config_yml_root",
     "install_pre_commit",
 ]

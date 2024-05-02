@@ -4,8 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from tach.check import check, ErrorInfo
-from tach.core.config import PackageConfig, TagDependencyRules, ProjectConfig
-from tach.parsing.config import parse_project_config, parse_package_config
+from tach.core import PackageConfig, TagDependencyRules, ProjectConfig
+from tach.parsing.config import parse_project_config_yml, parse_package_config_yml
 from tach.filesystem import file_to_module_path
 from tach import filesystem as fs
 
@@ -17,7 +17,7 @@ def test_file_to_mod_path():
 
 
 def test_parse_valid_project_config():
-    result = parse_project_config("example/valid/")
+    result = parse_project_config_yml("example/valid/")
     assert result == ProjectConfig(
         constraints=[
             TagDependencyRules(tag="one", depends_on=["two"]),
@@ -34,7 +34,7 @@ def test_run_valid_project_config():
     try:
         project = "./example/valid/"
         fs.chdir(project)
-        project_config = parse_project_config()
+        project_config = parse_project_config_yml()
         results = check(
             ".",
             project_config,
@@ -48,38 +48,38 @@ def test_run_valid_project_config():
 
 
 def test_parse_valid_strict_package_config():
-    result = parse_package_config("example/valid/domain_one")
+    result = parse_package_config_yml("example/valid/domain_one")
     assert result == PackageConfig(strict=True, tags=["one"])
 
 
 def test_parse_valid_multi_tag_package_config():
-    result = parse_package_config("example/valid/domain_two")
+    result = parse_package_config_yml("example/valid/domain_two")
     assert result == PackageConfig(strict=False, tags=["two", "shared"])
 
 
 def test_package_with_no_config():
-    result = parse_package_config("example/")
+    result = parse_package_config_yml("example/")
     assert result is None
 
 
 def test_invalid_project_config():
     with pytest.raises(ValidationError):
-        parse_project_config("example/invalid/")
+        parse_project_config_yml("example/invalid/")
 
 
 def test_empty_project_config():
     with pytest.raises(ValueError):
-        parse_project_config("example/invalid/empty")
+        parse_project_config_yml("example/invalid/empty")
 
 
 def test_invalid_package_config():
     with pytest.raises(ValidationError):
-        parse_package_config("example/invalid")
+        parse_package_config_yml("example/invalid")
 
 
 def test_empty_package_config():
     with pytest.raises(ValueError):
-        parse_package_config("example/invalid")
+        parse_package_config_yml("example/invalid")
 
 
 def test_exclude_hidden_paths_fails():
@@ -87,7 +87,7 @@ def test_exclude_hidden_paths_fails():
     hidden_project = "./example/invalid/hidden/"
     fs.chdir(hidden_project)
     try:
-        project_config = parse_project_config()
+        project_config = parse_project_config_yml()
         assert project_config.exclude_hidden_paths is False
         results = check(
             ".",

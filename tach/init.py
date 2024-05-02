@@ -8,8 +8,7 @@ from tach import filesystem as fs
 from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
-from tach.core import ProjectConfig
-from tach.parsing import dump_project_config_to_yaml
+from tach.parsing import dump_project_config_to_yaml, parse_config
 
 __package_yml_template = """tags: ['{dir_name}']\n"""
 
@@ -47,7 +46,7 @@ class InitRootResult:
 
 
 def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootResult:
-    project_config_path = fs.get_project_config_path(root)
+    project_config_path = fs.get_project_config_yml_path(root)
     if project_config_path:
         return InitRootResult(
             warnings=[
@@ -55,21 +54,19 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
             ]
         )
 
-    project_config = ProjectConfig()
-    check_errors = check(
-        root, project_config=project_config, exclude_paths=exclude_paths
-    )
+    config = parse_config(root=root, exclude_paths=exclude_paths)
+    check_errors = check(root, config=config)
     for error in check_errors:
         if error.is_tag_error:
-            project_config.add_dependencies_to_tag(error.source_tag, error.invalid_tags)
+            config.project.add_dependencies_to_tag(error.source_tag, error.invalid_tags)
 
+    # TODO: ClI option for initializing TOML or YML
     tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-    tach_yml_content = dump_project_config_to_yaml(project_config)
+    tach_yml_content = dump_project_config_to_yaml(config.project)
     fs.write_file(tach_yml_path, tach_yml_content)
 
-    check_errors = check(
-        root, project_config=project_config, exclude_paths=exclude_paths
-    )
+    # Relies on mutation
+    check_errors = check(root, config=config)
     if check_errors:
         return InitRootResult(
             warnings=[

@@ -99,7 +99,7 @@ def test_check_import(
 ):
     result = check_import(
         project_config=project_config,
-        package_trie=package_trie,
+        packages=package_trie,
         file_mod_path=file_mod_path,
         import_mod_path=import_mod_path,
     )

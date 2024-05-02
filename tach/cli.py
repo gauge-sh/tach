@@ -10,8 +10,8 @@ from tach.constants import CONFIG_FILE_NAME
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
-from tach.parsing import parse_project_config
 from tach.colors import BCOLORS
+from tach.parsing import parse_config
 
 
 def print_errors(error_list: list[ErrorInfo]) -> None:
@@ -118,7 +118,7 @@ def parse_arguments(
     parsed_args = parser.parse_args(args)
 
     if args[0] not in ["init", "add"]:
-        fs.validate_project_config_path()
+        fs.validate_project_config_yml_path()
 
     return parsed_args, parser
 
@@ -127,19 +127,9 @@ def tach_check(
     exclude_paths: Optional[list[str]] = None,
 ):
     try:
-        project_config = parse_project_config()
+        config = parse_config(".", exclude_paths=exclude_paths)
 
-        if exclude_paths is not None and project_config.exclude is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
-
-        result: list[ErrorInfo] = check(
-            ".",
-            project_config,
-            exclude_paths=exclude_paths,
-            exclude_hidden_paths=project_config.exclude_hidden_paths,
-        )
+        result: list[ErrorInfo] = check(".", config=config)
     except Exception as e:
         stop_spinner()
         print(str(e))
