@@ -133,11 +133,7 @@ def check_import(
     import_tags = import_nearest_package.config.tags
 
     for file_tag in file_tags:
-        dependency_tags = (
-            project_config.constraints[file_tag].depends_on
-            if file_tag in project_config.constraints
-            else []
-        )
+        dependency_tags = project_config.dependencies_for_tag(file_tag)
         if any(
             any(
                 re.match(dependency_tag, import_tag)

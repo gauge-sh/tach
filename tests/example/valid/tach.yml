@@ -1,8 +1,12 @@
-exclude: ["domain_thr.*"]
 constraints:
-  one:
-    depends_on: ["two"]
-  two:
-    depends_on: ["one"]
-  three:
-    depends_on: []
+- tag: one
+  depends_on:
+  - two
+- tag: two
+  depends_on:
+  - one
+- tag: three
+  depends_on: []
+exclude:
+- domain_thr.*
+exclude_hidden_paths: true

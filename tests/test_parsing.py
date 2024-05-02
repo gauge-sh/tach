@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from tach.check import check, ErrorInfo
-from tach.core.config import PackageConfig, ScopeDependencyRules, ProjectConfig
+from tach.core.config import PackageConfig, TagDependencyRules, ProjectConfig
 from tach.parsing.config import parse_project_config, parse_package_config
 from tach.filesystem import file_to_module_path
 from tach import filesystem as fs
@@ -19,11 +19,11 @@ def test_file_to_mod_path():
 def test_parse_valid_project_config():
     result = parse_project_config("example/valid/")
     assert result == ProjectConfig(
-        constraints={
-            "one": ScopeDependencyRules(depends_on=["two"]),
-            "two": ScopeDependencyRules(depends_on=["one"]),
-            "three": ScopeDependencyRules(depends_on=[]),
-        },
+        constraints=[
+            TagDependencyRules(tag="one", depends_on=["two"]),
+            TagDependencyRules(tag="two", depends_on=["one"]),
+            TagDependencyRules(tag="three", depends_on=[]),
+        ],
         exclude=["domain_thr.*"],
         exclude_hidden_paths=True,
     )

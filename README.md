@@ -48,12 +48,15 @@ Next, specify the constraints for each tag in `tach.yml` in the root of your pro
 ```yaml
 # [root]/tach.yml
 constraints:
-  core:
-    depends_on: ["db", "utils"]
-  db:
-    depends_on: ["utils"]
-  utils:
-    depends_on: []
+- tag: core
+  depends_on:
+  - db
+  - utils
+- tag: db
+  depends_on:
+  - utils
+- tag: utils
+  depends_on: []
 ```
 With these rules in place, packages with tag `core` can import from packages with tag `db` or `utils`. Packages tagged with `db` can only import from `utils`, and packages tagged with `utils` cannot import from any other packages in the project. 
 

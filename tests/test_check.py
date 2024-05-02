@@ -4,7 +4,7 @@ from tach.core import (
     PackageTrie,
     PackageNode,
     ProjectConfig,
-    ScopeDependencyRules,
+    TagDependencyRules,
 )
 from tach.check import check_import
 
@@ -17,13 +17,13 @@ def test_config() -> PackageConfig:
 @pytest.fixture
 def project_config() -> ProjectConfig:
     return ProjectConfig(
-        constraints={
-            "domain_one": ScopeDependencyRules(
-                depends_on=["domain_one", "domain_three"]
+        constraints=[
+            TagDependencyRules(
+                tag="domain_one", depends_on=["domain_one", "domain_three"]
             ),
-            "domain_two": ScopeDependencyRules(depends_on=["domain_one"]),
-            "domain_three": ScopeDependencyRules(depends_on=[]),
-        }
+            TagDependencyRules(tag="domain_two", depends_on=["domain_one"]),
+            TagDependencyRules(tag="domain_three", depends_on=[]),
+        ]
     )
 
 

@@ -2,14 +2,14 @@ import os
 from dataclasses import field, dataclass
 from typing import Optional
 
-import yaml
 
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
-from tach.core import ProjectConfig, ScopeDependencyRules
+from tach.core import ProjectConfig
+from tach.parsing import dump_project_config_to_yaml
 
 __package_yml_template = """tags: ['{dir_name}']\n"""
 
@@ -61,17 +61,10 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
     )
     for error in check_errors:
         if error.is_tag_error:
-            existing_dependencies = set(
-                project_config.constraints.get(
-                    error.source_tag, ScopeDependencyRules(depends_on=[])
-                ).depends_on
-            )
-            project_config.constraints[error.source_tag] = ScopeDependencyRules(
-                depends_on=list(existing_dependencies | set(error.invalid_tags))
-            )
+            project_config.add_dependencies_to_tag(error.source_tag, error.invalid_tags)
 
     tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-    tach_yml_content = yaml.dump(project_config.model_dump())
+    tach_yml_content = dump_project_config_to_yaml(project_config)
     fs.write_file(tach_yml_path, tach_yml_content)
 
     check_errors = check(
