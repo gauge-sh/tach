@@ -50,3 +50,21 @@ def get_toml_config_path(root: str = ".") -> str:
     if os.path.exists(toml_config_path):
         return toml_config_path
     return ""
+
+
+def find_toml_config(path: str = ".") -> Optional[str]:
+    path = os.path.abspath(path)
+    if os.path.isdir(path):
+        toml_config_path = get_toml_config_path(path)
+        if toml_config_path:
+            return toml_config_path
+    path_obj = Path(path)
+    # Iterate upwards, looking for project config
+    for parent in path_obj.parents:
+        if get_toml_config_path(str(parent)):
+            return str(parent / TOML_CONFIG_FILE_NAME)
+
+
+def append_to_toml(toml_config_path: str, content: str) -> None:
+    with open(toml_config_path, "a") as f:
+        f.write("\n" + content)

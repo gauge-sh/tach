@@ -5,8 +5,7 @@ from typing import Optional
 
 from tach.add import add_packages
 from tach.check import check, ErrorInfo
-from tach import filesystem as fs
-from tach.constants import CONFIG_FILE_NAME
+from tach.constants import CONFIG_FILE_NAME, TOML_CONFIG_FILE_NAME
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
@@ -54,9 +53,14 @@ def build_parser() -> argparse.ArgumentParser:
         "-d",
         "--depth",
         type=int,
-        nargs="?",
+        required=False,
         default=None,
         help="The number of child directories to search for packages to initialize",
+    )
+    init_parser.add_argument(
+        "--toml",
+        action="store_true",
+        help="Set up configuration in pyproject.toml instead of tach.yml",
     )
     add_base_arguments(init_parser)
     check_parser = subparsers.add_parser(
@@ -117,9 +121,6 @@ def parse_arguments(
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if args[0] not in ["init", "add"]:
-        fs.validate_project_config_yml_path()
-
     return parsed_args, parser
 
 
@@ -143,16 +144,32 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None):
+def tach_init(
+    depth: Optional[int] = None,
+    exclude_paths: Optional[list[str]] = None,
+    use_toml_config: bool = False,
+):
     try:
-        warnings = init_project(root=".", depth=depth, exclude_paths=exclude_paths)
+        warnings = init_project(
+            root=".",
+            depth=depth,
+            exclude_paths=exclude_paths,
+            use_toml_config=use_toml_config,
+        )
     except Exception as e:
         print(str(e))
+        raise
         sys.exit(1)
 
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}")
+
+    if not use_toml_config:
+        print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}")
+    else:
+        print(
+            f"✅ {BCOLORS.OKGREEN}Initialized '{TOML_CONFIG_FILE_NAME}'{BCOLORS.ENDC}"
+        )
     sys.exit(0)
 
 
@@ -213,7 +230,9 @@ def main() -> None:
         return
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
     if args.command == "init":
-        tach_init(depth=args.depth, exclude_paths=exclude_paths)
+        tach_init(
+            depth=args.depth, exclude_paths=exclude_paths, use_toml_config=args.toml
+        )
     elif args.command == "check":
         start_spinner("Scanning...")
         tach_check(exclude_paths=exclude_paths)

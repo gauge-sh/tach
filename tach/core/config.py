@@ -15,6 +15,12 @@ class FullConfig(Config):
     project: ProjectConfig
     packages: PackageTrie
 
+    @classmethod
+    def from_packages_only(cls, packages: PackageTrie) -> "FullConfig":
+        # This is useful in init, since we initialize the root configuration _after_
+        # the package configuration
+        return cls(project=ProjectConfig(), packages=packages)
+
     def merge_project_config(self, project_config: ProjectConfig):
         # Overwrite all conflicting attributes
         for attr in project_config.model_dump().keys():

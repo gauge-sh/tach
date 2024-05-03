@@ -43,66 +43,64 @@ include = ["tach"]
 exclude = ["**/__pycache__", ".venv"]
 strict = ["tach"]
 
-
-[tool.tach]
-exclude = ["tests/", "docs/", "build/"]
-exclude_hidden_paths = true
-
-[[tool.tach.packages]]
-path = "tach/core"
-tags = ["scope:core"]
-strict = true
-
-[[tool.tach.packages]]
-path = "tach/filesystem"
-tags = ["scope:filesystem"]
-strict = true
-
-[[tool.tach.packages]]
-path = "tach/parsing"
-tags = ["scope:parsing"]
-strict = true
-
-[[tool.tach.packages]]
-path = "tach"
-tags = ["scope:root"]
-strict = true
-
-[[tool.tach.packages]]
-path = "tach/colors"
-tags = ["scope:utils"]
-strict = true
-
-[[tool.tach.packages]]
-path = "tach/constants"
-tags = ["scope:utils"]
-strict = true
-
-[[tool.tach.packages]]
-path = "tach/errors"
-tags = ["scope:utils"]
-strict = true
-
-[[tool.tach.constraints]]
-tag = "scope:core"
-depends_on = ["scope:utils"]
-
-[[tool.tach.constraints]]
-tag = "scope:filesystem"
-depends_on = ["scope:utils"]
-
-[[tool.tach.constraints]]
-tag = "scope:parsing"
-depends_on = ["scope:core", "scope:filesystem", "scope:utils"]
-
-[[tool.tach.constraints]]
-tag = "scope:root"
-depends_on = ["scope:utils", "scope:core", "scope:filesystem", "scope:parsing"]
-
-
 [build-system]
 requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
 tach = "tach.cli:main"
+
+[[tool.tach.packages]]
+path = "tach"
+tags = ["tach"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/core"
+tags = ["tach.core"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/filesystem"
+tags = ["tach.filesystem"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/parsing"
+tags = ["tach.parsing"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/errors"
+tags = ["tach.errors"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/constants"
+tags = ["tach.constants"]
+strict = true
+
+[[tool.tach.packages]]
+path = "tach/colors"
+tags = ["tach.colors"]
+strict = true
+
+[tool.tach]
+exclude = ["tests/","docs/"]
+exclude_hidden_paths = true
+
+[[tool.tach.constraints]]
+tag = "tach"
+depends_on = ["tach.constants","tach.errors","tach.core","tach.colors","tach.parsing","tach.filesystem"]
+
+[[tool.tach.constraints]]
+tag = "tach.core"
+depends_on = ["tach.colors"]
+
+[[tool.tach.constraints]]
+tag = "tach.filesystem"
+depends_on = ["tach.constants","tach.errors","tach.colors"]
+
+[[tool.tach.constraints]]
+tag = "tach.parsing"
+depends_on = ["tach.constants","tach.core","tach.colors","tach.filesystem"]

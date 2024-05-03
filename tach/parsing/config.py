@@ -3,6 +3,7 @@ from typing import Optional, Any
 import yaml
 
 from tach.colors import BCOLORS
+from tach.constants import TOOL_NAME
 from tach.core import (
     ProjectConfig,
     PackageConfig,
@@ -70,6 +71,19 @@ def build_package_trie_from_yml(
     return package_trie
 
 
+def read_toml_file(path: str) -> dict[str, Any]:
+    try:
+        import tomllib
+
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+    except ImportError:
+        import toml  # pyright: ignore
+
+        with open(path, "r") as f:
+            return toml.loads(f.read())
+
+
 def parse_toml_project_config(toml_config: dict[str, Any]) -> ProjectConfig:
     project_config = ProjectConfig()
     if "exclude" in toml_config:
@@ -86,9 +100,9 @@ def parse_toml_project_config(toml_config: dict[str, Any]) -> ProjectConfig:
     return project_config
 
 
-def parse_toml_packages(toml_config: dict[str, Any]) -> PackageTrie:
+def parse_toml_packages(toml_config_packages: list[dict[str, Any]]) -> PackageTrie:
     packages = PackageTrie()
-    for package in toml_config.get("packages", []):
+    for package in toml_config_packages:
         packages.insert(
             config=PackageConfig(
                 tags=package["tags"], strict=package.get("strict", False)
@@ -99,30 +113,88 @@ def parse_toml_packages(toml_config: dict[str, Any]) -> PackageTrie:
     return packages
 
 
-def parse_pyproject_toml_config(root: str = ".") -> Optional[FullConfig]:
-    config_path = fs.get_toml_config_path(root=root)
+def toml_root_config_exists(root: str = ".") -> bool:
+    config_path = fs.find_toml_config(path=root)
+    if not config_path:
+        return False
+
+    config = read_toml_file(config_path)
+
+    try:
+        return bool(set(config["tool"][TOOL_NAME].keys()) - {"packages"})
+    except KeyError:
+        return False
+
+
+def parse_pyproject_toml_packages_only(root: str = ".") -> Optional[FullConfig]:
+    config_path = fs.find_toml_config(path=root)
     if not config_path:
         return None
 
-    content = fs.read_file(config_path)
-    try:
-        import tomllib
-
-        config = tomllib.loads(content)
-    except ImportError:
-        import toml
-
-        config = toml.loads(content)
+    config = read_toml_file(config_path)
 
     try:
-        full_config_dict = config["tool"]["tach"]
+        if TOOL_NAME in config["tool"]:
+            packages = config["tool"][TOOL_NAME]["packages"]
+        else:
+            packages = config["tool"][f"{TOOL_NAME}.packages"]
+    except KeyError:
+        return FullConfig(project=ProjectConfig(), packages=PackageTrie())
+
+    return FullConfig(
+        project=ProjectConfig(),
+        packages=parse_toml_packages(packages),
+    )
+
+
+def parse_pyproject_toml_config(root: str = ".") -> Optional[FullConfig]:
+    config_path = fs.find_toml_config(path=root)
+    if not config_path:
+        return None
+
+    config = read_toml_file(config_path)
+
+    try:
+        full_config_dict = config["tool"][TOOL_NAME]
     except KeyError:
         return None
 
     return FullConfig(
         project=parse_toml_project_config(full_config_dict),
-        packages=parse_toml_packages(full_config_dict),
+        packages=parse_toml_packages(full_config_dict.get("packages", [])),
     )
+
+
+__root_project_toml_template = """[tool.{tool_name}]
+exclude = [{excludes}]
+exclude_hidden_paths = {exclude_hidden_paths}
+"""
+
+__constraint_toml_template = """[[tool.{tool_name}.constraints]]
+tag = {tag}
+depends_on = [{depends_on}]
+"""
+
+
+def dump_project_config_to_toml(project_config: ProjectConfig) -> str:
+    root_section = __root_project_toml_template.format(
+        tool_name=TOOL_NAME,
+        excludes=",".join(
+            f'"{exclude_path}"' for exclude_path in project_config.exclude
+        ),
+        exclude_hidden_paths="true" if project_config.exclude_hidden_paths else "false",
+    )
+    constraint_sections = "\n".join(
+        __constraint_toml_template.format(
+            tool_name=TOOL_NAME,
+            tag=f'"{constraint.tag}"',
+            depends_on=",".join(
+                f'"{dependency}"' for dependency in constraint.depends_on
+            ),
+        )
+        for constraint in project_config.constraints
+    )
+    return root_section + "\n" + constraint_sections
 
 
 def parse_config(
@@ -142,8 +214,9 @@ def parse_config(
 
     # If TOML config is present, still parse available YML
     # and overwrite config when it is found
-    project_config_yml = parse_project_config_yml(root)
-    toml_config.merge_project_config(project_config=project_config_yml)
+    if fs.get_project_config_yml_path(root):
+        project_config_yml = parse_project_config_yml(root)
+        toml_config.merge_project_config(project_config=project_config_yml)
     toml_config.merge_exclude_paths(exclude_paths=exclude_paths)
     packages = build_package_trie_from_yml(
         root=root, project_config=toml_config.project
