@@ -59,20 +59,6 @@ class InitRootResult:
 def init_root(
     root: str, exclude_paths: Optional[list[str]] = None, use_toml_config: bool = False
 ) -> InitRootResult:
-    if bool(fs.get_project_config_yml_path(root)):
-        return InitRootResult(
-            warnings=[
-                f"{BCOLORS.OKCYAN}Project already contains {CONFIG_FILE_NAME}.yml{BCOLORS.ENDC}"
-            ]
-        )
-    elif toml_root_config_exists(root):
-        return InitRootResult(
-            warnings=[
-                f"{BCOLORS.OKCYAN}Project already contains configuration for {TOOL_NAME} in "
-                f"{TOML_CONFIG_FILE_NAME}{BCOLORS.ENDC}"
-            ]
-        )
-
     # Need to use lower-level methods to parse config
     # since root configuration doesn't exist yet
     if use_toml_config:
@@ -122,6 +108,16 @@ def init_project(
 
     if exclude_paths is None:
         exclude_paths = ["tests/", "docs/"]
+
+    if bool(fs.get_project_config_yml_path(root)):
+        return [
+            f"{BCOLORS.OKCYAN}Project already contains {CONFIG_FILE_NAME}.yml{BCOLORS.ENDC}"
+        ]
+    elif toml_root_config_exists(root):
+        return [
+            f"{BCOLORS.OKCYAN}Project already contains configuration for {TOOL_NAME} in "
+            f"{TOML_CONFIG_FILE_NAME}{BCOLORS.ENDC}"
+        ]
 
     warnings: list[str] = []
 
