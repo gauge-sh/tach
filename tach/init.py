@@ -8,61 +8,26 @@ from tach import filesystem as fs
 from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import (
-    PACKAGE_FILE_NAME,
     CONFIG_FILE_NAME,
     TOOL_NAME,
     TOML_CONFIG_FILE_NAME,
 )
 from tach.core import ProjectConfig, FullConfig
 from tach.parsing import (
-    dump_project_config_to_yaml,
-    parse_pyproject_toml_config,
-    dump_project_config_to_toml,
     build_package_trie_from_yml,
     toml_root_config_exists,
     parse_pyproject_toml_packages_only,
+    create_root_yml,
+    create_root_toml,
+    create_package_yml,
+    create_package_toml,
 )
-
-__package_yml_template = """tags: ['{dir_name}']\n"""
-
-__package_toml_template = """[[tool.{tool_name}.packages]]
-path = "{package_path}"
-tags = ["{tag}"]
-"""
 
 
 @dataclass
 class PackageInitResult:
     package_paths: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
-
-
-def create_package_yml(package_path: str) -> Optional[str]:
-    package_yml_path = os.path.join(package_path, f"{PACKAGE_FILE_NAME}.yml")
-    if os.path.exists(package_yml_path):
-        return f"{BCOLORS.OKCYAN}Package file '{package_yml_path}' already exists.{BCOLORS.ENDC}"
-    package_yml_content = __package_yml_template.format(
-        dir_name=package_path.replace(os.path.sep, ".")
-    )
-    fs.write_file(package_yml_path, package_yml_content)
-
-
-def create_package_toml(root: str, package_path: str) -> Optional[str]:
-    toml_config_path = fs.find_toml_config(path=root)
-    if not toml_config_path:
-        raise errors.TachError(
-            f"Could not find pyproject.toml config in any parent of '{root}'"
-        )
-
-    toml_config = parse_pyproject_toml_config()
-    if toml_config and toml_config.packages.get(fs.file_to_module_path(package_path)):
-        return f"{BCOLORS.OKCYAN}Package '{package_path}' already registered.{BCOLORS.ENDC}"
-    package_toml_content = __package_toml_template.format(
-        tool_name=TOOL_NAME,
-        package_path=package_path,
-        tag=package_path.replace(os.path.sep, "."),
-    )
-    fs.append_to_toml(toml_config_path, package_toml_content)
 
 
 def init_packages(
@@ -91,39 +56,16 @@ class InitRootResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def root_yml_exists(root: str) -> bool:
-    return bool(fs.get_project_config_yml_path(root))
-
-
-def create_root_yml(root: str, project_config: ProjectConfig):
-    tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-    tach_yml_content = dump_project_config_to_yaml(project_config)
-    fs.write_file(tach_yml_path, tach_yml_content)
-
-
-def root_toml_exists(root: str) -> bool:
-    return toml_root_config_exists(root)
-
-
-def create_root_toml(root: str, project_config: ProjectConfig):
-    config_path = fs.find_toml_config(root)
-    if not config_path:
-        raise errors.TachError(
-            f"Could not find pyproject.toml config in any parent of '{root}'"
-        )
-    fs.append_to_toml(config_path, dump_project_config_to_toml(project_config))
-
-
 def init_root(
     root: str, exclude_paths: Optional[list[str]] = None, use_toml_config: bool = False
 ) -> InitRootResult:
-    if root_yml_exists(root):
+    if bool(fs.get_project_config_yml_path(root)):
         return InitRootResult(
             warnings=[
                 f"{BCOLORS.OKCYAN}Project already contains {CONFIG_FILE_NAME}.yml{BCOLORS.ENDC}"
             ]
         )
-    elif root_toml_exists(root):
+    elif toml_root_config_exists(root):
         return InitRootResult(
             warnings=[
                 f"{BCOLORS.OKCYAN}Project already contains configuration for {TOOL_NAME} in "

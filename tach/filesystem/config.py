@@ -65,6 +65,15 @@ def find_toml_config(path: str = ".") -> Optional[str]:
             return str(parent / TOML_CONFIG_FILE_NAME)
 
 
+def find_project_root(path: str = ".") -> Optional[str]:
+    project_config_yml = find_project_config_yml_root(path)
+    if project_config_yml:
+        return project_config_yml
+    project_config_toml = find_toml_config(path)
+    if project_config_toml:
+        return os.path.dirname(project_config_toml)
+
+
 def append_to_toml(toml_config_path: str, content: str) -> None:
     with open(toml_config_path, "a") as f:
         f.write("\n" + content)

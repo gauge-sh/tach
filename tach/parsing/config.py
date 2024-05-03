@@ -1,9 +1,10 @@
+import os
 from typing import Optional, Any
 
 import yaml
 
 from tach.colors import BCOLORS
-from tach.constants import TOOL_NAME
+from tach.constants import TOOL_NAME, CONFIG_FILE_NAME, PACKAGE_FILE_NAME
 from tach.core import (
     ProjectConfig,
     PackageConfig,
@@ -11,7 +12,7 @@ from tach.core import (
     PackageTrie,
     TagDependencyRules,
 )
-from tach import filesystem as fs
+from tach import filesystem as fs, errors
 from tach.parsing.interface import parse_interface_members
 
 
@@ -126,6 +127,19 @@ def toml_root_config_exists(root: str = ".") -> bool:
         return False
 
 
+def toml_config_exists(root: str = ".") -> bool:
+    config_path = fs.find_toml_config(path=root)
+    if not config_path:
+        return False
+
+    config = read_toml_file(config_path)
+
+    try:
+        return bool(config["tool"][TOOL_NAME])
+    except KeyError:
+        return False
+
+
 def parse_pyproject_toml_packages_only(root: str = ".") -> Optional[FullConfig]:
     config_path = fs.find_toml_config(path=root)
     if not config_path:
@@ -179,7 +193,7 @@ depends_on = [{depends_on}]
 def dump_project_config_to_toml(project_config: ProjectConfig) -> str:
     root_section = __root_project_toml_template.format(
         tool_name=TOOL_NAME,
-        excludes=",".join(
+        excludes=", ".join(
             f'"{exclude_path}"' for exclude_path in project_config.exclude
         ),
         exclude_hidden_paths="true" if project_config.exclude_hidden_paths else "false",
@@ -188,7 +202,7 @@ def dump_project_config_to_toml(project_config: ProjectConfig) -> str:
         __constraint_toml_template.format(
             tool_name=TOOL_NAME,
             tag=f'"{constraint.tag}"',
-            depends_on=",".join(
+            depends_on=", ".join(
                 f'"{dependency}"' for dependency in constraint.depends_on
             ),
         )
@@ -223,3 +237,54 @@ def parse_config(
     )
     toml_config.merge_packages(packages)
     return toml_config
+
+
+__package_yml_template = """tags: ['{dir_name}']\n"""
+
+__package_toml_template = """[[tool.{tool_name}.packages]]
+path = "{package_path}"
+tags = ["{tag}"]
+"""
+
+
+def create_root_yml(root: str, project_config: ProjectConfig):
+    tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
+    tach_yml_content = dump_project_config_to_yaml(project_config)
+    fs.write_file(tach_yml_path, tach_yml_content)
+
+
+def create_root_toml(root: str, project_config: ProjectConfig):
+    config_path = fs.find_toml_config(root)
+    if not config_path:
+        raise errors.TachError(
+            f"Could not find pyproject.toml config in any parent of '{root}'"
+        )
+    fs.append_to_toml(config_path, dump_project_config_to_toml(project_config))
+
+
+def create_package_yml(package_path: str) -> Optional[str]:
+    package_yml_path = os.path.join(package_path, f"{PACKAGE_FILE_NAME}.yml")
+    if os.path.exists(package_yml_path):
+        return f"{BCOLORS.OKCYAN}Package file '{package_yml_path}' already exists.{BCOLORS.ENDC}"
+    package_yml_content = __package_yml_template.format(
+        dir_name=package_path.replace(os.path.sep, ".")
+    )
+    fs.write_file(package_yml_path, package_yml_content)
+
+
+def create_package_toml(root: str, package_path: str) -> Optional[str]:
+    toml_config_path = fs.find_toml_config(path=root)
+    if not toml_config_path:
+        raise errors.TachError(
+            f"Could not find pyproject.toml config in any parent of '{root}'"
+        )
+
+    toml_config = parse_pyproject_toml_config()
+    if toml_config and toml_config.packages.get(fs.file_to_module_path(package_path)):
+        return f"{BCOLORS.OKCYAN}Package '{package_path}' already registered.{BCOLORS.ENDC}"
+    package_toml_content = __package_toml_template.format(
+        tool_name=TOOL_NAME,
+        package_path=package_path,
+        tag=package_path.replace(os.path.sep, "."),
+    )
+    fs.append_to_toml(toml_config_path, package_toml_content)

@@ -17,6 +17,7 @@ from tach.filesystem.config import (
     validate_project_config_yml_path,
     print_no_config_yml,
     find_project_config_yml_root,
+    find_project_root,
     find_toml_config,
     get_toml_config_path,
     append_to_toml,
@@ -47,5 +48,6 @@ __all__ = [
     "get_toml_config_path",
     "find_toml_config",
     "append_to_toml",
+    "find_project_root",
     "install_pre_commit",
 ]

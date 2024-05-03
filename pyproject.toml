@@ -103,4 +103,4 @@ depends_on = ["tach.constants","tach.errors","tach.colors"]
 
 [[tool.tach.constraints]]
 tag = "tach.parsing"
-depends_on = ["tach.constants","tach.core","tach.colors","tach.filesystem"]
+depends_on = ["tach.constants","tach.core","tach.colors","tach.filesystem","tach.errors"]
