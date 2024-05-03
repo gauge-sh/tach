@@ -74,15 +74,15 @@ def build_package_trie_from_yml(
 
 def read_toml_file(path: str) -> dict[str, Any]:
     try:
-        import tomllib
+        import tomllib  # pyright: ignore
 
         with open(path, "rb") as f:
-            return tomllib.load(f)
+            return tomllib.load(f)  # pyright: ignore
     except ImportError:
         import toml  # pyright: ignore
 
         with open(path, "r") as f:
-            return toml.loads(f.read())
+            return toml.loads(f.read())  # pyright: ignore
 
 
 def parse_toml_project_config(toml_config: dict[str, Any]) -> ProjectConfig:
