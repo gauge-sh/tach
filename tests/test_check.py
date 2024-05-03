@@ -5,6 +5,7 @@ from tach.core import (
     PackageNode,
     ProjectConfig,
     TagDependencyRules,
+    FullConfig,
 )
 from tach.check import check_import
 
@@ -73,6 +74,11 @@ def package_trie() -> PackageTrie:
     )
 
 
+@pytest.fixture
+def full_config(project_config, package_trie) -> FullConfig:
+    return FullConfig(project=project_config, packages=package_trie)
+
+
 @pytest.mark.parametrize(
     "file_mod_path,import_mod_path,expected_result",
     [
@@ -94,12 +100,9 @@ def package_trie() -> PackageTrie:
         ("external", "domain_three", False),
     ],
 )
-def test_check_import(
-    project_config, package_trie, file_mod_path, import_mod_path, expected_result
-):
+def test_check_import(full_config, file_mod_path, import_mod_path, expected_result):
     result = check_import(
-        project_config=project_config,
-        packages=package_trie,
+        config=full_config,
         file_mod_path=file_mod_path,
         import_mod_path=import_mod_path,
     )

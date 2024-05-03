@@ -98,7 +98,7 @@ def update_project_config(
     fs.chdir(current_dir)
 
 
-def validate_path(path: str, config: FullConfig) -> None:
+def validate_path(path: str, config: Optional[FullConfig] = None) -> None:
     if not os.path.exists(path):
         raise TachError(f"{path} does not exist.")
     if os.path.isdir(path):
@@ -124,7 +124,7 @@ def validate_path(path: str, config: FullConfig) -> None:
         if os.path.exists(path.removesuffix(".py")):
             raise TachError("{path} already has a directory of the same name.")
         dirname = os.path.dirname(path)
-        containing_package = config.packages.find_nearest(path)
+        containing_package = config.packages.find_nearest(path) if config else None
         if (
             containing_package is not None
             and containing_package.config is not None

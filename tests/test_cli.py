@@ -4,7 +4,7 @@ import pytest
 from tach import cli
 from tach.check import ErrorInfo
 from tach.constants import CONFIG_FILE_NAME
-from tach.core import ProjectConfig, TagDependencyRules
+from tach.core import ProjectConfig, TagDependencyRules, FullConfig, PackageTrie
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def mock_isdir(mocker) -> None:
         else:
             return False
 
-    mocker.patch("tach.filesystem.project.os.path.isdir", mock_isdir)
+    mocker.patch("tach.filesystem.config.os.path.isdir", mock_isdir)
 
 
 @pytest.fixture
@@ -33,22 +33,23 @@ def mock_path_exists(mocker) -> None:
         else:
             return False
 
-    mocker.patch("tach.filesystem.project.os.path.exists", mock_path_exists)
+    mocker.patch("tach.filesystem.config.os.path.exists", mock_path_exists)
 
 
 @pytest.fixture
-def mock_project_config(mocker) -> None:
-    def mock_project_config() -> ProjectConfig:
-        return ProjectConfig(
-            constraints=[TagDependencyRules(tag="mocked", depends_on=["mocked"])]
+def mock_config(mocker) -> None:
+    def mock_config(*args, **kwargs) -> FullConfig:
+        return FullConfig(
+            packages=PackageTrie(),
+            project=ProjectConfig(
+                constraints=[TagDependencyRules(tag="mocked", depends_on=["mocked"])]
+            ),
         )
 
-    mocker.patch("tach.cli.parse_project_config", mock_project_config)
+    mocker.patch("tach.cli.parse_config", mock_config)
 
 
-def test_execute_with_tach_yml(
-    capfd, mock_path_exists, mock_check, mock_project_config
-):
+def test_execute_with_tach_yml(capfd, mock_path_exists, mock_check, mock_config):
     # Test with a valid path as mocked
     args, _ = cli.parse_arguments(["check"])
     assert args.command == "check"
@@ -60,7 +61,7 @@ def test_execute_with_tach_yml(
     assert "All package dependencies validated!" in captured.out
 
 
-def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_project_config):
+def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_config):
     # Mock an error returned from check
     location = "valid_dir/file.py"
     message = "Import valid_dir in valid_dir/file.py is blocked by boundary"
@@ -77,15 +78,6 @@ def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_project_co
     assert message in captured.err
 
 
-def test_execute_with_no_tach_yml(capfd):
-    with pytest.raises(SystemExit) as sys_exit:
-        # Test with no tach.yml mocked
-        cli.parse_arguments(["check"])
-    captured = capfd.readouterr()
-    assert sys_exit.value.code == 1
-    assert "tach.(yml|yaml) not found" in captured.err
-
-
 def test_invalid_command(capfd):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with an invalid command
@@ -96,7 +88,7 @@ def test_invalid_command(capfd):
 
 
 def test_execute_with_valid_exclude(
-    capfd, mock_isdir, mock_path_exists, mock_check, mock_project_config
+    capfd, mock_isdir, mock_path_exists, mock_check, mock_config
 ):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked

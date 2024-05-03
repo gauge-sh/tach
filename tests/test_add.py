@@ -44,12 +44,12 @@ def test_valid_directory():
             or CONFIG_FILE_NAME in path
         )  # Everything exists for this test
 
-    def mock_validate_project_config_path(path):
+    def mock_validate_project_config_yml_path(path):
         return  # Assume validation is successful
 
     with patch("tach.filesystem.package.os.path.exists", mock_exists), patch(
-        "tach.filesystem.validate_project_config_path",
-        mock_validate_project_config_path,
+        "tach.filesystem.validate_project_config_yml_path",
+        mock_validate_project_config_yml_path,
     ), patch("tach.filesystem.package.os.path.isdir", return_value=True):
         # No exception should be raised
         validate_path("/some/dir")
@@ -80,7 +80,9 @@ def test_valid_python_file():
 
     with patch(
         "tach.filesystem.package.os.path.exists", side_effect=mock_exists
-    ), patch("tach.filesystem.validate_project_config_path", side_effect=SystemError):
+    ), patch(
+        "tach.filesystem.validate_project_config_yml_path", side_effect=SystemError
+    ):
         with pytest.raises(TachError) as excinfo:
             validate_path("/some/file.py")
     assert f"{CONFIG_FILE_NAME} does not exist in any parent directories" in str(
