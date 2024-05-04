@@ -1,5 +1,4 @@
 import os
-import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -136,10 +135,7 @@ def check_import(
     for file_tag in file_tags:
         dependency_tags = project_config.dependencies_for_tag(file_tag)
         if any(
-            any(
-                re.match(dependency_tag, import_tag)
-                for dependency_tag in dependency_tags
-            )
+            any(dependency_tag == import_tag for dependency_tag in dependency_tags)
             for import_tag in import_tags
         ):
             # The import has at least one tag which matches at least one expected dependency
