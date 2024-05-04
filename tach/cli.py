@@ -6,6 +6,7 @@ from typing import Optional
 from tach.add import add_packages
 from tach.check import check, ErrorInfo
 from tach.constants import CONFIG_FILE_NAME, TOML_CONFIG_FILE_NAME
+from tach.errors import TachInitError
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
@@ -156,9 +157,13 @@ def tach_init(
             exclude_paths=exclude_paths,
             use_toml_config=use_toml_config,
         )
+    except TachInitError as e:
+        print(
+            f"{BCOLORS.WARNING}Did not initialize. {BCOLORS.OKCYAN}{str(e)}{BCOLORS.ENDC}{BCOLORS.ENDC}"
+        )
+        sys.exit(1)
     except Exception as e:
         print(str(e))
-        raise
         sys.exit(1)
 
     if warnings:

@@ -6,7 +6,6 @@ from typing import Optional
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
-from tach.colors import BCOLORS
 from tach.constants import (
     CONFIG_FILE_NAME,
     TOOL_NAME,
@@ -104,20 +103,18 @@ def init_project(
     use_toml_config: bool = False,
 ) -> list[str]:
     if not os.path.isdir(root):
-        raise errors.TachSetupError(f"The path {root} is not a directory.")
+        raise errors.TachInitError(f"The path {root} is not a directory.")
 
     if exclude_paths is None:
         exclude_paths = ["tests/", "docs/"]
 
     if bool(fs.get_project_config_yml_path(root)):
-        return [
-            f"{BCOLORS.OKCYAN}Project already contains {CONFIG_FILE_NAME}.yml{BCOLORS.ENDC}"
-        ]
+        raise errors.TachInitError(f"Project already contains {CONFIG_FILE_NAME}.yml")
     elif toml_root_config_exists(root):
-        return [
-            f"{BCOLORS.OKCYAN}Project already contains configuration for {TOOL_NAME} in "
-            f"{TOML_CONFIG_FILE_NAME}{BCOLORS.ENDC}"
-        ]
+        raise errors.TachInitError(
+            f"Project already contains configuration for {TOOL_NAME} in "
+            f"{TOML_CONFIG_FILE_NAME}"
+        )
 
     warnings: list[str] = []
 
