@@ -162,8 +162,7 @@ def walk_pyfiles(
             continue
 
         if exclude_paths is not None and any(
-            dirpath_for_matching.startswith(exclude_path)
-            or re.match(exclude_path, dirpath_for_matching)
+            re.match(exclude_path, dirpath_for_matching)
             for exclude_path in exclude_paths
         ):
             # Treat excluded paths as invisible
@@ -178,6 +177,10 @@ def walk_pyfiles(
             if exclude_hidden_paths and filename.startswith("."):
                 continue
             file_path = os.path.join(dirpath, filename)
+            if exclude_paths is not None and any(
+                re.match(exclude_path, file_path) for exclude_path in exclude_paths
+            ):
+                continue
             if filename.endswith(".py"):
                 yield file_path
 
