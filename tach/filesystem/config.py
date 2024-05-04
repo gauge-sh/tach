@@ -1,17 +1,8 @@
 import os
-import sys
 from pathlib import Path
 from typing import Optional
 
-from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOML_CONFIG_FILE_NAME
-
-
-def print_no_config_yml() -> None:
-    print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {os.getcwd()}{BCOLORS.ENDC}",
-        file=sys.stderr,
-    )
 
 
 def get_project_config_yml_path(root: str = ".") -> str:
@@ -34,15 +25,6 @@ def find_project_config_yml_root(path: str) -> Optional[str]:
     for parent in path_obj.parents:
         if get_project_config_yml_path(str(parent)):
             return str(parent)
-
-
-def validate_project_config_yml_path(root: str = ".") -> str:
-    project_config_path = get_project_config_yml_path(root)
-    if not project_config_path:
-        print_no_config_yml()
-        sys.exit(1)
-    else:
-        return project_config_path
 
 
 def get_toml_config_path(root: str = ".") -> str:

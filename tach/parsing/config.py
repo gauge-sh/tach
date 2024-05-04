@@ -4,7 +4,12 @@ from typing import Optional, Any
 import yaml
 
 from tach.colors import BCOLORS
-from tach.constants import TOOL_NAME, CONFIG_FILE_NAME, PACKAGE_FILE_NAME
+from tach.constants import (
+    TOOL_NAME,
+    CONFIG_FILE_NAME,
+    PACKAGE_FILE_NAME,
+    TOML_CONFIG_FILE_NAME,
+)
 from tach.core import (
     ProjectConfig,
     PackageConfig,
@@ -24,11 +29,15 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
 
 
 def parse_project_config_yml(root: str = ".") -> ProjectConfig:
-    file_path = fs.validate_project_config_yml_path(root)
+    file_path = fs.get_project_config_yml_path(root)
+    if not file_path:
+        raise errors.TachSetupError(f"Could not find project config file at {root}")
     with open(file_path, "r") as f:
         result = yaml.safe_load(f)
         if not result or not isinstance(result, dict):
-            raise ValueError(f"Empty or invalid project config file: {file_path}")
+            raise errors.TachSetupError(
+                f"Empty or invalid project config file: {file_path}"
+            )
     was_deprecated_config, config = ProjectConfig.factory(result)  # type: ignore
     # Automatically update the config if it used the deprecated format
     if was_deprecated_config:
@@ -45,7 +54,9 @@ def parse_package_config_yml(root: str = ".") -> Optional[PackageConfig]:
         with open(file_path, "r") as f:
             result = yaml.safe_load(f)
             if not result or not isinstance(result, dict):
-                raise ValueError(f"Empty or invalid package config file: {file_path}")
+                raise errors.TachError(
+                    f"Empty or invalid package config file: {file_path}"
+                )
         # We want to error on type issues here for now
         return PackageConfig(**result)  # type: ignore
 
@@ -62,7 +73,7 @@ def build_package_trie_from_yml(
     ):
         package_config = parse_package_config_yml(dir_path)
         if package_config is None:
-            raise ValueError(f"Could not parse package config for {dir_path}")
+            raise errors.TachError(f"Could not parse package config for {dir_path}")
         package_trie.insert(
             config=package_config,
             path=fs.file_to_module_path(dir_path),
@@ -217,7 +228,13 @@ def parse_config(
     toml_config = parse_pyproject_toml_config(root)
     if not toml_config:
         # If no TOML config present, just parse and build everything from YML
-        project_config = parse_project_config_yml(root)
+        try:
+            project_config = parse_project_config_yml(root)
+        except errors.TachError:
+            raise errors.TachSetupError(
+                f"Could not find {TOOL_NAME} configuration ({CONFIG_FILE_NAME}.yml or "
+                f"[tool.{TOOL_NAME}] in {TOML_CONFIG_FILE_NAME}) in path '{root}'"
+            )
         project_config.merge_exclude_paths(exclude_paths=exclude_paths)
         return FullConfig(
             project=project_config,

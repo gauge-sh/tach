@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from tach.core import PackageConfig, TagDependencyRules, ProjectConfig
+from tach.errors import TachSetupError
 from tach.parsing.config import (
     parse_project_config_yml,
     parse_package_config_yml,
@@ -49,7 +50,7 @@ def test_invalid_project_config():
 
 
 def test_empty_project_config():
-    with pytest.raises(ValueError):
+    with pytest.raises(TachSetupError):
         parse_project_config_yml("example/invalid/empty")
 
 

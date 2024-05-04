@@ -7,7 +7,7 @@ from tach.add import add_packages
 from tach.check import check, ErrorInfo
 from tach.constants import CONFIG_FILE_NAME, TOML_CONFIG_FILE_NAME
 from tach.errors import TachInitError
-from tach.filesystem import install_pre_commit
+from tach import filesystem as fs, errors
 from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
 from tach.colors import BCOLORS
@@ -130,7 +130,6 @@ def tach_check(
 ):
     try:
         config = parse_config(".", exclude_paths=exclude_paths)
-
         result: list[ErrorInfo] = check(".", config=config)
     except Exception as e:
         stop_spinner()
@@ -180,7 +179,20 @@ def tach_init(
 
 def tach_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
     try:
-        warnings = add_packages(paths, tags)
+        project_root = fs.find_project_root(path=".")
+        if not project_root:
+            print(
+                f"Could not find project root ({CONFIG_FILE_NAME}.yml or "
+                f"{TOML_CONFIG_FILE_NAME}) in any parent directory."
+            )
+            sys.exit(1)
+        config = parse_config(root=project_root)
+        warnings = add_packages(project_root, paths=paths, config=config, tags=tags)
+    except errors.TachError as e:
+        print(
+            f"{BCOLORS.WARNING}Failed to add: {BCOLORS.OKCYAN}{str(e)}{BCOLORS.ENDC}{BCOLORS.ENDC}"
+        )
+        sys.exit(1)
     except Exception as e:
         stop_spinner()
         print(str(e))
@@ -207,7 +219,7 @@ class InstallTarget(Enum):
 def tach_install(path: str, target: InstallTarget) -> None:
     try:
         if target == InstallTarget.PRE_COMMIT:
-            installed, warning = install_pre_commit(path=path)
+            installed, warning = fs.install_pre_commit(path=path)
         else:
             raise NotImplementedError(f"Target {target} is not supported by 'install'.")
     except Exception as e:
