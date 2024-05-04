@@ -30,6 +30,21 @@ If a package tries to import from another package and does not use its public in
 pip install tach
 ```
 
+## Initial Setup
+`tach` comes bundled with a command to set up and define your initial boundaries.
+```bash
+tach init
+```
+By running `tach init` from the root of your Python project, `tach` will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
+The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root.
+
+If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
+```bash
+tach add [file_or_path]
+```
+This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
+
+
 ## Defining Packages
 To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:
 ```python
@@ -86,21 +101,6 @@ strict: true
 from db import PublicAPI 
 ```
 
-## Initial Setup
-`tach` also comes bundled with a command to set up and define your initial boundaries.
-```bash
-tach init
-```
-By running `tach init` from the root of your Python project, `tach` will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
-The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root.
-
-If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
-```bash
-tach add [file_or_path]
-```
-This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
-
-
 ### Pre-Commit Hook
 `tach` can be installed as a pre-commit hook. See the [docs](https://never-over.github.io/tach/usage/#tach-install) for installation instructions.
 
@@ -120,11 +120,6 @@ tags: ["core", "utils"]
 ```
 This will expand the set of packages that "utils" can access to include all packages that "core" and "utils" `depends_on` as defined in `tach.yml`.
 
-`tach.yml` also accepts regex patterns:
-```yaml
-    depends_on: [".*"] # Allow imports from anywhere
-    depends_on: ["shared.*"] # Allow imports from any package with a tag starting with "shared"
-```
 By default, `tach` ignores hidden directories and files (paths starting with `.`). To override this behavior, set `exclude_hidden_paths` in `tach.yml`
 ```yaml
 exclude_hidden_paths: false
