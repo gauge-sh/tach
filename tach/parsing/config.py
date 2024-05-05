@@ -11,6 +11,10 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # Using sort_keys=False here and depending on config.model_dump maintaining 'insertion order'
     # so that 'tag' appears before 'depends_on'
     # Instead, should provide custom yaml.Dumper & yaml.Representer or just write our own
+    # Sort only constraints and dependencies alphabetically for now
+    config.constraints.sort(key=lambda constr: constr.tag)
+    for constr in config.constraints:
+        constr.depends_on.sort()
     return yaml.dump(config.model_dump(), sort_keys=False)
 
 
