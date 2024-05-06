@@ -30,7 +30,7 @@ If a package tries to import from another package and does not use its public in
 pip install tach
 ```
 
-## Initial Setup
+## Quickstart
 `tach` comes bundled with a command to set up and define your initial boundaries.
 ```bash
 tach init
