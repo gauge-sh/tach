@@ -180,7 +180,11 @@ def check(
         nearest_package = package_trie.find_nearest(mod_path)
         if nearest_package is None:
             continue
-        import_mod_paths = get_project_imports(root, file_path)
+        import_mod_paths = get_project_imports(
+            root,
+            file_path,
+            ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+        )
         # This should only give us imports from within our project
         # (excluding stdlib, builtins, and 3rd party packages)
         for import_mod_path in import_mod_paths:
