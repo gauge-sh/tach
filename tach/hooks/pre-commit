@@ -2,9 +2,7 @@
 # Pre-commit script that validates dependencies locally
 set -e
 
-# Default values
 root_dir="."
-
 
 # Parse command-line arguments
 for arg in "$@"; do
