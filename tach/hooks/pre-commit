@@ -1,4 +1,21 @@
 #!/bin/sh
 # Pre-commit script that validates dependencies locally
+set -e
 
-exec tach check
+root_dir="."
+
+# Parse command-line arguments
+for arg in "$@"; do
+    case $arg in
+        --root=*)
+            root_dir="${arg#*=}"
+            shift
+            ;;
+        *)
+            echo "Unknown parameter passed to 'tach' pre-commit hook: $arg"
+            exit 1
+            ;;
+    esac
+done
+
+cd "$root_dir" && tach check
