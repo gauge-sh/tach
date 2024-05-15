@@ -1,10 +1,12 @@
 import argparse
+import os
 import sys
 from enum import Enum
+from functools import lru_cache
 from typing import Optional
 
 from tach.add import add_packages
-from tach.check import check, ErrorInfo
+from tach.check import check, BoundaryError
 from tach import filesystem as fs
 from tach.constants import CONFIG_FILE_NAME
 from tach.filesystem import install_pre_commit
@@ -14,11 +16,70 @@ from tach.parsing import parse_project_config
 from tach.colors import BCOLORS
 
 
-def print_errors(error_list: list[ErrorInfo]) -> None:
-    sorted_results = sorted(error_list, key=lambda e: e.location)
+class TerminalEnvironment(Enum):
+    UNKNOWN = 1
+    JETBRAINS = 2
+    VSCODE = 3
+
+
+@lru_cache()
+def detect_environment() -> TerminalEnvironment:
+    if "jetbrains" in os.environ.get("TERMINAL_EMULATOR", "").lower():
+        return TerminalEnvironment.JETBRAINS
+    elif "vscode" in os.environ.get("TERM_PROGRAM", "").lower():
+        return TerminalEnvironment.VSCODE
+
+    return TerminalEnvironment.UNKNOWN
+
+
+def create_clickable_link(file_path: str, line: Optional[int] = None) -> str:
+    terminal_env = detect_environment()
+    abs_path = os.path.abspath(file_path)
+
+    if terminal_env == TerminalEnvironment.JETBRAINS:
+        link = f"file://{abs_path}:{line}" if line is not None else f"file://{abs_path}"
+    elif terminal_env == TerminalEnvironment.VSCODE:
+        link = (
+            f"vscode://file/{abs_path}:{line}"
+            if line is not None
+            else f"vscode://file/{abs_path}"
+        )
+    else:
+        # For generic terminals, use a standard file link
+        link = f"file://{abs_path}"
+
+    # ANSI escape codes for clickable link
+    if line and terminal_env != TerminalEnvironment.UNKNOWN:
+        # Show the line number if clicking will take you to the line
+        display_file_path = f"{file_path}[L{line}]"
+    else:
+        display_file_path = file_path
+    clickable_link = f"\033]8;;{link}\033\\{display_file_path}\033]8;;\033\\"
+    return clickable_link
+
+
+def build_error_message(error: BoundaryError) -> str:
+    error_location = create_clickable_link(error.file_path, error.line_number)
+    error_template = f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: {{message}} {BCOLORS.ENDC}"
+    error_info = error.error_info
+    if error_info.exception_message:
+        return error_template.format(message=error_info.exception_message)
+    elif not error_info.is_tag_error:
+        return error_template.format(message="Unexpected error")
+
+    message = (
+        f"Cannot import '{error.import_mod_path}'. "
+        f"Tags {error_info.source_tags} cannot depend on {error_info.invalid_tags}."
+    )
+
+    return error_template.format(message=message)
+
+
+def print_errors(error_list: list[BoundaryError]) -> None:
+    sorted_results = sorted(error_list, key=lambda e: e.file_path)
     for error in sorted_results:
         print(
-            f"❌ {BCOLORS.FAIL}{error.location}{BCOLORS.ENDC}{BCOLORS.WARNING}: {error.message}{BCOLORS.ENDC}",
+            build_error_message(error),
             file=sys.stderr,
         )
 
@@ -134,7 +195,7 @@ def tach_check(
         else:
             exclude_paths = project_config.exclude
 
-        result: list[ErrorInfo] = check(
+        result: list[BoundaryError] = check(
             ".",
             project_config,
             exclude_paths=exclude_paths,

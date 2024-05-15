@@ -63,22 +63,27 @@ class ProjectConfig(Config):
             [],  # type: ignore
         )
 
-    def add_dependencies_to_tag(self, tag: str, dependencies: list[str]):
-        current_dependency_rules = next(
-            (constraint for constraint in self.constraints if constraint.tag == tag),
-            None,
-        )
-        if not current_dependency_rules:
-            # No constraint exists for tag, just add the new dependencies
-            self.constraints.append(
-                TagDependencyRules(tag=tag, depends_on=dependencies)
+    def add_dependencies_to_tags(self, tags: list[str], dependencies: list[str]):
+        for tag in tags:
+            current_dependency_rules = next(
+                (
+                    constraint
+                    for constraint in self.constraints
+                    if constraint.tag == tag
+                ),
+                None,
             )
-        else:
-            # Constraints already exist, set the union of existing and new as dependencies
-            new_dependencies = set(current_dependency_rules.depends_on) | set(
-                dependencies
-            )
-            current_dependency_rules.depends_on = list(new_dependencies)
+            if not current_dependency_rules:
+                # No constraint exists for tag, just add the new dependencies
+                self.constraints.append(
+                    TagDependencyRules(tag=tag, depends_on=dependencies)
+                )
+            else:
+                # Constraints already exist, set the union of existing and new as dependencies
+                new_dependencies = set(current_dependency_rules.depends_on) | set(
+                    dependencies
+                )
+                current_dependency_rules.depends_on = list(new_dependencies)
 
     @classmethod
     def factory(cls, config: dict[str, Any]) -> tuple[bool, "ProjectConfig"]:

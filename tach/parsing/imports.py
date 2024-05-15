@@ -1,4 +1,5 @@
 import ast
+import os
 import re
 from typing import Optional
 from dataclasses import dataclass, field
@@ -32,6 +33,12 @@ def get_ignore_directives(file_content: str) -> dict[int, IgnoreDirective]:
     return ignores
 
 
+@dataclass
+class ProjectImport:
+    mod_path: str
+    line_number: int
+
+
 class ImportVisitor(ast.NodeVisitor):
     def __init__(
         self,
@@ -45,7 +52,7 @@ class ImportVisitor(ast.NodeVisitor):
         self.current_mod_path = current_mod_path
         self.is_package = is_package
         self.ignored_imports = ignore_directives or {}
-        self.imports: list[str] = []
+        self.imports: list[ProjectImport] = []
         self.ignore_type_checking_imports = ignore_type_checking_imports
 
     def _get_ignored_modules(self, lineno: int) -> Optional[list[str]]:
@@ -92,7 +99,12 @@ class ImportVisitor(ast.NodeVisitor):
                 f"{base_mod_path}.{name_node.name}" if node.module else name_node.name
             )
             if fs.is_project_import(self.project_root, global_mod_path):
-                self.imports.append(global_mod_path)
+                self.imports.append(
+                    ProjectImport(
+                        mod_path=global_mod_path,
+                        line_number=node.lineno,
+                    )
+                )
 
     def visit_Import(self, node: ast.Import):
         ignored_modules = self._get_ignored_modules(node.lineno)
@@ -106,19 +118,27 @@ class ImportVisitor(ast.NodeVisitor):
                 self.project_root, alias.name
             ):
                 continue
-            self.imports.append(alias.name)
+            self.imports.append(
+                ProjectImport(
+                    mod_path=alias.name,
+                    line_number=node.lineno,
+                )
+            )
 
 
 def get_project_imports(
     project_root: str, file_path: str, ignore_type_checking_imports: bool = False
-) -> list[str]:
+) -> list[ProjectImport]:
     file_content = fs.read_file(file_path)
     parsed_ast = fs.parse_ast(file_path)
     ignore_directives = get_ignore_directives(file_content)
     mod_path = fs.file_to_module_path(file_path)
+    is_package = (
+        file_path.endswith(os.path.sep + "__init__.py") or file_path == "__init__.py"
+    )
     import_visitor = ImportVisitor(
         project_root=project_root,
-        is_package=file_path.endswith("__init__.py"),
+        is_package=is_package,
         current_mod_path=mod_path,
         ignore_directives=ignore_directives,
         ignore_type_checking_imports=ignore_type_checking_imports,

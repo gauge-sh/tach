@@ -2,7 +2,7 @@ from unittest.mock import Mock
 import pytest
 
 from tach import cli
-from tach.check import ErrorInfo
+from tach.check import ErrorInfo, BoundaryError
 from tach.constants import CONFIG_FILE_NAME
 from tach.core import ProjectConfig, TagDependencyRules
 
@@ -65,8 +65,13 @@ def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_project_co
     location = "valid_dir/file.py"
     message = "Import valid_dir in valid_dir/file.py is blocked by boundary"
     mock_check.return_value = [
-        ErrorInfo(
-            exception_message="Import valid_dir in valid_dir/file.py is blocked by boundary",
+        BoundaryError(
+            file_path=location,
+            line_number=0,
+            import_mod_path="valid_dir",
+            error_info=ErrorInfo(
+                exception_message="Import valid_dir in valid_dir/file.py is blocked by boundary",
+            ),
         )
     ]
     with pytest.raises(SystemExit) as sys_exit:

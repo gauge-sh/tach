@@ -61,32 +61,25 @@ def update_project_config(root: str, tags: set[str]):
             exclude_paths=project_config.exclude,
         )
         for error in check_errors:
-            if error.is_tag_error:
-                invalid_tags = set(error.invalid_tags)
-                if error.source_tag in tags:
+            error_info = error.error_info
+            if error_info.is_tag_error:
+                source_tags = set(error_info.source_tags)
+                invalid_tags = set(error_info.invalid_tags)
+                if source_tags & tags:
                     # A package with one of the added tags caused this error and should update its dependencies
-                    project_config.add_dependencies_to_tag(
-                        error.source_tag, error.invalid_tags
+                    project_config.add_dependencies_to_tags(
+                        error_info.source_tags, error_info.invalid_tags
                     )
                 if invalid_tags & tags:
                     # A package now depends on one of the added tags and should add the newly added tags
                     # Note that we should leave pre-existing invalid tags
-                    project_config.add_dependencies_to_tag(
-                        error.source_tag, list(invalid_tags & tags)
+                    project_config.add_dependencies_to_tags(
+                        error_info.source_tags, list(invalid_tags & tags)
                     )
 
         tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
         tach_yml_content = dump_project_config_to_yaml(project_config)
         fs.write_file(tach_yml_path, tach_yml_content)
-
-        check_errors = check(
-            root, project_config=project_config, exclude_paths=project_config.exclude
-        )
-        if check_errors:
-            return (
-                "Could not auto-detect all dependencies, "
-                "use 'tach check' to finish initialization manually."
-            )
     except Exception as e:
         fs.chdir(current_dir)
         raise e

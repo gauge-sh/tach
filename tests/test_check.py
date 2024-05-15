@@ -97,10 +97,11 @@ def package_trie() -> PackageTrie:
 def test_check_import(
     project_config, package_trie, file_mod_path, import_mod_path, expected_result
 ):
-    result = check_import(
+    check_error = check_import(
         project_config=project_config,
         package_trie=package_trie,
         file_mod_path=file_mod_path,
         import_mod_path=import_mod_path,
     )
-    assert result.ok == expected_result
+    result = check_error is None
+    assert result == expected_result

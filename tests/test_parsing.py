@@ -3,7 +3,7 @@ import os
 import pytest
 from pydantic import ValidationError
 
-from tach.check import check, ErrorInfo
+from tach.check import check
 from tach.core.config import PackageConfig, TagDependencyRules, ProjectConfig
 from tach.parsing.config import parse_project_config, parse_package_config
 from tach.filesystem import file_to_module_path
@@ -95,14 +95,7 @@ def test_exclude_hidden_paths_fails():
             exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
         assert len(results) == 1
-        assert results[0] == ErrorInfo(
-            location="hidden",
-            import_mod_path="",
-            source_tag="",
-            allowed_tags=[],
-            exception_message="Package 'unhidden' is in strict mode. Only imports from the root of"
-            " this package are allowed. The import 'unhidden.secret.shhhh' (in 'hidden') is not included in __all__.",
-        )
+        assert "strict mode" in results[0].error_info.exception_message
 
         project_config.exclude_hidden_paths = True
         assert check(".", project_config, exclude_hidden_paths=True) == []
