@@ -8,8 +8,8 @@ from tach import filesystem as fs
 from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
-from tach.core import ProjectConfig
 from tach.parsing import dump_project_config_to_yaml
+from tach.sync import prune_dependency_constraints
 
 __package_yml_template = """tags: ['{dir_name}']\n"""
 
@@ -55,16 +55,7 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
             ]
         )
 
-    project_config = ProjectConfig()
-    check_errors = check(
-        root, project_config=project_config, exclude_paths=exclude_paths
-    )
-    for error in check_errors:
-        error_info = error.error_info
-        if error_info.is_tag_error:
-            project_config.add_dependencies_to_tags(
-                error_info.source_tags, error_info.invalid_tags
-            )
+    project_config = prune_dependency_constraints(root, exclude_paths=exclude_paths)
 
     tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     tach_yml_content = dump_project_config_to_yaml(project_config)

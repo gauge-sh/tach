@@ -14,6 +14,7 @@ from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
 from tach.parsing import parse_project_config
 from tach.colors import BCOLORS
+from tach.sync import sync_project
 
 
 class TerminalEnvironment(Enum):
@@ -169,6 +170,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=".",
         help="The path where this installation should occur (default '.')",
     )
+    sync_parser = subparsers.add_parser(
+        "sync",
+        prog="tach sync",
+        help="Sync constraints with actual dependencies in your project.",
+        description="Sync constraints with actual dependencies in your project.",
+    )
+    sync_parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="Prune all existing constraints and re-sync dependencies.",
+    )
+    add_base_arguments(sync_parser)
     return parser
 
 
@@ -224,6 +237,17 @@ def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = 
     if warnings:
         print("\n".join(warnings))
     print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}")
+    sys.exit(0)
+
+
+def tach_sync(prune: bool = False, exclude_paths: Optional[list[str]] = None):
+    try:
+        sync_project(prune=prune, exclude_paths=exclude_paths)
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+
+    print(f"✅ {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -285,6 +309,8 @@ def main() -> None:
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
     if args.command == "init":
         tach_init(depth=args.depth, exclude_paths=exclude_paths)
+    elif args.command == "sync":
+        tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
         tach_check(exclude_paths=exclude_paths)

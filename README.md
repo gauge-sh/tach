@@ -44,6 +44,16 @@ tach add [file_or_path]
 ```
 This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
 
+If you want to sync your `tach.yml` with the actual dependencies found in your project, you can use `tach sync`:
+```bash
+tach sync [--prune]
+```
+
+Any dependency errors will be automatically resolved by
+adding the corresponding dependencies to your `tach.yml` file. If you supply `--prune`,
+any dependency constraints in your `tach.yml` which are not necessary will also be removed.
+
+
 
 ## Defining Packages
 To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:

@@ -40,6 +40,26 @@ In addition to their tags, the `package.yml` files will contain a `depends_on` k
 If `tach init` detects a only a single package in the root of your project where it's run, it will set boundaries within that package as well. Otherwise, it will simply create boundaries and dependencies for all top-level packages. You can optionally specify `-d/--depth`, which will create packages up to the specified number. 
 
 
+## tach sync
+`tach` can automatically sync your project configuration (`tach.yml`) with your project's actual dependencies.
+
+```bash
+usage: tach sync [-h] [--prune] [-e file_or_path,...]
+
+Sync constraints with actual dependencies in your project.
+
+options:
+  -h, --help            show this help message and exit
+  --prune               Prune all existing constraints and re-sync dependencies.
+  -e file_or_path,..., --exclude file_or_path,...
+                        Comma separated path list to exclude. tests/, ci/, etc.
+```
+
+When you run `tach sync`, any dependency errors will be automatically resolved by
+adding the corresponding dependencies to your `tach.yml` file. If you supply `--prune`,
+any dependency constraints in your `tach.yml` which are not necessary will also be removed.
+
+
 ## tach add
 `tach` also comes with a convenient command to add new packages and dependencies automatically.
 ```bash 
