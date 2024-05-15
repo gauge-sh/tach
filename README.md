@@ -1,14 +1,14 @@
 [![image](https://img.shields.io/pypi/v/tach.svg)](https://pypi.Python.org/pypi/tach)
 [![image](https://img.shields.io/pypi/l/tach.svg)](https://pypi.Python.org/pypi/tach)
 [![image](https://img.shields.io/pypi/pyversions/tach.svg)](https://pypi.Python.org/pypi/tach)
-[![image](https://github.com/Never-Over/tach/actions/workflows/ci.yml/badge.svg)](https://github.com/Never-Over/tach/actions/workflows/ci.yml)
+[![image](https://github.com/gauge-sh/tach/actions/workflows/ci.yml/badge.svg)](https://github.com/gauge-sh/tach/actions/workflows/ci.yml)
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # tach
 a Python tool to enforce modular design
 
 
-[Docs](https://never-over.github.io/tach/)
+[Docs](https://gauge-sh.github.io/tach/)
 
 [Discord](https://discord.gg/DKVksRtuqS) - come say hi!
 
@@ -102,7 +102,7 @@ from db import PublicAPI
 ```
 
 ### Pre-Commit Hook
-`tach` can be installed as a pre-commit hook. See the [docs](https://never-over.github.io/tach/usage/#tach-install) for installation instructions.
+`tach` can be installed as a pre-commit hook. See the [docs](https://gauge-sh.github.io/tach/usage/#tach-install) for installation instructions.
 
 
 ## Advanced
