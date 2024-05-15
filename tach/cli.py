@@ -218,7 +218,8 @@ def parse_arguments(
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if args[0] not in ["init", "add"]:
+    if args[0] not in ["init", "add", "clean", "sync"]:
+        # TODO: unify project config handling
         fs.validate_project_config_path()
 
     return parsed_args, parser
@@ -313,6 +314,9 @@ def tach_clean(force: bool = False) -> None:
         f"{BCOLORS.WARNING}This will DELETE all existing configuration for {TOOL_NAME}.{BCOLORS.ENDC}"
     )
     root = fs.find_project_config_root(".") or "."
+    print(
+        f"{BCOLORS.WARNING}Deletion will occur for project with root: '{os.path.abspath(root)}'{BCOLORS.ENDC}"
+    )
 
     if force:
         # No confirmation needed if 'force' passed
