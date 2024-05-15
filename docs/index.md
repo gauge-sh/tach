@@ -18,4 +18,5 @@ When a package is in ['strict mode'](strict-mode.md), if another package tries t
 * [`tach sync`](usage.md#tach-sync) - Sync constraints with actual dependencies in your Python project.
 * [`tach add`](usage.md#tach-add) - Add a new package around a file or directory to your existing config. 
 * [`tach install`](usage.md#tach-install) - Install `tach` into your development workflow (e.g. pre-commit)
+* [`tach clean`](usage.md#tach-clean) - Delete all existing configuration and start from a clean slate.
 

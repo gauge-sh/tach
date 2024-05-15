@@ -8,7 +8,8 @@ from typing import Optional
 from tach.add import add_packages
 from tach.check import check, BoundaryError
 from tach import filesystem as fs
-from tach.constants import CONFIG_FILE_NAME
+from tach.clean import clean_project
+from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
@@ -199,6 +200,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Prune all existing constraints and re-sync dependencies.",
     )
     add_base_arguments(sync_parser)
+    clean_parser = subparsers.add_parser(
+        "clean",
+        prog="tach clean",
+        help="Delete existing configuration and start from an empty slate.",
+        description="Delete existing configuration and start from an empty slate.",
+    )
+    clean_parser.add_argument(
+        "--force", action="store_true", help="Do not prompt for confirmation."
+    )
     return parser
 
 
@@ -208,7 +218,8 @@ def parse_arguments(
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if args[0] not in ["init", "add"]:
+    if args[0] not in ["init", "add", "clean", "sync"]:
+        # TODO: unify project config handling
         fs.validate_project_config_path()
 
     return parsed_args, parser
@@ -298,6 +309,29 @@ def tach_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
     sys.exit(0)
 
 
+def tach_clean(force: bool = False) -> None:
+    print(
+        f"{BCOLORS.WARNING}This will DELETE all existing configuration for {TOOL_NAME}.{BCOLORS.ENDC}"
+    )
+    root = fs.find_project_config_root(".") or "."
+    print(
+        f"{BCOLORS.WARNING}Deletion will occur for project with root: '{os.path.abspath(root)}'{BCOLORS.ENDC}"
+    )
+
+    if force:
+        # No confirmation needed if 'force' passed
+        confirmed = True
+    else:
+        response = input(f"{BCOLORS.OKCYAN}Confirm deletion [y/N]? {BCOLORS.ENDC}: ")
+        confirmed = response.lower() in ["y", "yes"]
+
+    if confirmed:
+        clean_project(root)
+        return
+    else:
+        print(f"{BCOLORS.OKCYAN}Not deleting configuration.{BCOLORS.ENDC}")
+
+
 class InstallTarget(Enum):
     PRE_COMMIT = "pre-commit"
 
@@ -343,6 +377,8 @@ def main() -> None:
     elif args.command == "check":
         start_spinner("Scanning...")
         tach_check(strict=args.strict, exclude_paths=exclude_paths)
+    elif args.command == "clean":
+        tach_clean(force=args.force)
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)

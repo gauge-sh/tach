@@ -31,7 +31,7 @@ options:
                         Comma separated path list to exclude. tests,ci,...
 ```
 
-By running `tach init` from the root of your Python project, `tach` will create an initial set of `package.yml` files to identify your Python packages.
+By running `tach init` from the root of your Python project, `tach` will create an initial set of `package.yml` files to identify your Python packages. The `--depth` flag determines how many directories `tach` will follow when detecting Python packages.
 
 These initial packages will receive a single 'tag' based on their path from the project root. The packages will _not_ be in strict mode by default, but setting `strict: true` in the `package.yml` file will enable this. See ['Strict Mode'](strict-mode.md) for details.
 
@@ -118,3 +118,22 @@ tach install pre-commit
 The command above will install `tach check` as a pre-commit hook, directly into `.git/hooks/pre-commit`.
 
 If that file already exists, you will need to manually add `tach check` to your existing `.git/hooks/pre-commit` file.
+
+
+## tach clean
+If you ever want to remove all configuration for `tach` and start over, you can use `tach clean`:
+
+```bash
+usage: tach clean [-h] [--force]
+
+Delete existing configuration and start from an empty slate.
+
+options:
+  -h, --help  show this help message and exit
+  --force     Do not prompt for confirmation.
+```
+
+This will find the nearest `tach` project in parent directories, or simply work from the current directory.
+It will remove `tach.yml` along with any `package.yml` files it finds.
+
+This is typically useful if you want to 're-initialize' your project at a different directory or depth.
