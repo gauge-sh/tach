@@ -85,6 +85,32 @@ class ProjectConfig(Config):
                 )
                 current_dependency_rules.depends_on = list(new_dependencies)
 
+    def find_extra_constraints(
+        self, other_config: "ProjectConfig"
+    ) -> list[TagDependencyRules]:
+        extra_constraints: list[TagDependencyRules] = []
+        base_constraint_tags = set(constraint.tag for constraint in self.constraints)
+        for constraint in other_config.constraints:
+            if constraint.tag not in base_constraint_tags:
+                extra_constraints.append(constraint)
+                continue
+            base_constraint_dependencies = set(
+                self.dependencies_for_tag(constraint.tag)
+            )
+            extra_dependencies = (
+                set(other_config.dependencies_for_tag(constraint.tag))
+                - base_constraint_dependencies
+            )
+            if extra_dependencies:
+                extra_constraints.append(
+                    TagDependencyRules(
+                        tag=constraint.tag,
+                        depends_on=list(extra_dependencies),
+                    )
+                )
+
+        return extra_constraints
+
     @classmethod
     def factory(cls, config: dict[str, Any]) -> tuple[bool, "ProjectConfig"]:
         """
