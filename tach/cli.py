@@ -67,16 +67,10 @@ def build_error_message(error: BoundaryError) -> str:
     elif not error_info.is_tag_error:
         return error_template.format(message="Unexpected error")
 
-    if error_info.allowed_tags:
-        message = (
-            f"Import '{error.import_mod_path}' has tags '{error_info.invalid_tags}' "
-            f"while '{error.file_path}' (tags: '{error_info.source_tags}') can only depend on '{error_info.allowed_tags}'"
-        )
-    else:
-        message = (
-            f"Import '{error.import_mod_path}' has tags '{error_info.invalid_tags}' "
-            f"while '{error.file_path}' (tags: '{error_info.source_tags}') cannot depend on any tags."
-        )
+    message = (
+        f"Cannot import '{error.import_mod_path}'. "
+        f"Tags {error_info.source_tags} cannot depend on {error_info.invalid_tags}."
+    )
 
     return error_template.format(message=message)
 
