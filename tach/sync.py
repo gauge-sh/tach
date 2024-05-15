@@ -58,9 +58,11 @@ def prune_dependency_constraints(
     """
     Build a minimal project configuration with auto-detected dependency constraints.
     """
-    project_config = project_config or ProjectConfig()
-    # Force constraints to be empty in case we received configuration with pre-existing constraints
-    project_config.constraints = []
+    if project_config is not None:
+        # Force constraints to be empty in case we received configuration with pre-existing constraints
+        project_config = project_config.model_copy(update={"constraints": []})
+    else:
+        project_config = ProjectConfig()
 
     sync_dependency_constraints(
         root, project_config=project_config, exclude_paths=exclude_paths

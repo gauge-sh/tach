@@ -9,12 +9,13 @@ from tach.add import add_packages
 from tach.check import check, BoundaryError
 from tach import filesystem as fs
 from tach.constants import CONFIG_FILE_NAME
+from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.loading import stop_spinner, start_spinner
 from tach.parsing import parse_project_config
 from tach.colors import BCOLORS
-from tach.sync import sync_project
+from tach.sync import sync_project, prune_dependency_constraints
 
 
 class TerminalEnvironment(Enum):
@@ -85,6 +86,17 @@ def print_errors(error_list: list[BoundaryError]) -> None:
         )
 
 
+def print_extra_constraints(constraints: list[TagDependencyRules]) -> None:
+    constraint_messages = "\n".join(
+        f"\t{BCOLORS.WARNING}{constraint.tag} does not depend on: {constraint.depends_on}{BCOLORS.ENDC}"
+        for constraint in constraints
+    )
+    print(
+        f"❌ {BCOLORS.FAIL}Found unused dependencies: {BCOLORS.ENDC}\n"
+        + constraint_messages
+    )
+
+
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-e",
@@ -126,6 +138,11 @@ def build_parser() -> argparse.ArgumentParser:
         prog="tach check",
         help="Check existing boundaries against your dependencies and package interfaces",
         description="Check existing boundaries against your dependencies and package interfaces",
+    )
+    check_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Raise errors if any dependency constraints are unused.",
     )
     add_base_arguments(check_parser)
     add_parser = subparsers.add_parser(
@@ -198,6 +215,7 @@ def parse_arguments(
 
 
 def tach_check(
+    strict: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
     try:
@@ -208,20 +226,31 @@ def tach_check(
         else:
             exclude_paths = project_config.exclude
 
-        result: list[BoundaryError] = check(
+        boundary_errors: list[BoundaryError] = check(
             ".",
             project_config,
             exclude_paths=exclude_paths,
             exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
+
+        # If we are checking in strict mode, we want to also verify that pruning constraints has no effect
+        if not boundary_errors and strict:
+            pruned_config = prune_dependency_constraints(
+                ".", project_config=project_config, exclude_paths=exclude_paths
+            )
+            extra_constraints = pruned_config.find_extra_constraints(project_config)
+            if extra_constraints:
+                stop_spinner()
+                print_extra_constraints(extra_constraints)
+                sys.exit(1)
     except Exception as e:
         stop_spinner()
         print(str(e))
         sys.exit(1)
 
     stop_spinner()
-    if result:
-        print_errors(result)
+    if boundary_errors:
+        print_errors(boundary_errors)
         sys.exit(1)
     print(f"✅ {BCOLORS.OKGREEN}All package dependencies validated!{BCOLORS.ENDC}")
     sys.exit(0)
@@ -313,7 +342,7 @@ def main() -> None:
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
-        tach_check(exclude_paths=exclude_paths)
+        tach_check(strict=args.strict, exclude_paths=exclude_paths)
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)
