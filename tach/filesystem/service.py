@@ -251,17 +251,14 @@ def path_exists_case_sensitive(p: Path) -> bool:
         p = p.parent
 
 
-def module_to_file_path(
-    mod_path: str, find_package_init: bool = False
-) -> tuple[str, str]:
+def module_to_file_path(mod_path: str) -> tuple[str, str]:
     # Assumes that the mod_path is correctly formatted and refers to an actual module
     fs_path = mod_path.replace(".", os.path.sep)
 
     # mod_path may refer to a package
-    if path_exists_case_sensitive(Path(fs_path)):
-        return (
-            os.path.join(fs_path, "__init__.py") if find_package_init else fs_path
-        ), ""
+    init_file_path = Path(fs_path) / "__init__.py"
+    if path_exists_case_sensitive(init_file_path):
+        return str(init_file_path), ""
 
     # mod_path may refer to a file module
     file_path = fs_path + ".py"
@@ -275,7 +272,8 @@ def module_to_file_path(
         member_name = fs_path[last_sep_index + 1 :]
         return file_path, member_name
 
-    init_file_path = fs_path[:last_sep_index] + "/__init__.py"
+    # mod_path may refer to a member within a package
+    init_file_path = fs_path[:last_sep_index] + os.path.sep + "__init__.py"
     if path_exists_case_sensitive(Path(init_file_path)):
         member_name = fs_path[last_sep_index + 1 :]
         return init_file_path, member_name

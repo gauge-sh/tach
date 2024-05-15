@@ -3,56 +3,21 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from tach import filesystem as fs
+from tach import errors
 from tach.core import PackageTrie, PackageNode, ProjectConfig
 from tach.parsing import build_package_trie, get_project_imports
 
 
 @dataclass
 class ErrorInfo:
-    location: str = ""
-    import_mod_path: str = ""
-    source_tag: str = ""
+    source_tags: list[str] = field(default_factory=list)
     invalid_tags: list[str] = field(default_factory=list)
     allowed_tags: list[str] = field(default_factory=list)
     exception_message: str = ""
 
     @property
     def is_tag_error(self) -> bool:
-        return all(
-            (self.location, self.import_mod_path, self.source_tag, self.invalid_tags)
-        )
-
-    @property
-    def message(self) -> str:
-        if self.exception_message:
-            return self.exception_message
-        if not self.is_tag_error:
-            return f"Unexpected error: ({[self.location, self.import_mod_path, self.source_tag, self.allowed_tags]})"
-        if not self.allowed_tags:
-            return (
-                f"Import '{self.import_mod_path}' with tags '{self.invalid_tags}' "
-                f"in {self.location} is blocked. "
-                f"Tag '{self.source_tag}' has no allowed dependency tags."
-            )
-        return (
-            f"Import '{self.import_mod_path}' with tags '{self.invalid_tags}' "
-            f"in {self.location} is blocked. "
-            f"Tag '{self.source_tag}' can only depend on tags '{self.allowed_tags}'."
-        )
-
-
-@dataclass
-class CheckResult:
-    ok: bool
-    error_info: Optional[ErrorInfo] = None
-
-    @classmethod
-    def success(cls) -> "CheckResult":
-        return cls(ok=True)
-
-    @classmethod
-    def fail(cls, error_info: ErrorInfo) -> "CheckResult":
-        return cls(ok=False, error_info=error_info)
+        return all((self.source_tags, self.invalid_tags))
 
 
 def is_top_level_package_import(mod_path: str, package: PackageNode) -> bool:
@@ -77,12 +42,12 @@ def check_import(
     import_mod_path: str,
     file_mod_path: str,
     file_nearest_package: Optional[PackageNode] = None,
-) -> CheckResult:
+) -> Optional[ErrorInfo]:
     import_nearest_package = package_trie.find_nearest(import_mod_path)
     if import_nearest_package is None:
         # This shouldn't happen since we intend to filter out any external imports,
         # but we should allow external imports if they have made it here.
-        return CheckResult.success()
+        return None
 
     # Lookup file_mod_path if package not given
     if file_nearest_package is None:
@@ -90,15 +55,13 @@ def check_import(
     # If package not found, we should fail since the implication is that
     # an external package is importing directly from our project
     if file_nearest_package is None:
-        return CheckResult.fail(
-            error_info=ErrorInfo(
-                exception_message=f"Package containing '{file_mod_path}' not found in project."
-            )
+        return ErrorInfo(
+            exception_message=f"Package containing '{file_mod_path}' not found in project.",
         )
 
     # Imports within the same package are always allowed
     if import_nearest_package == file_nearest_package:
-        return CheckResult.success()
+        return None
 
     import_package_config = import_nearest_package.config
     if import_package_config and import_package_config.strict:
@@ -109,24 +72,19 @@ def check_import(
         ):
             # In strict mode, import must be of the package itself or one of the
             # interface members (defined in __all__)
-            return CheckResult.fail(
-                error_info=ErrorInfo(
-                    location=file_mod_path,
-                    exception_message=(
-                        f"Package '{import_nearest_package.full_path}' is in strict mode. "
-                        "Only imports from the root of this package are allowed. "
-                        f"The import '{import_mod_path}' (in '{file_mod_path}') "
-                        f"is not included in __all__."
-                    ),
-                )
+            return ErrorInfo(
+                exception_message=(
+                    f"Package '{import_nearest_package.full_path}' is in strict mode. "
+                    "Only imports from the root of this package are allowed. "
+                    f"The import '{import_mod_path}' (in '{file_mod_path}') "
+                    f"is not included in __all__."
+                ),
             )
 
     # The import must be explicitly allowed based on the tags and top-level config
     if not file_nearest_package.config or not import_nearest_package.config:
-        return CheckResult.fail(
-            error_info=ErrorInfo(
-                exception_message="Could not find config for packages."
-            )
+        return ErrorInfo(
+            exception_message="Could not find package configuration.",
         )
     file_tags = file_nearest_package.config.tags
     import_tags = import_nearest_package.config.tags
@@ -140,17 +98,21 @@ def check_import(
             # The import has at least one tag which matches at least one expected dependency
             continue
         # This means the import has no tags which the file can depend on
-        return CheckResult.fail(
-            error_info=ErrorInfo(
-                location=file_mod_path,
-                import_mod_path=import_mod_path,
-                source_tag=file_tag,
-                invalid_tags=import_tags,
-                allowed_tags=dependency_tags,
-            )
+        return ErrorInfo(
+            source_tags=file_tags,
+            invalid_tags=import_tags,
+            allowed_tags=dependency_tags,
         )
 
-    return CheckResult.success()
+    return None
+
+
+@dataclass
+class BoundaryError:
+    file_path: str
+    line_number: int
+    import_mod_path: str
+    error_info: ErrorInfo
 
 
 def check(
@@ -158,11 +120,9 @@ def check(
     project_config: ProjectConfig,
     exclude_paths: Optional[list[str]] = None,
     exclude_hidden_paths: Optional[bool] = True,
-) -> list[ErrorInfo]:
+) -> list[BoundaryError]:
     if not os.path.isdir(root):
-        return [
-            ErrorInfo(exception_message=f"The path {root} is not a valid directory.")
-        ]
+        raise errors.TachSetupError(f"The path {root} is not a valid directory.")
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = fs.canonical(root)
@@ -172,7 +132,7 @@ def check(
         root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
     )
 
-    errors: list[ErrorInfo] = []
+    boundary_errors: list[BoundaryError] = []
     for file_path in fs.walk_pyfiles(
         root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
     ):
@@ -180,24 +140,32 @@ def check(
         nearest_package = package_trie.find_nearest(mod_path)
         if nearest_package is None:
             continue
-        import_mod_paths = get_project_imports(
+
+        # This should only give us imports from within our project
+        # (excluding stdlib, builtins, and 3rd party packages)
+        project_imports = get_project_imports(
             root,
             file_path,
             ignore_type_checking_imports=project_config.ignore_type_checking_imports,
         )
-        # This should only give us imports from within our project
-        # (excluding stdlib, builtins, and 3rd party packages)
-        for import_mod_path in import_mod_paths:
-            check_result = check_import(
+        for project_import in project_imports:
+            check_error = check_import(
                 project_config=project_config,
                 package_trie=package_trie,
-                import_mod_path=import_mod_path,
+                import_mod_path=project_import.mod_path,
                 file_nearest_package=nearest_package,
                 file_mod_path=mod_path,
             )
-            if check_result.ok or check_result.error_info is None:
+            if check_error is None:
                 continue
 
-            errors.append(check_result.error_info)
+            boundary_errors.append(
+                BoundaryError(
+                    file_path=file_path,
+                    import_mod_path=project_import.mod_path,
+                    line_number=project_import.line_number,
+                    error_info=check_error,
+                )
+            )
 
-    return errors
+    return boundary_errors

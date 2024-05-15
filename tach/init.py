@@ -60,8 +60,11 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
         root, project_config=project_config, exclude_paths=exclude_paths
     )
     for error in check_errors:
-        if error.is_tag_error:
-            project_config.add_dependencies_to_tag(error.source_tag, error.invalid_tags)
+        error_info = error.error_info
+        if error_info.is_tag_error:
+            project_config.add_dependencies_to_tags(
+                error_info.source_tags, error_info.invalid_tags
+            )
 
     tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     tach_yml_content = dump_project_config_to_yaml(project_config)
