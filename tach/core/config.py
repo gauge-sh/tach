@@ -88,7 +88,7 @@ class ProjectConfig(Config):
     def find_extra_constraints(
         self, other_config: "ProjectConfig"
     ) -> list[TagDependencyRules]:
-        extra_constraints = []
+        extra_constraints: list[TagDependencyRules] = []
         base_constraint_tags = set(constraint.tag for constraint in self.constraints)
         for constraint in other_config.constraints:
             if constraint.tag not in base_constraint_tags:
