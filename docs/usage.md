@@ -100,7 +100,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
 -   repo: https://github.com/Never-Over/tach
-    rev: v0.1.10  # change this to the latest tag!
+    rev: v0.1.11  # change this to the latest tag!
     hooks:
     -   id: tach
 ```
