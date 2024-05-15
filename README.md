@@ -40,7 +40,7 @@ The tool will take into consideration the usages between packages, and write a m
 
 If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
 ```bash
-tach add [file_or_path]
+tach add [package_or_file]
 ```
 This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
 
@@ -52,6 +52,11 @@ tach sync [--prune]
 Any dependency errors will be automatically resolved by
 adding the corresponding dependencies to your `tach.yml` file. If you supply `--prune`,
 any dependency constraints in your `tach.yml` which are not necessary will also be removed.
+
+In case you want to start over, `tach clean` lets you delete all `tach` configuration files so that you can re-initialize or configure your packages manually.
+```bash
+tach clean
+```
 
 
 
