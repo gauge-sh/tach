@@ -10,7 +10,7 @@ a Python tool to enforce modular design
 
 [Docs](https://never-over.github.io/tach/)
 
-[Discord](https://discord.gg/7crTTJwDv9) - come say hi!
+[Discord](https://discord.gg/DKVksRtuqS) - come say hi!
 
 
  <video loop src="https://github.com/Never-Over/tach/assets/10570340/a9d8d4df-d262-4b2b-b69a-adbc30d069aa">Tach Demo</video> 
