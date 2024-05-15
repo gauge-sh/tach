@@ -64,6 +64,10 @@ def _set_cached_file(path: str, file_info: FileInfo):
     _get_file_cache()[_file_cache_key(path)] = file_info
 
 
+def _remove_cached_file(path: str):
+    _get_file_cache().pop(_file_cache_key(path), None)
+
+
 def canonical(path: str) -> str:
     cached_file = _cached_file(path)
     if cached_file and cached_file.canonical_path:
@@ -106,6 +110,12 @@ def write_file(path: str, content: str):
         cached_file.ast = None
     else:
         _set_cached_file(path, FileInfo(path=path, content=content))
+
+
+def delete_file(path: str):
+    _remove_cached_file(path)
+    os.unlink(path)
+    print(f"{BCOLORS.WARNING}Deleted '{canonical(path)}'{BCOLORS.ENDC}")
 
 
 def mark_executable(path: str):
@@ -207,7 +217,7 @@ def walk_configured_packages(
     depth: Optional[int] = None,
     exclude_paths: Optional[list[str]] = None,
     exclude_hidden_paths: Optional[bool] = True,
-) -> Generator[str, None, None]:
+) -> Generator[tuple[str, str], None, None]:
     for dirpath in walk_pypackages(
         root,
         depth=depth,
@@ -216,7 +226,7 @@ def walk_configured_packages(
     ):
         package_yml_path = os.path.join(dirpath, "package.yml")
         if os.path.isfile(package_yml_path):
-            yield dirpath
+            yield dirpath, package_yml_path
 
 
 @lru_cache(maxsize=None)

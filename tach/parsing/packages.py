@@ -12,7 +12,7 @@ def build_package_trie(
 ) -> PackageTrie:
     package_trie = PackageTrie()
 
-    for dir_path in fs.walk_configured_packages(
+    for dir_path, _ in fs.walk_configured_packages(
         root,
         exclude_paths=exclude_paths,
         exclude_hidden_paths=exclude_hidden_paths,
