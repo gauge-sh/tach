@@ -4,8 +4,10 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional, Generator
 
+from prompt_toolkit import ANSI
 from rich.console import Console
 from rich.tree import Tree
+from rich.text import Text
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, HSplit, Window
@@ -99,7 +101,7 @@ class InteractivePackageTree:
     def __init__(self, path: str, depth: int = 1):
         self.file_tree = FileTree.build_from_path(path=path, depth=depth)
         self.console = Console()
-        self.tree_control = FormattedTextControl(text=self._render_tree())
+        self.tree_control = FormattedTextControl(text=ANSI(self._render_tree()))
         self.footer_control = self._build_footer()
         self.layout = Layout(
             HSplit([Frame(Window(self.tree_control)), Window(self.footer_control)])
@@ -176,11 +178,11 @@ class InteractivePackageTree:
         def toggle_package(event): ...
 
     @staticmethod
-    def _render_node(node: FileNode) -> str:
+    def _render_node(node: FileNode) -> Text:
         basename = os.path.basename(node.full_path)
         if node.is_package:
-            return f"[Package] {basename}"
-        return basename
+            return Text(f"[Package] {basename}", style="bold yellow")
+        return Text(basename)
 
     def _render_tree(self):
         tree_root = Tree("Packages")
@@ -209,7 +211,7 @@ class InteractivePackageTree:
         return capture.get()
 
     def _update_display(self):
-        self.tree_control.text = self._render_tree()
+        self.tree_control.text = ANSI(self._render_tree())
 
     def run(self):
         self.app.run()
