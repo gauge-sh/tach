@@ -34,6 +34,42 @@ class FileNode:
         is_package = os.path.isfile(os.path.join(path, f"{PACKAGE_FILE_NAME}.yml"))
         return cls(full_path=path, is_dir=is_dir, is_package=is_package)
 
+    @property
+    def parent_sorted_children(self) -> Optional[list["FileNode"]]:
+        if not self.parent:
+            return None
+        return sorted(self.parent.children, key=lambda node: node.full_path)
+
+    @property
+    def prev_sibling(self) -> Optional["FileNode"]:
+        parent_sorted_children = self.parent_sorted_children
+        if not parent_sorted_children:
+            return None
+
+        try:
+            my_index = parent_sorted_children.index(self)
+        except ValueError:
+            raise errors.TachError("Error occurred in interactive file tree navigation")
+
+        if my_index == 0:
+            return None
+        return parent_sorted_children[my_index - 1]
+
+    @property
+    def next_sibling(self) -> Optional["FileNode"]:
+        parent_sorted_children = self.parent_sorted_children
+        if not parent_sorted_children:
+            return None
+
+        try:
+            my_index = parent_sorted_children.index(self)
+        except ValueError:
+            raise errors.TachError("Error occurred in interactive file tree navigation")
+
+        if my_index == len(parent_sorted_children) - 1:
+            return None
+        return parent_sorted_children[my_index + 1]
+
 
 @dataclass
 class FileTree:
@@ -165,10 +201,50 @@ class InteractivePackageTree:
             self.app.exit()
 
         @self.key_bindings.add("up")
-        def up(event): ...
+        def up(event):
+            prev_sibling = self.selected_node.prev_sibling
+            # If previous sibling exists, want to bubble down to last child of this sibling
+            if prev_sibling:
+                curr_node = prev_sibling
+                while curr_node.children:
+                    curr_node = sorted(
+                        curr_node.children, key=lambda node: node.full_path
+                    )[-1]
+                self.selected_node = curr_node
+                self._update_display()
+            # If no previous sibling, go to parent
+            elif self.selected_node.parent:
+                self.selected_node = self.selected_node.parent
+                self._update_display()
 
         @self.key_bindings.add("down")
-        def down(event): ...
+        def down(event):
+            # If we have children, should go to first child alphabetically
+            if self.selected_node.children:
+                self.selected_node = sorted(
+                    self.selected_node.children, key=lambda node: node.full_path
+                )[0]
+                self._update_display()
+                return
+            # If we have no children and no parent, nothing to do
+            elif not self.selected_node.parent:
+                return
+
+            # Here we need to bubble up to find the next node
+            curr_node = self.selected_node
+            next_sibling = self.selected_node.next_sibling
+            while next_sibling is None:
+                if not curr_node.parent:
+                    break
+                curr_node = curr_node.parent
+                next_sibling = curr_node.next_sibling
+
+            if not next_sibling:
+                # We are the last child all the way up to root
+                return
+
+            self.selected_node = next_sibling
+            self._update_display()
 
         @self.key_bindings.add("right")
         def right(event):
