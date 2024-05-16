@@ -1,6 +1,7 @@
 import os
 from collections import deque
 from dataclasses import dataclass, field
+from enum import Enum
 from itertools import chain
 from typing import Optional, Generator, Callable
 
@@ -169,8 +170,15 @@ def file_tree_iterator(
             )
 
 
+class ExitCode(Enum):
+    QUIT_NOSAVE = 1
+    QUIT_SAVE = 2
+
+
 class InteractivePackageTree:
     def __init__(self, path: str, depth: int = 1):
+        # By default, don't save if we exit for any reason
+        self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
         self.file_tree = FileTree.build_from_path(path=path, depth=depth)
         self.selected_node = self.file_tree.root
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
@@ -253,11 +261,12 @@ class InteractivePackageTree:
 
         @self.key_bindings.add("c-c")
         def _(event):
+            self.exit_code = ExitCode.QUIT_NOSAVE
             self.app.exit()
 
         @self.key_bindings.add("c-s")
         def _(event):
-            # TODO: save
+            self.exit_code = ExitCode.QUIT_SAVE
             self.app.exit()
 
         @self.key_bindings.add("up")
@@ -373,10 +382,16 @@ class InteractivePackageTree:
     def _update_display(self):
         self.tree_control.text = ANSI(self._render_tree())
 
-    def run(self):
+    def run(self) -> Optional[list[SelectedPackage]]:
         self.app.run()
+        if self.exit_code == ExitCode.QUIT_SAVE:
+            return [
+                SelectedPackage(full_path=node.full_path)
+                for node in self.file_tree
+                if node.is_package
+            ]
 
 
 if __name__ == "__main__":
     ipt = InteractivePackageTree(path=".", depth=1)
-    ipt.run()
+    print([(pkg.full_path, pkg.tags) for pkg in ipt.run() or []])
