@@ -22,12 +22,34 @@ from tach.constants import PACKAGE_FILE_NAME
 
 
 @dataclass
+class SelectedPackage:
+    full_path: str
+
+    @property
+    def tags(self) -> list[str]:
+        # In the future, might make this an attribute of the dataclass
+        # and set it interactively
+        return [fs.file_to_module_path(self.full_path)]
+
+
+@dataclass
 class FileNode:
     full_path: str
     is_dir: bool
+    expanded: bool = False
     is_package: bool = False
     parent: Optional["FileNode"] = None
     children: list["FileNode"] = field(default_factory=list)
+
+    @property
+    def empty(self) -> bool:
+        return len(self.children) == 0
+
+    @property
+    def visible_children(self) -> list["FileNode"]:
+        if not self.expanded:
+            return []
+        return self.children
 
     @classmethod
     def build_from_path(cls, path: str) -> "FileNode":
@@ -39,7 +61,7 @@ class FileNode:
     def parent_sorted_children(self) -> Optional[list["FileNode"]]:
         if not self.parent:
             return None
-        return sorted(self.parent.children, key=lambda node: node.full_path)
+        return sorted(self.parent.visible_children, key=lambda node: node.full_path)
 
     @property
     def prev_sibling(self) -> Optional["FileNode"]:
@@ -80,15 +102,13 @@ class FileTree:
     @classmethod
     def build_from_path(cls, path: str, depth: int = 1) -> "FileTree":
         root = FileNode.build_from_path(fs.canonical(path))
+        root.expanded = True
         tree = cls(root)
         tree.nodes[path] = root
-        tree._build_subtree(root, depth)
+        tree._build_subtree(root, depth=depth)
         return tree
 
-    def _build_subtree(self, root: FileNode, depth: int):
-        if depth <= 0:
-            return
-
+    def _build_subtree(self, root: FileNode, depth: int = 1):
         if root.is_dir:
             try:
                 for entry in os.listdir(root.full_path):
@@ -100,11 +120,13 @@ class FileTree:
                         # Only interested in directories for now
                         continue
                     child_node = FileNode.build_from_path(entry_path)
+                    if depth > 0:
+                        child_node.expanded = True
                     child_node.parent = root
                     root.children.append(child_node)
                     self.nodes[entry_path] = child_node
                     if child_node.is_dir:
-                        self._build_subtree(child_node, depth - 1)
+                        self._build_subtree(child_node, max(depth - 1, 0))
             except PermissionError:
                 # This is expected to occur during listdir when the directory cannot be accessed
                 # We simply bail if that happens, meaning it won't show up in the interactive viewer
@@ -124,21 +146,35 @@ class FileTree:
     def __iter__(self):
         return file_tree_iterator(self)
 
+    def visible(self):
+        return file_tree_iterator(self, visible_only=True)
 
-def file_tree_iterator(tree: FileTree) -> Generator[FileNode, None, None]:
+
+def file_tree_iterator(
+    tree: FileTree, visible_only: bool = False
+) -> Generator[FileNode, None, None]:
     # DFS traversal for printing
     stack = deque([tree.root])
 
     while stack:
         node = stack.popleft()
         yield node
-        stack.extendleft(sorted(node.children, key=lambda n: n.full_path, reverse=True))
+        if visible_only:
+            stack.extendleft(
+                sorted(node.visible_children, key=lambda n: n.full_path, reverse=True)
+            )
+        else:
+            stack.extendleft(
+                sorted(node.children, key=lambda n: n.full_path, reverse=True)
+            )
 
 
 class InteractivePackageTree:
     def __init__(self, path: str, depth: int = 1):
         self.file_tree = FileTree.build_from_path(path=path, depth=depth)
         self.selected_node = self.file_tree.root
+        # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
+        # y location starts at 1 because the FileTree is rendered with a labeled header above the first branch
         self.cursor_point = Point(x=0, y=1)
         self.console = Console()
         self.tree_control = FormattedTextControl(
@@ -230,9 +266,9 @@ class InteractivePackageTree:
             # If previous sibling exists, want to bubble down to last child of this sibling
             if prev_sibling:
                 curr_node = prev_sibling
-                while curr_node.children:
+                while curr_node.visible_children:
                     curr_node = sorted(
-                        curr_node.children, key=lambda node: node.full_path
+                        curr_node.visible_children, key=lambda node: node.full_path
                     )[-1]
                 self.selected_node = curr_node
                 self.move_cursor_up()
@@ -246,9 +282,9 @@ class InteractivePackageTree:
         @self.key_bindings.add("down")
         def down(event):
             # If we have children, should go to first child alphabetically
-            if self.selected_node.children:
+            if self.selected_node.visible_children:
                 self.selected_node = sorted(
-                    self.selected_node.children, key=lambda node: node.full_path
+                    self.selected_node.visible_children, key=lambda node: node.full_path
                 )[0]
                 self.move_cursor_down()
                 self._update_display()
@@ -276,16 +312,12 @@ class InteractivePackageTree:
 
         @self.key_bindings.add("right")
         def right(event):
-            if self.selected_node.children:
-                return
-            self.file_tree.expand_path(self.selected_node.full_path)
+            self.selected_node.expanded = True
             self._update_display()
 
         @self.key_bindings.add("left")
         def left(event):
-            if not self.selected_node.children:
-                return
-            del self.selected_node.children[:]
+            self.selected_node.expanded = False
             self._update_display()
 
         @self.key_bindings.add("enter")
@@ -296,7 +328,7 @@ class InteractivePackageTree:
     def _render_node(self, node: FileNode) -> Text:
         text_parts = []
         if node == self.selected_node:
-            text_parts.append(("> ", "bold cyan"))
+            text_parts.append(("-> ", "bold cyan"))
 
         basename = os.path.basename(node.full_path)
         if node.is_package:
@@ -305,6 +337,11 @@ class InteractivePackageTree:
             text_parts.append((basename, "bold"))
         else:
             text_parts.append(basename)
+
+        if not node.empty and node.expanded:
+            text_parts.append((" ∨", "cyan"))
+        elif not node.empty:
+            text_parts.append((" >", "cyan"))
         return Text.assemble(*text_parts)
 
     def _render_tree(self):
@@ -314,7 +351,7 @@ class InteractivePackageTree:
         # parent pointers to find the parent rich.Tree branches
         tree_mapping: dict[str, Tree] = {}
 
-        for node in self.file_tree:
+        for node in self.file_tree.visible():
             if node.parent is None:
                 # If no parent on FileNode, add to rich.Tree root
                 tree_node = tree_root.add(self._render_node(node))
