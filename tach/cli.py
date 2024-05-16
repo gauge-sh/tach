@@ -141,7 +141,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Check existing boundaries against your dependencies and package interfaces",
     )
     check_parser.add_argument(
-        "--strict",
+        "--exact",
         action="store_true",
         help="Raise errors if any dependency constraints are unused.",
     )
@@ -226,12 +226,13 @@ def parse_arguments(
 
 
 def tach_check(
-    strict: bool = False,
+    exact: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
     try:
         project_config = parse_project_config()
-
+        if exact is False and project_config.exact is True:
+            exact = True
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
         else:
@@ -245,7 +246,7 @@ def tach_check(
         )
 
         # If we are checking in strict mode, we want to also verify that pruning constraints has no effect
-        if not boundary_errors and strict:
+        if not boundary_errors and exact:
             pruned_config = prune_dependency_constraints(
                 ".", project_config=project_config, exclude_paths=exclude_paths
             )
@@ -376,7 +377,7 @@ def main() -> None:
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
-        tach_check(strict=args.strict, exclude_paths=exclude_paths)
+        tach_check(exact=args.exact, exclude_paths=exclude_paths)
     elif args.command == "clean":
         tach_clean(force=args.force)
     elif args.command == "install":

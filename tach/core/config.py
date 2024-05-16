@@ -51,6 +51,7 @@ class ProjectConfig(Config):
     constraints: List[TagDependencyRules] = Field(default_factory=list)
     exclude: Optional[List[str]] = Field(default_factory=lambda: ["tests", "docs"])
     exclude_hidden_paths: bool = True
+    exact: bool = False
     ignore_type_checking_imports: bool = False
 
     def dependencies_for_tag(self, tag: str) -> list[str]:
