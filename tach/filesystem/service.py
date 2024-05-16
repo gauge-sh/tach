@@ -153,22 +153,27 @@ def parse_ast(path: str) -> ast.AST:
     return ast_result
 
 
-def walk_pyfiles(
+def walk(
     root: str,
     depth: Optional[int] = None,
+    exclude_root: bool = True,
     exclude_paths: Optional[list[str]] = None,
     exclude_hidden_paths: Optional[bool] = True,
-) -> Generator[str, None, None]:
+) -> Generator[tuple[str, list[str]], None, None]:
     canonical_root = canonical(root)
     base_depth = 0 if canonical_root == "." else canonical_root.count(os.path.sep) + 1
-    for dirpath, _, filenames in os.walk(canonical_root):
+    for dirpath, dirnames, filenames in os.walk(canonical_root):
         dirpath = canonical(dirpath)
         dirpath_for_matching = f"{dirpath}/"
 
-        if dirpath == canonical_root:
+        if exclude_root and dirpath == canonical_root:
             continue
 
-        if exclude_hidden_paths and os.path.basename(dirpath).startswith("."):
+        if exclude_hidden_paths and (
+            os.path.basename(os.path.normpath(dirpath)).startswith(".")
+        ):
+            # This prevents recursing into child directories of hidden paths
+            del dirnames[:]
             continue
 
         if exclude_paths is not None and any(
@@ -183,16 +188,35 @@ def walk_pyfiles(
             current_depth = dirpath.count(os.path.sep)
             if current_depth >= base_depth + depth:
                 continue
-        for filename in filenames:
+
+        def filter_filename(filename: str) -> bool:
             if exclude_hidden_paths and filename.startswith("."):
-                continue
+                return False
             file_path = os.path.join(dirpath, filename)
             if exclude_paths is not None and any(
                 re.match(exclude_path, file_path) for exclude_path in exclude_paths
             ):
-                continue
+                return False
+            return True
+
+        yield dirpath, list(filter(filter_filename, filenames))
+
+
+def walk_pyfiles(
+    root: str,
+    depth: Optional[int] = None,
+    exclude_paths: Optional[list[str]] = None,
+    exclude_hidden_paths: Optional[bool] = True,
+) -> Generator[str, None, None]:
+    for dirpath, filenames in walk(
+        root,
+        depth=depth,
+        exclude_paths=exclude_paths,
+        exclude_hidden_paths=exclude_hidden_paths,
+    ):
+        for filename in filenames:
             if filename.endswith(".py"):
-                yield file_path
+                yield os.path.join(dirpath, filename)
 
 
 def walk_pypackages(

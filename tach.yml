@@ -17,5 +17,8 @@ exclude:
 - tests/
 - docs/
 - build/
+- dist/
+- tach.egg-info/
+- ".*__pycache__/"
 exclude_hidden_paths: true
 ignore_type_checking_imports: false
