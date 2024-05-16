@@ -1,6 +1,7 @@
 import os
 from collections import deque
 from dataclasses import dataclass, field
+from itertools import chain
 from typing import Optional, Generator
 
 from rich.console import Console
@@ -10,6 +11,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, HSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.widgets import Frame
+from prompt_toolkit.styles import Style
 
 from tach import errors
 from tach import filesystem as fs
@@ -90,7 +92,7 @@ def file_tree_iterator(tree: FileTree) -> Generator[FileNode, None, None]:
     while stack:
         node = stack.popleft()
         yield node
-        stack.extendleft(sorted(node.children, key=lambda n: n.full_path))
+        stack.extendleft(sorted(node.children, key=lambda n: n.full_path, reverse=True))
 
 
 class InteractivePackageTree:
@@ -98,12 +100,52 @@ class InteractivePackageTree:
         self.file_tree = FileTree.build_from_path(path=path, depth=depth)
         self.console = Console()
         self.tree_control = FormattedTextControl(text=self._render_tree())
-        self.layout = Layout(HSplit([Frame(Window(self.tree_control))]))
+        self.footer_control = self._build_footer()
+        self.layout = Layout(
+            HSplit([Frame(Window(self.tree_control)), Window(self.footer_control)])
+        )
         self.key_bindings = KeyBindings()
         self._register_keybindings()
+        self.styles = self._build_styles()
         self.app = Application(
-            layout=self.layout, key_bindings=self.key_bindings, full_screen=True
+            layout=self.layout,
+            key_bindings=self.key_bindings,
+            full_screen=True,
+            style=self.styles,
         )
+
+    @staticmethod
+    def _build_styles() -> Style:
+        return Style.from_dict(
+            {
+                "footer-key": "bold cyan",
+            }
+        )
+
+    KEY_BINDING_LEGEND = [
+        ("Ctrl + c", "Exit without saving"),
+        ("Ctrl + s", "Save packages"),
+        ("Enter", "Mark/unmark package"),
+        ("Up/Down", "Navigate"),
+        ("Right", "Expand"),
+        ("Left", "Collapse"),
+    ]
+
+    @staticmethod
+    def _key_binding_text(binding: str, description: str) -> list[tuple[str, str]]:
+        return [("class:footer-key", binding), ("", f": {description}  ")]
+
+    @classmethod
+    def _build_footer(cls) -> FormattedTextControl:
+        footer_text = list(
+            chain(
+                *(
+                    cls._key_binding_text(legend[0], legend[1])
+                    for legend in cls.KEY_BINDING_LEGEND
+                )
+            )
+        )
+        return FormattedTextControl(text=footer_text)
 
     def _register_keybindings(self):
         if self.key_bindings.bindings:
@@ -113,15 +155,32 @@ class InteractivePackageTree:
         def _(event):
             self.app.exit()
 
-        @self.key_bindings.add("r")
-        def refresh(event):
-            self._update_display()
+        @self.key_bindings.add("c-s")
+        def save(event):
+            # TODO: save
+            self.app.exit()
+
+        @self.key_bindings.add("up")
+        def up(event): ...
+
+        @self.key_bindings.add("down")
+        def down(event): ...
+
+        @self.key_bindings.add("right")
+        def right(event): ...
+
+        @self.key_bindings.add("left")
+        def left(event): ...
+
+        @self.key_bindings.add("enter")
+        def toggle_package(event): ...
 
     @staticmethod
     def _render_node(node: FileNode) -> str:
+        basename = os.path.basename(node.full_path)
         if node.is_package:
-            return f"[Package] {node.full_path}"
-        return node.full_path
+            return f"[Package] {basename}"
+        return basename
 
     def _render_tree(self):
         tree_root = Tree("Packages")
@@ -154,3 +213,8 @@ class InteractivePackageTree:
 
     def run(self):
         self.app.run()
+
+
+if __name__ == "__main__":
+    ipt = InteractivePackageTree(path=".", depth=1)
+    ipt.run()
