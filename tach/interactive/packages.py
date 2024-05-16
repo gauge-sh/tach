@@ -44,6 +44,7 @@ class FileTree:
     def build_from_path(cls, path: str, depth: int = 1) -> "FileTree":
         root = FileNode.build_from_path(fs.canonical(path))
         tree = cls(root)
+        tree.nodes[path] = root
         tree._build_subtree(root, depth)
         return tree
 
@@ -100,6 +101,7 @@ def file_tree_iterator(tree: FileTree) -> Generator[FileNode, None, None]:
 class InteractivePackageTree:
     def __init__(self, path: str, depth: int = 1):
         self.file_tree = FileTree.build_from_path(path=path, depth=depth)
+        self.selected_node = self.file_tree.root
         self.console = Console()
         self.tree_control = FormattedTextControl(text=ANSI(self._render_tree()))
         self.footer_control = self._build_footer()
@@ -158,7 +160,7 @@ class InteractivePackageTree:
             self.app.exit()
 
         @self.key_bindings.add("c-s")
-        def save(event):
+        def _(event):
             # TODO: save
             self.app.exit()
 
@@ -169,20 +171,37 @@ class InteractivePackageTree:
         def down(event): ...
 
         @self.key_bindings.add("right")
-        def right(event): ...
+        def right(event):
+            if self.selected_node.children:
+                return
+            self.file_tree.expand_path(self.selected_node.full_path)
+            self._update_display()
 
         @self.key_bindings.add("left")
-        def left(event): ...
+        def left(event):
+            if not self.selected_node.children:
+                return
+            del self.selected_node.children[:]
+            self._update_display()
 
         @self.key_bindings.add("enter")
-        def toggle_package(event): ...
+        def enter(event):
+            self.selected_node.is_package = not self.selected_node.is_package
+            self._update_display()
 
-    @staticmethod
-    def _render_node(node: FileNode) -> Text:
+    def _render_node(self, node: FileNode) -> Text:
+        text_parts = []
+        if node == self.selected_node:
+            text_parts.append(("> ", "bold cyan"))
+
         basename = os.path.basename(node.full_path)
         if node.is_package:
-            return Text(f"[Package] {basename}", style="bold yellow")
-        return Text(basename)
+            text_parts.append((f"[Package] {basename}", "bold yellow"))
+        elif node == self.selected_node:
+            text_parts.append((basename, "bold"))
+        else:
+            text_parts.append(basename)
+        return Text.assemble(*text_parts)
 
     def _render_tree(self):
         tree_root = Tree("Packages")
