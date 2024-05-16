@@ -2,17 +2,18 @@ import os
 from collections import deque
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Optional, Generator
+from typing import Optional, Generator, Callable
 
 from prompt_toolkit import ANSI
+from prompt_toolkit.data_structures import Point
+from prompt_toolkit.widgets import Frame
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import Layout, HSplit, Window
+from prompt_toolkit.layout import Layout, HSplit, Window, ScrollablePane
 from prompt_toolkit.layout.controls import FormattedTextControl
-from prompt_toolkit.widgets import Frame
 from prompt_toolkit.styles import Style
 
 from tach import errors
@@ -138,11 +139,22 @@ class InteractivePackageTree:
     def __init__(self, path: str, depth: int = 1):
         self.file_tree = FileTree.build_from_path(path=path, depth=depth)
         self.selected_node = self.file_tree.root
+        self.cursor_point = Point(x=0, y=1)
         self.console = Console()
-        self.tree_control = FormattedTextControl(text=ANSI(self._render_tree()))
+        self.tree_control = FormattedTextControl(
+            text=ANSI(self._render_tree()),
+            focusable=True,
+            show_cursor=False,
+            get_cursor_position=self.get_cursor_position_fn(),
+        )
         self.footer_control = self._build_footer()
         self.layout = Layout(
-            HSplit([Frame(Window(self.tree_control)), Window(self.footer_control)])
+            HSplit(
+                [
+                    Frame(ScrollablePane(Window(self.tree_control))),
+                    Window(self.footer_control),
+                ]
+            )
         )
         self.key_bindings = KeyBindings()
         self._register_keybindings()
@@ -153,6 +165,18 @@ class InteractivePackageTree:
             full_screen=True,
             style=self.styles,
         )
+
+    def get_cursor_position_fn(self) -> Callable[[], Point]:
+        def get_cursor_position() -> Point:
+            return self.cursor_point
+
+        return get_cursor_position
+
+    def move_cursor_up(self):
+        self.cursor_point = Point(x=self.cursor_point.x, y=self.cursor_point.y - 1)
+
+    def move_cursor_down(self):
+        self.cursor_point = Point(x=self.cursor_point.x, y=self.cursor_point.y + 1)
 
     @staticmethod
     def _build_styles() -> Style:
@@ -211,10 +235,12 @@ class InteractivePackageTree:
                         curr_node.children, key=lambda node: node.full_path
                     )[-1]
                 self.selected_node = curr_node
+                self.move_cursor_up()
                 self._update_display()
             # If no previous sibling, go to parent
             elif self.selected_node.parent:
                 self.selected_node = self.selected_node.parent
+                self.move_cursor_up()
                 self._update_display()
 
         @self.key_bindings.add("down")
@@ -224,6 +250,7 @@ class InteractivePackageTree:
                 self.selected_node = sorted(
                     self.selected_node.children, key=lambda node: node.full_path
                 )[0]
+                self.move_cursor_down()
                 self._update_display()
                 return
             # If we have no children and no parent, nothing to do
@@ -244,6 +271,7 @@ class InteractivePackageTree:
                 return
 
             self.selected_node = next_sibling
+            self.move_cursor_down()
             self._update_display()
 
         @self.key_bindings.add("right")
