@@ -31,19 +31,33 @@ pip install tach
 ```
 
 ## Quickstart
+
+---
 `tach` comes bundled with a command to set up and define your initial boundaries.
 ```bash
 tach init
 ```
 By running `tach init` from the root of your Python project, `tach` will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
-The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root.
+The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root. Take a look at your new `tach.yml` to see what dependencies were found!
+---
+Once initialized, you can validate that your dependencies are not being violated:
+```bash
+tach check
+```
+If everything is set up correctly, this should return `✅ All package dependencies validated!`
 
-If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
+You can try commenting out any dependency in `tach.yml` that you don't want to exist. `tach check` will now fail.
+
+---
+
+
+If you'd like to incrementally add new packages to your `tach.yml`, you can use:
 ```bash
 tach add [package_or_file]
 ```
 This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
 
+---
 If you want to sync your `tach.yml` with the actual dependencies found in your project, you can use `tach sync`:
 ```bash
 tach sync [--prune]
@@ -53,12 +67,11 @@ Any dependency errors will be automatically resolved by
 adding the corresponding dependencies to your `tach.yml` file. If you supply `--prune`,
 any dependency constraints in your `tach.yml` which are not necessary will also be removed.
 
+---
 In case you want to start over, `tach clean` lets you delete all `tach` configuration files so that you can re-initialize or configure your packages manually.
 ```bash
 tach clean
 ```
-
-
 
 ## Defining Packages
 To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:
