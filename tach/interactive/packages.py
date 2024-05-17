@@ -230,7 +230,7 @@ class InteractivePackageTree:
     def __init__(
         self,
         path: str,
-        depth: int = 1,
+        depth: Optional[int] = 1,
         exclude_paths: Optional[list[str]] = None,
         auto_select_initial_packages: bool = False,
     ):
