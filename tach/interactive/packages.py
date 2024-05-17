@@ -96,6 +96,16 @@ class FileNode:
             return None
         return parent_sorted_children[my_index + 1]
 
+    def siblings(self, include_self: bool = True) -> list["FileNode"]:
+        if not self.parent:
+            return [self] if include_self else []
+
+        return (
+            self.parent.children
+            if include_self
+            else [node for node in self.parent.children if node is not self]
+        )
+
 
 @dataclass
 class FileTree:
@@ -398,6 +408,38 @@ class InteractivePackageTree:
         @self.key_bindings.add("enter")
         def _(event: KeyPressEvent):
             self.selected_node.is_package = not self.selected_node.is_package
+            self._update_display()
+
+        @self.key_bindings.add("c-a")
+        def _(event: KeyPressEvent):
+            if not self.selected_node.parent:
+                # This means we are the root node without siblings
+                # We should simply toggle ourselves
+                self.selected_node.is_package = not self.selected_node.is_package
+                self._update_display()
+                return
+
+            # If all siblings are currently packages, we should un-set all of them (target value is False)
+            # Otherwise, we want to ensure all of them are set as packages (target value is True)
+            all_siblings_are_packages = all(
+                node.is_package for node in self.selected_node.siblings()
+            )
+            for node in self.selected_node.siblings():
+                node.is_package = not all_siblings_are_packages
+
+            self._update_display()
+
+        @self.key_bindings.add("c-up")
+        def _(event: KeyPressEvent):
+            if not self.selected_node.parent:
+                return
+
+            # Simple way to keep cursor position accurate while jumping to parent
+            while self.selected_node.prev_sibling:
+                self.move_cursor_up()
+                self.selected_node = self.selected_node.prev_sibling
+            self.move_cursor_up()
+            self.selected_node = self.selected_node.parent
             self._update_display()
 
     def _render_node(self, node: FileNode) -> Text:
