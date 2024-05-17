@@ -3,7 +3,7 @@ import tempfile
 import shutil
 import os
 from tach import errors, filesystem as fs
-from tach.init import init_project
+from tach.pkg import pkg_edit_interactive
 
 
 def init_project_from_root(root) -> None:
@@ -12,7 +12,7 @@ def init_project_from_root(root) -> None:
     try:
         # Navigate to the root directory and call init_project
         fs.chdir(root)
-        init_project(root)
+        pkg_edit_interactive(root)
     finally:
         # Change back to the original directory
         fs.chdir(saved_directory)
@@ -29,4 +29,4 @@ def test_root():
 
 def test_init_project_with_invalid_root():
     with pytest.raises(errors.TachSetupError):
-        init_project("nonexistent_directory")
+        pkg_edit_interactive("nonexistent_directory")

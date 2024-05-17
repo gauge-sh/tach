@@ -5,25 +5,39 @@ from typing import Optional
 
 from tach import errors
 from tach import filesystem as fs
-from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME, TOOL_NAME
+from tach.core import ProjectConfig
 from tach.interactive import get_selected_packages_interactive, SelectedPackage
 from tach.parsing import dump_project_config_to_yaml
-from tach.sync import prune_dependency_constraints
 
 __package_yml_template = """tags: ['{dir_name}']\n"""
 
 
 @dataclass
-class PackageInitResult:
+class SetPackagesResult:
     package_paths: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 
-def init_packages(selected_packages: list[SelectedPackage]) -> PackageInitResult:
+def set_packages(
+    selected_packages: list[SelectedPackage],
+    path: str,
+    exclude_paths: Optional[list[str]] = None,
+) -> SetPackagesResult:
     package_paths: list[str] = []
     warnings: list[str] = []
+
+    for existing_package, package_yml_path in fs.walk_configured_packages(
+        root=path, exclude_paths=exclude_paths
+    ):
+        # If this package was not selected, we should delete the package.yml
+        if not any(
+            fs.canonical(selected_package.full_path) == fs.canonical(existing_package)
+            for selected_package in selected_packages
+        ):
+            fs.delete_file(package_yml_path)
+
     for selected_package in selected_packages:
         init_py_path = os.path.join(selected_package.full_path, "__init__.py")
         if not os.path.exists(init_py_path):
@@ -45,7 +59,7 @@ def init_packages(selected_packages: list[SelectedPackage]) -> PackageInitResult
         )
         fs.write_file(package_yml_path, package_yml_content)
 
-    return PackageInitResult(package_paths=package_paths, warnings=warnings)
+    return SetPackagesResult(package_paths=package_paths, warnings=warnings)
 
 
 @dataclass
@@ -53,7 +67,7 @@ class InitRootResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootResult:
+def init_root(root: str) -> InitRootResult:
     project_config_path = fs.get_project_config_path(root)
     if project_config_path:
         return InitRootResult(
@@ -62,26 +76,16 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
             ]
         )
 
-    project_config = prune_dependency_constraints(root, exclude_paths=exclude_paths)
-
-    tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-    tach_yml_content = dump_project_config_to_yaml(project_config)
-    fs.write_file(tach_yml_path, tach_yml_content)
-
-    check_errors = check(
-        root, project_config=project_config, exclude_paths=exclude_paths
-    )
-    if check_errors:
-        return InitRootResult(
-            warnings=[
-                "Could not auto-detect all dependencies, use 'tach check' to finish initialization manually."
-            ]
-        )
+    # Initialize an empty/default project configuration
+    project_config = ProjectConfig()
+    project_config_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
+    config_yml_content = dump_project_config_to_yaml(project_config)
+    fs.write_file(project_config_path, config_yml_content)
 
     return InitRootResult(warnings=[])
 
 
-def init_project(
+def pkg_edit_interactive(
     root: str, depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None
 ) -> tuple[bool, list[str]]:
     if not os.path.isdir(root):
@@ -101,10 +105,12 @@ def init_project(
         auto_select_initial_packages=auto_select_initial_packages,
     )
     if selected_packages is not None:
-        init_packages_result = init_packages(selected_packages=selected_packages)
-        warnings.extend(init_packages_result.warnings)
+        set_packages_result = set_packages(
+            selected_packages=selected_packages, path=root, exclude_paths=exclude_paths
+        )
+        warnings.extend(set_packages_result.warnings)
 
-        init_root_result = init_root(root, exclude_paths=exclude_paths)
+        init_root_result = init_root(root)
         warnings.extend(init_root_result.warnings)
     else:
         return False, [f"{BCOLORS.OKCYAN}No changes saved.{BCOLORS.ENDC}"]
