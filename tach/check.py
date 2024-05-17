@@ -126,7 +126,11 @@ def check(
 
     # This 'canonicalizes' the path arguments, resolving directory traversal
     root = fs.canonical(root)
-    exclude_paths = list(map(fs.canonical, exclude_paths)) if exclude_paths else None
+
+    if exclude_paths is not None and project_config.exclude is not None:
+        exclude_paths.extend(project_config.exclude)
+    else:
+        exclude_paths = project_config.exclude
 
     package_trie = build_package_trie(
         root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths

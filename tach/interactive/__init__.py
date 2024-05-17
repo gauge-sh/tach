@@ -1,3 +1,3 @@
-from .packages import InteractivePackageTree
+from tach.interactive.packages import get_selected_packages_interactive
 
-__all__ = ["InteractivePackageTree"]
+__all__ = ["get_selected_packages_interactive"]

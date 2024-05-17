@@ -392,6 +392,8 @@ class InteractivePackageTree:
             ]
 
 
-if __name__ == "__main__":
-    ipt = InteractivePackageTree(path=".", depth=1)
-    print([(pkg.full_path, pkg.tags) for pkg in ipt.run() or []])
+def get_selected_packages_interactive(
+    path: str, depth: int = 1
+) -> Optional[list[SelectedPackage]]:
+    ipt = InteractivePackageTree(path=path, depth=depth)
+    return ipt.run()

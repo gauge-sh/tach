@@ -13,12 +13,16 @@ constraints:
   - scope:filesystem
   - scope:parsing
   - scope:utils
+- tag: scope:interactive
+  depends_on:
+  - scope:filesystem
+  - scope:utils
 exclude:
 - tests/
 - docs/
 - build/
 - dist/
 - tach.egg-info/
-- ".*__pycache__/"
+- .*__pycache__/
 exclude_hidden_paths: true
 ignore_type_checking_imports: false
