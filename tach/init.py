@@ -92,11 +92,13 @@ def init_project(
 
     warnings: list[str] = []
 
+    # We only want to auto-select if the project appears not to have been configured already
+    auto_select_initial_packages = fs.get_project_config_path(root) == ""
     selected_packages = get_selected_packages_interactive(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
-        auto_select_initial_packages=True,
+        auto_select_initial_packages=auto_select_initial_packages,
     )
     if selected_packages is not None:
         init_packages_result = init_packages(selected_packages=selected_packages)
