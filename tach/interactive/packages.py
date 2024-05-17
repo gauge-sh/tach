@@ -106,7 +106,7 @@ class FileTree:
     def build_from_path(
         cls,
         path: str,
-        depth: int = 1,
+        depth: Optional[int] = 1,
         exclude_paths: Optional[list[str]] = None,
         auto_select_initial_packages: bool = False,
     ) -> "FileTree":
@@ -114,7 +114,9 @@ class FileTree:
         root.expanded = True
         tree = cls(root)
         tree.nodes[fs.canonical(path)] = root
-        tree._build_subtree(root, depth=depth, exclude_paths=exclude_paths)
+        tree._build_subtree(
+            root, depth=depth if depth is not None else 1, exclude_paths=exclude_paths
+        )
 
         if auto_select_initial_packages:
             tree.mark_pypackages_as_packages(depth=depth, exclude_paths=exclude_paths)
@@ -122,7 +124,10 @@ class FileTree:
         return tree
 
     def _build_subtree(
-        self, root: FileNode, depth: int = 1, exclude_paths: Optional[list[str]] = None
+        self,
+        root: FileNode,
+        depth: int = 1,
+        exclude_paths: Optional[list[str]] = None,
     ):
         if root.is_dir:
             try:
@@ -161,17 +166,23 @@ class FileTree:
                 return
 
     def mark_pypackages_as_packages(
-        self, depth: int, exclude_paths: Optional[list[str]] = None
+        self, depth: Optional[int], exclude_paths: Optional[list[str]] = None
     ):
         packages_found: list[str] = []
         for package_path in fs.walk_pypackages(
-            self.root.full_path, depth=depth, exclude_paths=exclude_paths
+            self.root.full_path,
+            depth=depth if depth is not None else 1,
+            exclude_paths=exclude_paths,
         ):
             if package_path in self.nodes:
                 packages_found.append(package_path)
                 self.nodes[package_path].is_package = True
 
-        if len(packages_found) == 1:
+        # If depth was not specified (None),
+        # then we want to explore further when we find only one package.
+        # We distinguish 'None' from other cases so that we don't accidentally override
+        # the user's depth choice when it results in only one package.
+        if depth is None and len(packages_found) == 1:
             found_package = packages_found[0]
             self.nodes[found_package].expanded = True
             # Go one level further if only a single package was found
@@ -449,7 +460,7 @@ class InteractivePackageTree:
 
 def get_selected_packages_interactive(
     path: str,
-    depth: int = 1,
+    depth: Optional[int] = 1,
     exclude_paths: Optional[list[str]] = None,
     auto_select_initial_packages: bool = False,
 ) -> Optional[list[SelectedPackage]]:

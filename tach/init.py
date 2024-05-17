@@ -82,7 +82,7 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
 
 
 def init_project(
-    root: str, depth: int = 1, exclude_paths: Optional[list[str]] = None
+    root: str, depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None
 ) -> tuple[bool, list[str]]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a directory.")

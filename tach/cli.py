@@ -130,7 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--depth",
         type=int,
         nargs="?",
-        default=1,
+        default=None,
         help="The number of child directories to search for packages to initialize",
     )
     add_base_arguments(init_parser)
