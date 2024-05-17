@@ -313,13 +313,13 @@ class InteractivePackageTree:
             }
         )
 
-    KEY_BINDING_LEGEND_TOP = [
+    KEY_BINDING_LEGEND_TOP: list[tuple[str, str]] = [
         ("Up/Down", "Navigate"),
         ("Ctrl + Up", "Jump to parent"),
         ("Right", "Expand"),
         ("Left", "Collapse"),
     ]
-    KEY_BINDING_LEGEND_BOTTOM = [
+    KEY_BINDING_LEGEND_BOTTOM: list[tuple[str, str]] = [
         ("Ctrl + c", "Exit without saving"),
         ("Ctrl + s", "Save packages"),
         ("Enter", "Mark/unmark package"),
@@ -332,7 +332,9 @@ class InteractivePackageTree:
 
     @classmethod
     def _build_footer(cls) -> Container:
-        def _build_footer_text(bindings: list[tuple[str, str]]) -> AnyFormattedText:
+        def _build_footer_text(
+            bindings: list[tuple[str, str]],
+        ) -> AnyFormattedText:
             return list(
                 chain(
                     *(
@@ -342,8 +344,12 @@ class InteractivePackageTree:
                 )
             )
 
-        footer_text_top = _build_footer_text(cls.KEY_BINDING_LEGEND_TOP)
-        footer_text_bottom = _build_footer_text(cls.KEY_BINDING_LEGEND_BOTTOM)
+        footer_text_top: AnyFormattedText = _build_footer_text(
+            cls.KEY_BINDING_LEGEND_TOP
+        )
+        footer_text_bottom: AnyFormattedText = _build_footer_text(
+            cls.KEY_BINDING_LEGEND_BOTTOM
+        )
         return HSplit(
             [
                 Window(
