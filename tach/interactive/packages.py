@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
-from typing import Optional, Generator, Callable
+from typing import Optional, Generator, Callable, Union
 
 from prompt_toolkit import ANSI
 from prompt_toolkit.data_structures import Point
@@ -401,7 +401,7 @@ class InteractivePackageTree:
             self._update_display()
 
     def _render_node(self, node: FileNode) -> Text:
-        text_parts: list[tuple[str, str] | str] = []
+        text_parts: list[Union[tuple[str, str], str]] = []
         if node == self.selected_node:
             text_parts.append(("-> ", "bold cyan"))
 
