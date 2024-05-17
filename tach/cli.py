@@ -9,7 +9,7 @@ from tach.add import add_packages
 from tach.check import check, BoundaryError
 from tach import filesystem as fs
 from tach.clean import clean_project
-from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
+from tach.constants import TOOL_NAME
 from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
@@ -130,7 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--depth",
         type=int,
         nargs="?",
-        default=None,
+        default=1,
         help="The number of child directories to search for packages to initialize",
     )
     add_base_arguments(init_parser)
@@ -267,7 +267,7 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None):
+def tach_init(depth: int = 1, exclude_paths: Optional[list[str]] = None):
     try:
         warnings = init_project(root=".", depth=depth, exclude_paths=exclude_paths)
     except Exception as e:
@@ -276,7 +276,6 @@ def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = 
 
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}")
     sys.exit(0)
 
 

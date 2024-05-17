@@ -8,6 +8,7 @@ from tach import filesystem as fs
 from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME
+from tach.interactive import get_selected_packages_interactive, SelectedPackage
 from tach.parsing import dump_project_config_to_yaml
 from tach.sync import prune_dependency_constraints
 
@@ -20,21 +21,21 @@ class PackageInitResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def init_packages(
-    root: str, depth: int, exclude_paths: Optional[list[str]] = None
-) -> PackageInitResult:
+def init_packages(selected_packages: list[SelectedPackage]) -> PackageInitResult:
     package_paths: list[str] = []
     warnings: list[str] = []
-    for dir_path in fs.walk_pypackages(root, depth=depth, exclude_paths=exclude_paths):
-        package_yml_path = os.path.join(dir_path, f"{PACKAGE_FILE_NAME}.yml")
-        package_paths.append(dir_path)
+    for selected_package in selected_packages:
+        package_yml_path = os.path.join(
+            selected_package.full_path, f"{PACKAGE_FILE_NAME}.yml"
+        )
+        package_paths.append(selected_package.full_path)
         if os.path.exists(package_yml_path):
             warnings.append(
                 f"{BCOLORS.OKCYAN}Package file '{package_yml_path}' already exists.{BCOLORS.ENDC}"
             )
             continue
         package_yml_content = __package_yml_template.format(
-            dir_name=dir_path.replace(os.path.sep, ".")
+            dir_name=fs.canonical(selected_package.full_path).replace(os.path.sep, ".")
         )
         fs.write_file(package_yml_path, package_yml_content)
 
@@ -75,7 +76,7 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
 
 
 def init_project(
-    root: str, depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None
+    root: str, depth: int = 1, exclude_paths: Optional[list[str]] = None
 ) -> list[str]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a directory.")
@@ -85,23 +86,16 @@ def init_project(
 
     warnings: list[str] = []
 
-    if depth is None:
-        package_init_result = init_packages(root, depth=1, exclude_paths=exclude_paths)
-        warnings.extend(package_init_result.warnings)
-        if len(package_init_result.package_paths) == 1:
-            result = init_packages(
-                package_init_result.package_paths[0],
-                depth=1,
-                exclude_paths=exclude_paths,
-            )
-            warnings.extend(result.warnings)
-    else:
-        package_init_result = init_packages(
-            root, depth=depth, exclude_paths=exclude_paths
-        )
-        warnings.extend(package_init_result.warnings)
+    selected_packages = get_selected_packages_interactive(
+        root, depth=depth, exclude_paths=exclude_paths
+    )
+    if selected_packages is not None:
+        init_packages_result = init_packages(selected_packages=selected_packages)
+        warnings.extend(init_packages_result.warnings)
 
-    init_root_result = init_root(root, exclude_paths=exclude_paths)
-    warnings.extend(init_root_result.warnings)
+        init_root_result = init_root(root, exclude_paths=exclude_paths)
+        warnings.extend(init_root_result.warnings)
+    else:
+        return [f"{BCOLORS.OKCYAN}No changes saved.{BCOLORS.ENDC}"]
 
     return warnings

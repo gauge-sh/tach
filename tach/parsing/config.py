@@ -15,6 +15,7 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     config.constraints.sort(key=lambda constr: constr.tag)
     for constr in config.constraints:
         constr.depends_on.sort()
+    config.exclude = list(set(config.exclude)) if config.exclude else []
     return yaml.dump(config.model_dump(), sort_keys=False)
 
 

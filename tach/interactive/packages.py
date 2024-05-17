@@ -1,4 +1,5 @@
 import os
+import re
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -101,15 +102,19 @@ class FileTree:
     nodes: dict[str, FileNode] = field(default_factory=dict)
 
     @classmethod
-    def build_from_path(cls, path: str, depth: int = 1) -> "FileTree":
+    def build_from_path(
+        cls, path: str, depth: int = 1, exclude_paths: Optional[list[str]] = None
+    ) -> "FileTree":
         root = FileNode.build_from_path(fs.canonical(path))
         root.expanded = True
         tree = cls(root)
         tree.nodes[path] = root
-        tree._build_subtree(root, depth=depth)
+        tree._build_subtree(root, depth=depth, exclude_paths=exclude_paths)
         return tree
 
-    def _build_subtree(self, root: FileNode, depth: int = 1):
+    def _build_subtree(
+        self, root: FileNode, depth: int = 1, exclude_paths: Optional[list[str]] = None
+    ):
         if root.is_dir:
             try:
                 for entry in os.listdir(root.full_path):
@@ -120,6 +125,15 @@ class FileTree:
                     if not os.path.isdir(entry_path):
                         # Only interested in directories for now
                         continue
+
+                    # Adding a trailing slash lets us match 'tests/' as an exclude pattern
+                    entry_path_for_matching = f"{fs.canonical(entry_path)}/"
+                    if exclude_paths is not None and any(
+                        re.match(exclude_path, entry_path_for_matching)
+                        for exclude_path in exclude_paths
+                    ):
+                        # This path is ignored
+                        continue
                     child_node = FileNode.build_from_path(entry_path)
                     if depth > 0:
                         child_node.expanded = True
@@ -127,22 +141,15 @@ class FileTree:
                     root.children.append(child_node)
                     self.nodes[entry_path] = child_node
                     if child_node.is_dir:
-                        self._build_subtree(child_node, max(depth - 1, 0))
+                        self._build_subtree(
+                            child_node,
+                            depth=max(depth - 1, 0),
+                            exclude_paths=exclude_paths,
+                        )
             except PermissionError:
                 # This is expected to occur during listdir when the directory cannot be accessed
                 # We simply bail if that happens, meaning it won't show up in the interactive viewer
                 return
-
-    def expand_path(self, path: str):
-        if path not in self.nodes:
-            raise errors.TachError(f"Directory {path} not found in tree.")
-        node = self.nodes[path]
-        if not node.is_dir:
-            raise errors.TachError(
-                f"{path} does not seem to be a directory and cannot be expanded."
-            )
-
-        self._build_subtree(node, depth=1)
 
     def __iter__(self):
         return file_tree_iterator(self)
@@ -176,10 +183,21 @@ class ExitCode(Enum):
 
 
 class InteractivePackageTree:
-    def __init__(self, path: str, depth: int = 1):
+    TREE_LABEL = "Mark Your Packages"
+    AUTO_EXCLUDE_PATHS = [".*__pycache__"]
+
+    def __init__(
+        self, path: str, depth: int = 1, exclude_paths: Optional[list[str]] = None
+    ):
         # By default, don't save if we exit for any reason
         self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
-        self.file_tree = FileTree.build_from_path(path=path, depth=depth)
+        if exclude_paths is None:
+            exclude_paths = self.AUTO_EXCLUDE_PATHS
+        else:
+            exclude_paths.extend(self.AUTO_EXCLUDE_PATHS)
+        self.file_tree = FileTree.build_from_path(
+            path=path, depth=depth, exclude_paths=exclude_paths
+        )
         self.selected_node = self.file_tree.root
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
         # y location starts at 1 because the FileTree is rendered with a labeled header above the first branch
@@ -354,7 +372,7 @@ class InteractivePackageTree:
         return Text.assemble(*text_parts)
 
     def _render_tree(self):
-        tree_root = Tree("Packages")
+        tree_root = Tree(self.TREE_LABEL)
         # Mapping FileNode paths to rich.Tree branches
         # so that we can iterate over the FileTree and use the
         # parent pointers to find the parent rich.Tree branches
@@ -393,7 +411,7 @@ class InteractivePackageTree:
 
 
 def get_selected_packages_interactive(
-    path: str, depth: int = 1
+    path: str, depth: int = 1, exclude_paths: Optional[list[str]] = None
 ) -> Optional[list[SelectedPackage]]:
-    ipt = InteractivePackageTree(path=path, depth=depth)
+    ipt = InteractivePackageTree(path=path, depth=depth, exclude_paths=exclude_paths)
     return ipt.run()
