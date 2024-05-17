@@ -8,12 +8,13 @@ from typing import Optional, Generator, Callable
 
 from prompt_toolkit import ANSI
 from prompt_toolkit.data_structures import Point
+from prompt_toolkit.formatted_text import AnyFormattedText
 from prompt_toolkit.widgets import Frame
 from rich.console import Console
 from rich.tree import Tree
 from rich.text import Text
 from prompt_toolkit.application import Application
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import Layout, HSplit, Window, ScrollablePane
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.styles import Style
@@ -245,7 +246,7 @@ class InteractivePackageTree:
         self.key_bindings = KeyBindings()
         self._register_keybindings()
         self.styles = self._build_styles()
-        self.app = Application(
+        self.app: Application[None] = Application(
             layout=self.layout,
             key_bindings=self.key_bindings,
             full_screen=True,
@@ -287,7 +288,7 @@ class InteractivePackageTree:
 
     @classmethod
     def _build_footer(cls) -> FormattedTextControl:
-        footer_text = list(
+        footer_text: AnyFormattedText = list(
             chain(
                 *(
                     cls._key_binding_text(legend[0], legend[1])
@@ -302,17 +303,17 @@ class InteractivePackageTree:
             return
 
         @self.key_bindings.add("c-c")
-        def _(event):
+        def _(event: KeyPressEvent):
             self.exit_code = ExitCode.QUIT_NOSAVE
             self.app.exit()
 
         @self.key_bindings.add("c-s")
-        def _(event):
+        def _(event: KeyPressEvent):
             self.exit_code = ExitCode.QUIT_SAVE
             self.app.exit()
 
         @self.key_bindings.add("up")
-        def up(event):
+        def _(event: KeyPressEvent):
             prev_sibling = self.selected_node.prev_sibling
             # If previous sibling exists, want to bubble down to last child of this sibling
             if prev_sibling:
@@ -331,7 +332,7 @@ class InteractivePackageTree:
                 self._update_display()
 
         @self.key_bindings.add("down")
-        def down(event):
+        def _(event: KeyPressEvent):
             # If we have children, should go to first child alphabetically
             if self.selected_node.visible_children:
                 self.selected_node = sorted(
@@ -362,22 +363,22 @@ class InteractivePackageTree:
             self._update_display()
 
         @self.key_bindings.add("right")
-        def right(event):
+        def _(event: KeyPressEvent):
             self.selected_node.expanded = True
             self._update_display()
 
         @self.key_bindings.add("left")
-        def left(event):
+        def _(event: KeyPressEvent):
             self.selected_node.expanded = False
             self._update_display()
 
         @self.key_bindings.add("enter")
-        def enter(event):
+        def _(event: KeyPressEvent):
             self.selected_node.is_package = not self.selected_node.is_package
             self._update_display()
 
     def _render_node(self, node: FileNode) -> Text:
-        text_parts = []
+        text_parts: list[tuple[str, str] | str] = []
         if node == self.selected_node:
             text_parts.append(("-> ", "bold cyan"))
 
