@@ -15,7 +15,14 @@ from rich.tree import Tree
 from rich.text import Text
 from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
-from prompt_toolkit.layout import Layout, HSplit, Window, ScrollablePane
+from prompt_toolkit.layout import (
+    Layout,
+    HSplit,
+    Window,
+    ScrollablePane,
+    Container,
+    VerticalAlign,
+)
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.styles import Style
 
@@ -272,7 +279,7 @@ class InteractivePackageTree:
             HSplit(
                 [
                     Frame(ScrollablePane(Window(self.tree_control))),
-                    Window(self.footer_control),
+                    self.footer_control,
                 ]
             )
         )
@@ -306,13 +313,17 @@ class InteractivePackageTree:
             }
         )
 
-    KEY_BINDING_LEGEND = [
+    KEY_BINDING_LEGEND_TOP = [
+        ("Up/Down", "Navigate"),
+        ("Ctrl + Up", "Jump to parent"),
+        ("Right", "Expand"),
+        ("Left", "Collapse"),
+    ]
+    KEY_BINDING_LEGEND_BOTTOM = [
         ("Ctrl + c", "Exit without saving"),
         ("Ctrl + s", "Save packages"),
         ("Enter", "Mark/unmark package"),
-        ("Up/Down", "Navigate"),
-        ("Right", "Expand"),
-        ("Left", "Collapse"),
+        ("Ctrl + a", "Mark/unmark all siblings"),
     ]
 
     @staticmethod
@@ -320,16 +331,31 @@ class InteractivePackageTree:
         return [("class:footer-key", binding), ("", f": {description}  ")]
 
     @classmethod
-    def _build_footer(cls) -> FormattedTextControl:
-        footer_text: AnyFormattedText = list(
-            chain(
-                *(
-                    cls._key_binding_text(legend[0], legend[1])
-                    for legend in cls.KEY_BINDING_LEGEND
+    def _build_footer(cls) -> Container:
+        def _build_footer_text(bindings: list[tuple[str, str]]) -> AnyFormattedText:
+            return list(
+                chain(
+                    *(
+                        cls._key_binding_text(binding[0], binding[1])
+                        for binding in bindings
+                    )
                 )
             )
+
+        footer_text_top = _build_footer_text(cls.KEY_BINDING_LEGEND_TOP)
+        footer_text_bottom = _build_footer_text(cls.KEY_BINDING_LEGEND_BOTTOM)
+        return HSplit(
+            [
+                Window(
+                    FormattedTextControl(text=footer_text_top), dont_extend_height=True
+                ),
+                Window(
+                    FormattedTextControl(text=footer_text_bottom),
+                    dont_extend_height=True,
+                ),
+            ],
+            align=VerticalAlign.CENTER,
         )
-        return FormattedTextControl(text=footer_text)
 
     def _register_keybindings(self):
         if self.key_bindings.bindings:
