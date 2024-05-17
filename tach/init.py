@@ -83,7 +83,7 @@ def init_root(root: str, exclude_paths: Optional[list[str]] = None) -> InitRootR
 
 def init_project(
     root: str, depth: int = 1, exclude_paths: Optional[list[str]] = None
-) -> list[str]:
+) -> tuple[bool, list[str]]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a directory.")
 
@@ -105,6 +105,6 @@ def init_project(
         init_root_result = init_root(root, exclude_paths=exclude_paths)
         warnings.extend(init_root_result.warnings)
     else:
-        return [f"{BCOLORS.OKCYAN}No changes saved.{BCOLORS.ENDC}"]
+        return False, [f"{BCOLORS.OKCYAN}No changes saved.{BCOLORS.ENDC}"]
 
-    return warnings
+    return True, warnings

@@ -163,11 +163,23 @@ class FileTree:
     def mark_pypackages_as_packages(
         self, depth: int, exclude_paths: Optional[list[str]] = None
     ):
+        packages_found: list[str] = []
         for package_path in fs.walk_pypackages(
             self.root.full_path, depth=depth, exclude_paths=exclude_paths
         ):
             if package_path in self.nodes:
+                packages_found.append(package_path)
                 self.nodes[package_path].is_package = True
+
+        if len(packages_found) == 1:
+            found_package = packages_found[0]
+            self.nodes[found_package].expanded = True
+            # Go one level further if only a single package was found
+            for package_path in fs.walk_pypackages(
+                found_package, depth=1, exclude_paths=exclude_paths
+            ):
+                if package_path in self.nodes:
+                    self.nodes[package_path].is_package = True
 
     def __iter__(self):
         return file_tree_iterator(self)

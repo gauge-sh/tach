@@ -269,13 +269,17 @@ def tach_check(
 
 def tach_init(depth: int = 1, exclude_paths: Optional[list[str]] = None):
     try:
-        warnings = init_project(root=".", depth=depth, exclude_paths=exclude_paths)
+        saved_changes, warnings = init_project(
+            root=".", depth=depth, exclude_paths=exclude_paths
+        )
     except Exception as e:
         print(str(e))
         sys.exit(1)
 
     if warnings:
         print("\n".join(warnings))
+    if saved_changes:
+        print(f"✅ {BCOLORS.OKGREEN}Initialized packages!{BCOLORS.ENDC}")
     sys.exit(0)
 
 
