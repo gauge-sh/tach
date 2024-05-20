@@ -192,7 +192,7 @@ def parse_arguments(
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if args[0] not in ["pkg", "clean", "sync"]:
+    if len(args) < 1 or args[0] not in ["pkg", "clean", "sync"]:
         # TODO: unify project config handling
         fs.validate_project_config_path()
 
