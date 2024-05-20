@@ -143,29 +143,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Raise errors if any dependency constraints are unused.",
     )
     add_base_arguments(check_parser)
-    add_parser = subparsers.add_parser(
-        "add",
-        prog="tach add",
-        help="Create a new module boundary around an existing file or folder",
-        description="Initialize boundaries between top-level modules and write dependencies to "
-        "`tach.yml`",
-    )
-    add_parser.add_argument(
-        "path",
-        type=str,
-        metavar="file_or_path,...",
-        help="The path(s) of the file or directory to create a module boundary around. "
-        "Use a comma-separated list for multiple.",
-    )
-    add_parser.add_argument(
-        "-t",
-        "--tags",
-        required=False,
-        type=str,
-        metavar="tag,...",
-        help="The tag for the module to be initialized with."
-        "Use a comma-separated list for multiple.",
-    )
     install_parser = subparsers.add_parser(
         "install",
         prog="tach install",
