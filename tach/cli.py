@@ -241,7 +241,7 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_pkg(depth: int = 1, exclude_paths: Optional[list[str]] = None):
+def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None):
     try:
         saved_changes, warnings = pkg_edit_interactive(
             root=".", depth=depth, exclude_paths=exclude_paths
