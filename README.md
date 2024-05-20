@@ -13,7 +13,7 @@ a Python tool to enforce modular design
 [Discord](https://discord.gg/DKVksRtuqS) - come say hi!
 
 
- <video loop src="https://github.com/Never-Over/tach/assets/10570340/a9d8d4df-d262-4b2b-b69a-adbc30d069aa">Tach Demo</video> 
+https://github.com/gauge-sh/tach/assets/10570340/2f5ed866-124e-4322-afe6-15207727ca38
 
 
 ## What is tach?
@@ -26,6 +26,7 @@ If a package tries to import from another package and does not use its public in
 `tach` is incredibly lightweight, and has no impact on your runtime. Instead, its checks are performed as a lint check through the CLI.
 
 ## Installation
+
 ```bash
 pip install tach
 ```
@@ -33,29 +34,22 @@ pip install tach
 ## Quickstart
 
 ---
-`tach` comes bundled with a command to set up and define your initial boundaries.
+
+`tach` comes bundled with a command to interactively define your package boundaries.
+Run the following in the root of your Python project to enter the editor:
 ```bash
-tach init
+tach pkg
 ```
-By running `tach init` from the root of your Python project, `tach` will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
-The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root. Take a look at your new `tach.yml` to see what dependencies were found!
----
-Once initialized, you can validate that your dependencies are not being violated:
-```bash
-tach check
-```
-If everything is set up correctly, this should return `✅ All package dependencies validated!`
-
-You can try commenting out any dependency in `tach.yml` that you don't want to exist. `tach check` will now fail.
-
----
 
 
-If you'd like to incrementally add new packages to your `tach.yml`, you can use:
-```bash
-tach add [package_or_file]
-```
-This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
+
+The interactive editor allows you to mark which directories should be treated as package boundaries.
+You can navigate with the arrow keys, mark individual packages with `Enter`, and mark all sibling directories
+as packages with `Ctrl + a`.
+
+After identifying your packages, press `Ctrl + s` to initialize the boundaries.
+Each package will receive a `package.yml` with a single tag based on the folder name,
+and a default `tach.yml` file will be created in the current working directory.
 
 ---
 If you want to sync your `tach.yml` with the actual dependencies found in your project, you can use `tach sync`:
@@ -70,8 +64,11 @@ In case you want to start over, `tach clean` lets you delete all `tach` configur
 tach clean
 ```
 
+
 ## Defining Packages
-To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:
+Alternatively, you can manually define your packages through file configuration. To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package.
+
+Examples:
 ```python
 # core/package.yml
 tags: ["core"]
@@ -104,8 +101,10 @@ With these rules in place, packages with tag `core` can import from packages wit
 ```bash
 # From the root of your Python project (in this example, `project/`)
 > tach check
-❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
+❌ utils/helpers.py[L10]: Cannot import 'core.PublicAPI'. Tags ['utils'] cannot depend on ['core'].
 ```
+
+NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
 
 ## Defining Interfaces
 If you want to define a public interface for the package, import and reference each object you want exposed in the package's `__init__.py` and add its name to `__all__`:
@@ -126,7 +125,7 @@ strict: true
 from db import PublicAPI 
 ```
 
-### Pre-Commit Hook
+## Pre-Commit Hook
 `tach` can be installed as a pre-commit hook. See the [docs](https://gauge-sh.github.io/tach/usage/#tach-install) for installation instructions.
 
 
