@@ -37,6 +37,10 @@ Run the following in the root of your Python project to enter the editor:
 tach pkg
 ```
 
+The interactive editor allows you to mark which directories should be treated as package boundaries.
+You can navigate with the arrow keys, mark individual packages with `Enter`, and mark all sibling directories
+as packages with `Ctrl + a`.
+
 After identifying your packages, press `Ctrl + s` to initialize the boundaries.
 Each package will receive a `package.yml` with a single tag based on the folder name,
 and a default `tach.yml` file will be created in the current working directory.
