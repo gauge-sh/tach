@@ -31,18 +31,15 @@ pip install tach
 ```
 
 ## Quickstart
-`tach` comes bundled with a command to set up and define your initial boundaries.
+`tach` comes bundled with a command to interactively define your package boundaries.
+Run the following in the root of your Python project to enter the editor:
 ```bash
-tach init
+tach pkg
 ```
-By running `tach init` from the root of your Python project, `tach` will initialize each top-level Python package. Each package will receive a `package.yml` with a single tag based on the folder name. 
-The tool will take into consideration the usages between packages, and write a matching set of dependencies to `tach.yml` in the project root.
 
-If you'd like to incrementally or individually add new packages to your `tach.yml`, you can use:
-```bash
-tach add [package_or_file]
-```
-This will create a boundary around the given file or directory, and update your `tach.yml` with the correct set of dependencies.
+After identifying your packages, press `Ctrl + s` to initialize the boundaries.
+Each package will receive a `package.yml` with a single tag based on the folder name,
+and a default `tach.yml` file will be created in the current working directory.
 
 If you want to sync your `tach.yml` with the actual dependencies found in your project, you can use `tach sync`:
 ```bash
@@ -59,9 +56,10 @@ tach clean
 ```
 
 
-
 ## Defining Packages
-To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package:
+To define a package, add a `package.yml` to the corresponding Python package. Add at least one 'tag' to identify the package.
+
+Examples:
 ```python
 # core/package.yml
 tags: ["core"]
@@ -94,8 +92,10 @@ With these rules in place, packages with tag `core` can import from packages wit
 ```bash
 # From the root of your Python project (in this example, `project/`)
 > tach check
-❌ ./utils/helpers.py: Import "core.PublicAPI" is blocked by boundary "core". Tag(s) ["utils"] do not have access to ["core"].
+❌ utils/helpers.py[L10]: Cannot import 'core.PublicAPI'. Tags ['utils'] cannot depend on ['core'].
 ```
+
+NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
 
 ## Defining Interfaces
 If you want to define a public interface for the package, import and reference each object you want exposed in the package's `__init__.py` and add its name to `__all__`:
