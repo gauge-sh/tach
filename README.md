@@ -13,7 +13,9 @@ a Python tool to enforce modular design
 [Discord](https://discord.gg/DKVksRtuqS) - come say hi!
 
 
- <video loop src="https://github.com/Never-Over/tach/assets/10570340/a9d8d4df-d262-4b2b-b69a-adbc30d069aa">Tach Demo</video> 
+
+https://github.com/gauge-sh/tach/assets/10570340/2f5ed866-124e-4322-afe6-15207727ca38
+
 
 
 ## What is tach?
