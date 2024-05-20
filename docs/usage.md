@@ -73,8 +73,12 @@ options:
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
-When you run `tach sync`, any dependency errors will be automatically resolved by
-adding the corresponding dependencies to your `tach.yml` file. If you supply `--prune`,
+When this command runs, `tach` will analyze the imports in your packages.
+
+Any undeclared dependencies or other dependency errors will be automatically resolved by
+adding the corresponding dependencies to your `tach.yml` file.
+
+If you supply `--prune`,
 any dependency constraints in your `tach.yml` which are not necessary will also be removed.
 
 ## tach clean
@@ -94,7 +98,7 @@ This will find the nearest `tach` project in parent directories, or simply work 
 It will remove `tach.yml` along with any `package.yml` files it finds.
 
 ## tach install
-`tach` can be installed into your development workflow automatically as a pre-commit hook. This means `tach check` will run from the root of your repo before any commit is created.
+`tach` can be installed into your development workflow automatically as a pre-commit hook.
 
 
 ### With pre-commit framework
