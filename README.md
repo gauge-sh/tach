@@ -60,12 +60,9 @@ This will create a boundary around the given file or directory, and update your 
 ---
 If you want to sync your `tach.yml` with the actual dependencies found in your project, you can use `tach sync`:
 ```bash
-tach sync [--prune]
+tach sync
 ```
-
-Any dependency errors will be automatically resolved by
-adding the corresponding dependencies to your `tach.yml` file. If you supply `--prune`,
-any dependency constraints in your `tach.yml` which are not necessary will also be removed.
+Any dependency errors will be automatically resolved by adding the corresponding dependencies to your `tach.yml` file. 
 
 ---
 In case you want to start over, `tach clean` lets you delete all `tach` configuration files so that you can re-initialize or configure your packages manually.
