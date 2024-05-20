@@ -54,10 +54,12 @@ and a default `tach.yml` file will be created in the current working directory.
 ---
 If you want to sync your `tach.yml` with the actual dependencies found in your project, you can use `tach sync`:
 ```bash
-tach sync
+tach sync [--prune]
 ```
-Any dependency errors will be automatically resolved by adding the corresponding dependencies to your `tach.yml` file. 
 
+Any dependency errors will be automatically resolved by
+adding the corresponding dependencies to your `tach.yml` file. If you supply `--prune`,
+any dependency constraints in your `tach.yml` which are not necessary will also be removed.
 ---
 In case you want to start over, `tach clean` lets you delete all `tach` configuration files so that you can re-initialize or configure your packages manually.
 ```bash
