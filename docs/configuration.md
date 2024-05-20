@@ -1,17 +1,17 @@
 # Configuration
 
-Running `tach init` will create the files below. You will likely want to configure them further.
-The configuration fields are described on this page.
-
+Aside from running `tach pkg` and `tach sync`, you can configure `tach` by creating or modifying the files described below.
 
 ## `tach.yml`
 
 This is the project-level configuration file which should be in the root of your project.
-It accepts `exclude` and `constraints` as top-level keys.
+
+`constraints` defines the expected dependencies between tags in your project, and accepts a list of constraints as shown below
 
 `exclude` accepts a list of directory patterns to exclude from checking.
 
-`constraints` defines the expected dependencies between tags in your project, and accepts a list of constraints as shown below
+`ignore_type_checking_imports` is a boolean which, when enabled, silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block
+
 
 ```yaml
 constraints:
@@ -34,14 +34,13 @@ exclude:
 - docs/
 - build/
 exclude_hidden_paths: true
-
+ignore_type_checking_imports: true
 ```
 
 
 ## `package.yml`
 
 This is the package-level configuration file which should exist in each package in your project.
-It accepts `tags` and `strict` as top-level keys.
 
 `tags` accepts a list of string tags which are checked against project-level `constraints`
 

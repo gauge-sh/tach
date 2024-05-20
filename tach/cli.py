@@ -5,14 +5,13 @@ from enum import Enum
 from functools import lru_cache
 from typing import Optional
 
-from tach.add import add_packages
 from tach.check import check, BoundaryError
 from tach import filesystem as fs
 from tach.clean import clean_project
-from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
+from tach.constants import TOOL_NAME
 from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
-from tach.init import init_project
+from tach.pkg import pkg_edit_interactive
 from tach.loading import stop_spinner, start_spinner
 from tach.parsing import parse_project_config
 from tach.colors import BCOLORS
@@ -117,23 +116,21 @@ def build_parser() -> argparse.ArgumentParser:
         " and `tach.yml` is present",
     )
     subparsers = parser.add_subparsers(title="commands", dest="command")
-    init_parser = subparsers.add_parser(
-        "init",
-        prog="tach init",
-        help="Initialize boundaries between top-level packages and write dependencies to "
-        "`tach.yml`",
-        description="Initialize boundaries between top-level packages and write dependencies to "
-        "`tach.yml`",
+    pkg_parser = subparsers.add_parser(
+        "pkg",
+        prog="tach pkg",
+        help="Configure package boundaries interactively",
+        description="Configure package boundaries interactively",
     )
-    init_parser.add_argument(
+    pkg_parser.add_argument(
         "-d",
         "--depth",
         type=int,
         nargs="?",
         default=None,
-        help="The number of child directories to search for packages to initialize",
+        help="The number of child directories to search for packages to auto-select",
     )
-    add_base_arguments(init_parser)
+    add_base_arguments(pkg_parser)
     check_parser = subparsers.add_parser(
         "check",
         prog="tach check",
@@ -146,29 +143,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Raise errors if any dependency constraints are unused.",
     )
     add_base_arguments(check_parser)
-    add_parser = subparsers.add_parser(
-        "add",
-        prog="tach add",
-        help="Create a new module boundary around an existing file or folder",
-        description="Initialize boundaries between top-level modules and write dependencies to "
-        "`tach.yml`",
-    )
-    add_parser.add_argument(
-        "path",
-        type=str,
-        metavar="file_or_path,...",
-        help="The path(s) of the file or directory to create a module boundary around. "
-        "Use a comma-separated list for multiple.",
-    )
-    add_parser.add_argument(
-        "-t",
-        "--tags",
-        required=False,
-        type=str,
-        metavar="tag,...",
-        help="The tag for the module to be initialized with."
-        "Use a comma-separated list for multiple.",
-    )
     install_parser = subparsers.add_parser(
         "install",
         prog="tach install",
@@ -218,7 +192,7 @@ def parse_arguments(
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
-    if args[0] not in ["init", "add", "clean", "sync"]:
+    if args[0] not in ["pkg", "clean", "sync"]:
         # TODO: unify project config handling
         fs.validate_project_config_path()
 
@@ -267,16 +241,22 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_init(depth: Optional[int] = None, exclude_paths: Optional[list[str]] = None):
+def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None):
     try:
-        warnings = init_project(root=".", depth=depth, exclude_paths=exclude_paths)
+        saved_changes, warnings = pkg_edit_interactive(
+            root=".", depth=depth, exclude_paths=exclude_paths
+        )
     except Exception as e:
         print(str(e))
         sys.exit(1)
 
     if warnings:
         print("\n".join(warnings))
-    print(f"✅ {BCOLORS.OKGREEN}Initialized '{CONFIG_FILE_NAME}.yml'{BCOLORS.ENDC}")
+    if saved_changes:
+        print(
+            f"✅ {BCOLORS.OKGREEN}Set packages! You may want to run '{TOOL_NAME} sync' "
+            f"to automatically set boundaries.{BCOLORS.ENDC}"
+        )
     sys.exit(0)
 
 
@@ -288,24 +268,6 @@ def tach_sync(prune: bool = False, exclude_paths: Optional[list[str]] = None):
         sys.exit(1)
 
     print(f"✅ {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
-    sys.exit(0)
-
-
-def tach_add(paths: set[str], tags: Optional[set[str]] = None) -> None:
-    try:
-        warnings = add_packages(paths, tags)
-    except Exception as e:
-        stop_spinner()
-        print(str(e))
-        sys.exit(1)
-
-    stop_spinner()
-    if warnings:
-        print("\n".join(warnings))
-    if len(paths) > 1:
-        print(f"✅ {BCOLORS.OKGREEN}Packages added.{BCOLORS.ENDC}")
-    else:
-        print(f"✅ {BCOLORS.OKGREEN}Package added.{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -364,14 +326,9 @@ def tach_install(path: str, target: InstallTarget) -> None:
 
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
-    if args.command == "add":
-        paths = set(args.path.split(","))
-        tags = set(args.tags.split(",")) if args.tags else None
-        tach_add(paths=paths, tags=tags)
-        return
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
-    if args.command == "init":
-        tach_init(depth=args.depth, exclude_paths=exclude_paths)
+    if args.command == "pkg":
+        tach_pkg(depth=args.depth, exclude_paths=exclude_paths)
     elif args.command == "sync":
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":

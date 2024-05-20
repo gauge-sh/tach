@@ -20,7 +20,7 @@ tach -h
 
 If you are adding `tach` to an existing project, you have two main options:
 
-1. Use [`tach init`](usage.md#tach-init)  and [`tach add`](usage.md#tach-init) to automatically set up packages and identify necessary dependencies
+1. Use [`tach pkg`](usage.md#tach-pkg)  to interactively set up packages, and [`tach sync`](usage.md#tach-sync) to automatically set up dependency rules.
 2. Manually configure your [packages](configuration.md#packageyml) and [dependency rules](configuration.md#tachyml)
 
 ## Checking Boundaries
