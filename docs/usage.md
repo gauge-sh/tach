@@ -4,12 +4,13 @@
 `tach` will flag any unwanted imports between packages. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
-usage: tach check [-h] [-e file_or_path,...]
+usage: tach check [-h] [--exact] [-e file_or_path,...]
 
-Check boundaries with tach
+Check existing boundaries against your dependencies and package interfaces
 
 options:
   -h, --help            show this help message and exit
+  --exact               Raise errors if any dependency constraints are unused.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
@@ -19,6 +20,8 @@ An error will indicate:
 - the file path in which the error was detected
 - the tags associated with that file
 - the tags associated with the attempted import
+
+If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.yml` that is not exercised by the code.
 
 Example:
 ```bash
