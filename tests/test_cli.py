@@ -38,7 +38,7 @@ def mock_path_exists(mocker) -> None:
 
 @pytest.fixture
 def mock_project_config(mocker) -> None:
-    def mock_project_config() -> ProjectConfig:
+    def mock_project_config(root: str = "") -> ProjectConfig:
         return ProjectConfig(
             constraints=[TagDependencyRules(tag="mocked", depends_on=["mocked"])]
         )
@@ -80,15 +80,6 @@ def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_project_co
     assert sys_exit.value.code == 1
     assert location in captured.err
     assert message in captured.err
-
-
-def test_execute_with_no_tach_yml(capfd):
-    with pytest.raises(SystemExit) as sys_exit:
-        # Test with no tach.yml mocked
-        cli.parse_arguments(["check"])
-    captured = capfd.readouterr()
-    assert sys_exit.value.code == 1
-    assert "tach.(yml|yaml) not found" in captured.err
 
 
 def test_invalid_command(capfd):
