@@ -153,13 +153,13 @@ def build_parser() -> argparse.ArgumentParser:
     install_parser = subparsers.add_parser(
         "install",
         prog="tach install",
-        help="Install tach into your workflow (e.g. as a pre_commit.py hook)",
-        description="Install tach into your workflow (e.g. as a pre_commit.py hook)",
+        help="Install tach into your workflow (e.g. as a pre-commit hook)",
+        description="Install tach into your workflow (e.g. as a pre-commit hook)",
     )
     install_parser.add_argument(
         "target",
         choices=InstallTarget.choices(),
-        help="What kind of installation to perform (e.g. pre_commit.py)",
+        help="What kind of installation to perform (e.g. pre-commit)",
     )
     install_parser.add_argument(
         "-p",
