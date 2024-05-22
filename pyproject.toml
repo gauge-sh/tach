@@ -65,8 +65,13 @@ strict = ["tach"]
 pythonVersion = "3.8"
 
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+module-name = "tach.extension"
+features = ["pyo3/extension-module"]
 
 [project.scripts]
 tach = "tach.cli:main"
