@@ -205,11 +205,6 @@ def parse_arguments(
 ) -> tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = build_parser()
     parsed_args = parser.parse_args(args)
-
-    if args[0] not in ["pkg", "clean", "sync"]:
-        # TODO: unify project config handling
-        fs.validate_project_config_path()
-
     return parsed_args, parser
 
 
@@ -219,7 +214,7 @@ def tach_check(
     exclude_paths: Optional[list[str]] = None,
 ):
     try:
-        project_config = parse_project_config()
+        project_config = parse_project_config(root=root)
 
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
