@@ -138,6 +138,13 @@ def build_parser() -> argparse.ArgumentParser:
         description="Check existing boundaries against your dependencies and package interfaces",
     )
     check_parser.add_argument(
+        "--root",
+        required=False,
+        type=str,
+        default=".",
+        help="The root directory from which the check should run",
+    )
+    check_parser.add_argument(
         "--strict",
         action="store_true",
         help="Raise errors if any dependency constraints are unused.",
@@ -160,7 +167,14 @@ def build_parser() -> argparse.ArgumentParser:
         required=False,
         type=str,
         default=".",
-        help="The path where this installation should occur (default '.')",
+        help="The path where this installation should occur (e.g. git root for hooks)",
+    )
+    install_parser.add_argument(
+        "--project-root",
+        required=False,
+        type=str,
+        default="",
+        help="The relative path where 'tach check' should run (defaults to git root)",
     )
     sync_parser = subparsers.add_parser(
         "sync",
@@ -200,6 +214,7 @@ def parse_arguments(
 
 
 def tach_check(
+    root: str = ".",
     strict: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
@@ -212,7 +227,7 @@ def tach_check(
             exclude_paths = project_config.exclude
 
         boundary_errors: list[BoundaryError] = check(
-            ".",
+            root,
             project_config,
             exclude_paths=exclude_paths,
             exclude_hidden_paths=project_config.exclude_hidden_paths,
@@ -302,10 +317,12 @@ class InstallTarget(Enum):
         return [item.value for item in cls]
 
 
-def tach_install(path: str, target: InstallTarget) -> None:
+def tach_install(path: str, target: InstallTarget, project_root: str = "") -> None:
     try:
         if target == InstallTarget.PRE_COMMIT:
-            installed, warning = install_pre_commit(path=path)
+            installed, warning = install_pre_commit(
+                path=path, project_root=project_root
+            )
         else:
             raise NotImplementedError(f"Target {target} is not supported by 'install'.")
     except Exception as e:
@@ -333,7 +350,7 @@ def main() -> None:
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
-        tach_check(strict=args.strict, exclude_paths=exclude_paths)
+        tach_check(root=args.root, strict=args.strict, exclude_paths=exclude_paths)
     elif args.command == "clean":
         tach_clean(force=args.force)
     elif args.command == "install":
@@ -342,7 +359,9 @@ def main() -> None:
         except ValueError:
             print(f"{args.target} is not a valid installation target.")
             sys.exit(1)
-        tach_install(path=args.path, target=install_target)
+        tach_install(
+            path=args.path, target=install_target, project_root=args.project_root
+        )
     else:
         print("Unrecognized command")
         parser.print_help()

@@ -124,52 +124,57 @@ def check(
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a valid directory.")
 
-    # This 'canonicalizes' the path arguments, resolving directory traversal
-    root = fs.canonical(root)
+    cwd = fs.get_cwd()
+    try:
+        fs.chdir(root)
+        # This 'canonicalizes' the path arguments, resolving directory traversal
+        root = fs.canonical(root)
 
-    if exclude_paths is not None and project_config.exclude is not None:
-        exclude_paths.extend(project_config.exclude)
-    else:
-        exclude_paths = project_config.exclude
+        if exclude_paths is not None and project_config.exclude is not None:
+            exclude_paths.extend(project_config.exclude)
+        else:
+            exclude_paths = project_config.exclude
 
-    package_trie = build_package_trie(
-        root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
-    )
-
-    boundary_errors: list[BoundaryError] = []
-    for file_path in fs.walk_pyfiles(
-        root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
-    ):
-        mod_path = fs.file_to_module_path(file_path)
-        nearest_package = package_trie.find_nearest(mod_path)
-        if nearest_package is None:
-            continue
-
-        # This should only give us imports from within our project
-        # (excluding stdlib, builtins, and 3rd party packages)
-        project_imports = get_project_imports(
-            root,
-            file_path,
-            ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+        package_trie = build_package_trie(
+            root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
         )
-        for project_import in project_imports:
-            check_error = check_import(
-                project_config=project_config,
-                package_trie=package_trie,
-                import_mod_path=project_import.mod_path,
-                file_nearest_package=nearest_package,
-                file_mod_path=mod_path,
-            )
-            if check_error is None:
+
+        boundary_errors: list[BoundaryError] = []
+        for file_path in fs.walk_pyfiles(
+            root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
+        ):
+            mod_path = fs.file_to_module_path(file_path)
+            nearest_package = package_trie.find_nearest(mod_path)
+            if nearest_package is None:
                 continue
 
-            boundary_errors.append(
-                BoundaryError(
-                    file_path=file_path,
-                    import_mod_path=project_import.mod_path,
-                    line_number=project_import.line_number,
-                    error_info=check_error,
-                )
+            # This should only give us imports from within our project
+            # (excluding stdlib, builtins, and 3rd party packages)
+            project_imports = get_project_imports(
+                root,
+                file_path,
+                ignore_type_checking_imports=project_config.ignore_type_checking_imports,
             )
+            for project_import in project_imports:
+                check_error = check_import(
+                    project_config=project_config,
+                    package_trie=package_trie,
+                    import_mod_path=project_import.mod_path,
+                    file_nearest_package=nearest_package,
+                    file_mod_path=mod_path,
+                )
+                if check_error is None:
+                    continue
 
-    return boundary_errors
+                boundary_errors.append(
+                    BoundaryError(
+                        file_path=file_path,
+                        import_mod_path=project_import.mod_path,
+                        line_number=project_import.line_number,
+                        error_info=check_error,
+                    )
+                )
+
+        return boundary_errors
+    finally:
+        fs.chdir(cwd)
