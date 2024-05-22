@@ -146,13 +146,13 @@ def build_parser() -> argparse.ArgumentParser:
     install_parser = subparsers.add_parser(
         "install",
         prog="tach install",
-        help="Install tach into your workflow (e.g. as a pre-commit hook)",
-        description="Install tach into your workflow (e.g. as a pre-commit hook)",
+        help="Install tach into your workflow (e.g. as a pre_commit.py hook)",
+        description="Install tach into your workflow (e.g. as a pre_commit.py hook)",
     )
     install_parser.add_argument(
         "target",
         choices=InstallTarget.choices(),
-        help="What kind of installation to perform (e.g. pre-commit)",
+        help="What kind of installation to perform (e.g. pre_commit.py)",
     )
     install_parser.add_argument(
         "-p",
@@ -160,7 +160,14 @@ def build_parser() -> argparse.ArgumentParser:
         required=False,
         type=str,
         default=".",
-        help="The path where this installation should occur (default '.')",
+        help="The path where this installation should occur (e.g. git root for hooks)",
+    )
+    install_parser.add_argument(
+        "--project-root",
+        required=False,
+        type=str,
+        default="",
+        help="The relative path where 'tach check' should run (defaults to git root)",
     )
     sync_parser = subparsers.add_parser(
         "sync",
@@ -302,10 +309,12 @@ class InstallTarget(Enum):
         return [item.value for item in cls]
 
 
-def tach_install(path: str, target: InstallTarget) -> None:
+def tach_install(path: str, target: InstallTarget, project_root: str = "") -> None:
     try:
         if target == InstallTarget.PRE_COMMIT:
-            installed, warning = install_pre_commit(path=path)
+            installed, warning = install_pre_commit(
+                path=path, project_root=project_root
+            )
         else:
             raise NotImplementedError(f"Target {target} is not supported by 'install'.")
     except Exception as e:
@@ -342,7 +351,9 @@ def main() -> None:
         except ValueError:
             print(f"{args.target} is not a valid installation target.")
             sys.exit(1)
-        tach_install(path=args.path, target=install_target)
+        tach_install(
+            path=args.path, target=install_target, project_root=args.project_root
+        )
     else:
         print("Unrecognized command")
         parser.print_help()

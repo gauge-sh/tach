@@ -2,6 +2,5 @@
   name: tach
   description: Validate package dependencies
   entry: tach check
-  args: ["--root"]
   language: python
   pass_filenames: false
