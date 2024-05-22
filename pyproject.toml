@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
