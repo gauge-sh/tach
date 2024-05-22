@@ -1,8 +1,11 @@
 constraints:
 - tag: scope:filesystem
   depends_on:
-  - scope:utils
   - scope:hooks
+  - scope:utils
+- tag: scope:hooks
+  depends_on:
+  - scope:utils
 - tag: scope:interactive
   depends_on:
   - scope:filesystem
@@ -19,15 +22,12 @@ constraints:
   - scope:interactive
   - scope:parsing
   - scope:utils
-- tag: scope:hooks
-  depends_on:
-  - scope:utils
 exclude:
-- build/
 - dist/
-- tests/
 - docs/
+- tests/
 - tach.egg-info/
 - .*__pycache__/
+- build/
 exclude_hidden_paths: true
 ignore_type_checking_imports: false

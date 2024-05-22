@@ -138,6 +138,13 @@ def build_parser() -> argparse.ArgumentParser:
         description="Check existing boundaries against your dependencies and package interfaces",
     )
     check_parser.add_argument(
+        "--root",
+        required=False,
+        type=str,
+        default=".",
+        help="The root directory from which the check should run",
+    )
+    check_parser.add_argument(
         "--strict",
         action="store_true",
         help="Raise errors if any dependency constraints are unused.",
@@ -207,6 +214,7 @@ def parse_arguments(
 
 
 def tach_check(
+    root: str = ".",
     strict: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
@@ -219,7 +227,7 @@ def tach_check(
             exclude_paths = project_config.exclude
 
         boundary_errors: list[BoundaryError] = check(
-            ".",
+            root,
             project_config,
             exclude_paths=exclude_paths,
             exclude_hidden_paths=project_config.exclude_hidden_paths,
@@ -342,7 +350,7 @@ def main() -> None:
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
         start_spinner("Scanning...")
-        tach_check(strict=args.strict, exclude_paths=exclude_paths)
+        tach_check(root=args.root, strict=args.strict, exclude_paths=exclude_paths)
     elif args.command == "clean":
         tach_clean(force=args.force)
     elif args.command == "install":
