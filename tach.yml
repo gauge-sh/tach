@@ -20,15 +20,16 @@ constraints:
   - scope:core
   - scope:filesystem
   - scope:interactive
+  - scope:logging
   - scope:parsing
   - scope:utils
 exclude:
-- dist/
-- docs/
-- tests/
-- tach.egg-info/
-- .*__pycache__/
 - build/
+- docs/
+- .*__pycache__/
+- dist/
+- tach.egg-info/
+- tests/
 exclude_hidden_paths: true
-ignore_type_checking_imports: false
 exact: true
+ignore_type_checking_imports: false

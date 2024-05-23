@@ -15,6 +15,7 @@ from tach.constants import TOOL_NAME
 from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
 from tach.loading import start_spinner, stop_spinner
+from tach.logging import logger
 from tach.parsing import parse_project_config
 from tach.pkg import pkg_edit_interactive
 from tach.sync import prune_dependency_constraints, sync_project
@@ -32,7 +33,6 @@ def detect_environment() -> TerminalEnvironment:
         return TerminalEnvironment.JETBRAINS
     elif "vscode" in os.environ.get("TERM_PROGRAM", "").lower():
         return TerminalEnvironment.VSCODE
-
     return TerminalEnvironment.UNKNOWN
 
 
@@ -215,6 +215,7 @@ def tach_check(
     exact: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
+    logger.info("tach check called")
     try:
         project_config = parse_project_config(root=root)
         if exact is False and project_config.exact is True:
