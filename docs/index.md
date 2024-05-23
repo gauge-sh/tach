@@ -12,6 +12,13 @@ When a package is in ['strict mode'](strict-mode.md), if another package tries t
 
 `tach` runs on the CLI, and is ideal for pre-commit hooks and CI checks.
 
+Tach is:
+- 🌎 Open source
+- 🐍 Installable via pip
+- 🔧 Able to be adopted incrementally
+- ⚡  Implemented with no runtime impact
+- ♾️ Interoperable with your existing systems (cli, hooks, ci, etc.)
+
 ## Commands
 * [`tach pkg`](usage.md#tach-pkg) - Interactively define package boundaries in your Python project.
 * [`tach check`](usage.md#tach-check) - Check that boundaries are respected.
