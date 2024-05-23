@@ -4,7 +4,7 @@ import logging
 import os
 import threading
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tach import cache
 from tach.logging.api import log_record, log_uid
@@ -12,7 +12,7 @@ from tach.logging.api import log_record, log_uid
 
 class LogDataModel(BaseModel):
     function: str
-    parameters: dict
+    parameters: dict = Field(default_factory=dict)
 
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
