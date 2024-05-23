@@ -5,7 +5,7 @@ name: ci
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "rust-extension" ]
   pull_request:
     branches: [ "main", "docs" ]
 
