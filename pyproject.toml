@@ -59,9 +59,15 @@ runtime-evaluated-decorators = [
 exempt-modules = ["typing", "typing_extensions"]
 
 [tool.pyright]
-include = ["tach"]
+include = ["python/tach"]
 exclude = ["**/__pycache__", ".venv"]
-strict = ["tach"]
+strict = ["python/tach"]
+executionEnvironments = [
+  { root = "python" }
+]
+
+[tool.ruff]
+src = ["python"]
 pythonVersion = "3.8"
 
 [build-system]
