@@ -1,14 +1,19 @@
-use std::fmt;
+use std::fmt::{self, Debug, Pointer};
+use std::path::PathBuf;
 
 use pyo3::conversion::IntoPy;
 use pyo3::PyObject;
 
+use crate::{filesystem, parsing};
+
 #[derive(Debug, Clone)]
-pub struct ImportParseError;
+pub struct ImportParseError {
+    pub message: String,
+}
 
 impl fmt::Display for ImportParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Failed to parse")
+        write!(f, "{}", &self.message)
     }
 }
 
@@ -33,8 +38,23 @@ pub fn get_project_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> Result<ProjectImports> {
-    Ok(vec![ProjectImport {
-        mod_path: "testing".to_string(),
-        line_no: 1,
-    }])
+    let canonical_path: PathBuf = filesystem::canonical(project_root.as_ref(), file_path.as_ref())
+        .map_err(|err| ImportParseError {
+            message: format!("Failed to parse project imports. Failure: {}", err.message),
+        })?;
+    let file_contents =
+        filesystem::read_file_content(canonical_path).map_err(|err| ImportParseError {
+            message: format!("Failed to parse project imports. Failure: {}", err.message),
+        })?;
+    let file_ast =
+        parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
+            message: format!("Failed to parse project imports. Failure: {:?}", err),
+        })?;
+    Ok(file_ast
+        .iter()
+        .map(|_stmnt| ProjectImport {
+            mod_path: "test".to_string(),
+            line_no: 1,
+        })
+        .collect())
 }

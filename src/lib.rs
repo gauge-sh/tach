@@ -1,11 +1,13 @@
-mod imports;
+pub mod filesystem;
+pub mod imports;
+pub mod parsing;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 impl From<imports::ImportParseError> for PyErr {
-    fn from(_: imports::ImportParseError) -> Self {
-        PyValueError::new_err("Faile to parse imports")
+    fn from(err: imports::ImportParseError) -> Self {
+        PyValueError::new_err(err.message)
     }
 }
 
