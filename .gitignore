@@ -164,3 +164,4 @@ cython_debug/
 
 .python-version
 .env.leave
+.DS_Store
