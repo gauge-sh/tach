@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import ast
 import os
 import re
-from typing import Optional
 from dataclasses import dataclass, field
+from typing import Optional
 
 from tach import filesystem as fs
 

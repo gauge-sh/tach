@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import os
 import sys
@@ -5,17 +7,17 @@ from enum import Enum
 from functools import lru_cache
 from typing import Optional
 
-from tach.check import check, BoundaryError
 from tach import filesystem as fs
+from tach.check import BoundaryError, check
 from tach.clean import clean_project
+from tach.colors import BCOLORS
 from tach.constants import TOOL_NAME
 from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
-from tach.pkg import pkg_edit_interactive
-from tach.loading import stop_spinner, start_spinner
+from tach.loading import start_spinner, stop_spinner
 from tach.parsing import parse_project_config
-from tach.colors import BCOLORS
-from tach.sync import sync_project, prune_dependency_constraints
+from tach.pkg import pkg_edit_interactive
+from tach.sync import prune_dependency_constraints, sync_project
 
 
 class TerminalEnvironment(Enum):

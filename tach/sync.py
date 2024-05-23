@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import os
 from typing import Optional
 
-from tach import filesystem as fs
 from tach import errors
+from tach import filesystem as fs
+from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME
 from tach.core import ProjectConfig
-from tach.check import check
-from tach.parsing import parse_project_config, dump_project_config_to_yaml
+from tach.parsing import dump_project_config_to_yaml, parse_project_config
 
 
 def sync_dependency_constraints(

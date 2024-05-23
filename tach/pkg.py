@@ -1,14 +1,15 @@
-import os
-from dataclasses import field, dataclass
-from typing import Optional
+from __future__ import annotations
 
+import os
+from dataclasses import dataclass, field
+from typing import Optional
 
 from tach import errors
 from tach import filesystem as fs
 from tach.colors import BCOLORS
-from tach.constants import PACKAGE_FILE_NAME, CONFIG_FILE_NAME, TOOL_NAME
+from tach.constants import CONFIG_FILE_NAME, PACKAGE_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
-from tach.interactive import get_selected_packages_interactive, SelectedPackage
+from tach.interactive import SelectedPackage, get_selected_packages_interactive
 from tach.parsing import dump_project_config_to_yaml
 
 __package_yml_template = """tags: ['{dir_name}']\n"""

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from typing import Optional
 
 from tach import filesystem as fs
 from tach.core import PackageTrie
-from tach.parsing import parse_package_config, parse_interface_members
+from tach.parsing import parse_interface_members, parse_package_config
 
 
 def build_package_trie(

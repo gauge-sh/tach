@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from tach.filesystem.service import mark_executable, write_file
