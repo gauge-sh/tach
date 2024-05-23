@@ -207,24 +207,18 @@ def parse_arguments(
 ) -> tuple[argparse.Namespace, argparse.ArgumentParser]:
     parser = build_parser()
     parsed_args = parser.parse_args(args)
-
-    if len(args) < 1 or args[0] not in ["pkg", "clean", "sync"]:
-        # TODO: unify project config handling
-        fs.validate_project_config_path()
-
     return parsed_args, parser
 
 
 def tach_check(
-    exact: bool = False,
     root: str = ".",
+    exact: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
     try:
-        project_config = parse_project_config()
+        project_config = parse_project_config(root=root)
         if exact is False and project_config.exact is True:
             exact = True
-        project_config = parse_project_config(root=root)
 
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
@@ -238,7 +232,7 @@ def tach_check(
             exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
 
-        # If we are checking in strict mode, we want to also verify that pruning constraints has no effect
+        # If we're checking in strict mode, we want to verify that pruning constraints has no effect
         if not boundary_errors and exact:
             pruned_config = prune_dependency_constraints(
                 ".", project_config=project_config, exclude_paths=exclude_paths

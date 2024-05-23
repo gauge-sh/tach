@@ -99,5 +99,4 @@ Tach also supports:
 More info in the [docs](https://gauge-sh.github.io/tach/).
 If you have any feedback, we'd love to hear it!
 
-[Discord]()
-
+[Discord](https://discord.gg/a58vW8dnmw)
