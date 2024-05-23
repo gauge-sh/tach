@@ -215,7 +215,7 @@ def tach_check(
     exact: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
-    logger.info("tach check called")
+    logger.info("tach check called", extra={"root": root})
     try:
         project_config = parse_project_config(root=root)
         if exact is False and project_config.exact is True:

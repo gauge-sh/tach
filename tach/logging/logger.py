@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import threading
 
-import requests
 from pydantic import BaseModel
 
-LOGGING_URL = ""
+from tach import cache
+from tach.logging.api import log_record, log_uid
 
 
 class LogDataModel(BaseModel):
@@ -16,46 +15,32 @@ class LogDataModel(BaseModel):
     parameters: dict
 
 
-def send_log_entry(url, record: logging.LogRecord, entry: str) -> None:
+def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     is_ci = "CI" in os.environ
     data = record.data if hasattr(record, "data") else None
-
+    uid = cache.get_uid()
     log_data = {
-        "log": entry,
-        "data": data,
+        "user": str(uid),
+        "message": entry,
         "level": record.levelname,
         "timestamp": record.created,
-        "is_ci": is_ci,
+        "function": data.function if data else None,
+        "parameters": data.parameters if data else None,
     }
-    try:
-        response = requests.post(
-            url,
-            data=json.dumps(log_data),
-            headers={"Content-Type": "application/json"},
-        )
-        response.raise_for_status()
-    except Exception:
-        # Optionally, handle exceptions (e.g., logging to a file)
-        print(log_data)
-        # print(f"Failed to send log entry: {entry}: {e}")
+    log_uid(uid, is_ci)
+    log_record(log_data)
 
 
 class RemoteLoggingHandler(logging.Handler):
-    def __init__(self, url):
-        super().__init__()
-        self.url = url
-
     def emit(self, record):
         log_entry = self.format(record)
-        thread = threading.Thread(
-            target=send_log_entry, args=(self.url, record, log_entry)
-        )
+        thread = threading.Thread(target=send_log_entry, args=(record, log_entry))
         thread.start()
 
 
 logger = logging.getLogger("tach")
 logger.setLevel(logging.INFO)
-remote_handler = RemoteLoggingHandler(LOGGING_URL)
+remote_handler = RemoteLoggingHandler()
 
 # Check if remote logging is enabled
 REMOTE_LOGGING = os.getenv("REMOTE_LOGGING", "true").lower() == "true"
