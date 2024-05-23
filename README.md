@@ -28,7 +28,6 @@ Tach is:
 
 ## Getting Started
 
----
 ### Installation
 ```bash
 pip install tach
