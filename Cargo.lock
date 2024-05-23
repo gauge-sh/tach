@@ -602,6 +602,7 @@ name = "tach"
 version = "0.2.6"
 dependencies = [
  "pyo3",
+ "rustpython-ast",
  "rustpython-parser",
 ]
 

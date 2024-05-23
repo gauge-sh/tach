@@ -1,8 +1,11 @@
-use std::fmt::{self, Debug, Pointer};
+use std::fmt::{self, Debug};
 use std::path::PathBuf;
 
 use pyo3::conversion::IntoPy;
 use pyo3::PyObject;
+
+use rustpython_ast::text_size::TextRange;
+use rustpython_ast::Visitor;
 
 use crate::{filesystem, parsing};
 
@@ -33,6 +36,48 @@ impl IntoPy<PyObject> for ProjectImport {
     }
 }
 
+pub struct ImportVisitor {
+    project_root: String,
+    ignore_type_checking_imports: bool,
+    pub project_imports: ProjectImports,
+}
+
+impl ImportVisitor {
+    pub fn new(project_root: String, ignore_type_checking_imports: bool) -> Self {
+        ImportVisitor {
+            project_root,
+            ignore_type_checking_imports,
+            project_imports: vec![],
+        }
+    }
+}
+
+impl Visitor for ImportVisitor {
+    fn visit_stmt_import(&mut self, node: rustpython_ast::StmtImport<TextRange>) {
+        self.project_imports
+            .extend(
+                node.names
+                    .iter()
+                    .map(|alias: &rustpython_ast::Alias| ProjectImport {
+                        mod_path: alias.name.to_string(),
+                        line_no: alias.range.start().into(),
+                    }),
+            )
+    }
+
+    fn visit_stmt_import_from(&mut self, node: rustpython_ast::StmtImportFrom<TextRange>) {
+        self.project_imports
+            .extend(
+                node.names
+                    .iter()
+                    .map(|alias: &rustpython_ast::Alias| ProjectImport {
+                        mod_path: alias.name.to_string(),
+                        line_no: alias.range.start().into(),
+                    }),
+            )
+    }
+}
+
 pub fn get_project_imports(
     project_root: String,
     file_path: String,
@@ -50,11 +95,9 @@ pub fn get_project_imports(
         parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
             message: format!("Failed to parse project imports. Failure: {:?}", err),
         })?;
-    Ok(file_ast
-        .iter()
-        .map(|_stmnt| ProjectImport {
-            mod_path: "test".to_string(),
-            line_no: 1,
-        })
-        .collect())
+    let mut import_visitor = ImportVisitor::new(project_root, ignore_type_checking_imports);
+    file_ast
+        .into_iter()
+        .for_each(|stmnt| import_visitor.visit_stmt(stmnt));
+    Ok(import_visitor.project_imports)
 }
