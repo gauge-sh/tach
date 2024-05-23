@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from tach import filesystem as fs
 from tach.core import PackageTrie
 from tach.parsing import parse_interface_members, parse_package_config
@@ -9,8 +7,8 @@ from tach.parsing import parse_interface_members, parse_package_config
 
 def build_package_trie(
     root: str,
-    exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
+    exclude_paths: list[str] | None = None,
+    exclude_hidden_paths: bool | None = True,
 ) -> PackageTrie:
     package_trie = PackageTrie()
 

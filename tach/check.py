@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
-from tach.core import PackageNode, PackageTrie, ProjectConfig
 from tach.parsing import build_package_trie, get_project_imports
+
+if TYPE_CHECKING:
+    from tach.core import PackageNode, PackageTrie, ProjectConfig
 
 
 @dataclass
@@ -43,8 +45,8 @@ def check_import(
     package_trie: PackageTrie,
     import_mod_path: str,
     file_mod_path: str,
-    file_nearest_package: Optional[PackageNode] = None,
-) -> Optional[ErrorInfo]:
+    file_nearest_package: PackageNode | None = None,
+) -> ErrorInfo | None:
     import_nearest_package = package_trie.find_nearest(import_mod_path)
     if import_nearest_package is None:
         # This shouldn't happen since we intend to filter out any external imports,
@@ -120,8 +122,8 @@ class BoundaryError:
 def check(
     root: str,
     project_config: ProjectConfig,
-    exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
+    exclude_paths: list[str] | None = None,
+    exclude_hidden_paths: bool | None = True,
 ) -> list[BoundaryError]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a valid directory.")

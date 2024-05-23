@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import yaml
 
 from tach import filesystem as fs
@@ -23,7 +21,7 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
 
 def parse_project_config(root: str = ".") -> ProjectConfig:
     file_path = fs.validate_project_config_path(root)
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         result = yaml.safe_load(f)
         if not result or not isinstance(result, dict):
             raise ValueError(f"Empty or invalid project config file: {file_path}")
@@ -37,10 +35,10 @@ def parse_project_config(root: str = ".") -> ProjectConfig:
     return config
 
 
-def parse_package_config(root: str = ".") -> Optional[PackageConfig]:
+def parse_package_config(root: str = ".") -> PackageConfig | None:
     file_path = fs.validate_package_config(root)
     if file_path:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             result = yaml.safe_load(f)
             if not result or not isinstance(result, dict):
                 raise ValueError(f"Empty or invalid package config file: {file_path}")

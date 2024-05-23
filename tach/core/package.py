@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Generator, Optional
+from typing import TYPE_CHECKING, Generator
 
-from tach.core.config import PackageConfig
+if TYPE_CHECKING:
+    from tach.core.config import PackageConfig
 
 
 @dataclass
@@ -21,12 +22,12 @@ class PackageNode:
 
     is_end_of_path: bool
     full_path: str
-    config: Optional[PackageConfig]
+    config: PackageConfig | None
     interface_members: list[str] = field(default_factory=list)
-    children: dict[str, "PackageNode"] = field(default_factory=dict)
+    children: dict[str, PackageNode] = field(default_factory=dict)
 
     @classmethod
-    def empty(cls) -> "PackageNode":
+    def empty(cls) -> PackageNode:
         return PackageNode(is_end_of_path=False, full_path="", config=None)
 
     def fill(
@@ -56,7 +57,7 @@ class PackageTrie:
         # so we want to remove any whitespace path components
         return [part for part in path.split(".") if part]
 
-    def get(self, path: str) -> Optional[PackageNode]:
+    def get(self, path: str) -> PackageNode | None:
         node = self.root
         parts = self._split_mod_path(path)
 
@@ -78,7 +79,7 @@ class PackageTrie:
 
         node.fill(config, path, interface_members)
 
-    def find_nearest(self, path: str) -> Optional[PackageNode]:
+    def find_nearest(self, path: str) -> PackageNode | None:
         node = self.root
         parts = self._split_mod_path(path)
         nearest_parent = node

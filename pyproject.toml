@@ -41,7 +41,7 @@ Issues = "https://github.com/gauge-sh/tach/issues"
 
 [tool.ruff]
 target-version = "py38"
-lint.extend-select = ["I"]
+lint.extend-select = ["I", "TCH", "UP"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]

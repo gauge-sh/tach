@@ -5,19 +5,21 @@ import os
 import sys
 from enum import Enum
 from functools import lru_cache
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
 from tach.clean import clean_project
 from tach.colors import BCOLORS
 from tach.constants import TOOL_NAME
-from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
 from tach.loading import start_spinner, stop_spinner
 from tach.parsing import parse_project_config
 from tach.pkg import pkg_edit_interactive
 from tach.sync import prune_dependency_constraints, sync_project
+
+if TYPE_CHECKING:
+    from tach.core import TagDependencyRules
 
 
 class TerminalEnvironment(Enum):
@@ -26,7 +28,7 @@ class TerminalEnvironment(Enum):
     VSCODE = 3
 
 
-@lru_cache()
+@lru_cache
 def detect_environment() -> TerminalEnvironment:
     if "jetbrains" in os.environ.get("TERMINAL_EMULATOR", "").lower():
         return TerminalEnvironment.JETBRAINS
@@ -36,7 +38,7 @@ def detect_environment() -> TerminalEnvironment:
     return TerminalEnvironment.UNKNOWN
 
 
-def create_clickable_link(file_path: str, line: Optional[int] = None) -> str:
+def create_clickable_link(file_path: str, line: int | None = None) -> str:
     terminal_env = detect_environment()
     abs_path = os.path.abspath(file_path)
 
@@ -213,7 +215,7 @@ def parse_arguments(
 def tach_check(
     root: str = ".",
     exact: bool = False,
-    exclude_paths: Optional[list[str]] = None,
+    exclude_paths: list[str] | None = None,
 ):
     try:
         project_config = parse_project_config(root=root)
@@ -255,7 +257,7 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None):
+def tach_pkg(depth: int | None = 1, exclude_paths: list[str] | None = None):
     try:
         saved_changes, warnings = pkg_edit_interactive(
             root=".", depth=depth, exclude_paths=exclude_paths
@@ -274,7 +276,7 @@ def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None
     sys.exit(0)
 
 
-def tach_sync(prune: bool = False, exclude_paths: Optional[list[str]] = None):
+def tach_sync(prune: bool = False, exclude_paths: list[str] | None = None):
     try:
         sync_project(prune=prune, exclude_paths=exclude_paths)
     except Exception as e:
