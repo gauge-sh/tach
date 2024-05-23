@@ -29,10 +29,10 @@ constraints:
   - scope:utils
 exclude:
 - .*__pycache__/
-- dist/
-- tests/
-- build/
 - docs/
+- tests/
+- dist/
+- build/
 - tach.egg-info/
 exclude_hidden_paths: true
 exact: true
