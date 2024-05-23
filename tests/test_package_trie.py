@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import pytest
 
-from tach.core import PackageTrie, PackageNode, PackageConfig
+from tach.core import PackageConfig, PackageNode, PackageTrie
 
 
 @pytest.fixture

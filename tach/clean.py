@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from tach import filesystem as fs
 
 

@@ -1,30 +1,32 @@
+from __future__ import annotations
+
 import os
 import re
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
-from typing import Optional, Generator, Callable, Union
+from typing import Callable, Generator, Optional, Union
 
 from prompt_toolkit import ANSI
+from prompt_toolkit.application import Application
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.formatted_text import AnyFormattedText
-from prompt_toolkit.widgets import Frame
-from rich.console import Console
-from rich.tree import Tree
-from rich.text import Text
-from prompt_toolkit.application import Application
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import (
-    Layout,
-    HSplit,
-    Window,
-    ScrollablePane,
     Container,
+    HSplit,
+    Layout,
+    ScrollablePane,
     VerticalAlign,
+    Window,
 )
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.styles import Style
+from prompt_toolkit.widgets import Frame
+from rich.console import Console
+from rich.text import Text
+from rich.tree import Tree
 
 from tach import errors
 from tach import filesystem as fs

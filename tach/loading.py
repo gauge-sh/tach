@@ -1,7 +1,9 @@
-import threading
-import sys
+from __future__ import annotations
+
 import itertools
 import queue
+import sys
+import threading
 import time
 
 SPINNER_CHARS = ".oOo"

@@ -110,7 +110,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
 -   repo: https://github.com/gauge-sh/tach
-    rev: v0.2.2  # change this to the latest tag!
+    rev: v0.2.3  # change this to the latest tag!
     hooks:
     -   id: tach
         # args: ["--root=backend_root"]

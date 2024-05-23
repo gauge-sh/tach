@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import os
 
 import pytest
 from pydantic import ValidationError
 
-from tach.check import check
-from tach.core.config import PackageConfig, TagDependencyRules, ProjectConfig
-from tach.parsing.config import parse_project_config, parse_package_config
-from tach.filesystem import file_to_module_path
 from tach import filesystem as fs
+from tach.check import check
+from tach.core.config import PackageConfig, ProjectConfig, TagDependencyRules
+from tach.filesystem import file_to_module_path
+from tach.parsing.config import parse_package_config, parse_project_config
 
 
 def test_file_to_mod_path():
