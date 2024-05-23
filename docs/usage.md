@@ -4,12 +4,13 @@
 `tach` will flag any unwanted imports between packages. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
-usage: tach check [-h] [-e file_or_path,...]
+usage: tach check [-h] [--exact] [-e file_or_path,...]
 
-Check boundaries with tach
+Check existing boundaries against your dependencies and package interfaces
 
 options:
   -h, --help            show this help message and exit
+  --exact               Raise errors if any dependency constraints are unused.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
@@ -19,6 +20,8 @@ An error will indicate:
 - the file path in which the error was detected
 - the tags associated with that file
 - the tags associated with the attempted import
+
+If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.yml` that is not exercised by the code.
 
 Example:
 ```bash
@@ -56,7 +59,7 @@ The `--depth` flag controls how many directories `tach` will traverse when sugge
 You can accept these suggestions immediately with `Ctrl + s`, or you can edit the selections freely before confirming.
 
 Any time you make changes with `tach pkg`, it is recommended to run [`tach sync`](usage.md#tach-sync)
-to automatically set up dependency rules.
+to automatically configure dependency rules.
 
 ## tach sync
 `tach` can automatically sync your project configuration (`tach.yml`) with your project's actual dependencies.
@@ -107,7 +110,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
 -   repo: https://github.com/gauge-sh/tach
-    rev: v0.2.3  # change this to the latest tag!
+    rev: v0.2.4  # change this to the latest tag!
     hooks:
     -   id: tach
         # args: ["--root=backend_root"]
