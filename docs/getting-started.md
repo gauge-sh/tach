@@ -1,33 +1,73 @@
-# Getting Started
 
-## Installation
-
-[PyPi package](https://pypi.org/project/tach/)
-
-
-Install tach into a Python environment with `pip`
-
+### Installation
 ```bash
 pip install tach
 ```
+### Setup
+Tach allows you to configure what is and is not considered a package. By default, Tach will identify and create configuration for all top level packages it finds.
 
-Verify your installation is working correctly
+From the root of your python project, run:
 ```bash
-tach -h
+ tach pkg
+# Up/Down: Navigate  Ctrl + Up: Jump to parent  Right: Expand  Left: Collapse
+# Ctrl + c: Exit without saving  Ctrl + s: Save packages  Enter: Mark/unmark package  Ctrl + a: Mark/unmark all siblings
 ```
 
-## Adding to a Project
-
-If you are adding `tach` to an existing project, you have two main options:
-
-1. Use [`tach pkg`](usage.md#tach-pkg)  to interactively set up packages, and [`tach sync`](usage.md#tach-sync) to automatically set up dependency rules.
-2. Manually configure your [packages](configuration.md#packageyml) and [dependency rules](configuration.md#tachyml)
-
-## Checking Boundaries
-
+Once you have marked all the packages you want to enforce constraints between, run:
 ```bash
-# From the root of your Python project
+tach sync
+```
+This will create the root configuration for your project, `tach.yml`, with the dependencies that currently exist between each package you've marked. 
+
+Check out what Tach has found: 
+```
+cat tach.yml
+```
+
+NOTE: Dependencies on code that are not marked as packages are out of the scope of Tach and will not be enforced.
+
+### Enforcement
+Tach comes with a simple cli command to enforce the boundaries that you just set up! 
+
+From the root of your Python project, run:
+```bash
 tach check
 ```
+You will see:
+```bash
+✅ All package dependencies validated!
+```
 
-After guarding your project, running `tach check` from the root will check all imports to verify that packages remain correctly decoupled.
+You can validate that Tach is working by either commenting out a `depends_on` key in `tach.yml`, or by adding an import between packages that didn't previously import from each other. Give both a try and run `tach check` again. This will generate an error:
+```bash
+❌ path/file.py[LNO]: Cannot import 'path.other'. Tags ['scope:other'] cannot depend on ['scope:file']. 
+```
+
+### Extras
+
+If an error is generated that is an intended dependency, you can sync your actual dependencies with `tach.yml`:
+```bash
+tach sync
+```
+After running this command, `tach check` will always pass. Optionally, run `tach sync --prune` to remove unused existing dependencies as well.
+
+If your configuration is in a bad state, from the root of your python project you can run: 
+```bash
+tach clean
+```
+This will wipe all the configuration generated and enforced by Tach.
+
+
+Tach also supports:
+- [Manual file configuration](https://gauge-sh.github.io/tach/configuration/)
+- [Strict public interfaces for packages](https://gauge-sh.github.io/tach/strict-mode/)
+- [Inline exceptions](https://gauge-sh.github.io/tach/tach-ignore/)
+- [Pre-commit hooks](https://gauge-sh.github.io/tach/usage/#tach-install)
+
+Tach is:
+- Open source
+- Able to be adopted incrementally
+- Implemented with no runtime impact
+- Interoperable with your existing systems (cli, hooks, ci, etc.)
+
+More info in the [docs](https://gauge-sh.github.io/tach/)

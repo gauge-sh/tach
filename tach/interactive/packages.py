@@ -315,15 +315,15 @@ class InteractivePackageTree:
 
     KEY_BINDING_LEGEND_TOP: list[tuple[str, str]] = [
         ("Up/Down", "Navigate"),
-        ("Ctrl + Up", "Jump to parent"),
+        ("Enter", "Mark/unmark package"),
         ("Right", "Expand"),
         ("Left", "Collapse"),
+        ("Ctrl + Up", "Jump to parent"),
     ]
     KEY_BINDING_LEGEND_BOTTOM: list[tuple[str, str]] = [
+        ("Ctrl + s", "Exit and save"),
         ("Ctrl + c", "Exit without saving"),
-        ("Ctrl + s", "Save packages"),
-        ("Enter", "Mark/unmark package"),
-        ("Ctrl + a", "Mark/unmark all siblings"),
+        ("Ctrl + a", "Mark/unmark all"),
     ]
 
     @staticmethod

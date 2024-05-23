@@ -59,7 +59,7 @@ The `--depth` flag controls how many directories `tach` will traverse when sugge
 You can accept these suggestions immediately with `Ctrl + s`, or you can edit the selections freely before confirming.
 
 Any time you make changes with `tach pkg`, it is recommended to run [`tach sync`](usage.md#tach-sync)
-to automatically set up dependency rules.
+to automatically configure dependency rules.
 
 ## tach sync
 `tach` can automatically sync your project configuration (`tach.yml`) with your project's actual dependencies.
