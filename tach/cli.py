@@ -222,6 +222,8 @@ def tach_check(
         project_config = parse_project_config()
         if exact is False and project_config.exact is True:
             exact = True
+        project_config = parse_project_config(root=root)
+
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
         else:
