@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from tach.constants import TOOL_NAME
 
 template = """#!/bin/sh

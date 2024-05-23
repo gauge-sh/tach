@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 class BCOLORS:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"

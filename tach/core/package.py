@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional, Generator
+from typing import Generator, Optional
 
 from tach.core.config import PackageConfig
 

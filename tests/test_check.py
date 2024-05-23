@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import pytest
+
+from tach.check import check_import
 from tach.core import (
     PackageConfig,
-    PackageTrie,
     PackageNode,
+    PackageTrie,
     ProjectConfig,
     TagDependencyRules,
 )
-from tach.check import check_import
 
 
 @pytest.fixture

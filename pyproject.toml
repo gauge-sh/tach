@@ -38,6 +38,12 @@ keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', '
 Homepage = "https://github.com/gauge-sh/tach"
 Issues = "https://github.com/gauge-sh/tach/issues"
 
+[tool.ruff]
+target-version = "py38"
+lint.extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
 
 [tool.pyright]
 include = ["tach"]

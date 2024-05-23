@@ -1,5 +1,7 @@
-import os
+from __future__ import annotations
+
 import ast
+import os
 import re
 import stat
 import sys
@@ -8,7 +10,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Generator
+from typing import Generator, Optional
+
 from tach import errors
 from tach.colors import BCOLORS
 
@@ -46,9 +49,9 @@ def chdir(path: str):
 def _get_file_cache() -> dict[str, FileInfo]:
     if not hasattr(thread_local, "file_caches_by_cwd"):
         thread_local.file_caches_by_cwd = defaultdict(dict)
-    file_caches_by_cwd: defaultdict[str, dict[str, FileInfo]] = (
-        thread_local.file_caches_by_cwd
-    )  # type: ignore
+    file_caches_by_cwd: defaultdict[
+        str, dict[str, FileInfo]
+    ] = thread_local.file_caches_by_cwd  # type: ignore
     return file_caches_by_cwd[get_cwd()]
 
 

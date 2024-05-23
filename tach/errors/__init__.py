@@ -1,10 +1,16 @@
-class TachError(Exception): ...
+from __future__ import annotations
 
 
-class TachParseError(TachError): ...
+class TachError(Exception):
+    ...
 
 
-class TachSetupError(TachError): ...
+class TachParseError(TachError):
+    ...
+
+
+class TachSetupError(TachError):
+    ...
 
 
 __all__ = ["TachError", "TachParseError", "TachSetupError"]

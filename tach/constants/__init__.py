@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 PACKAGE_NAME = "tach"
 TOOL_NAME = "tach"
 CONFIG_FILE_NAME = TOOL_NAME
