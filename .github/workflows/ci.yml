@@ -51,4 +51,5 @@ jobs:
         pyright
     - name: Check tach
       run: |
+        source .venv/bin/activate
         tach check --root python
