@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from tach import cache
 from tach.logging.api import log_record, log_uid
+from tach.parsing import parse_project_config
 
 
 class LogDataModel(BaseModel):
@@ -43,8 +44,8 @@ logger.setLevel(logging.INFO)
 remote_handler = RemoteLoggingHandler()
 
 # Check if remote logging is enabled
-REMOTE_LOGGING = os.getenv("REMOTE_LOGGING", "true").lower() == "true"
-if REMOTE_LOGGING:
+LOGGING_DISABLED = parse_project_config()
+if not LOGGING_DISABLED:
     logger.addHandler(remote_handler)
 else:
     logger.disabled = True

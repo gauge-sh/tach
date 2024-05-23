@@ -12,6 +12,7 @@ constraints:
   - scope:utils
 - tag: scope:logging
   depends_on:
+  - scope:parsing
   - tach.cache
 - tag: scope:parsing
   depends_on:
@@ -27,12 +28,13 @@ constraints:
   - scope:parsing
   - scope:utils
 exclude:
+- .*__pycache__/
 - dist/
 - tests/
-- .*__pycache__/
+- build/
 - docs/
 - tach.egg-info/
-- build/
 exclude_hidden_paths: true
 exact: true
+disable_logging: false
 ignore_type_checking_imports: false
