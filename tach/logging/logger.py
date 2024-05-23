@@ -43,9 +43,9 @@ logger = logging.getLogger("tach")
 logger.setLevel(logging.INFO)
 remote_handler = RemoteLoggingHandler()
 
-# Check if remote logging is enabled
-LOGGING_DISABLED = parse_project_config()
-if not LOGGING_DISABLED:
+# Check if logging is enabled
+project_config = parse_project_config()
+if not project_config.disable_logging:
     logger.addHandler(remote_handler)
 else:
     logger.disabled = True
