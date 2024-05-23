@@ -17,7 +17,8 @@ This enforces a decoupled, modular architecture, which makes maintenance and dev
 
 Here's an example:
 
-![](docs/tach_demo.gif)
+![tach_demo_ds](https://github.com/gauge-sh/tach/assets/5150563/c693da70-6f5d-417c-968e-4d0507d957c0)
+
 
 Tach is:
 - 🌎 Open source
