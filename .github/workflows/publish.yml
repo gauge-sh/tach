@@ -6,8 +6,8 @@
 name: Publish tach
 
 on:
-  workflow_dispatch:
-  push:
+  release:
+    types: [published]
 
 permissions:
   contents: read
