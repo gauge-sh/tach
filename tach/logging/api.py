@@ -24,9 +24,8 @@ def log_request(url: str, data: dict) -> None:
         )
         response.raise_for_status()
 
-    except requests.RequestException as e:
+    except requests.RequestException:
         pass
-        # print(e)
 
 
 def log_uid(uid: uuid.UUID, is_ci: bool) -> None:
