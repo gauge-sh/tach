@@ -49,7 +49,7 @@ tach sync
 ```
 This will create the root configuration for your project, `tach.yml`, with the dependencies that currently exist between each package you've marked.
 
-You can then see what Tach has found: 
+You can then see what Tach has found by viewing the `tach.yml`'s contents: 
 ```
 cat tach.yml
 ```
@@ -66,7 +66,9 @@ You will see:
 ✅ All package dependencies validated!
 ```
 
-You can validate that Tach is working by either commenting out a `depends_on` key in `tach.yml`, or by adding an import between packages that didn't previously import from each other. Give both a try and run `tach check` again. This will generate an error:
+You can validate that Tach is working by either commenting out an item in a `depends_on` key in `tach.yml`, or by adding an import between packages that didn't previously import from each other. 
+
+Give both a try and run `tach check` again. This will generate an error:
 ```bash
 ❌ path/file.py[LNO]: Cannot import 'path.other'. Tags ['scope:other'] cannot depend on ['scope:file']. 
 ```
