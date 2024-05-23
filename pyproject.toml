@@ -49,6 +49,7 @@ required-imports = ["from __future__ import annotations"]
 include = ["tach"]
 exclude = ["**/__pycache__", ".venv"]
 strict = ["tach"]
+pythonVersion = "3.8"
 
 [build-system]
 requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
