@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = "0.20.0"
+rustpython-parser = "0.3.1"
