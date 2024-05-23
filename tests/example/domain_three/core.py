@@ -1,5 +1,4 @@
 from __future__ import annotations
 
 
-def d3function():
-    ...
+def d3function(): ...
