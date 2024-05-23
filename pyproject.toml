@@ -41,6 +41,7 @@ Homepage = "https://github.com/gauge-sh/tach"
 Issues = "https://github.com/gauge-sh/tach/issues"
 
 [tool.ruff]
+src = ["python"]
 target-version = "py38"
 lint.extend-select = ["I", "TCH"]
 
@@ -65,9 +66,6 @@ strict = ["python/tach"]
 executionEnvironments = [
   { root = "python" }
 ]
-
-[tool.ruff]
-src = ["python"]
 pythonVersion = "3.8"
 
 [build-system]
