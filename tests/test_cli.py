@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from unittest.mock import Mock
+
 import pytest
 
 from tach import cli
-from tach.check import ErrorInfo, BoundaryError
+from tach.check import BoundaryError, ErrorInfo
 from tach.constants import CONFIG_FILE_NAME
 from tach.core import ProjectConfig, TagDependencyRules
 

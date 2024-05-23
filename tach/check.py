@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass, field
 from typing import Optional
 
-from tach import filesystem as fs
 from tach import errors
-from tach.core import PackageTrie, PackageNode, ProjectConfig
+from tach import filesystem as fs
+from tach.core import PackageNode, PackageTrie, ProjectConfig
 from tach.parsing import build_package_trie, get_project_imports
 
 

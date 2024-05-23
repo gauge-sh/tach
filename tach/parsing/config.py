@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from typing import Optional
 
 import yaml
 
-from tach.colors import BCOLORS
-from tach.core import ProjectConfig, PackageConfig
 from tach import filesystem as fs
+from tach.colors import BCOLORS
+from tach.core import PackageConfig, ProjectConfig
 
 
 def dump_project_config_to_yaml(config: ProjectConfig) -> str:
