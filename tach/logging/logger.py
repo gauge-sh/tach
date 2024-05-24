@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -13,14 +14,14 @@ from tach.parsing import parse_project_config
 
 class LogDataModel(BaseModel):
     function: str
-    parameters: dict = Field(default_factory=dict)
+    parameters: dict[str, Any] = Field(default_factory=dict)
 
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     is_ci = "CI" in os.environ
-    data = record.data if hasattr(record, "data") else None
+    data: Optional[LogDataModel] = getattr(record, "data", None)
     uid = cache.get_uid()
-    log_data = {
+    log_data: dict[str, Any] = {
         "user": str(uid),
         "message": entry,
         "level": record.levelname,
@@ -33,7 +34,7 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
 
 
 class RemoteLoggingHandler(logging.Handler):
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         log_entry = self.format(record)
         thread = threading.Thread(target=send_log_entry, args=(record, log_entry))
         thread.start()

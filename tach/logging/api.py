@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from typing import Any
 
 import requests
 
@@ -12,7 +13,7 @@ PUBLIC_ANON_CLIENT_KEY = (
 )
 
 
-def log_request(url: str, data: dict) -> None:
+def log_request(url: str, data: dict[str, Any]) -> None:
     headers = {
         "Content-Type": "application/json",
         "apikey": PUBLIC_ANON_CLIENT_KEY,
@@ -32,5 +33,5 @@ def log_uid(uid: uuid.UUID, is_ci: bool) -> None:
     log_request(url="rest/v1/User", data={"id": str(uid), "is_ci": is_ci})
 
 
-def log_record(record_data: dict) -> None:
+def log_record(record_data: dict[str, Any]) -> None:
     log_request(url="rest/v1/LogRecord", data=record_data)
