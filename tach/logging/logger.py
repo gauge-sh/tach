@@ -85,7 +85,7 @@ remote_handler = RemoteLoggingHandler()
 disable_logging = False
 try:
     project_config = parse_project_config()
-    enable_logging = project_config.disable_logging
+    disable_logging = project_config.disable_logging
 except SystemExit:
     pass
 if not disable_logging:
