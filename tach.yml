@@ -1,4 +1,7 @@
 constraints:
+- tag: scope:cache
+  depends_on:
+  - scope:filesystem
 - tag: scope:filesystem
   depends_on:
   - scope:hooks
@@ -10,6 +13,10 @@ constraints:
   depends_on:
   - scope:filesystem
   - scope:utils
+- tag: scope:logging
+  depends_on:
+  - scope:cache
+  - scope:parsing
 - tag: scope:parsing
   depends_on:
   - scope:core
@@ -20,6 +27,7 @@ constraints:
   - scope:core
   - scope:filesystem
   - scope:interactive
+  - scope:logging
   - scope:parsing
   - scope:utils
 exclude:
@@ -30,4 +38,3 @@ exclude:
 - build/
 - docs/
 exact: true
-ignore_type_checking_imports: false
