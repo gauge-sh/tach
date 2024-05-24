@@ -5,6 +5,7 @@ use pyo3::conversion::IntoPy;
 use pyo3::PyObject;
 
 use rustpython_ast::text_size::TextRange;
+use rustpython_ast::Expr::Name;
 use rustpython_ast::Visitor;
 
 use crate::{filesystem, parsing};
@@ -169,6 +170,19 @@ impl ImportVisitor {
 }
 
 impl Visitor for ImportVisitor {
+    fn visit_stmt_if(&mut self, node: rustpython_ast::StmtIf<TextRange>) {
+        let id = match node.test.as_ref() {
+            Name(ref name) => Some(name.id.as_str()),
+            _ => None,
+        };
+        if id.unwrap_or_default() == "TYPE_CHECKING" && self.ignore_type_checking_imports {
+            return;
+        }
+
+        // assume other conditional imports represent real dependencies
+        self.generic_visit_stmt_if(node);
+    }
+
     fn visit_stmt_import(&mut self, node: rustpython_ast::StmtImport<TextRange>) {
         self.project_imports
             .extend(node.into_project_imports(&self.project_root, &self.file_mod_path))

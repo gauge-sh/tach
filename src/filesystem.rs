@@ -62,7 +62,7 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-fn is_standard_lib_or_builtin_import(module_base: &str) -> bool {
+fn is_standard_lib_or_builtin_import(_module_base: &str) -> bool {
     false
 }
 
