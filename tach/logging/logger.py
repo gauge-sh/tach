@@ -19,6 +19,7 @@ class LogDataModel(BaseModel):
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     is_ci = "CI" in os.environ
+    is_gauge = "GAUGE" in os.environ
     data: Optional[LogDataModel] = getattr(record, "data", None)
     uid = cache.get_uid()
     log_data: dict[str, Any] = {
@@ -30,8 +31,8 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
         "parameters": data.parameters if data else None,
     }
     if uid is not None:
-        log_uid(uid, is_ci)
-    log_record(log_data)
+        log_uid(uid=uid, is_ci=is_ci, is_gauge=is_gauge)
+    log_record(record_data=log_data)
 
 
 class RemoteLoggingHandler(logging.Handler):

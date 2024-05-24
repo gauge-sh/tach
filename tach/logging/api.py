@@ -27,12 +27,16 @@ def log_request(url: str, data: dict[str, Any]) -> None:
         )
         response.raise_for_status()
 
-    except requests.RequestException:
+    except requests.RequestException as e:
+        print(e)
+        print(response.json())
         pass
 
 
-def log_uid(uid: uuid.UUID, is_ci: bool) -> None:
-    log_request(url="rest/v1/User", data={"id": str(uid), "is_ci": is_ci})
+def log_uid(uid: uuid.UUID, is_ci: bool, is_gauge: bool) -> None:
+    log_request(
+        url="rest/v1/User", data={"id": str(uid), "is_ci": is_ci, "is_gauge": is_gauge}
+    )
 
 
 def log_record(record_data: dict[str, Any]) -> None:

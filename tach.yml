@@ -31,12 +31,12 @@ constraints:
   - scope:parsing
   - scope:utils
 exclude:
-- tach.egg-info/
-- .*__pycache__/
-- tests/
-- dist/
-- build/
 - docs/
+- tests/
+- build/
+- tach.egg-info/
+- dist/
+- .*__pycache__/
 exclude_hidden_paths: true
 exact: true
 disable_logging: false
