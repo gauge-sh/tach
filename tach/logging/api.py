@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+from http.client import HTTPSConnection
 from typing import TYPE_CHECKING, Any
-
-import requests
+from urllib import parse
 
 if TYPE_CHECKING:
     import uuid
@@ -21,9 +21,19 @@ def log_request(url: str, data: dict[str, Any]) -> None:
         "apikey": PUBLIC_ANON_CLIENT_KEY,
         "authorization": f"Bearer {PUBLIC_ANON_CLIENT_KEY}",
     }
-    requests.post(
-        f"{LOGGING_URL}/{url}", data=json.dumps(data), headers=headers, timeout=10
-    )
+    json_data = json.dumps(data)
+    full_url = f"{LOGGING_URL}/{url}"
+    conn = None
+    try:
+        url_parts: parse.ParseResult = parse.urlparse(full_url)
+        conn = HTTPSConnection(url_parts.netloc, timeout=1)
+        conn.request("POST", full_url, body=json_data, headers=headers)
+        conn.getresponse()
+    except Exception:  # noqa
+        pass
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def log_uid(uid: uuid.UUID, is_ci: bool, is_gauge: bool) -> None:

@@ -53,12 +53,11 @@ def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
     sys.stdout = devnull
     sys.stderr = devnull
 
-    # Ensure logging process always finishes
     def handler(signum: int, frame: Optional[FrameType]) -> None:
         raise TimeoutError()
 
-    signal.signal(signal.SIGALRM, handler)
-    signal.alarm(3)
+    signal.signal(signal.SIGALRM, handler)  # ensure logging process always exits
+    signal.alarm(3)  # 3 sec timeout
     try:
         send_log_entry(record=record, entry=entry)
     except Exception:  # noqa
