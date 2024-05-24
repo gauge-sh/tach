@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
-import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
+
+if TYPE_CHECKING:
+    import uuid
 
 LOGGING_URL = "https://vmilasesnyvpalekembc.supabase.co"
 PUBLIC_ANON_CLIENT_KEY = (
