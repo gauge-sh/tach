@@ -37,7 +37,9 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
 class RemoteLoggingHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         log_entry = self.format(record)
-        thread = threading.Thread(target=send_log_entry, args=(record, log_entry))
+        thread = threading.Thread(
+            target=send_log_entry, args=(record, log_entry), daemon=True
+        )
         thread.start()
 
 
