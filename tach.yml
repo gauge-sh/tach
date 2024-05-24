@@ -23,11 +23,11 @@ constraints:
   - scope:parsing
   - scope:utils
 exclude:
-- dist/
-- docs/
 - tests/
-- tach.egg-info/
 - .*__pycache__/
+- tach.egg-info/
+- dist/
 - build/
-ignore_type_checking_imports: false
+- docs/
 exact: true
+ignore_type_checking_imports: false
