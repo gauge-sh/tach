@@ -21,16 +21,9 @@ def log_request(url: str, data: dict[str, Any]) -> None:
         "apikey": PUBLIC_ANON_CLIENT_KEY,
         "authorization": f"Bearer {PUBLIC_ANON_CLIENT_KEY}",
     }
-    try:
-        response = requests.post(
-            f"{LOGGING_URL}/{url}", data=json.dumps(data), headers=headers, timeout=1
-        )
-        response.raise_for_status()
-
-    except requests.RequestException as e:
-        print(e)
-        print(response.json())
-        pass
+    requests.post(
+        f"{LOGGING_URL}/{url}", data=json.dumps(data), headers=headers, timeout=10
+    )
 
 
 def log_uid(uid: uuid.UUID, is_ci: bool, is_gauge: bool) -> None:

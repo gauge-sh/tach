@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import logging
+import multiprocessing
 import os
-import threading
-from typing import Any, Optional
+import signal
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel, Field
 
 from tach import cache
 from tach.logging.api import log_record, log_uid
 from tach.parsing import parse_project_config
+
+if TYPE_CHECKING:
+    from types import FrameType
 
 
 class LogDataModel(BaseModel):
@@ -19,7 +23,7 @@ class LogDataModel(BaseModel):
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     is_ci = "CI" in os.environ
-    is_gauge = "GAUGE" in os.environ
+    is_gauge = "IS_GAUGE" in os.environ
     data: Optional[LogDataModel] = getattr(record, "data", None)
     uid = cache.get_uid()
     log_data: dict[str, Any] = {
@@ -35,13 +39,43 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     log_record(record_data=log_data)
 
 
+def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
+    # return on main process
+    try:
+        if os.fork() != 0:
+            return
+    except OSError:  # TODO WIN support
+        return
+
+    import sys
+
+    devnull = open(os.devnull, "w")
+    sys.stdout = devnull
+    sys.stderr = devnull
+
+    # Ensure logging process always finishes
+    def handler(signum: int, frame: Optional[FrameType]) -> None:
+        raise TimeoutError()
+
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(3)
+    try:
+        send_log_entry(record=record, entry=entry)
+    except Exception:  # noqa
+        pass
+    finally:
+        signal.alarm(0)
+
+
 class RemoteLoggingHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         log_entry = self.format(record)
-        thread = threading.Thread(
-            target=send_log_entry, args=(record, log_entry), daemon=True
+        # Ensure logs are nonblocking to main process
+        process = multiprocessing.Process(
+            target=handle_log_entry, args=(record, log_entry)
         )
-        thread.start()
+        process.start()
+        process.join()
 
 
 logger = logging.getLogger("tach")
