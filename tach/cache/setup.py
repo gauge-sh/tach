@@ -20,7 +20,7 @@ def resolve_dot_tach() -> Optional[Path]:
             else:
                 path.mkdir()
 
-    # Create .bridge
+    # Create .tach
     tach_path = project_path / ".tach"
     _create(tach_path)
     # Create info
