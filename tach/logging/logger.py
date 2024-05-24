@@ -22,14 +22,15 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     data: Optional[LogDataModel] = getattr(record, "data", None)
     uid = cache.get_uid()
     log_data: dict[str, Any] = {
-        "user": str(uid),
+        "user": str(uid) if uid else None,
         "message": entry,
         "level": record.levelname,
         "timestamp": record.created,
         "function": data.function if data else None,
         "parameters": data.parameters if data else None,
     }
-    log_uid(uid, is_ci)
+    if uid is not None:
+        log_uid(uid, is_ci)
     log_record(log_data)
 
 

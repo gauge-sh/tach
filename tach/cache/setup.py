@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
+from typing import Optional
+
+from tach.filesystem import find_project_config_root
 
 
-def resolve_project_dir() -> Path:
-    current_dir = Path.cwd()
-    tach_path = current_dir / "tach.yml"
-    if not tach_path.exists():
-        raise FileNotFoundError()
-    return Path(current_dir)
-
-
-def resolve_dot_tach() -> Path:
-    project_dir = resolve_project_dir()
+def resolve_dot_tach() -> Optional[Path]:
+    project_dir = find_project_config_root(str(Path.cwd()))
+    if project_dir is None:
+        return
+    project_path = Path(project_dir)
 
     def _create(path: Path, is_file: bool = False, file_content: str = "") -> None:
         if not path.exists():
@@ -23,7 +21,7 @@ def resolve_dot_tach() -> Path:
                 path.mkdir()
 
     # Create .bridge
-    tach_path = project_dir / ".tach"
+    tach_path = project_path / ".tach"
     _create(tach_path)
     # Create info
     info_path = tach_path / "tach.info"
