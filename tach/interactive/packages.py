@@ -6,12 +6,11 @@ from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
-from typing import Callable, Generator, Optional, Union
+from typing import TYPE_CHECKING, Callable, Generator, Optional, Union
 
 from prompt_toolkit import ANSI
 from prompt_toolkit.application import Application
 from prompt_toolkit.data_structures import Point
-from prompt_toolkit.formatted_text import AnyFormattedText
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import (
     Container,
@@ -31,6 +30,9 @@ from rich.tree import Tree
 from tach import errors
 from tach import filesystem as fs
 from tach.constants import PACKAGE_FILE_NAME
+
+if TYPE_CHECKING:
+    from prompt_toolkit.formatted_text import AnyFormattedText
 
 
 @dataclass

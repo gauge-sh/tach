@@ -5,20 +5,22 @@ import os
 import sys
 from enum import Enum
 from functools import lru_cache
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
 from tach.clean import clean_project
 from tach.colors import BCOLORS
 from tach.constants import TOOL_NAME
-from tach.core import TagDependencyRules
 from tach.filesystem import install_pre_commit
 from tach.loading import start_spinner, stop_spinner
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.pkg import pkg_edit_interactive
 from tach.sync import prune_dependency_constraints, sync_project
+
+if TYPE_CHECKING:
+    from tach.core import TagDependencyRules
 
 
 class TerminalEnvironment(Enum):
