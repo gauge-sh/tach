@@ -45,8 +45,13 @@ logger.setLevel(logging.INFO)
 remote_handler = RemoteLoggingHandler()
 
 # Check if logging is enabled
-project_config = parse_project_config()
-if not project_config.disable_logging:
+disable_logging = False
+try:
+    project_config = parse_project_config()
+    enable_logging = project_config.disable_logging
+except SystemExit:
+    pass
+if not disable_logging:
     logger.addHandler(remote_handler)
 else:
     logger.disabled = True
