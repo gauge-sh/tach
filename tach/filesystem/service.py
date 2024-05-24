@@ -161,7 +161,6 @@ def walk(
     depth: Optional[int] = None,
     exclude_root: bool = True,
     exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
 ) -> Generator[tuple[str, list[str]], None, None]:
     canonical_root = canonical(root)
     base_depth = 0 if canonical_root == "." else canonical_root.count(os.path.sep) + 1
@@ -172,9 +171,7 @@ def walk(
         if exclude_root and dirpath == canonical_root:
             continue
 
-        if exclude_hidden_paths and (
-            os.path.basename(os.path.normpath(dirpath)).startswith(".")
-        ):
+        if os.path.basename(os.path.normpath(dirpath)).startswith("."):
             # This prevents recursing into child directories of hidden paths
             del dirnames[:]
             continue
@@ -193,7 +190,7 @@ def walk(
                 continue
 
         def filter_filename(filename: str) -> bool:
-            if exclude_hidden_paths and filename.startswith("."):
+            if filename.startswith("."):
                 return False
             file_path = os.path.join(dirpath, filename)
             if exclude_paths is not None and any(
@@ -209,13 +206,11 @@ def walk_pyfiles(
     root: str,
     depth: Optional[int] = None,
     exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
 ) -> Generator[str, None, None]:
     for dirpath, filenames in walk(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
-        exclude_hidden_paths=exclude_hidden_paths,
     ):
         for filename in filenames:
             if filename.endswith(".py"):
@@ -226,13 +221,11 @@ def walk_pypackages(
     root: str,
     depth: Optional[int] = None,
     exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
 ) -> Generator[str, None, None]:
     for filepath in walk_pyfiles(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
-        exclude_hidden_paths=exclude_hidden_paths,
     ):
         init_file_ending = f"{os.path.sep}__init__.py"
         if filepath.endswith(init_file_ending):
@@ -243,13 +236,11 @@ def walk_configured_packages(
     root: str,
     depth: Optional[int] = None,
     exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
 ) -> Generator[tuple[str, str], None, None]:
     for dirpath in walk_pypackages(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
-        exclude_hidden_paths=exclude_hidden_paths,
     ):
         package_yml_path = os.path.join(dirpath, "package.yml")
         if os.path.isfile(package_yml_path):

@@ -33,7 +33,6 @@ exclude:
 - tests/
 - docs/
 - build/
-exclude_hidden_paths: true
 ignore_type_checking_imports: true
 ```
 

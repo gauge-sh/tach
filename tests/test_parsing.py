@@ -27,7 +27,6 @@ def test_parse_valid_project_config():
             TagDependencyRules(tag="three", depends_on=[]),
         ],
         exclude=["domain_thr.*"],
-        exclude_hidden_paths=True,
     )
 
 
@@ -41,7 +40,6 @@ def test_run_valid_project_config():
             ".",
             project_config,
             exclude_paths=project_config.exclude,
-            exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
         assert results == []
     finally:
@@ -82,25 +80,3 @@ def test_invalid_package_config():
 def test_empty_package_config():
     with pytest.raises(ValueError):
         parse_package_config("example/invalid")
-
-
-def test_exclude_hidden_paths_fails():
-    current_dir = os.getcwd()
-    hidden_project = "./example/invalid/hidden/"
-    fs.chdir(hidden_project)
-    try:
-        project_config = parse_project_config()
-        assert project_config.exclude_hidden_paths is False
-        results = check(
-            ".",
-            project_config,
-            exclude_hidden_paths=project_config.exclude_hidden_paths,
-        )
-        assert len(results) == 1
-        assert "strict mode" in results[0].error_info.exception_message
-
-        project_config.exclude_hidden_paths = True
-        assert check(".", project_config, exclude_hidden_paths=True) == []
-    finally:
-        # Make sure not to dirty the test directory state
-        fs.chdir(current_dir)

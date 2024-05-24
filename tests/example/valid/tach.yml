@@ -9,4 +9,3 @@ constraints:
   depends_on: []
 exclude:
 - domain_thr.*
-exclude_hidden_paths: true

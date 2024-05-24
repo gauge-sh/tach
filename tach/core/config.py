@@ -30,8 +30,10 @@ class TagDependencyRules(Config):
 def is_deprecated_project_config(config: dict[str, Any]) -> bool:
     if not config:
         return False
+    if "exclude_hidden_paths" in config:
+        return True
     if "constraints" in config and not (
-        set(config.keys()) - {"constraints", "exclude", "exclude_hidden_paths"}
+        set(config.keys()) - {"constraints", "exclude"}
     ):
         # This appears to be a project config object,
         # the deprecated version will have a dict of constraints
@@ -39,10 +41,14 @@ def is_deprecated_project_config(config: dict[str, Any]) -> bool:
     return False
 
 
-def flatten_deprecated_config(config: dict[str, Any]):
-    config["constraints"] = [
-        {"tag": key, **value} for key, value in config.get("constraints", {}).items()
-    ]
+def fix_deprecated_config(config: dict[str, Any]):
+    if "constraints" in config and isinstance(config["constraints"], dict):
+        config["constraints"] = [
+            {"tag": key, **value}
+            for key, value in config.get("constraints", {}).items()
+        ]
+    if "exclude_hidden_paths" in config:
+        config.pop("exclude_hidden_paths")
 
 
 class ProjectConfig(Config):
@@ -52,7 +58,6 @@ class ProjectConfig(Config):
 
     constraints: List[TagDependencyRules] = Field(default_factory=list)
     exclude: Optional[List[str]] = Field(default_factory=lambda: ["tests", "docs"])
-    exclude_hidden_paths: bool = True
     exact: bool = False
     disable_logging: bool = False
     ignore_type_checking_imports: bool = False
@@ -121,6 +126,6 @@ class ProjectConfig(Config):
         Using this factory to catch deprecated config and flag it to the caller
         """
         if is_deprecated_project_config(config):
-            flatten_deprecated_config(config)
+            fix_deprecated_config(config)
             return True, ProjectConfig(**config)
         return False, ProjectConfig(**config)  # type: ignore
