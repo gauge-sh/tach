@@ -21,7 +21,7 @@ def log_request(url: str, data: dict[str, Any]) -> None:
     }
     try:
         response = requests.post(
-            f"{LOGGING_URL}/{url}", data=json.dumps(data), headers=headers
+            f"{LOGGING_URL}/{url}", data=json.dumps(data), headers=headers, timeout=1
         )
         response.raise_for_status()
 

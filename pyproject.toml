@@ -30,7 +30,8 @@ dependencies = [
     "pydantic==2.7.1",
     "stdlib-list==0.10.0",
     "rich==13.7.1",
-    "prompt-toolkit==3.0.43"
+    "prompt-toolkit==3.0.43",
+    "requests==2.32.2",
 ]
 keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 
