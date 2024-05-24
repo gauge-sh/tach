@@ -41,10 +41,21 @@ Issues = "https://github.com/gauge-sh/tach/issues"
 
 [tool.ruff]
 target-version = "py38"
-lint.extend-select = ["I"]
+lint.extend-select = ["I", "TCH"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "pydantic.RootModel",
+]
+runtime-evaluated-decorators = [
+    "pydantic.dataclasses.dataclass",
+    "dataclasses.dataclass",
+]
+exempt-modules = ["typing", "typing_extensions"]
 
 [tool.pyright]
 include = ["tach"]
