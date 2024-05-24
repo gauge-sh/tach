@@ -231,7 +231,6 @@ def tach_check(
             root,
             project_config,
             exclude_paths=exclude_paths,
-            exclude_hidden_paths=project_config.exclude_hidden_paths,
         )
 
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect

@@ -123,7 +123,6 @@ def check(
     root: str,
     project_config: ProjectConfig,
     exclude_paths: Optional[list[str]] = None,
-    exclude_hidden_paths: Optional[bool] = True,
 ) -> list[BoundaryError]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a valid directory.")
@@ -140,12 +139,14 @@ def check(
             exclude_paths = project_config.exclude
 
         package_trie = build_package_trie(
-            root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
+            root,
+            exclude_paths=exclude_paths,
         )
 
         boundary_errors: list[BoundaryError] = []
         for file_path in fs.walk_pyfiles(
-            root, exclude_paths=exclude_paths, exclude_hidden_paths=exclude_hidden_paths
+            root,
+            exclude_paths=exclude_paths,
         ):
             mod_path = fs.file_to_module_path(file_path)
             nearest_package = package_trie.find_nearest(mod_path)

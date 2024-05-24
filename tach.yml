@@ -29,6 +29,5 @@ exclude:
 - tach.egg-info/
 - .*__pycache__/
 - build/
-exclude_hidden_paths: true
 ignore_type_checking_imports: false
 exact: true

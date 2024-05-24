@@ -31,7 +31,7 @@ def is_deprecated_project_config(config: dict[str, Any]) -> bool:
     if not config:
         return False
     if "constraints" in config and not (
-        set(config.keys()) - {"constraints", "exclude", "exclude_hidden_paths"}
+        set(config.keys()) - {"constraints", "exclude"}
     ):
         # This appears to be a project config object,
         # the deprecated version will have a dict of constraints
@@ -52,7 +52,6 @@ class ProjectConfig(Config):
 
     constraints: List[TagDependencyRules] = Field(default_factory=list)
     exclude: Optional[List[str]] = Field(default_factory=lambda: ["tests", "docs"])
-    exclude_hidden_paths: bool = True
     exact: bool = False
     ignore_type_checking_imports: bool = False
 
