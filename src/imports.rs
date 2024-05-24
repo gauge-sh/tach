@@ -1,8 +1,12 @@
+use std::collections::HashMap;
 use std::fmt::{self, Debug};
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 
 use pyo3::conversion::IntoPy;
 use pyo3::PyObject;
+
+use once_cell::sync::Lazy;
+use regex::Regex;
 
 use rustpython_ast::text_size::TextRange;
 use rustpython_ast::Expr::Name;
@@ -37,11 +41,40 @@ impl IntoPy<PyObject> for ProjectImport {
     }
 }
 
+pub type IgnoreDirectives = HashMap<usize, Vec<String>>;
+
+static TACH_IGNORE_REGEX: Lazy<regex::Regex> =
+    Lazy::new(|| Regex::new(r"# *tach-ignore(( [\w.]+)*)$").unwrap());
+
+fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
+    let mut ignores: IgnoreDirectives = HashMap::new();
+
+    for (lineno, line) in file_content.lines().enumerate() {
+        let normal_lineno = lineno + 1;
+        if let Some(captures) = TACH_IGNORE_REGEX.captures(line) {
+            let ignored_modules = captures.get(1).map_or("", |m| m.as_str());
+            let modules: Vec<String> = if ignored_modules.is_empty() {
+                Vec::new()
+            } else {
+                ignored_modules
+                    .split_whitespace()
+                    .map(String::from)
+                    .collect()
+            };
+            ignores.insert(normal_lineno, modules);
+        }
+    }
+
+    ignores
+}
+
 trait IntoProjectImports {
     fn into_project_imports<P: AsRef<Path>>(
         self,
         project_root: P,
         file_mod_path: &str,
+        is_package: bool,
+        ignore_directives: &IgnoreDirectives,
     ) -> ProjectImports;
 }
 
@@ -50,10 +83,26 @@ impl IntoProjectImports for rustpython_ast::StmtImport {
         self,
         project_root: P,
         _file_mod_path: &str,
+        _is_package: bool,
+        ignore_directives: &IgnoreDirectives,
     ) -> ProjectImports {
+        let ignored_modules: Option<&Vec<String>> =
+            ignore_directives.get(&self.range.start().into());
+
+        if let Some(ignored) = ignored_modules {
+            if ignored.is_empty() {
+                // Blanket ignore of following import
+                return vec![];
+            }
+        }
         self.names
             .iter()
             .filter_map(|alias| {
+                if let Some(ignored) = ignored_modules {
+                    if ignored.contains(&alias.name.to_string()) {
+                        return None; // This import is ignored by a directive
+                    }
+                }
                 match filesystem::is_project_import(project_root.as_ref(), alias.name.as_str()) {
                     Ok(true) => Some(ProjectImport {
                         mod_path: alias.name.to_string(),
@@ -72,6 +121,8 @@ impl IntoProjectImports for rustpython_ast::StmtImportFrom {
         self,
         project_root: P,
         file_mod_path: &str,
+        is_package: bool,
+        ignore_directives: &IgnoreDirectives,
     ) -> ProjectImports {
         let mut imports = ProjectImports::new();
 
@@ -79,8 +130,6 @@ impl IntoProjectImports for rustpython_ast::StmtImportFrom {
         // For relative imports (level > 0), adjust the base module path
         let base_mod_path = if let Some(ref module) = self.module {
             if import_depth > 0 {
-                // Assuming `is_package` is some boolean flag we have to determine
-                let is_package = false; // Replace this with actual logic if needed
                 let num_paths_to_strip = if is_package {
                     import_depth - 1
                 } else {
@@ -105,12 +154,14 @@ impl IntoProjectImports for rustpython_ast::StmtImportFrom {
             String::new()
         };
 
-        // Ignored modules stub
-        let ignored_modules: Option<Vec<String>> = None; // Replace with actual logic if needed
+        let ignored_modules: Option<&Vec<String>> =
+            ignore_directives.get(&self.range.start().into());
 
-        if let Some(ref ignored) = ignored_modules {
+        if let Some(ignored) = ignored_modules {
             if ignored.is_empty() {
-                return imports; // Blanket ignore of following import
+                // Blanket ignore of following import
+                // here 'imports' is the already-constructed empty Vec
+                return imports;
             }
         }
 
@@ -121,7 +172,7 @@ impl IntoProjectImports for rustpython_ast::StmtImportFrom {
                 self.module.as_deref().unwrap_or(""),
                 name.asname.as_deref().unwrap_or(name.name.as_ref())
             );
-            if let Some(ref ignored) = ignored_modules {
+            if let Some(ignored) = ignored_modules {
                 if ignored.contains(&local_mod_path) {
                     continue; // This import is ignored by a directive
                 }
@@ -150,6 +201,8 @@ impl IntoProjectImports for rustpython_ast::StmtImportFrom {
 pub struct ImportVisitor {
     project_root: String,
     file_mod_path: String,
+    is_package: bool,
+    ignore_directives: IgnoreDirectives,
     ignore_type_checking_imports: bool,
     pub project_imports: ProjectImports,
 }
@@ -158,11 +211,15 @@ impl ImportVisitor {
     pub fn new(
         project_root: String,
         file_mod_path: String,
+        is_package: bool,
+        ignore_directives: IgnoreDirectives,
         ignore_type_checking_imports: bool,
     ) -> Self {
         ImportVisitor {
             project_root,
             file_mod_path,
+            is_package,
+            ignore_directives,
             ignore_type_checking_imports,
             project_imports: vec![],
         }
@@ -184,13 +241,21 @@ impl Visitor for ImportVisitor {
     }
 
     fn visit_stmt_import(&mut self, node: rustpython_ast::StmtImport<TextRange>) {
-        self.project_imports
-            .extend(node.into_project_imports(&self.project_root, &self.file_mod_path))
+        self.project_imports.extend(node.into_project_imports(
+            &self.project_root,
+            &self.file_mod_path,
+            self.is_package,
+            &self.ignore_directives,
+        ))
     }
 
     fn visit_stmt_import_from(&mut self, node: rustpython_ast::StmtImportFrom<TextRange>) {
-        self.project_imports
-            .extend(node.into_project_imports(&self.project_root, &self.file_mod_path))
+        self.project_imports.extend(node.into_project_imports(
+            &self.project_root,
+            &self.file_mod_path,
+            self.is_package,
+            &self.ignore_directives,
+        ))
     }
 }
 
@@ -211,9 +276,14 @@ pub fn get_project_imports(
         parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
             message: format!("Failed to parse project imports. Failure: {:?}", err),
         })?;
+    let is_package = file_path.ends_with(format!("{}__init__.py", MAIN_SEPARATOR).as_str())
+        || file_path == "__init__.py";
+    let ignore_directives = get_ignore_directives(file_contents.as_str());
     let mut import_visitor = ImportVisitor::new(
         project_root,
         filesystem::file_to_module_path(file_path.as_str()),
+        is_package,
+        ignore_directives,
         ignore_type_checking_imports,
     );
     file_ast
