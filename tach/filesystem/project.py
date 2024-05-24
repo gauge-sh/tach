@@ -16,6 +16,7 @@ def print_no_config_yml() -> None:
     )
 
 
+# TODO convert all str paths to pathlib.Path
 def get_project_config_path(root: str = ".") -> str:
     file_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     if os.path.exists(file_path):

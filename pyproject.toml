@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.2.4"
+version = "0.2.5"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
@@ -30,7 +30,8 @@ dependencies = [
     "pydantic==2.7.1",
     "stdlib-list==0.10.0",
     "rich==13.7.1",
-    "prompt-toolkit==3.0.43"
+    "prompt-toolkit==3.0.43",
+    "eval-type-backport==0.2.0",
 ]
 keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 

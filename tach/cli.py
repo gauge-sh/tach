@@ -14,6 +14,7 @@ from tach.colors import BCOLORS
 from tach.constants import TOOL_NAME
 from tach.filesystem import install_pre_commit
 from tach.loading import start_spinner, stop_spinner
+from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.pkg import pkg_edit_interactive
 from tach.sync import prune_dependency_constraints, sync_project
@@ -34,7 +35,6 @@ def detect_environment() -> TerminalEnvironment:
         return TerminalEnvironment.JETBRAINS
     elif "vscode" in os.environ.get("TERM_PROGRAM", "").lower():
         return TerminalEnvironment.VSCODE
-
     return TerminalEnvironment.UNKNOWN
 
 
@@ -217,6 +217,15 @@ def tach_check(
     exact: bool = False,
     exclude_paths: Optional[list[str]] = None,
 ):
+    logger.info(
+        "tach check called",
+        extra={
+            "data": LogDataModel(
+                function="tach_check",
+                parameters={"exact": exact},
+            ),
+        },
+    )
     try:
         project_config = parse_project_config(root=root)
         if exact is False and project_config.exact is True:
@@ -258,6 +267,15 @@ def tach_check(
 
 
 def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None):
+    logger.info(
+        "tach pkg called",
+        extra={
+            "data": LogDataModel(
+                function="tach_pkg",
+                parameters={"depth": depth},
+            ),
+        },
+    )
     try:
         saved_changes, warnings = pkg_edit_interactive(
             root=".", depth=depth, exclude_paths=exclude_paths
@@ -277,6 +295,15 @@ def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None
 
 
 def tach_sync(prune: bool = False, exclude_paths: Optional[list[str]] = None):
+    logger.info(
+        "tach sync called",
+        extra={
+            "data": LogDataModel(
+                function="tach_sync",
+                parameters={"prune": prune},
+            ),
+        },
+    )
     try:
         sync_project(prune=prune, exclude_paths=exclude_paths)
     except Exception as e:
@@ -288,6 +315,15 @@ def tach_sync(prune: bool = False, exclude_paths: Optional[list[str]] = None):
 
 
 def tach_clean(force: bool = False) -> None:
+    logger.info(
+        "tach clean called",
+        extra={
+            "data": LogDataModel(
+                function="tach_clean",
+                parameters={"force": force},
+            ),
+        },
+    )
     print(
         f"{BCOLORS.WARNING}This will DELETE all existing configuration for {TOOL_NAME}.{BCOLORS.ENDC}"
     )
@@ -319,6 +355,14 @@ class InstallTarget(Enum):
 
 
 def tach_install(path: str, target: InstallTarget, project_root: str = "") -> None:
+    logger.info(
+        "tach install called",
+        extra={
+            "data": LogDataModel(
+                function="tach_install",
+            ),
+        },
+    )
     try:
         if target == InstallTarget.PRE_COMMIT:
             installed, warning = install_pre_commit(

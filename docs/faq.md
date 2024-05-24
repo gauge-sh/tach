@@ -15,3 +15,8 @@ these imports, you can add `ignore_type_checking_imports: true` to your `tach.ym
 
 ### Can you catch dynamic references?
 Since `tach` uses the AST to find imports and public members, dynamic imports (e.g. using a string path) and dynamic names (e.g. using `setattr`, `locals`, `globals`) are generally not supported. If these usages cause `tach` to report incorrect errors, the [ignore directive](tach-ignore#tach-ignore) should be sufficient to reach a passing state.
+
+### What information does Tach track?
+
+Tach tracks anonymized usage and error report statistics; we ascribe to Posthog's approach as detailed [here](https://posthog.com/blog/open-source-telemetry-ethical).
+If you would like to opt out of sending anonymized info, you can set `disable_logging` to `true` in your `tach.yml`.

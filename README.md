@@ -96,7 +96,7 @@ Tach also supports:
 - [Pre-commit hooks](https://gauge-sh.github.io/tach/usage/#tach-install)
 
 
-More info in the [docs](https://gauge-sh.github.io/tach/).
-If you have any feedback, we'd love to hear it!
+More info in the [docs](https://gauge-sh.github.io/tach/). Tach logs anonymized usage statistics which are easily [opted out](https://gauge-sh.github.io/tach/faq/) of.
+If you have any feedback, we'd love to talk!
 
 [Discord](https://discord.gg/a58vW8dnmw)
