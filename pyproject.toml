@@ -32,6 +32,7 @@ dependencies = [
     "rich==13.7.1",
     "prompt-toolkit==3.0.43",
     "requests==2.32.2",
+    "eval-type-backport==0.2.0",
 ]
 keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 
