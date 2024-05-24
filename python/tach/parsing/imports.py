@@ -79,9 +79,7 @@ class ImportVisitor(ast.NodeVisitor):
             base_path_parts = self.current_mod_path.split(".")
             if num_paths_to_strip:
                 base_path_parts = base_path_parts[:-num_paths_to_strip]
-            base_mod_path = ".".join(
-                [*base_path_parts, node.module if node.module else ""]
-            )
+            base_mod_path = ".".join([*base_path_parts, node.module])
         else:
             base_mod_path = node.module or ""
 
