@@ -258,7 +258,7 @@ def tach_check(
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
         if not boundary_errors and exact:
             pruned_config = prune_dependency_constraints(
-                ".", project_config=project_config, exclude_paths=exclude_paths
+                root, project_config=project_config, exclude_paths=exclude_paths
             )
             extra_constraints = pruned_config.find_extra_constraints(project_config)
             if extra_constraints:
