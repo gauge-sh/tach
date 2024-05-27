@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Optional
 
 from tach import errors
 from tach import filesystem as fs
-from tach.parsing import build_package_trie, get_project_imports
+from tach.extension import get_project_imports
+from tach.parsing import build_package_trie
 
 if TYPE_CHECKING:
     from tach.core import PackageNode, PackageTrie, ProjectConfig
@@ -162,7 +163,7 @@ def check(
                 check_error = check_import(
                     project_config=project_config,
                     package_trie=package_trie,
-                    import_mod_path=project_import.mod_path,
+                    import_mod_path=project_import[0],
                     file_nearest_package=nearest_package,
                     file_mod_path=mod_path,
                 )
@@ -172,8 +173,8 @@ def check(
                 boundary_errors.append(
                     BoundaryError(
                         file_path=file_path,
-                        import_mod_path=project_import.mod_path,
-                        line_number=project_import.line_number,
+                        import_mod_path=project_import[0],
+                        line_number=project_import[1],
                         error_info=check_error,
                     )
                 )
