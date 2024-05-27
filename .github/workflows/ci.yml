@@ -30,6 +30,7 @@ jobs:
         python -m pip install uv
         uv venv
         source .venv/bin/activate
+        uv pip install pip
         uv pip install -r dev-requirements.txt
     - name: Build and install tach
       uses: PyO3/maturin-action@v1
