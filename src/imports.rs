@@ -89,8 +89,9 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImport {
         _is_package: bool,
         ignore_directives: &IgnoreDirectives,
     ) -> ProjectImports {
+        let line_no = locator.locate(self.range.start()).row.to_usize();
         let ignored_modules: Option<&Vec<String>> =
-            ignore_directives.get(&self.range.start().into());
+            ignore_directives.get(&line_no.saturating_sub(1));
 
         if let Some(ignored) = ignored_modules {
             if ignored.is_empty() {
@@ -164,8 +165,9 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImportFrom {
             String::new()
         };
 
+        let line_no = locator.locate(self.range.start()).row.to_usize();
         let ignored_modules: Option<&Vec<String>> =
-            ignore_directives.get(&self.range.start().into());
+            ignore_directives.get(&line_no.saturating_sub(1));
 
         if let Some(ignored) = ignored_modules {
             if ignored.is_empty() {
