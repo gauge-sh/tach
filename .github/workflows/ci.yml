@@ -53,3 +53,9 @@ jobs:
       run: |
         source .venv/bin/activate
         tach check --root python
+    - name: Check Rust linting
+      run: cargo clippy
+    - name: Check Rust formatting
+      run: cargo fmt --check
+    - name: Check Rust
+      run: cargo check
