@@ -5,13 +5,14 @@ import os
 import sys
 from enum import Enum
 from functools import lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
 from tach.clean import clean_project
 from tach.colors import BCOLORS
-from tach.constants import TOOL_NAME
+from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.filesystem import install_pre_commit
 from tach.loading import start_spinner, stop_spinner
 from tach.logging import LogDataModel, logger
@@ -98,6 +99,13 @@ def print_extra_constraints(constraints: list[TagDependencyRules]) -> None:
     print(
         f"❌ {BCOLORS.FAIL}Found unused dependencies: {BCOLORS.ENDC}\n"
         + constraint_messages
+    )
+
+
+def print_no_config_yml() -> None:
+    print(
+        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {Path.cwd()}{BCOLORS.ENDC}",
+        file=sys.stderr,
     )
 
 
@@ -228,6 +236,11 @@ def tach_check(
     )
     try:
         project_config = parse_project_config(root=root)
+        if project_config is None:
+            stop_spinner()
+            print_no_config_yml()
+            sys.exit(1)
+
         if exact is False and project_config.exact is True:
             exact = True
 
@@ -245,7 +258,7 @@ def tach_check(
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
         if not boundary_errors and exact:
             pruned_config = prune_dependency_constraints(
-                ".", project_config=project_config, exclude_paths=exclude_paths
+                root, project_config=project_config, exclude_paths=exclude_paths
             )
             extra_constraints = pruned_config.find_extra_constraints(project_config)
             if extra_constraints:

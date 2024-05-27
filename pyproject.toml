@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.2.5"
+version = "0.2.6"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
@@ -41,6 +41,7 @@ Homepage = "https://github.com/gauge-sh/tach"
 Issues = "https://github.com/gauge-sh/tach/issues"
 
 [tool.ruff]
+src = ["python"]
 target-version = "py38"
 lint.extend-select = ["I", "TCH"]
 
@@ -59,14 +60,22 @@ runtime-evaluated-decorators = [
 exempt-modules = ["typing", "typing_extensions"]
 
 [tool.pyright]
-include = ["tach"]
+include = ["python/tach"]
 exclude = ["**/__pycache__", ".venv"]
-strict = ["tach"]
+strict = ["python/tach"]
+executionEnvironments = [
+  { root = "python" }
+]
 pythonVersion = "3.8"
 
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+python-source = "python"
+module-name = "tach.extension"
+features = ["pyo3/extension-module"]
 
 [project.scripts]
 tach = "tach.cli:main"

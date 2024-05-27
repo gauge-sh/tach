@@ -35,20 +35,27 @@ jobs:
     - name: Check ruff
       run: |
         source .venv/bin/activate
-        ruff check .
-        ruff format --check .
+        cd python
+        ruff check
+        ruff format --check
     - name: Test with pytest and report coverage
       run: |
         source .venv/bin/activate
-        cd tests
+        cd python/tests
         coverage run --branch --source=../ -m pytest
         coverage report
-        cd ..
     - name: Check types with pyright
       run: |
         source .venv/bin/activate
-        pyright .
+        cd python
+        pyright
     - name: Check tach
       run: |
-        pip install .
-        tach check --exclude tests,build
+        source .venv/bin/activate
+        tach check --root python
+    - name: Check Rust linting
+      run: cargo clippy
+    - name: Check Rust formatting
+      run: cargo fmt --check
+    - name: Check Rust
+      run: cargo check

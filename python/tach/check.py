@@ -130,8 +130,6 @@ def check(
     cwd = fs.get_cwd()
     try:
         fs.chdir(root)
-        # This 'canonicalizes' the path arguments, resolving directory traversal
-        root = fs.canonical(root)
 
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
@@ -139,13 +137,13 @@ def check(
             exclude_paths = project_config.exclude
 
         package_trie = build_package_trie(
-            root,
+            ".",
             exclude_paths=exclude_paths,
         )
 
         boundary_errors: list[BoundaryError] = []
         for file_path in fs.walk_pyfiles(
-            root,
+            ".",
             exclude_paths=exclude_paths,
         ):
             mod_path = fs.file_to_module_path(file_path)
@@ -156,7 +154,7 @@ def check(
             # This should only give us imports from within our project
             # (excluding stdlib, builtins, and 3rd party packages)
             project_imports = get_project_imports(
-                root,
+                ".",
                 file_path,
                 ignore_type_checking_imports=project_config.ignore_type_checking_imports,
             )

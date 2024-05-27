@@ -21,8 +21,11 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     return yaml.dump(config.model_dump(), sort_keys=False)
 
 
-def parse_project_config(root: str = ".") -> ProjectConfig:
-    file_path = fs.validate_project_config_path(root)
+def parse_project_config(root: str = ".") -> Optional[ProjectConfig]:
+    file_path = fs.get_project_config_path(root)
+    if not file_path:
+        return None
+
     with open(file_path, "r") as f:
         result = yaml.safe_load(f)
         if not result or not isinstance(result, dict):

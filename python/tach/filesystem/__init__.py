@@ -4,12 +4,7 @@ from tach.filesystem.install import install_pre_commit
 from tach.filesystem.package import (
     validate_package_config,
 )
-from tach.filesystem.project import (
-    find_project_config_root,
-    get_project_config_path,
-    print_no_config_yml,
-    validate_project_config_path,
-)
+from tach.filesystem.project import find_project_config_root, get_project_config_path
 from tach.filesystem.service import (
     canonical,
     chdir,
@@ -43,8 +38,6 @@ __all__ = [
     "module_to_file_path",
     "is_project_import",
     "get_project_config_path",
-    "validate_project_config_path",
-    "print_no_config_yml",
     "validate_package_config",
     "find_project_config_root",
     "install_pre_commit",

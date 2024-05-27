@@ -1,0 +1,12 @@
+[package]
+name = "tach"
+version = "0.2.6"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "tach"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = "0.20.0"
