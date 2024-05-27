@@ -31,7 +31,10 @@ jobs:
         uv venv
         source .venv/bin/activate
         uv pip install -r dev-requirements.txt
-        uv pip install -e .
+    - name: Build and install tach
+      uses: PyO3/maturin-action@v1
+      with:
+        command: develop
     - name: Check ruff
       run: |
         source .venv/bin/activate
