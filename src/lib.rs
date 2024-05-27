@@ -19,7 +19,7 @@ fn get_project_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::ProjectImports> {
-    return imports::get_project_imports(project_root, file_path, ignore_type_checking_imports);
+    imports::get_project_imports(project_root, file_path, ignore_type_checking_imports)
 }
 
 #[pymodule]

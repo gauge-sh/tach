@@ -103,7 +103,7 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImport {
             .iter()
             .filter_map(|alias| {
                 if let Some(ignored) = ignored_modules {
-                    if ignored.contains(&alias.name.to_string()) {
+                    if ignored.contains(alias.name.as_ref()) {
                         return None; // This import is ignored by a directive
                     }
                 }
@@ -142,7 +142,7 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImportFrom {
                     import_depth
                 };
 
-                let base_path_parts: Vec<&str> = file_mod_path.split(".").collect();
+                let base_path_parts: Vec<&str> = file_mod_path.split('.').collect();
                 let base_path_parts = if num_paths_to_strip > 0 {
                     base_path_parts[..base_path_parts.len() - num_paths_to_strip].to_vec()
                 } else {
