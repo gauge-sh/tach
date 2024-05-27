@@ -85,6 +85,11 @@ def sync_project(
             )
         fs.chdir(root)
         project_config = parse_project_config(root=root)
+        if not project_config:
+            raise errors.TachSetupError(
+                f"{BCOLORS.WARNING}Could not find project configuration.{BCOLORS.ENDC}"
+            )
+
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
         else:
