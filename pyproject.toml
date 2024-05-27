@@ -60,7 +60,7 @@ runtime-evaluated-decorators = [
 exempt-modules = ["typing", "typing_extensions"]
 
 [tool.pyright]
-include = ["python/python/tach"]
+include = ["python/tach"]
 exclude = ["**/__pycache__", ".venv"]
 strict = ["python/tach"]
 executionEnvironments = [
