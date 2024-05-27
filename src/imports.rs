@@ -286,13 +286,14 @@ pub fn get_project_imports(
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
     let file_contents =
-        filesystem::read_file_content(canonical_path).map_err(|err| ImportParseError {
+        filesystem::read_file_content(&canonical_path).map_err(|err| ImportParseError {
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
     let file_ast =
-        parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
-            message: format!("Failed to parse project imports. Failure: {:?}", err),
-        })?;
+        parsing::parse_python_source(&file_contents, canonical_path.as_path().to_str().unwrap())
+            .map_err(|err| ImportParseError {
+                message: format!("Failed to parse project imports. Failure: {:?}", err),
+            })?;
     let is_package = file_path.ends_with(format!("{}__init__.py", MAIN_SEPARATOR).as_str())
         || file_path == "__init__.py";
     let ignore_directives = get_ignore_directives(file_contents.as_str());
