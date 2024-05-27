@@ -7,6 +7,7 @@ edition = "2021"
 [lib]
 name = "tach"
 crate-type = ["cdylib"]
+bench = false
 
 [dependencies]
 pyo3 = "0.20.0"
@@ -21,6 +22,7 @@ default = ["extension-module"]
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
+pprof = { version = "0.13", features = ["flamegraph", "criterion"] }
 
 [[bench]]
 name = "get_project_imports"
