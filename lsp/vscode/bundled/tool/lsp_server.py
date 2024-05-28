@@ -65,9 +65,11 @@ LSP_SERVER = server.LanguageServer(
 #  Black: https://github.com/microsoft/vscode-black-formatter/blob/main/bundled/tool
 #  isort: https://github.com/microsoft/vscode-isort/blob/main/bundled/tool
 
+# TODO: Update TOOL_MODULE with the module name for your tool.
 # e.g, TOOL_MODULE = "pylint"
 TOOL_MODULE = "tach"
 
+# TODO: Update TOOL_DISPLAY with a display name for your tool.
 # e.g, TOOL_DISPLAY = "Pylint"
 TOOL_DISPLAY = "Tach"
 
@@ -383,6 +385,7 @@ def _run_tool_on_document(
         return None
 
     if utils.is_stdlib_file(document.path):
+        # TODO: Decide on if you want to skip standard library files.
         # Skip standard library python files.
         return None
 

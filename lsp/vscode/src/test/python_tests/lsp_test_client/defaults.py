@@ -3,7 +3,6 @@
 """
 Default initialize request params.
 """
-
 from __future__ import annotations
 
 import os
