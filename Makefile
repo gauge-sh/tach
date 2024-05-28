@@ -13,8 +13,15 @@ endif
 
 .PHONY: deps
 deps: ## Install dependencies
-	python -m pip install --upgrade uv && \
-	uv venv $(VENV) && \
+	python -m pip install --upgrade uv
+
+	@if [ ! -d "$(VENV)" ]; then \
+		uv venv $(VENV); \
+		echo "Virtual environment created at $(VENV)"; \
+	else \
+		echo "Virtual environment already exists at $(VENV)"; \
+	fi
+
 	source $(VENV_BIN)/activate && \
 	uv pip install -r dev-requirements.txt && \
 	uv pip install -e .
