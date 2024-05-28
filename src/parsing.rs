@@ -1,8 +1,6 @@
-use rustpython_parser::{ast, Parse, ParseError};
+use ruff_python_ast::Mod;
+use ruff_python_parser::{parse, Mode, ParseError};
 
-pub fn parse_python_source(
-    python_source: &str,
-    source_path: &str,
-) -> Result<ast::Suite, ParseError> {
-    ast::Suite::parse(python_source, source_path)
+pub fn parse_python_source(python_source: &str) -> Result<Mod, ParseError> {
+    parse(python_source, Mode::Module)
 }

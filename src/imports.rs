@@ -8,10 +8,9 @@ use pyo3::PyObject;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use rustpython_ast::source_code::LinearLocator;
-use rustpython_ast::text_size::TextRange;
-use rustpython_ast::Expr::Name;
-use rustpython_ast::Visitor;
+use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
+use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
+use ruff_source_file::Locator;
 
 use crate::{filesystem, parsing};
 
@@ -71,25 +70,25 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
 
 trait IntoProjectImports<'a> {
     fn into_project_imports<P: AsRef<Path>>(
-        self,
+        &self,
         project_root: P,
         file_mod_path: &str,
-        locator: &mut LinearLocator<'a>,
+        locator: &mut Locator<'a>,
         is_package: bool,
         ignore_directives: &IgnoreDirectives,
     ) -> ProjectImports;
 }
 
-impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImport {
+impl<'a> IntoProjectImports<'a> for StmtImport {
     fn into_project_imports<P: AsRef<Path>>(
-        self,
+        &self,
         project_root: P,
         _file_mod_path: &str,
-        locator: &mut LinearLocator<'a>,
+        locator: &mut Locator<'a>,
         _is_package: bool,
         ignore_directives: &IgnoreDirectives,
     ) -> ProjectImports {
-        let line_no = locator.locate(self.range.start()).row.to_usize();
+        let line_no = locator.compute_line_index(self.range.start()).get();
         let ignored_modules: Option<&Vec<String>> =
             ignore_directives.get(&line_no.saturating_sub(1));
 
@@ -111,7 +110,11 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImport {
                 match filesystem::is_project_import(project_root.as_ref(), alias.name.as_str()) {
                     Ok(true) => Some(ProjectImport {
                         mod_path: alias.name.to_string(),
-                        line_no: locator.locate(alias.range.start()).row.get(),
+                        line_no: locator
+                            .compute_line_index(alias.range.start())
+                            .get()
+                            .try_into()
+                            .unwrap(),
                     }),
                     Ok(false) => None,
                     Err(_) => None,
@@ -121,18 +124,18 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImport {
     }
 }
 
-impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImportFrom {
+impl<'a> IntoProjectImports<'a> for StmtImportFrom {
     fn into_project_imports<P: AsRef<Path>>(
-        self,
+        &self,
         project_root: P,
         file_mod_path: &str,
-        locator: &mut LinearLocator<'a>,
+        locator: &mut Locator<'a>,
         is_package: bool,
         ignore_directives: &IgnoreDirectives,
     ) -> ProjectImports {
         let mut imports = ProjectImports::new();
 
-        let import_depth = self.level.unwrap_or(rustpython_ast::Int::new(0)).to_usize();
+        let import_depth: usize = self.level.try_into().unwrap();
         // For relative imports (level > 0), adjust the base module path
         let base_mod_path = if let Some(ref module) = self.module {
             if import_depth > 0 {
@@ -165,7 +168,7 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImportFrom {
             String::new()
         };
 
-        let line_no = locator.locate(self.range.start()).row.to_usize();
+        let line_no = locator.compute_line_index(self.range.start()).get();
         let ignored_modules: Option<&Vec<String>> =
             ignore_directives.get(&line_no.saturating_sub(1));
 
@@ -177,7 +180,7 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImportFrom {
             }
         }
 
-        for name in self.names {
+        for name in &self.names {
             let local_mod_path = format!(
                 "{}{}.{}",
                 ".".repeat(import_depth),
@@ -198,7 +201,11 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImportFrom {
             match filesystem::is_project_import(project_root.as_ref(), &global_mod_path) {
                 Ok(true) => imports.push(ProjectImport {
                     mod_path: global_mod_path,
-                    line_no: locator.locate(name.range.start()).row.get(),
+                    line_no: locator
+                        .compute_line_index(name.range.start())
+                        .get()
+                        .try_into()
+                        .unwrap(),
                 }),
                 Ok(false) => (),
                 Err(_) => (),
@@ -213,7 +220,7 @@ impl<'a> IntoProjectImports<'a> for rustpython_ast::StmtImportFrom {
 pub struct ImportVisitor<'a> {
     project_root: String,
     file_mod_path: String,
-    locator: LinearLocator<'a>,
+    locator: Locator<'a>,
     is_package: bool,
     ignore_directives: IgnoreDirectives,
     ignore_type_checking_imports: bool,
@@ -224,7 +231,7 @@ impl<'a> ImportVisitor<'a> {
     pub fn new(
         project_root: String,
         file_mod_path: String,
-        locator: LinearLocator<'a>,
+        locator: Locator<'a>,
         is_package: bool,
         ignore_directives: IgnoreDirectives,
         ignore_type_checking_imports: bool,
@@ -239,40 +246,48 @@ impl<'a> ImportVisitor<'a> {
             project_imports: vec![],
         }
     }
-}
 
-impl Visitor for ImportVisitor<'_> {
-    fn visit_stmt_if(&mut self, node: rustpython_ast::StmtIf<TextRange>) {
+    fn should_ignore_if_statement(&mut self, node: &StmtIf) -> bool {
         let id = match node.test.as_ref() {
-            Name(ref name) => Some(name.id.as_str()),
+            Expr::Name(ref name) => Some(name.id.as_str()),
             _ => None,
         };
-        if id.unwrap_or_default() == "TYPE_CHECKING" && self.ignore_type_checking_imports {
-            return;
+        id.unwrap_or_default() == "TYPE_CHECKING" && self.ignore_type_checking_imports
+    }
+
+    fn visit_stmt_import(&mut self, node: &StmtImport) {
+        self.project_imports.extend(node.into_project_imports(
+            &self.project_root,
+            &self.file_mod_path,
+            &mut self.locator,
+            self.is_package,
+            &self.ignore_directives,
+        ))
+    }
+
+    fn visit_stmt_import_from(&mut self, node: &StmtImportFrom) {
+        self.project_imports.extend(node.into_project_imports(
+            &self.project_root,
+            &self.file_mod_path,
+            &mut self.locator,
+            self.is_package,
+            &self.ignore_directives,
+        ))
+    }
+}
+
+impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
+    fn visit_stmt(&mut self, stmt: &'a Stmt) {
+        match stmt {
+            Stmt::Import(statement) => self.visit_stmt_import(statement),
+            Stmt::ImportFrom(statement) => self.visit_stmt_import_from(statement),
+            Stmt::If(statement) => {
+                if !self.should_ignore_if_statement(statement) {
+                    walk_stmt(self, stmt)
+                }
+            }
+            _ => walk_stmt(self, stmt),
         }
-
-        // assume other conditional imports represent real dependencies
-        self.generic_visit_stmt_if(node);
-    }
-
-    fn visit_stmt_import(&mut self, node: rustpython_ast::StmtImport<TextRange>) {
-        self.project_imports.extend(node.into_project_imports(
-            &self.project_root,
-            &self.file_mod_path,
-            &mut self.locator,
-            self.is_package,
-            &self.ignore_directives,
-        ))
-    }
-
-    fn visit_stmt_import_from(&mut self, node: rustpython_ast::StmtImportFrom<TextRange>) {
-        self.project_imports.extend(node.into_project_imports(
-            &self.project_root,
-            &self.file_mod_path,
-            &mut self.locator,
-            self.is_package,
-            &self.ignore_directives,
-        ))
     }
 }
 
@@ -290,14 +305,13 @@ pub fn get_project_imports(
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
     let file_ast =
-        parsing::parse_python_source(&file_contents, canonical_path.as_path().to_str().unwrap())
-            .map_err(|err| ImportParseError {
-                message: format!("Failed to parse project imports. Failure: {:?}", err),
-            })?;
+        parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
+            message: format!("Failed to parse project imports. Failure: {:?}", err),
+        })?;
     let is_package = file_path.ends_with(format!("{}__init__.py", MAIN_SEPARATOR).as_str())
         || file_path == "__init__.py";
     let ignore_directives = get_ignore_directives(file_contents.as_str());
-    let locator = LinearLocator::new(&file_contents);
+    let locator = Locator::new(&file_contents);
     let mut import_visitor = ImportVisitor::new(
         project_root,
         filesystem::file_to_module_path(file_path.as_str()),
@@ -306,8 +320,9 @@ pub fn get_project_imports(
         ignore_directives,
         ignore_type_checking_imports,
     );
-    file_ast
-        .into_iter()
-        .for_each(|stmnt| import_visitor.visit_stmt(stmnt));
+    match file_ast {
+        Mod::Module(ref module) => import_visitor.visit_body(&module.body),
+        Mod::Expression(_) => (), // should error
+    };
     Ok(import_visitor.project_imports)
 }

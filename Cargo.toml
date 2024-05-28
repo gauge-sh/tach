@@ -3,7 +3,6 @@ name = "tach"
 version = "0.2.6"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "tach"
 crate-type = ["cdylib", "lib"]
@@ -11,10 +10,11 @@ bench = false
 
 [dependencies]
 pyo3 = "0.20.0"
-rustpython-parser = "0.3.1"
-rustpython-ast = { version = "0.3.1", features = ["visitor"] }
 regex = "1.10.4"
 once_cell = "1.19.0"
+ruff_python_ast = { path = "crates/vendored/ruff_python_ast" }
+ruff_python_parser = { path = "crates/vendored/ruff_python_parser" }
+ruff_source_file = { path = "crates/vendored/ruff_source_file" }
 
 [features]
 extension-module = ["pyo3/extension-module"]
