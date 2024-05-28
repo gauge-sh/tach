@@ -23,8 +23,10 @@ deps: ## Install dependencies
 	fi
 
 	source $(VENV_BIN)/activate && \
-	uv pip install -r dev-requirements.txt && \
-	uv pip install -e .
+	uv pip install -r dev-requirements.txt
+
+	@unset CONDA_PREFIX && \
+	maturin develop --profile release
 
 .PHONY: test	
 test: ## Run tests

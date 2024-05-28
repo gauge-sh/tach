@@ -8,3 +8,4 @@ coverage==7.5.0
 build==1.2.1
 mkdocs-material==9.5.18
 maturin==1.5.1
+pip==24.0
