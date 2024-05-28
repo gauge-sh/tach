@@ -306,7 +306,11 @@ pub fn get_project_imports(
         })?;
     let file_ast =
         parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
-            message: format!("Failed to parse project imports. Failure: {:?}", err),
+            message: format!(
+                "Failed to parse project imports. File: {:?} Failure: {:?}",
+                canonical_path.as_path().to_str().unwrap(),
+                err
+            ),
         })?;
     let is_package = file_path.ends_with(format!("{}__init__.py", MAIN_SEPARATOR).as_str())
         || file_path == "__init__.py";

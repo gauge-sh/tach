@@ -33,9 +33,9 @@ constraints:
 exclude:
 - dist/
 - tach.egg-info/
+- .*__pycache__/
 - tests/
 - build/
-- .*__pycache__/
 - docs/
 exact: true
 disable_logging: false
