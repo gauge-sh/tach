@@ -47,6 +47,14 @@ fmt:  ## Format the code
 type-check: ## Run type checking
 	$(VENV_BIN)/pyright
 
+.PHONY: docs
+docs: ## Generate documentation
+	$(VENV_BIN)/mkdocs build -s
+
+.PHONY: docs-serve
+docs-serve: ## Serve documentation
+	$(VENV_BIN)/mkdocs serve
+
 .PHONY: help
 help:  ## Display this help screen
 	@echo -e "\033[1mAvailable commands:\033[0m"
