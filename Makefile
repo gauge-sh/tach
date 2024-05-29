@@ -33,15 +33,28 @@ test: ## Run tests
 	cd python/tests && \
 	../../$(VENV_BIN)/pytest
 
-.PHONY: lint
-lint: ## Run linting checks
+
+
+.PHONY: lint fmt lint-rust lint-python fmt-rust fmt-python
+
+lint: lint-rust lint-python  ## Run linting checks for Rust and Python code
+fmt: fmt-rust fmt-python  ## Format Rust and Python code
+
+fmt-python: ## Format Python code
+	$(VENV_BIN)/ruff check . --fix
+	$(VENV_BIN)/ruff format .
+
+fmt-rust: ## Format Rust code
+	cargo fmt --all
+	cargo clippy --fix --allow-dirty --allow-staged
+
+lint-python: ## Lint Python code
 	$(VENV_BIN)/ruff check .
 	$(VENV_BIN)/ruff format . --check
 
-.PHONY: fmt
-fmt:  ## Format the code
-	$(VENV_BIN)/ruff check . --fix  && \
-	$(VENV_BIN)/ruff format .
+lint-rust: ## Lint Rust code
+	cargo fmt --all --check
+	cargo clippy
 
 .PHONY: type-check
 type-check: ## Run type checking

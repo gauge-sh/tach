@@ -56,6 +56,6 @@ jobs:
     - name: Check Rust linting
       run: cargo clippy
     - name: Check Rust formatting
-      run: cargo fmt --check
+      run: cargo fmt --all --check
     - name: Check Rust
       run: cargo check
