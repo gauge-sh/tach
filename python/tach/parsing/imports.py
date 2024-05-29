@@ -4,7 +4,6 @@ import ast
 import os
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 from tach import filesystem as fs
 
@@ -47,7 +46,7 @@ class ImportVisitor(ast.NodeVisitor):
         project_root: str,
         current_mod_path: str,
         is_package: bool = False,
-        ignore_directives: Optional[dict[int, IgnoreDirective]] = None,
+        ignore_directives: dict[int, IgnoreDirective] | None = None,
         ignore_type_checking_imports: bool = False,
     ):
         self.project_root = project_root
@@ -57,7 +56,7 @@ class ImportVisitor(ast.NodeVisitor):
         self.imports: list[ProjectImport] = []
         self.ignore_type_checking_imports = ignore_type_checking_imports
 
-    def _get_ignored_modules(self, lineno: int) -> Optional[list[str]]:
+    def _get_ignored_modules(self, lineno: int) -> list[str] | None:
         # Check for ignore directive at the previous line or on the current line
         directive = self.ignored_imports.get(lineno - 1) or self.ignored_imports.get(
             lineno
