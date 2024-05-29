@@ -44,7 +44,7 @@ Configure package boundaries interactively
 options:
   -h, --help            show this help message and exit
   -d [DEPTH], --depth [DEPTH]
-                        The number of child directories to search for packages to auto-select
+                        The number of child directories to expand from the root
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
@@ -54,9 +54,7 @@ Running `tach pkg` will open an interactive editor in your terminal which allows
 You can navigate with the arrow keys, mark individual packages with `Enter`, and mark all sibling directories
 as packages with `Ctrl + a`.
 
-If you have not configured `tach` in your project before, `tach pkg` will automatically mark an initial set of packages.
-The `--depth` flag controls how many directories `tach` will traverse when suggesting these initial packages.
-You can accept these suggestions immediately with `Ctrl + s`, or you can edit the selections freely before confirming.
+When you are ready to save your packages, use `Ctrl + s` to save and exit. Otherwise, to exit without saving you can use `Ctrl + c`.
 
 Any time you make changes with `tach pkg`, it is recommended to run [`tach sync`](usage.md#tach-sync)
 to automatically configure dependency rules.

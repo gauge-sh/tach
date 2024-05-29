@@ -140,7 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         nargs="?",
         default=None,
-        help="The number of child directories to search for packages to auto-select",
+        help="The number of child directories to expand from the root",
     )
     add_base_arguments(pkg_parser)
     check_parser = subparsers.add_parser(
