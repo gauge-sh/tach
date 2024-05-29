@@ -8,7 +8,7 @@
         "name": "Tach",
         "module": "tach"
     },
-    "publisher": "<my-publisher>",
+    "publisher": "gauge",
     "license": "MIT",
     "homepage": "https://github.com/<my-github>/<my-extension-project>",
     "repository": {
@@ -140,9 +140,9 @@
     },
     "devDependencies": {
         "@types/fs-extra": "^11.0.4",
-        "@types/vscode": "1.78.0",
         "@types/glob": "^8.1.0",
         "@types/node": "16.x",
+        "@types/vscode": "1.78.0",
         "@typescript-eslint/eslint-plugin": "^6.17.0",
         "@typescript-eslint/parser": "^6.17.0",
         "@vscode/test-electron": "^2.3.8",
@@ -150,8 +150,8 @@
         "eslint": "^8.56.0",
         "glob": "^10.3.10",
         "prettier": "^3.1.1",
-        "typescript": "^5.3.3",
         "ts-loader": "^9.5.1",
+        "typescript": "^5.3.3",
         "webpack": "^5.89.0",
         "webpack-cli": "^5.1.4"
     }

@@ -34,7 +34,7 @@ You should know to create and work with python virtual environments.
     1. Find and replace `Tach` with display name for your tool. This is used as the title for the extension in market place, extensions view, output logs, etc. For example, for the `black` extension this is `Black Formatter`.
 1. Install node packages using `npm install`.
 1. Go to https://marketplace.visualstudio.com/vscode and create a publisher account if you don't already have one.
-    1. Use the published name in `package.json` by replacing `<my-publisher>` with the name you registered in the marketplace.
+    1. Use the published name in `package.json` by replacing `gauge` with the name you registered in the marketplace.
 
 ## Features of this Template
 
