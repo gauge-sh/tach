@@ -159,7 +159,6 @@ def parse_ast(path: str) -> ast.AST:
 def walk(
     root: str,
     depth: int | None = None,
-    exclude_root: bool = True,
     exclude_paths: list[str] | None = None,
 ) -> Generator[tuple[str, list[str]], None, None]:
     canonical_root = canonical(root)
@@ -168,10 +167,10 @@ def walk(
         dirpath = canonical(dirpath)
         dirpath_for_matching = f"{dirpath}/"
 
-        if exclude_root and dirpath == canonical_root:
-            continue
-
-        if os.path.basename(os.path.normpath(dirpath)).startswith("."):
+        # The root dir is a special case which starts with '.' but is not hidden
+        if dirpath != "." and os.path.basename(os.path.normpath(dirpath)).startswith(
+            "."
+        ):
             # This prevents recursing into child directories of hidden paths
             del dirnames[:]
             continue
