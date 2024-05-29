@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Optional
 
 from tach import errors
 from tach import filesystem as fs
@@ -24,7 +23,7 @@ class SetPackagesResult:
 def set_packages(
     selected_packages: list[SelectedPackage],
     path: str,
-    exclude_paths: Optional[list[str]] = None,
+    exclude_paths: list[str] | None = None,
 ) -> SetPackagesResult:
     package_paths: list[str] = []
     warnings: list[str] = []
@@ -87,7 +86,7 @@ def init_root(root: str) -> InitRootResult:
 
 
 def pkg_edit_interactive(
-    root: str, depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None
+    root: str, depth: int | None = 1, exclude_paths: list[str] | None = None
 ) -> tuple[bool, list[str]]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a directory.")

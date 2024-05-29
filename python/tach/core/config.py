@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ class PackageConfig(Config):
     Configuration for a single package within a project.
     """
 
-    tags: List[str]
+    tags: list[str]
     strict: bool = False
 
 
@@ -24,7 +24,7 @@ class TagDependencyRules(Config):
     """
 
     tag: str
-    depends_on: List[str]
+    depends_on: list[str]
 
 
 def is_deprecated_project_config(config: dict[str, Any]) -> bool:
@@ -56,8 +56,8 @@ class ProjectConfig(Config):
     Configuration applied globally to a project.
     """
 
-    constraints: List[TagDependencyRules] = Field(default_factory=list)
-    exclude: Optional[List[str]] = Field(default_factory=lambda: ["tests", "docs"])
+    constraints: list[TagDependencyRules] = Field(default_factory=list)
+    exclude: list[str] | None = Field(default_factory=lambda: ["tests", "docs"])
     exact: bool = False
     disable_logging: bool = False
     ignore_type_checking_imports: bool = False
@@ -95,7 +95,7 @@ class ProjectConfig(Config):
                 current_dependency_rules.depends_on = list(new_dependencies)
 
     def find_extra_constraints(
-        self, other_config: "ProjectConfig"
+        self, other_config: ProjectConfig
     ) -> list[TagDependencyRules]:
         extra_constraints: list[TagDependencyRules] = []
         base_constraint_tags = set(constraint.tag for constraint in self.constraints)
@@ -121,7 +121,7 @@ class ProjectConfig(Config):
         return extra_constraints
 
     @classmethod
-    def factory(cls, config: dict[str, Any]) -> tuple[bool, "ProjectConfig"]:
+    def factory(cls, config: dict[str, Any]) -> tuple[bool, ProjectConfig]:
         """
         Using this factory to catch deprecated config and flag it to the caller
         """

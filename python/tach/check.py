@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
-from tach.parsing import build_package_trie, get_project_imports
+from tach.extension import get_project_imports
+from tach.parsing import build_package_trie
 
 if TYPE_CHECKING:
     from tach.core import PackageNode, PackageTrie, ProjectConfig
@@ -45,8 +46,8 @@ def check_import(
     package_trie: PackageTrie,
     import_mod_path: str,
     file_mod_path: str,
-    file_nearest_package: Optional[PackageNode] = None,
-) -> Optional[ErrorInfo]:
+    file_nearest_package: PackageNode | None = None,
+) -> ErrorInfo | None:
     import_nearest_package = package_trie.find_nearest(import_mod_path)
     if import_nearest_package is None:
         # This shouldn't happen since we intend to filter out any external imports,
@@ -122,7 +123,7 @@ class BoundaryError:
 def check(
     root: str,
     project_config: ProjectConfig,
-    exclude_paths: Optional[list[str]] = None,
+    exclude_paths: list[str] | None = None,
 ) -> list[BoundaryError]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a valid directory.")
@@ -162,7 +163,7 @@ def check(
                 check_error = check_import(
                     project_config=project_config,
                     package_trie=package_trie,
-                    import_mod_path=project_import.mod_path,
+                    import_mod_path=project_import[0],
                     file_nearest_package=nearest_package,
                     file_mod_path=mod_path,
                 )
@@ -172,8 +173,8 @@ def check(
                 boundary_errors.append(
                     BoundaryError(
                         file_path=file_path,
-                        import_mod_path=project_import.mod_path,
-                        line_number=project_import.line_number,
+                        import_mod_path=project_import[0],
+                        line_number=project_import[1],
                         error_info=check_error,
                     )
                 )

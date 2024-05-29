@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.2.7"
+version = "0.3.0"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
@@ -42,8 +42,9 @@ Issues = "https://github.com/gauge-sh/tach/issues"
 
 [tool.ruff]
 src = ["python"]
+exclude = ["crates"]
 target-version = "py38"
-lint.extend-select = ["I", "TCH"]
+lint.extend-select = ["I", "TCH", "UP"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]

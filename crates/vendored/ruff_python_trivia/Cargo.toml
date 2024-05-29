@@ -1,0 +1,13 @@
+[package]
+name = "ruff_python_trivia"
+version = "0.0.0"
+publish = false
+edition = "2021"
+rust-version = "1.71"
+
+[dependencies]
+ruff_text_size = { path = "../ruff_text_size" }
+ruff_source_file = { path = "../ruff_source_file" }
+
+itertools = { version = "0.12.1" }
+unicode-ident = { version = "1.0.12" }
