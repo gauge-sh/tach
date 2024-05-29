@@ -6,7 +6,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
-from typing import TYPE_CHECKING, Callable, Generator, Optional, Union
+from typing import TYPE_CHECKING, Callable, Generator
 
 from prompt_toolkit import ANSI
 from prompt_toolkit.application import Application
@@ -52,33 +52,33 @@ class FileNode:
     is_dir: bool
     expanded: bool = False
     is_package: bool = False
-    parent: Optional["FileNode"] = None
-    children: list["FileNode"] = field(default_factory=list)
+    parent: FileNode | None = None
+    children: list[FileNode] = field(default_factory=list)
 
     @property
     def empty(self) -> bool:
         return len(self.children) == 0
 
     @property
-    def visible_children(self) -> list["FileNode"]:
+    def visible_children(self) -> list[FileNode]:
         if not self.expanded:
             return []
         return self.children
 
     @classmethod
-    def build_from_path(cls, path: str) -> "FileNode":
+    def build_from_path(cls, path: str) -> FileNode:
         is_dir = os.path.isdir(path)
         is_package = os.path.isfile(os.path.join(path, f"{PACKAGE_FILE_NAME}.yml"))
         return cls(full_path=path, is_dir=is_dir, is_package=is_package)
 
     @property
-    def parent_sorted_children(self) -> Optional[list["FileNode"]]:
+    def parent_sorted_children(self) -> list[FileNode] | None:
         if not self.parent:
             return None
         return sorted(self.parent.visible_children, key=lambda node: node.full_path)
 
     @property
-    def prev_sibling(self) -> Optional["FileNode"]:
+    def prev_sibling(self) -> FileNode | None:
         parent_sorted_children = self.parent_sorted_children
         if not parent_sorted_children:
             return None
@@ -93,7 +93,7 @@ class FileNode:
         return parent_sorted_children[my_index - 1]
 
     @property
-    def next_sibling(self) -> Optional["FileNode"]:
+    def next_sibling(self) -> FileNode | None:
         parent_sorted_children = self.parent_sorted_children
         if not parent_sorted_children:
             return None
@@ -107,7 +107,7 @@ class FileNode:
             return None
         return parent_sorted_children[my_index + 1]
 
-    def siblings(self, include_self: bool = True) -> list["FileNode"]:
+    def siblings(self, include_self: bool = True) -> list[FileNode]:
         if not self.parent:
             return [self] if include_self else []
 
@@ -127,10 +127,10 @@ class FileTree:
     def build_from_path(
         cls,
         path: str,
-        depth: Optional[int] = 1,
-        exclude_paths: Optional[list[str]] = None,
+        depth: int | None = 1,
+        exclude_paths: list[str] | None = None,
         auto_select_initial_packages: bool = False,
-    ) -> "FileTree":
+    ) -> FileTree:
         root = FileNode.build_from_path(fs.canonical(path))
         root.expanded = True
         tree = cls(root)
@@ -148,7 +148,7 @@ class FileTree:
         self,
         root: FileNode,
         depth: int = 1,
-        exclude_paths: Optional[list[str]] = None,
+        exclude_paths: list[str] | None = None,
     ):
         if root.is_dir:
             try:
@@ -187,7 +187,7 @@ class FileTree:
                 return
 
     def mark_pypackages_as_packages(
-        self, depth: Optional[int], exclude_paths: Optional[list[str]] = None
+        self, depth: int | None, exclude_paths: list[str] | None = None
     ):
         packages_found: list[str] = []
         for package_path in fs.walk_pypackages(
@@ -251,8 +251,8 @@ class InteractivePackageTree:
     def __init__(
         self,
         path: str,
-        depth: Optional[int] = 1,
-        exclude_paths: Optional[list[str]] = None,
+        depth: int | None = 1,
+        exclude_paths: list[str] | None = None,
         auto_select_initial_packages: bool = False,
     ):
         # By default, don't save if we exit for any reason
@@ -479,7 +479,7 @@ class InteractivePackageTree:
             self._update_display()
 
     def _render_node(self, node: FileNode) -> Text:
-        text_parts: list[Union[tuple[str, str], str]] = []
+        text_parts: list[tuple[str, str] | str] = []
         if node == self.selected_node:
             text_parts.append(("-> ", "bold cyan"))
 
@@ -526,7 +526,7 @@ class InteractivePackageTree:
     def _update_display(self):
         self.tree_control.text = ANSI(self._render_tree())
 
-    def run(self) -> Optional[list[SelectedPackage]]:
+    def run(self) -> list[SelectedPackage] | None:
         self.app.run()
         if self.exit_code == ExitCode.QUIT_SAVE:
             return [
@@ -538,10 +538,10 @@ class InteractivePackageTree:
 
 def get_selected_packages_interactive(
     path: str,
-    depth: Optional[int] = 1,
-    exclude_paths: Optional[list[str]] = None,
+    depth: int | None = 1,
+    exclude_paths: list[str] | None = None,
     auto_select_initial_packages: bool = False,
-) -> Optional[list[SelectedPackage]]:
+) -> list[SelectedPackage] | None:
     ipt = InteractivePackageTree(
         path=path,
         depth=depth,

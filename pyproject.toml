@@ -44,7 +44,7 @@ Issues = "https://github.com/gauge-sh/tach/issues"
 src = ["python"]
 exclude = ["crates"]
 target-version = "py38"
-lint.extend-select = ["I", "TCH"]
+lint.extend-select = ["I", "TCH", "UP"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
