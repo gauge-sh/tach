@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
-from typing import Optional
 
 from tach.filesystem import find_project_config_root
 
 
-def resolve_dot_tach() -> Optional[Path]:
+def resolve_dot_tach() -> Path | None:
     # from tach.clean import clean_project
     # from tach.colors import BCOLORS
     #

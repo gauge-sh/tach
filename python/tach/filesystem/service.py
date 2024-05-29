@@ -10,7 +10,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator
 
 from tach import errors
 from tach.colors import BCOLORS
@@ -19,9 +19,9 @@ from tach.colors import BCOLORS
 @dataclass
 class FileInfo:
     path: str
-    content: Optional[str] = None
-    canonical_path: Optional[str] = None
-    ast: Optional["ast.AST"] = None
+    content: str | None = None
+    canonical_path: str | None = None
+    ast: ast.AST | None = None
 
 
 # Thread-local file cache to avoid going to disk as much as possible
@@ -59,7 +59,7 @@ def _file_cache_key(path: str) -> str:
     return f"{get_cwd()}:::{path}"
 
 
-def _cached_file(path: str) -> Optional[FileInfo]:
+def _cached_file(path: str) -> FileInfo | None:
     return _get_file_cache().get(_file_cache_key(path))
 
 
@@ -91,7 +91,7 @@ def read_file(path: str) -> str:
     if cached_file and cached_file.content:
         return cached_file.content
 
-    with open(path, "r") as f:
+    with open(path) as f:
         content = f.read()
 
     if cached_file:
@@ -140,7 +140,7 @@ def parse_ast(path: str) -> ast.AST:
         except SyntaxError as e:
             raise errors.TachParseError(f"Syntax error in {path}: {e}")
     else:
-        with open(path, "r") as f:
+        with open(path) as f:
             content = f.read()
         try:
             ast_result = ast.parse(content)
@@ -158,9 +158,9 @@ def parse_ast(path: str) -> ast.AST:
 
 def walk(
     root: str,
-    depth: Optional[int] = None,
+    depth: int | None = None,
     exclude_root: bool = True,
-    exclude_paths: Optional[list[str]] = None,
+    exclude_paths: list[str] | None = None,
 ) -> Generator[tuple[str, list[str]], None, None]:
     canonical_root = canonical(root)
     base_depth = 0 if canonical_root == "." else canonical_root.count(os.path.sep) + 1
@@ -204,8 +204,8 @@ def walk(
 
 def walk_pyfiles(
     root: str,
-    depth: Optional[int] = None,
-    exclude_paths: Optional[list[str]] = None,
+    depth: int | None = None,
+    exclude_paths: list[str] | None = None,
 ) -> Generator[str, None, None]:
     for dirpath, filenames in walk(
         root,
@@ -219,8 +219,8 @@ def walk_pyfiles(
 
 def walk_pypackages(
     root: str,
-    depth: Optional[int] = None,
-    exclude_paths: Optional[list[str]] = None,
+    depth: int | None = None,
+    exclude_paths: list[str] | None = None,
 ) -> Generator[str, None, None]:
     for filepath in walk_pyfiles(
         root,
@@ -234,8 +234,8 @@ def walk_pypackages(
 
 def walk_configured_packages(
     root: str,
-    depth: Optional[int] = None,
-    exclude_paths: Optional[list[str]] = None,
+    depth: int | None = None,
+    exclude_paths: list[str] | None = None,
 ) -> Generator[tuple[str, str], None, None]:
     for dirpath in walk_pypackages(
         root,

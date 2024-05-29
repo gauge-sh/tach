@@ -60,7 +60,7 @@ def test_iterate_over_empty_trie():
 
 
 def test_iterate_over_populated_trie(package_trie):
-    assert set((node.full_path for node in package_trie)) == {
+    assert set(node.full_path for node in package_trie) == {
         "domain_one",
         "domain_one.subdomain",
         "domain_two",
@@ -85,19 +85,19 @@ def test_get_actual_path(package_trie):
 def test_insert_empty_path(test_config):
     trie = PackageTrie()
     trie.insert(test_config, "", [])
-    assert set((node.full_path for node in trie)) == {""}
+    assert set(node.full_path for node in trie) == {""}
 
 
 def test_insert_single_level_path(test_config):
     trie = PackageTrie()
     trie.insert(test_config, "domain", [])
-    assert set((node.full_path for node in trie)) == {"domain"}
+    assert set(node.full_path for node in trie) == {"domain"}
 
 
 def test_insert_multi_level_path(test_config):
     trie = PackageTrie()
     trie.insert(test_config, "domain.subdomain", [])
-    assert set((node.full_path for node in trie)) == {"domain.subdomain"}
+    assert set(node.full_path for node in trie) == {"domain.subdomain"}
 
 
 def test_find_nearest_at_root(package_trie):

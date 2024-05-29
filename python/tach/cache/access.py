@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from pathlib import Path
-from typing import Optional
 
 from tach.cache.setup import resolve_dot_tach
 from tach.filesystem import find_project_config_root
@@ -10,7 +9,7 @@ from tach.filesystem import find_project_config_root
 # clean_project()
 
 
-def get_uid() -> Optional[uuid.UUID]:
+def get_uid() -> uuid.UUID | None:
     project_root = find_project_config_root(str(Path.cwd()))
     if project_root is None:
         return

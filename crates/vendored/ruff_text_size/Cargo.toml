@@ -1,0 +1,13 @@
+[package]
+name = "ruff_text_size"
+version = "0.0.0"
+publish = false
+edition = "2021"
+rust-version = "1.71"
+
+[dependencies]
+schemars = { version = "0.8.16" }
+serde = { version = "1.0.197", features = ["derive"], optional = true }
+
+[features]
+serde = ["dep:serde"]

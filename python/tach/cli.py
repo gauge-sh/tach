@@ -6,7 +6,7 @@ import sys
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
@@ -30,7 +30,7 @@ class TerminalEnvironment(Enum):
     VSCODE = 3
 
 
-@lru_cache()
+@lru_cache
 def detect_environment() -> TerminalEnvironment:
     if "jetbrains" in os.environ.get("TERMINAL_EMULATOR", "").lower():
         return TerminalEnvironment.JETBRAINS
@@ -39,7 +39,7 @@ def detect_environment() -> TerminalEnvironment:
     return TerminalEnvironment.UNKNOWN
 
 
-def create_clickable_link(file_path: str, line: Optional[int] = None) -> str:
+def create_clickable_link(file_path: str, line: int | None = None) -> str:
     terminal_env = detect_environment()
     abs_path = os.path.abspath(file_path)
 
@@ -223,7 +223,7 @@ def parse_arguments(
 def tach_check(
     root: str = ".",
     exact: bool = False,
-    exclude_paths: Optional[list[str]] = None,
+    exclude_paths: list[str] | None = None,
 ):
     logger.info(
         "tach check called",
@@ -278,7 +278,7 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None):
+def tach_pkg(depth: int | None = 1, exclude_paths: list[str] | None = None):
     logger.info(
         "tach pkg called",
         extra={
@@ -306,7 +306,7 @@ def tach_pkg(depth: Optional[int] = 1, exclude_paths: Optional[list[str]] = None
     sys.exit(0)
 
 
-def tach_sync(prune: bool = False, exclude_paths: Optional[list[str]] = None):
+def tach_sync(prune: bool = False, exclude_paths: list[str] | None = None):
     logger.info(
         "tach sync called",
         extra={

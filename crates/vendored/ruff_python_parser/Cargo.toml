@@ -1,0 +1,24 @@
+[package]
+name = "ruff_python_parser"
+version = "0.0.0"
+publish = false
+authors = ["Charlie Marsh <charlie.r.marsh@gmail.com>", "RustPython Team"]
+edition = "2021"
+rust-version = "1.71"
+
+
+[dependencies]
+ruff_python_ast = { path = "../ruff_python_ast" }
+ruff_text_size = { path = "../ruff_text_size" }
+
+anyhow = { version = "1.0.80" }
+bitflags = { version = "2.5.0" }
+bstr = { version = "1.9.1" }
+is-macro = { version = "0.3.5" }
+itertools = { version = "0.12.1" }
+memchr = { version = "2.7.1" }
+rustc-hash = { version = "1.1.0" }
+static_assertions = "1.1.0"
+unicode-ident = { version = "1.0.12" }
+unicode_names2 = { version = "1.2.2" }
+unicode-normalization = { version = "0.1.23" }
