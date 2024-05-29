@@ -311,7 +311,7 @@ def module_to_file_path(mod_path: str) -> tuple[str, str]:
     )
 
 
-if hasattr(sys, "stdlib_module_names"):
+if sys.version_info >= (3, 10):
     stdlib_module_names = getattr(sys, "stdlib_module_names")
 else:
     import stdlib_list
