@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 from tach import errors
 from tach import filesystem as fs
@@ -15,8 +14,8 @@ from tach.parsing import dump_project_config_to_yaml, parse_project_config
 def sync_dependency_constraints(
     root: str,
     project_config: ProjectConfig,
-    filter_tags: Optional[set[str]] = None,
-    exclude_paths: Optional[list[str]] = None,
+    filter_tags: set[str] | None = None,
+    exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
     """
     Update project configuration with auto-detected dependency constraints.
@@ -54,8 +53,8 @@ def sync_dependency_constraints(
 
 def prune_dependency_constraints(
     root: str,
-    project_config: Optional[ProjectConfig] = None,
-    exclude_paths: Optional[list[str]] = None,
+    project_config: ProjectConfig | None = None,
+    exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
     """
     Build a minimal project configuration with auto-detected dependency constraints.
@@ -74,7 +73,7 @@ def prune_dependency_constraints(
 
 
 def sync_project(
-    prune: bool = False, exclude_paths: Optional[list[str]] = None
+    prune: bool = False, exclude_paths: list[str] | None = None
 ) -> None:
     original_cwd = fs.get_cwd()
     try:

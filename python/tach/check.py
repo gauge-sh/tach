@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
@@ -45,8 +45,8 @@ def check_import(
     package_trie: PackageTrie,
     import_mod_path: str,
     file_mod_path: str,
-    file_nearest_package: Optional[PackageNode] = None,
-) -> Optional[ErrorInfo]:
+    file_nearest_package: PackageNode | None = None,
+) -> ErrorInfo | None:
     import_nearest_package = package_trie.find_nearest(import_mod_path)
     if import_nearest_package is None:
         # This shouldn't happen since we intend to filter out any external imports,
@@ -122,7 +122,7 @@ class BoundaryError:
 def check(
     root: str,
     project_config: ProjectConfig,
-    exclude_paths: Optional[list[str]] = None,
+    exclude_paths: list[str] | None = None,
 ) -> list[BoundaryError]:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a valid directory.")
