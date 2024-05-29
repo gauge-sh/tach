@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
 
 from tach.constants import CONFIG_FILE_NAME
 
@@ -18,7 +17,7 @@ def get_project_config_path(root: str = ".") -> str:
     return ""
 
 
-def find_project_config_root(path: str) -> Optional[str]:
+def find_project_config_root(path: str) -> str | None:
     path = os.path.abspath(path)
     if os.path.isdir(path):
         if get_project_config_path(path):

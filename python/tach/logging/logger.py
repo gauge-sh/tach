@@ -4,7 +4,7 @@ import logging
 import multiprocessing
 import os
 import signal
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
@@ -24,7 +24,7 @@ class LogDataModel(BaseModel):
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     is_ci = "CI" in os.environ
     is_gauge = "IS_GAUGE" in os.environ
-    data: Optional[LogDataModel] = getattr(record, "data", None)
+    data: LogDataModel | None = getattr(record, "data", None)
     uid = cache.get_uid()
     log_data: dict[str, Any] = {
         "user": str(uid) if uid else None,
@@ -53,7 +53,7 @@ def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
     sys.stdout = devnull
     sys.stderr = devnull
 
-    def handler(signum: int, frame: Optional[FrameType]) -> None:
+    def handler(signum: int, frame: FrameType | None) -> None:
         raise TimeoutError()
 
     signal.signal(signal.SIGALRM, handler)  # ensure logging process always exits
