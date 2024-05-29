@@ -2,6 +2,9 @@ constraints:
 - tag: scope:cache
   depends_on:
   - scope:filesystem
+- tag: scope:core
+  depends_on:
+  - scope:utils
 - tag: scope:filesystem
   depends_on:
   - scope:hooks
@@ -31,12 +34,12 @@ constraints:
   - scope:parsing
   - scope:utils
 exclude:
-- dist/
-- tach.egg-info/
-- .*__pycache__/
-- tests/
-- build/
 - docs/
+- build/
+- .*__pycache__/
+- tach.egg-info/
+- dist/
+- tests/
 exact: true
 disable_logging: false
 ignore_type_checking_imports: false

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tach.filesystem.install import install_pre_commit
 from tach.filesystem.package import (
-    validate_package_config,
+    get_package_config_path,
 )
 from tach.filesystem.project import find_project_config_root, get_project_config_path
 from tach.filesystem.service import (
@@ -38,7 +38,7 @@ __all__ = [
     "module_to_file_path",
     "is_project_import",
     "get_project_config_path",
-    "validate_package_config",
+    "get_package_config_path",
     "find_project_config_root",
     "install_pre_commit",
 ]
