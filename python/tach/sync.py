@@ -72,9 +72,7 @@ def prune_dependency_constraints(
     return project_config
 
 
-def sync_project(
-    prune: bool = False, exclude_paths: list[str] | None = None
-) -> None:
+def sync_project(prune: bool = False, exclude_paths: list[str] | None = None) -> None:
     original_cwd = fs.get_cwd()
     try:
         root = fs.find_project_config_root(original_cwd)
