@@ -129,7 +129,6 @@ class FileTree:
         path: str,
         depth: int | None = 1,
         exclude_paths: list[str] | None = None,
-        auto_select_initial_packages: bool = False,
     ) -> FileTree:
         root = FileNode.build_from_path(fs.canonical(path))
         root.expanded = True
@@ -138,10 +137,6 @@ class FileTree:
         tree._build_subtree(
             root, depth=depth if depth is not None else 1, exclude_paths=exclude_paths
         )
-
-        if auto_select_initial_packages:
-            tree.mark_pypackages_as_packages(depth=depth, exclude_paths=exclude_paths)
-
         return tree
 
     def _build_subtree(
@@ -186,33 +181,6 @@ class FileTree:
                 # We simply bail if that happens, meaning it won't show up in the interactive viewer
                 return
 
-    def mark_pypackages_as_packages(
-        self, depth: int | None, exclude_paths: list[str] | None = None
-    ):
-        packages_found: list[str] = []
-        for package_path in fs.walk_pypackages(
-            self.root.full_path,
-            depth=depth if depth is not None else 1,
-            exclude_paths=exclude_paths,
-        ):
-            if package_path in self.nodes:
-                packages_found.append(package_path)
-                self.nodes[package_path].is_package = True
-
-        # If depth was not specified (None),
-        # then we want to explore further when we find only one package.
-        # We distinguish 'None' from other cases so that we don't accidentally override
-        # the user's depth choice when it results in only one package.
-        if depth is None and len(packages_found) == 1:
-            found_package = packages_found[0]
-            self.nodes[found_package].expanded = True
-            # Go one level further if only a single package was found
-            for package_path in fs.walk_pypackages(
-                found_package, depth=1, exclude_paths=exclude_paths
-            ):
-                if package_path in self.nodes:
-                    self.nodes[package_path].is_package = True
-
     def __iter__(self):
         return file_tree_iterator(self)
 
@@ -249,11 +217,7 @@ class InteractivePackageTree:
     AUTO_EXCLUDE_PATHS = [".*__pycache__"]
 
     def __init__(
-        self,
-        path: str,
-        depth: int | None = 1,
-        exclude_paths: list[str] | None = None,
-        auto_select_initial_packages: bool = False,
+        self, path: str, depth: int | None = 1, exclude_paths: list[str] | None = None
     ):
         # By default, don't save if we exit for any reason
         self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
@@ -265,7 +229,6 @@ class InteractivePackageTree:
             path=path,
             depth=depth,
             exclude_paths=exclude_paths,
-            auto_select_initial_packages=auto_select_initial_packages,
         )
         self.selected_node = self.file_tree.root
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
@@ -540,12 +503,10 @@ def get_selected_packages_interactive(
     path: str,
     depth: int | None = 1,
     exclude_paths: list[str] | None = None,
-    auto_select_initial_packages: bool = False,
 ) -> list[SelectedPackage] | None:
     ipt = InteractivePackageTree(
         path=path,
         depth=depth,
         exclude_paths=exclude_paths,
-        auto_select_initial_packages=auto_select_initial_packages,
     )
     return ipt.run()
