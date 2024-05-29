@@ -13,7 +13,7 @@ import subprocess
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import BinaryIO, Dict, Optional, Sequence, Union
+from typing import BinaryIO, Dict, Sequence, Union
 
 CONTENT_LENGTH = "Content-Length: "
 RUNNER_SCRIPT = str(pathlib.Path(__file__).parent / "lsp_runner.py")
@@ -52,7 +52,7 @@ class JsonWriter:
             content = json.dumps(data)
             length = len(content.encode("utf-8"))
             self._writer.write(
-                f"{CONTENT_LENGTH}{length}\r\n\r\n{content}".encode("utf-8")
+                f"{CONTENT_LENGTH}{length}\r\n\r\n{content}".encode()
             )
             self._writer.flush()
 
@@ -197,10 +197,10 @@ def get_or_start_json_rpc(
 class RpcRunResult:
     """Object to hold result from running tool over RPC."""
 
-    def __init__(self, stdout: str, stderr: str, exception: Optional[str] = None):
+    def __init__(self, stdout: str, stderr: str, exception: str | None = None):
         self.stdout: str = stdout
         self.stderr: str = stderr
-        self.exception: Optional[str] = exception
+        self.exception: str | None = exception
 
 
 # pylint: disable=too-many-arguments

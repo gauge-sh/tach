@@ -7,12 +7,12 @@ from tach.filesystem import find_project_config_root
 
 
 def resolve_dot_tach() -> Path | None:
-    # from tach.clean import clean_project
-    # from tach.colors import BCOLORS
-    #
-    # if check:
-    #     BCOLORS
-    #     clean_project()
+    if check:
+        from tach.clean import clean_project
+        from tach.colors import BCOLORS
+
+        BCOLORS
+        clean_project()
     project_dir = find_project_config_root(str(Path.cwd()))
     if project_dir is None:
         return

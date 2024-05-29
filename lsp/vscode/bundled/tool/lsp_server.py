@@ -11,7 +11,7 @@ import pathlib
 import re
 import sys
 import traceback
-from typing import Any, Optional, Sequence
+from typing import Any, Sequence
 
 
 # **********************************************************
@@ -49,7 +49,7 @@ RUNNER = pathlib.Path(__file__).parent / "lsp_runner.py"
 MAX_WORKERS = 5
 # TODO: Centralize version
 LSP_SERVER = server.LanguageServer(
-    name="Tach", version="0.2.6", max_workers=MAX_WORKERS
+    name="Tach", version="0.3.0", max_workers=MAX_WORKERS
 )
 
 
@@ -314,13 +314,13 @@ def initialize(params: lsp.InitializeParams) -> None:
 
 
 @LSP_SERVER.feature(lsp.EXIT)
-def on_exit(_params: Optional[Any] = None) -> None:
+def on_exit(_params: Any | None = None) -> None:
     """Handle clean up on exit."""
     jsonrpc.shutdown_json_rpc()
 
 
 @LSP_SERVER.feature(lsp.SHUTDOWN)
-def on_shutdown(_params: Optional[Any] = None) -> None:
+def on_shutdown(_params: Any | None = None) -> None:
     """Handle clean up on shutdown."""
     jsonrpc.shutdown_json_rpc()
 
@@ -406,7 +406,7 @@ def _get_settings_by_document(document: workspace.Document | None):
 def _run_tool_on_document(
     document: workspace.Document,
     use_stdin: bool = False,
-    extra_args: Optional[Sequence[str]] = None,
+    extra_args: Sequence[str] | None = None,
 ) -> utils.RunResult | None:
     """Runs tool on the given document.
 
