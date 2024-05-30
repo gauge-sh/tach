@@ -7,7 +7,7 @@ on:
     branches: [ "main", "docs" ]
 
 jobs:
-  build:
+  vscode:
 
     runs-on: ubuntu-latest
 
