@@ -127,7 +127,7 @@ checksum = "78834c15cb5d5efe3452d58b1e8ba890dd62d21907f867f383358198e56ebca5"
 
 [[package]]
 name = "cast"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
@@ -1136,7 +1136,7 @@ dependencies = [
 
 [[package]]
 name = "tach"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "criterion",
  "once_cell",
