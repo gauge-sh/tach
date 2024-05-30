@@ -96,13 +96,10 @@ def pkg_edit_interactive(
 
     warnings: list[str] = []
 
-    # We only want to auto-select if the project appears not to have been configured already
-    auto_select_initial_packages = fs.get_project_config_path(root) == ""
     selected_packages = get_selected_packages_interactive(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
-        auto_select_initial_packages=auto_select_initial_packages,
     )
     if selected_packages is not None:
         set_packages_result = set_packages(
