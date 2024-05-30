@@ -52,7 +52,7 @@ jobs:
       run: |
         source .venv/bin/activate
         cd python
-        pyright
+        pyright --pythonversion ${{ matrix.python-version }}
     - name: Check tach
       run: |
         source .venv/bin/activate
