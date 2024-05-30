@@ -84,8 +84,8 @@ def test_get_actual_path(package_trie):
 
 def test_insert_empty_path(test_config):
     trie = PackageTrie()
-    trie.insert(test_config, "", [])
-    assert set(node.full_path for node in trie) == {""}
+    with pytest.raises(ValueError):
+        trie.insert(test_config, "", [])
 
 
 def test_insert_single_level_path(test_config):

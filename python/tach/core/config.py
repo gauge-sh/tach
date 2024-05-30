@@ -28,6 +28,22 @@ class PackageConfig(Config):
     strict: bool = False
 
 
+def validate_root_tags(tags: list[str]) -> list[str]:
+    assert tags == [ROOT_PACKAGE_SENTINEL_TAG]
+    return tags
+
+
+class RootPackageConfig(PackageConfig):
+    """
+    Special-case schema for the implicit root package configuration.
+    """
+
+    tags: Annotated[list[str], AfterValidator(validate_root_tags)] = Field(
+        default_factory=lambda: [ROOT_PACKAGE_SENTINEL_TAG]
+    )
+    strict: bool = False
+
+
 class TagDependencyRules(Config):
     """
     Dependency rules for a particular set of tags (typically one tag).

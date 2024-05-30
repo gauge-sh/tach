@@ -1,7 +1,9 @@
 use std::fmt;
 use std::fs;
 use std::io::Read;
-use std::path::{Path, PathBuf, MAIN_SEPARATOR};
+use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
+
+use crate::exclusion::is_path_excluded;
 
 #[derive(Debug, Clone)]
 pub struct FileSystemError {
@@ -50,6 +52,62 @@ pub fn file_to_module_path(file_path: &str) -> String {
     module_path
 }
 
+pub struct ResolvedModule {
+    pub file_path: PathBuf,
+    pub member_name: Option<String>,
+}
+
+pub fn module_to_file_path<P: AsRef<Path>>(root: P, mod_path: &str) -> Option<ResolvedModule> {
+    let mut file_path = mod_path.replace(".", MAIN_SEPARATOR_STR);
+    let fs_path = root.as_ref().join(file_path);
+    file_path = fs_path.display().to_string();
+
+    // mod_path may refer to a package
+    if fs_path.join("__init__.py").exists() {
+        return Some(ResolvedModule {
+            file_path: fs_path,
+            member_name: None,
+        });
+    }
+
+    // mod_path may refer to a file
+    let py_file_path = format!("{}.py", &file_path);
+    if Path::new(&py_file_path).exists() {
+        return Some(ResolvedModule {
+            file_path: PathBuf::from(py_file_path),
+            member_name: None,
+        });
+    }
+
+    if let Some(last_sep_index) = file_path.rfind(MAIN_SEPARATOR) {
+        // mod_path may refer to a member within a file
+        let py_file_path = format!("{}.py", file_path[..last_sep_index].to_string());
+        if Path::new(&py_file_path).exists() {
+            let member_name = file_path[last_sep_index + 1..].to_string();
+            return Some(ResolvedModule {
+                file_path: PathBuf::from(py_file_path),
+                member_name: Some(member_name),
+            });
+        }
+
+        // mod_path may refer to a member within a package
+        let init_py_file_path = format!(
+            "{}{}__init__.py",
+            file_path[..last_sep_index].to_string(),
+            MAIN_SEPARATOR
+        );
+        if Path::new(&init_py_file_path).exists() {
+            let member_name = file_path[last_sep_index + 1..].to_string();
+            return Some(ResolvedModule {
+                file_path: PathBuf::from(init_py_file_path),
+                member_name: Some(member_name),
+            });
+        }
+    }
+
+    None
+}
+
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     let mut file = fs::File::open(path.as_ref()).map_err(|_| FileSystemError {
         message: format!("Could not open path: {}", path.as_ref().display()),
@@ -62,36 +120,19 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-fn is_standard_lib_or_builtin_import(_module_base: &str) -> bool {
-    false
-}
-
 pub fn is_project_import<P: AsRef<Path>>(root: P, mod_path: &str) -> Result<bool> {
-    let root_base = root
-        .as_ref()
-        .canonicalize()
-        .map_err(|_| FileSystemError {
-            message: format!("Could not find project root: {}", root.as_ref().display()),
-        })?
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
-
-    let module_base = mod_path.split('.').next().unwrap();
-
-    if is_standard_lib_or_builtin_import(module_base) {
+    let resolved_module = module_to_file_path(root, mod_path);
+    if let Some(module) = resolved_module {
+        // This appears to be a project import, verify it is not excluded
+        return match is_path_excluded(module.file_path.to_str().unwrap()) {
+            Ok(true) => Ok(false),
+            Ok(false) => Ok(true),
+            Err(_) => Err(FileSystemError {
+                message: "Failed to check if path is excluded".to_string(),
+            }),
+        };
+    } else {
+        // This is not a project import
         return Ok(false);
     }
-
-    if root_base == module_base {
-        return Ok(true);
-    }
-
-    let module_path = root.as_ref().join(module_base);
-    if module_path.is_dir() || module_path.with_extension("py").is_file() {
-        return Ok(true);
-    }
-
-    Ok(false)
 }

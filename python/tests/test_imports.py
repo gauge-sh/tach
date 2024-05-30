@@ -22,21 +22,19 @@ def temp_project():
         # Creating some sample Python files in a nested structure
         os.makedirs(os.path.join(project_root, "a", "b"), exist_ok=True)
         os.makedirs(os.path.join(project_root, "d"), exist_ok=True)
-        os.makedirs(os.path.join(project_root, "local"), exist_ok=True)
+        os.makedirs(os.path.join(project_root, "local", "g"), exist_ok=True)
         os.makedirs(os.path.join(project_root, "parent"), exist_ok=True)
 
         file1_content = """
 import os
-from a.b import c
-import d.e as f
+from local.file2 import b
 """
         file2_content = """
-from .sibling import x
-from ..parent import y
+from ..file1 import y
 """
         file3_content = """
 if TYPE_CHECKING:
-    from a.b import c
+    from local.file2 import c
 """
         file4_content = """
 # tach-ignore
@@ -44,7 +42,7 @@ from a.b import c
 # tach-ignore d.e.f
 from d.e import f
 
-import d.x as y
+import file3
 """
 
         create_temp_file(project_root, "file1.py", file1_content)
@@ -59,7 +57,7 @@ def test_regular_imports(temp_project):
     result = get_project_imports(
         temp_project, "file1.py", ignore_type_checking_imports=True
     )
-    expected = [("a.b.c", 3), ("d.e", 4)]
+    expected = [("local.file2.b", 3)]
     assert result == expected
 
 
@@ -67,7 +65,7 @@ def test_relative_imports(temp_project):
     result = get_project_imports(
         temp_project, "local/file2.py", ignore_type_checking_imports=True
     )
-    expected = [("local.sibling.x", 2), ("parent.y", 3)]
+    expected = [("file1.y", 2)]
     assert result == expected
 
 
@@ -83,7 +81,7 @@ def test_include_type_checking_imports(temp_project):
     result = get_project_imports(
         temp_project, "file3.py", ignore_type_checking_imports=False
     )
-    expected = [("a.b.c", 3)]
+    expected = [("local.file2.c", 3)]
     assert result == expected
 
 
@@ -91,20 +89,20 @@ def test_mixed_imports(temp_project):
     mixed_content = """
 import sys
 if TYPE_CHECKING:
-    from a.b import c
-from .sibling import x
+    from .file2 import c
+from ..file1 import x
 """
     create_temp_file(temp_project, "local/file4.py", mixed_content)
     result = get_project_imports(
         temp_project, "local/file4.py", ignore_type_checking_imports=True
     )
-    expected = [("local.sibling.x", 5)]
+    expected = [("file1.x", 5)]
     assert result == expected
 
     result = get_project_imports(
         temp_project, "local/file4.py", ignore_type_checking_imports=False
     )
-    expected = [("a.b.c", 4), ("local.sibling.x", 5)]
+    expected = [("local.file2.c", 4), ("file1.x", 5)]
     assert result == expected
 
 
@@ -124,7 +122,7 @@ from external_module import something
 def test_external_and_internal_imports(temp_project):
     mixed_content = """
 import os
-from a.b import c
+from file1 import c
 from external_module import something
 """
     create_temp_file(temp_project, "file6.py", mixed_content)
@@ -132,7 +130,7 @@ from external_module import something
         temp_project, "file6.py", ignore_type_checking_imports=True
     )
     expected = [
-        ("a.b.c", 3),
+        ("file1.c", 3),
     ]
     assert result == expected
 
@@ -141,5 +139,5 @@ def test_ignored_imports(temp_project):
     result = get_project_imports(
         temp_project, "file4.py", ignore_type_checking_imports=True
     )
-    expected = [("d.x", 7)]
+    expected = [("file3", 7)]
     assert result == expected
