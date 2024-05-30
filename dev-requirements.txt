@@ -1,7 +1,7 @@
 # Setup
 pip==24.0
 # Code Quality
-pyright==1.1.364
+pyright==1.1.365
 ruff==0.4.1
 # Build/Release
 setuptools==69.5.1

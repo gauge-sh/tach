@@ -2,7 +2,7 @@
     "name": "tach",
     "displayName": "Tach",
     "description": "Linting support for python files using `tach`.",
-    "version": "2022.0.0-dev",
+    "version": "0.3.0",
     "preview": true,
     "serverInfo": {
         "name": "Tach",

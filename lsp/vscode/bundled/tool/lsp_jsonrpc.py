@@ -21,9 +21,9 @@ CONTENT_LENGTH = "Content-Length: "
 RUNNER_SCRIPT = str(pathlib.Path(__file__).parent / "lsp_runner.py")
 
 
-def to_str(text) -> str:
+def to_str(text: str | bytes) -> str:
     """Convert bytes to string as needed."""
-    return text.decode("utf-8") if isinstance(text, bytes) else text
+    return text.decode("utf-8") if isinstance(text, bytes) else text  # pyright: ignore [reportReturnType]
 
 
 class StreamClosedException(Exception):
@@ -35,7 +35,7 @@ class StreamClosedException(Exception):
 class JsonWriter:
     """Manages writing JSON-RPC messages to the writer stream."""
 
-    def __init__(self, writer: io.TextIOWrapper):
+    def __init__(self, writer: io.TextIOWrapper | BinaryIO):
         self._writer = writer
         self._lock = threading.Lock()
 
@@ -60,7 +60,7 @@ class JsonWriter:
 class JsonReader:
     """Manages reading JSON-RPC messages from stream."""
 
-    def __init__(self, reader: io.TextIOWrapper):
+    def __init__(self, reader: io.TextIOWrapper | BinaryIO):
         self._reader = reader
 
     def close(self):
@@ -95,7 +95,9 @@ class JsonReader:
 class JsonRpc:
     """Manages sending and receiving data over JSON-RPC."""
 
-    def __init__(self, reader: io.TextIOWrapper, writer: io.TextIOWrapper):
+    def __init__(
+        self, reader: io.TextIOWrapper | BinaryIO, writer: io.TextIOWrapper | BinaryIO
+    ):
         self._reader = JsonReader(reader)
         self._writer = JsonWriter(writer)
 
@@ -172,15 +174,6 @@ class ProcessManager:
 
 _process_manager = ProcessManager()
 atexit.register(_process_manager.stop_all_processes)
-
-
-class RpcRunResult:
-    """Object to hold result from running tool over RPC."""
-
-    def __init__(self, stdout: str, stderr: str, exception: str | None = None):
-        self.stdout: str = stdout
-        self.stderr: str = stderr
-        self.exception: str | None = exception
 
 
 def shutdown_json_rpc():
