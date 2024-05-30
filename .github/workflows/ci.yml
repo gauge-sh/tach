@@ -50,11 +50,6 @@ jobs:
         source .venv/bin/activate
         cd python
         pyright --pythonversion ${{ matrix.python-version }}
-    - name: Test vscode lsp server with nox
-      run: |
-        source .venv/bin/activate
-        cd lsp/vscode
-        nox --session tests
     - name: Check tach
       run: |
         source .venv/bin/activate

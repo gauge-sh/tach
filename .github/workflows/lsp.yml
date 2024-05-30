@@ -39,8 +39,3 @@ jobs:
         source .venv/bin/activate
         cd lsp/vscode
         nox --session tests
-    - name: Build with nox
-      run: |
-        source .venv/bin/activate
-        cd lsp/vscode
-        nox --session build_package
