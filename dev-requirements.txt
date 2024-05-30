@@ -20,3 +20,5 @@ pygls==1.3.1
 nox==2024.4.15
 pip==24.0
 debugpy==1.8.1
+PyHamcrest==2.1.0
+python-jsonrpc-server==0.4.0
