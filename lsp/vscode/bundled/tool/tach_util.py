@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 from tach.check import BoundaryError, check
-from tach.cli import parse_arguments, print_no_config_yml
+from tach.cli import parse_arguments
+from tach.colors import BCOLORS
+from tach.constants import CONFIG_FILE_NAME
+from tach.errors import TachSetupError
 from tach.parsing import parse_project_config
 
 
-def run_tach_check(cwd, argv, source):
+def run_tach_check(argv):
     args, _ = parse_arguments(argv[1:])
     root = args.root
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
     project_config = parse_project_config(root=root)
     if project_config is None:
-        print_no_config_yml()
+        raise TachSetupError(
+            f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {root}{BCOLORS.ENDC}",
+        )
 
     if exclude_paths is not None and project_config.exclude is not None:
         exclude_paths.extend(project_config.exclude)

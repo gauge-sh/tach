@@ -53,7 +53,9 @@ class JsonWriter:
         with self._lock:
             content = json.dumps(data)
             length = len(content.encode("utf-8"))
-            self._writer.write(f"{CONTENT_LENGTH}{length}\r\n\r\n{content}".encode())
+            self._writer.write(
+                str(f"{CONTENT_LENGTH}{length}\r\n\r\n{content}".encode())  # pyright: ignore
+            )
             self._writer.flush()
 
 
@@ -149,7 +151,7 @@ class ProcessManager:
             stdin=subprocess.PIPE,
         )
         self._processes[workspace] = proc
-        self._rpc[workspace] = create_json_rpc(proc.stdout, proc.stdin)
+        self._rpc[workspace] = create_json_rpc(proc.stdout, proc.stdin)  # pyright: ignore
 
         def _monitor_process():
             proc.wait()

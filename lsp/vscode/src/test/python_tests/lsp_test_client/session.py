@@ -58,9 +58,15 @@ class LspSession(MethodDispatcher):
             env=os.environ,
             shell="WITH_COVERAGE" in os.environ,
         )
-
-        self._writer = JsonRpcStreamWriter(os.fdopen(self._sub.stdin.fileno(), "wb"))
-        self._reader = JsonRpcStreamReader(os.fdopen(self._sub.stdout.fileno(), "rb"))
+        if self._sub.stdin is not None and self._sub.stdout is not None:
+            self._writer = JsonRpcStreamWriter(
+                os.fdopen(self._sub.stdin.fileno(), "wb")
+            )
+            self._reader = JsonRpcStreamReader(
+                os.fdopen(self._sub.stdout.fileno(), "rb")
+            )
+        else:
+            raise RuntimeError("stdin and/or stdout is None")
 
         dispatcher = {
             PUBLISH_DIAGNOSTICS: self._publish_diagnostics,
@@ -74,9 +80,11 @@ class LspSession(MethodDispatcher):
     def __exit__(self, typ, value, _tb):
         self.shutdown(True)
         try:
-            self._sub.terminate()
+            self._sub.terminate()  # pyright: ignore
         except Exception:
             pass
+        if self._endpoint is None:
+            raise RuntimeError("endpoint not specified")
         self._endpoint.shutdown()
         self._thread_pool.shutdown()
 
@@ -110,6 +118,8 @@ class LspSession(MethodDispatcher):
 
     def initialized(self, initialized_params=None):
         """Sends the initialized notification to LSP server."""
+        if self._endpoint is None:
+            raise RuntimeError("endpoint not specified")
         self._endpoint.notify("initialized", initialized_params or {})
 
     def shutdown(self, should_exit, exit_timeout=LSP_EXIT_TIMEOUT):
@@ -123,8 +133,10 @@ class LspSession(MethodDispatcher):
 
     def exit_lsp(self, exit_timeout=LSP_EXIT_TIMEOUT):
         """Handles LSP server process exit."""
+        if self._endpoint is None:
+            raise RuntimeError("endpoint not specified")
         self._endpoint.notify("exit")
-        assert self._sub.wait(exit_timeout) == 0
+        assert self._sub.wait(exit_timeout) == 0  # pyright: ignore
 
     def notify_did_change(self, did_change_params):
         """Sends did change notification to LSP Server."""
@@ -205,10 +217,14 @@ class LspSession(MethodDispatcher):
 
     def _send_request(self, name, params=None, handle_response=lambda f: f.done()):
         """Sends {name} request to the LSP server."""
+        if self._endpoint is None:
+            raise RuntimeError("endpoint not specified")
         fut = self._endpoint.request(name, params)
         fut.add_done_callback(handle_response)
         return fut
 
     def _send_notification(self, name, params=None):
         """Sends {name} notification to the LSP server."""
+        if self._endpoint is None:
+            raise RuntimeError("endpoint not specified")
         self._endpoint.notify(name, params)

@@ -17,10 +17,12 @@ SERVER_CWD = os.getcwd()
 CWD_LOCK = threading.Lock()
 
 
-def as_list(content: Any | list[Any] | tuple[Any]) -> list[Any] | tuple[Any]:
+def as_list(content: Any | list[Any] | tuple[Any]) -> list[Any]:
     """Ensures we always get a list"""
-    if isinstance(content, (list, tuple)):
+    if isinstance(content, list):
         return content
+    elif isinstance(content, tuple):
+        return list(content)
     return [content]
 
 

@@ -141,10 +141,13 @@ def initialize(params: lsp.InitializeParams) -> None:
 
     paths = "\r\n   ".join(sys.path)
     log_to_output(f"sys.path used to run Server:\r\n   {paths}")
+    settings = {}
+    if params.initialization_options:
+        GLOBAL_SETTINGS.update(
+            **params.initialization_options.get("globalSettings", {})
+        )
+        settings = params.initialization_options["settings"]
 
-    GLOBAL_SETTINGS.update(**params.initialization_options.get("globalSettings", {}))
-
-    settings = params.initialization_options["settings"]
     _update_workspace_settings(settings)
     log_to_output(
         f"Settings used to run Server:\r\n{json.dumps(settings, indent=4, ensure_ascii=False)}\r\n"
@@ -267,7 +270,7 @@ def _run_tool_on_document(
     # sys.path and that might not work for this scenario next time around.
     with utils.substitute_attr(sys, "path", sys.path[:]):
         try:
-            boundary_errors = run_tach_check(cwd=cwd, argv=argv, source=document.source)
+            boundary_errors = run_tach_check(argv=argv)
             log_to_output(str(boundary_errors))
         except Exception:
             log_error(traceback.format_exc(chain=True))
