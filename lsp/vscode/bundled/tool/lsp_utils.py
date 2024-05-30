@@ -24,7 +24,6 @@ def as_list(content: Any | list[Any] | tuple[Any]) -> list[Any] | tuple[Any]:
     return [content]
 
 
-# pylint: disable-next=consider-using-generator
 _site_paths = tuple(
     [
         os.path.normcase(os.path.normpath(p))
@@ -48,7 +47,6 @@ def is_current_interpreter(executable) -> bool:
 def is_stdlib_file(file_path) -> bool:
     """Return True if the file belongs to standard library."""
     return os.path.normcase(os.path.normpath(file_path)).startswith(_site_paths)
-
 
 
 @contextlib.contextmanager

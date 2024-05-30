@@ -34,7 +34,7 @@ update_sys_path(
 # **********************************************************
 # Imports needed for the language server goes below this.
 # **********************************************************
-# pylint: disable=wrong-import-position,import-error
+
 import lsp_jsonrpc as jsonrpc  # noqa: E402
 import lsp_utils as utils  # noqa: E402
 import lsprotocol.types as lsp  # noqa: E402

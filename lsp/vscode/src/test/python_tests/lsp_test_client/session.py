@@ -27,13 +27,12 @@ WINDOW_LOG_MESSAGE = "window/logMessage"
 WINDOW_SHOW_MESSAGE = "window/showMessage"
 
 
-# pylint: disable=too-many-instance-attributes
 class LspSession(MethodDispatcher):
     """Send and Receive messages over LSP as a test LS Client."""
 
     def __init__(self, cwd=None, script=None):
         self.cwd = cwd if cwd else os.getcwd()
-        # pylint: disable=consider-using-with
+
         self._thread_pool = ThreadPoolExecutor()
         self._sub = None
         self._writer = None
@@ -49,7 +48,7 @@ class LspSession(MethodDispatcher):
 
         shell=True needed for pytest-cov to work in subprocess.
         """
-        # pylint: disable=consider-using-with
+
         self._sub = subprocess.Popen(
             [sys.executable, str(self.script)],
             stdout=subprocess.PIPE,
@@ -76,7 +75,7 @@ class LspSession(MethodDispatcher):
         self.shutdown(True)
         try:
             self._sub.terminate()
-        except Exception:  # pylint:disable=broad-except
+        except Exception:
             pass
         self._endpoint.shutdown()
         self._thread_pool.shutdown()

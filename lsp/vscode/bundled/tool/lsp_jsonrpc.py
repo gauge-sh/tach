@@ -29,7 +29,7 @@ def to_str(text: str | bytes) -> str:
 class StreamClosedException(Exception):
     """JSON RPC stream is closed."""
 
-    pass  # pylint: disable=unnecessary-pass
+    pass
 
 
 class JsonWriter:
@@ -141,7 +141,7 @@ class ProcessManager:
 
     def start_process(self, workspace: str, args: Sequence[str], cwd: str) -> None:
         """Starts a process and establishes JSON-RPC communication over stdio."""
-        # pylint: disable=consider-using-with
+
         proc = subprocess.Popen(
             args,
             cwd=cwd,
@@ -158,7 +158,7 @@ class ProcessManager:
                     del self._processes[workspace]
                     rpc = self._rpc.pop(workspace)
                     rpc.close()
-                # pylint: disable=bare-except
+
                 except:  # noqa: E722
                     pass
 
