@@ -58,9 +58,9 @@ pub struct ResolvedModule {
 }
 
 pub fn module_to_file_path<P: AsRef<Path>>(root: P, mod_path: &str) -> Option<ResolvedModule> {
-    let mut file_path = mod_path.replace(".", MAIN_SEPARATOR_STR);
-    let fs_path = root.as_ref().join(file_path);
-    file_path = fs_path.display().to_string();
+    let mod_as_file_path = mod_path.replace(".", MAIN_SEPARATOR_STR);
+    let fs_path = root.as_ref().join(&mod_as_file_path);
+    let file_path = fs_path.display().to_string();
 
     // mod_path may refer to a package
     if fs_path.join("__init__.py").exists() {
@@ -77,6 +77,15 @@ pub fn module_to_file_path<P: AsRef<Path>>(root: P, mod_path: &str) -> Option<Re
             file_path: PathBuf::from(py_file_path),
             member_name: None,
         });
+    }
+
+    // If the original file path does not contain a separator (e.g. 'os', 'ast')
+    // then we are done checking. Further checks work by removing the lowest portion
+    // to see if the import may refer to a member within a module.
+    // TODO: An improvement would be to also filter out StmtImport from the following checks,
+    // since 'import a.b.c' must not be referring to a member
+    if !mod_as_file_path.contains(MAIN_SEPARATOR) {
+        return None;
     }
 
     if let Some(last_sep_index) = file_path.rfind(MAIN_SEPARATOR) {

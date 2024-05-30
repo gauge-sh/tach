@@ -65,9 +65,6 @@ class PackageTrie:
         node = self.root
         parts = self._split_mod_path(path)
 
-        if not parts:
-            return None
-
         for part in parts:
             if part not in node.children:
                 return None
@@ -78,8 +75,6 @@ class PackageTrie:
     def insert(self, config: PackageConfig, path: str, interface_members: list[str]):
         node = self.root
         parts = self._split_mod_path(path)
-        if not parts:
-            raise ValueError("Cannot insert node at root of package tree")
 
         for part in parts:
             if part not in node.children:
