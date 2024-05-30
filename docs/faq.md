@@ -14,7 +14,7 @@ The only exceptions are imports made within `TYPE_CHECKING` conditional blocks. 
 these imports, you can add `ignore_type_checking_imports: true` to your `tach.yml`.
 
 ### Can you catch dynamic references?
-Since `tach` uses the AST to find imports and public members, dynamic imports (e.g. using a string path) and dynamic names (e.g. using `setattr`, `locals`, `globals`) are generally not supported. If these usages cause `tach` to report incorrect errors, the [ignore directive](tach-ignore#tach-ignore) should be sufficient to reach a passing state.
+Since `tach` uses the AST to find imports and public members, dynamic imports (e.g. using a string path) and dynamic names (e.g. using `setattr`, `locals`, `globals`) are generally not supported. If these usages cause `tach` to report incorrect errors, the [ignore directive](tach-ignore.md#tach-ignore) should be sufficient to reach a passing state.
 
 ### What information does Tach track?
 
