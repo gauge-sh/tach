@@ -25,7 +25,7 @@ feature request as a new Issue.
 
 ### How can I get help?
 
-For help and questions about using this project, join the [Discord](https://discord.gg/a58vW8dnmw)!
+For help and questions, join the [Discord](https://discord.gg/a58vW8dnmw)!
 
 
 ### How can I report a security issue?
