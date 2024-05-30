@@ -13,7 +13,7 @@ import subprocess
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import BinaryIO, Dict, Sequence, Union
+from typing import BinaryIO, Dict, Sequence
 
 CONTENT_LENGTH = "Content-Length: "
 RUNNER_SCRIPT = str(pathlib.Path(__file__).parent / "lsp_runner.py")
@@ -51,9 +51,7 @@ class JsonWriter:
         with self._lock:
             content = json.dumps(data)
             length = len(content.encode("utf-8"))
-            self._writer.write(
-                f"{CONTENT_LENGTH}{length}\r\n\r\n{content}".encode()
-            )
+            self._writer.write(f"{CONTENT_LENGTH}{length}\r\n\r\n{content}".encode())
             self._writer.flush()
 
 
@@ -173,26 +171,6 @@ _process_manager = ProcessManager()
 atexit.register(_process_manager.stop_all_processes)
 
 
-def _get_json_rpc(workspace: str) -> Union[JsonRpc, None]:
-    try:
-        return _process_manager.get_json_rpc(workspace)
-    except StreamClosedException:
-        return None
-    except KeyError:
-        return None
-
-
-def get_or_start_json_rpc(
-    workspace: str, interpreter: Sequence[str], cwd: str
-) -> Union[JsonRpc, None]:
-    """Gets an existing JSON-RPC connection or starts one and return it."""
-    res = _get_json_rpc(workspace)
-    if not res:
-        args = [*interpreter, RUNNER_SCRIPT]
-        _process_manager.start_process(workspace, args, cwd)
-        res = _get_json_rpc(workspace)
-    return res
-
 
 class RpcRunResult:
     """Object to hold result from running tool over RPC."""
@@ -201,53 +179,6 @@ class RpcRunResult:
         self.stdout: str = stdout
         self.stderr: str = stderr
         self.exception: str | None = exception
-
-
-# pylint: disable=too-many-arguments
-def run_over_json_rpc(
-    workspace: str,
-    interpreter: Sequence[str],
-    module: str,
-    argv: Sequence[str],
-    use_stdin: bool,
-    cwd: str,
-    source: str = None,
-) -> RpcRunResult:
-    """Uses JSON-RPC to execute a command."""
-    rpc: Union[JsonRpc, None] = get_or_start_json_rpc(workspace, interpreter, cwd)
-    if not rpc:
-        raise Exception("Failed to run over JSON-RPC.")
-
-    msg_id = str(uuid.uuid4())
-    msg = {
-        "id": msg_id,
-        "method": "run",
-        "module": module,
-        "argv": argv,
-        "useStdin": use_stdin,
-        "cwd": cwd,
-    }
-    if source:
-        msg["source"] = source
-
-    rpc.send_data(msg)
-
-    data = rpc.receive_data()
-
-    if data["id"] != msg_id:
-        return RpcRunResult(
-            "", f"Invalid result for request: {json.dumps(msg, indent=4)}"
-        )
-
-    result = data["result"] if "result" in data else ""
-    if "error" in data:
-        error = data["error"]
-
-        if data.get("exception", False):
-            return RpcRunResult(result, "", error)
-        return RpcRunResult(result, error)
-
-    return RpcRunResult(result, "")
 
 
 def shutdown_json_rpc():
