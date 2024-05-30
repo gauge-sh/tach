@@ -8,7 +8,6 @@ import json
 import os
 import pathlib
 import urllib.request as url_lib
-from typing import List
 
 import nox  # pylint: disable=import-error
 
@@ -28,11 +27,11 @@ def _install_bundle(session: nox.Session) -> None:
     )
 
 
-def _check_files(names: List[str]) -> None:
+def _check_files(names: list[str]) -> None:
     root_dir = pathlib.Path(__file__).parent
     for name in names:
         file_path = root_dir / name
-        lines: List[str] = file_path.read_text().splitlines()
+        lines: list[str] = file_path.read_text().splitlines()
         if any(line for line in lines if line.startswith("# TODO:")):
             raise Exception(f"Please update {os.fspath(file_path)}.")
 

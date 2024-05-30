@@ -9,14 +9,14 @@
         "module": "tach"
     },
     "publisher": "gauge",
-    "license": "MIT",
-    "homepage": "https://github.com/<my-github>/<my-extension-project>",
+    "license": "LGPL-3.0-only",
+    "homepage": "https://github.com/gauge-sh/tach",
     "repository": {
         "type": "git",
-        "url": "https://github.com/<my-github>/<my-extension-project>.git"
+        "url": "https://github.com/gauge-sh/tach/.git"
     },
     "bugs": {
-        "url": "https://github.com/<my-github>/<my-extension-project>/issues"
+        "url": "https://github.com//gauge-sh/tach/issues"
     },
     "galleryBanner": {
         "color": "#1e415e",
@@ -24,7 +24,11 @@
     },
     "keywords": [
         "python",
-        "tach"
+        "tach",
+        "rust",
+        "lint",
+        "imports",
+        "package"
     ],
     "engines": {
         "vscode": "^1.78.0"

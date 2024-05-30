@@ -6,14 +6,16 @@ from __future__ import annotations
 
 import atexit
 import contextlib
-import io
 import json
 import pathlib
 import subprocess
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import BinaryIO, Dict, Sequence
+from typing import TYPE_CHECKING, BinaryIO, Sequence
+
+if TYPE_CHECKING:
+    import io
 
 CONTENT_LENGTH = "Content-Length: "
 RUNNER_SCRIPT = str(pathlib.Path(__file__).parent / "lsp_runner.py")
@@ -122,9 +124,9 @@ class ProcessManager:
     """Manages sub-processes launched for running tools."""
 
     def __init__(self):
-        self._args: Dict[str, Sequence[str]] = {}
-        self._processes: Dict[str, subprocess.Popen] = {}
-        self._rpc: Dict[str, JsonRpc] = {}
+        self._args: dict[str, Sequence[str]] = {}
+        self._processes: dict[str, subprocess.Popen] = {}
+        self._rpc: dict[str, JsonRpc] = {}
         self._lock = threading.Lock()
         self._thread_pool = ThreadPoolExecutor(10)
 
@@ -154,7 +156,8 @@ class ProcessManager:
                     del self._processes[workspace]
                     rpc = self._rpc.pop(workspace)
                     rpc.close()
-                except:  # pylint: disable=bare-except
+                # pylint: disable=bare-except
+                except:  # noqa: E722
                     pass
 
         self._thread_pool.submit(_monitor_process)
@@ -169,7 +172,6 @@ class ProcessManager:
 
 _process_manager = ProcessManager()
 atexit.register(_process_manager.stop_all_processes)
-
 
 
 class RpcRunResult:
