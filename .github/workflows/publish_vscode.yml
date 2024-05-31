@@ -4,7 +4,7 @@ on:
   release:
     types: [published]
 jobs:
-  # Phase 1: Build the extension on all platforms.
+  # Build the extension on all platforms.
   build:
     strategy:
 #      fail-fast: false
@@ -94,7 +94,7 @@ jobs:
           name: dist-${{ matrix.target }}
           path: ./lsp/vscode/dist
 
-  # Phase 3: Publish the built extension to the Marketplace.
+  # Publish the built extension to the Marketplace.
   publish:
     name: "Publish"
     needs: ["build"]
