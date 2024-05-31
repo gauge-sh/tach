@@ -3,8 +3,7 @@ from __future__ import annotations
 import yaml
 
 from tach import filesystem as fs
-from tach.colors import BCOLORS
-from tach.core import PackageConfig, ProjectConfig
+from tach.core import ProjectConfig
 
 
 def dump_project_config_to_yaml(config: ProjectConfig) -> str:
@@ -12,10 +11,11 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # so that 'tag' appears before 'depends_on'
     # Instead, should provide custom yaml.Dumper & yaml.Representer or just write our own
     # Sort only constraints and dependencies alphabetically for now
-    config.constraints.sort(key=lambda constr: constr.tag)
-    for constr in config.constraints:
-        constr.depends_on.sort()
+    config.modules.sort(key=lambda mod: mod.path)
+    for mod in config.modules:
+        mod.depends_on.sort()
     config.exclude = list(set(config.exclude)) if config.exclude else []
+    config.exclude.sort()
     return yaml.dump(config.model_dump(), sort_keys=False)
 
 
@@ -28,22 +28,5 @@ def parse_project_config(root: str = ".") -> ProjectConfig | None:
         result = yaml.safe_load(f)
         if not result or not isinstance(result, dict):
             raise ValueError(f"Empty or invalid project config file: {file_path}")
-    was_deprecated_config, config = ProjectConfig.factory(result)  # type: ignore
-    # Automatically update the config if it used the deprecated format
-    if was_deprecated_config:
-        print(
-            f"{BCOLORS.WARNING} Auto-updating project configuration format.{BCOLORS.ENDC}"
-        )
-        fs.write_file(file_path, dump_project_config_to_yaml(config))
+    config = ProjectConfig(**result)  # type: ignore
     return config
-
-
-def parse_package_config(root: str = ".") -> PackageConfig | None:
-    file_path = fs.get_package_config_path(root)
-    if file_path:
-        with open(file_path) as f:
-            result = yaml.safe_load(f)
-            if not result or not isinstance(result, dict):
-                raise ValueError(f"Empty or invalid package config file: {file_path}")
-        # We want to error on type issues here for now
-        return PackageConfig(**result)  # type: ignore

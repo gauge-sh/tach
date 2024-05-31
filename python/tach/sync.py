@@ -27,9 +27,9 @@ def sync_dependency_constraints(
     )
     for error in check_errors:
         error_info = error.error_info
-        if error_info.is_tag_error:
-            project_config.add_dependency_to_tag(
-                error_info.source_tag, error_info.invalid_tag
+        if error_info.is_dependency_error:
+            project_config.add_dependency_to_module(
+                error_info.source_module, error_info.invalid_module
             )
 
     return project_config
@@ -41,11 +41,11 @@ def prune_dependency_constraints(
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
     """
-    Build a minimal project configuration with auto-detected dependency constraints.
+    Build a minimal project configuration with auto-detected module dependencies.
     """
     if project_config is not None:
-        # Force constraints to be empty in case we received configuration with pre-existing constraints
-        project_config = project_config.model_copy(update={"constraints": []})
+        # Force modules to be empty in case we received configuration with pre-existing modules
+        project_config = project_config.model_copy(update={"modules": []})
     else:
         project_config = ProjectConfig()
 

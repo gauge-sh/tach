@@ -7,7 +7,7 @@ import pytest
 from tach import cli
 from tach.check import BoundaryError, ErrorInfo
 from tach.constants import CONFIG_FILE_NAME
-from tach.core import ProjectConfig, TagDependencyRules
+from tach.core import ModuleConfig, ProjectConfig
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def mock_path_exists(mocker) -> None:
 def mock_project_config(mocker) -> None:
     def mock_project_config(root: str = "") -> ProjectConfig:
         return ProjectConfig(
-            constraints=[TagDependencyRules(tag="mocked", depends_on=["mocked"])]
+            modules=[ModuleConfig(path="mocked", depends_on=["mocked"])]
         )
 
     mocker.patch("tach.cli.parse_project_config", mock_project_config)
@@ -60,7 +60,7 @@ def test_execute_with_tach_yml(
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All package dependencies validated!" in captured.out
+    assert "All module dependencies validated!" in captured.out
 
 
 def test_execute_with_error(capfd, mock_path_exists, mock_check, mock_project_config):
@@ -105,4 +105,4 @@ def test_execute_with_valid_exclude(
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All package dependencies validated!" in captured.out
+    assert "All module dependencies validated!" in captured.out

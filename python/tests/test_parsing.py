@@ -7,9 +7,9 @@ from pydantic import ValidationError
 
 from tach import filesystem as fs
 from tach.check import check
-from tach.core.config import PackageConfig, ProjectConfig, TagDependencyRules
+from tach.core import ModuleConfig, ProjectConfig
 from tach.filesystem import file_to_module_path
-from tach.parsing.config import parse_package_config, parse_project_config
+from tach.parsing import parse_project_config
 
 
 def test_file_to_mod_path():
@@ -21,10 +21,10 @@ def test_file_to_mod_path():
 def test_parse_valid_project_config():
     result = parse_project_config("example/valid/")
     assert result == ProjectConfig(
-        constraints=[
-            TagDependencyRules(tag="one", depends_on=["two"]),
-            TagDependencyRules(tag="two", depends_on=["one"]),
-            TagDependencyRules(tag="three", depends_on=[]),
+        modules=[
+            ModuleConfig(path="domain_one", depends_on=["domain_two"]),
+            ModuleConfig(path="domain_two", depends_on=["domain_one"]),
+            ModuleConfig(path="domain_three"),
         ],
         exclude=["domain_thr.*"],
     )
@@ -47,21 +47,6 @@ def test_run_valid_project_config():
         fs.chdir(current_dir)
 
 
-def test_parse_valid_strict_package_config():
-    result = parse_package_config("example/valid/domain_one")
-    assert result == PackageConfig(strict=True, tag="one")
-
-
-def test_parse_valid_multi_tag_package_config():
-    result = parse_package_config("example/valid/domain_two")
-    assert result == PackageConfig(strict=False, tag="two")
-
-
-def test_package_with_no_config():
-    result = parse_package_config("example/")
-    assert result is None
-
-
 def test_invalid_project_config():
     with pytest.raises(ValidationError):
         parse_project_config("example/invalid/")
@@ -70,13 +55,3 @@ def test_invalid_project_config():
 def test_empty_project_config():
     with pytest.raises(ValueError):
         parse_project_config("example/invalid/empty")
-
-
-def test_invalid_package_config():
-    with pytest.raises(ValidationError):
-        parse_package_config("example/invalid")
-
-
-def test_empty_package_config():
-    with pytest.raises(ValueError):
-        parse_package_config("example/invalid")

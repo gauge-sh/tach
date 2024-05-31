@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from tach.core.config import (
-    PackageConfig,
+    ModuleConfig,
     ProjectConfig,
-    TagDependencyRules,
+    UnusedDependencies,
 )
-from tach.core.package import PackageNode, PackageTrie
+from tach.core.modules import ModuleNode, ModuleTree
 
 __all__ = [
-    "PackageConfig",
-    "TagDependencyRules",
     "ProjectConfig",
-    "PackageNode",
-    "PackageTrie",
+    "ModuleConfig",
+    "ModuleNode",
+    "ModuleTree",
+    "UnusedDependencies",
 ]

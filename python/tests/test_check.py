@@ -4,71 +4,68 @@ import pytest
 
 from tach.check import check_import
 from tach.core import (
-    PackageConfig,
-    PackageNode,
-    PackageTrie,
-    ProjectConfig,
-    TagDependencyRules,
+    ModuleConfig,
+    ModuleNode,
+    ModuleTree,
 )
 
 
 @pytest.fixture
-def test_config() -> PackageConfig:
-    return PackageConfig(tag="test", strict=False)
+def test_config() -> ModuleConfig:
+    return ModuleConfig(path="test", strict=False)
 
 
 @pytest.fixture
-def project_config() -> ProjectConfig:
-    return ProjectConfig(
-        constraints=[
-            TagDependencyRules(
-                tag="domain_one", depends_on=["domain_one", "domain_three"]
-            ),
-            TagDependencyRules(tag="domain_two", depends_on=["domain_one"]),
-            TagDependencyRules(tag="domain_three", depends_on=[]),
-        ]
-    )
-
-
-@pytest.fixture
-def package_trie() -> PackageTrie:
-    return PackageTrie(
-        root=PackageNode(
+def module_tree() -> ModuleTree:
+    return ModuleTree(
+        root=ModuleNode(
             is_end_of_path=False,
             full_path="",
             config=None,
             children={
-                "domain_one": PackageNode(
+                "domain_one": ModuleNode(
                     is_end_of_path=True,
                     full_path="domain_one",
-                    config=PackageConfig(tag="domain_one", strict=True),
+                    config=ModuleConfig(
+                        path="domain_one",
+                        depends_on=["domain_one.subdomain", "domain_three"],
+                        strict=True,
+                    ),
                     interface_members=["public_fn"],
                     children={
-                        "subdomain": PackageNode(
+                        "subdomain": ModuleNode(
                             is_end_of_path=True,
                             full_path="domain_one.subdomain",
-                            config=PackageConfig(tag="domain_one", strict=True),
+                            config=ModuleConfig(
+                                path="domain_one.subdomain", strict=True
+                            ),
                             children={},
                         )
                     },
                 ),
-                "domain_two": PackageNode(
+                "domain_two": ModuleNode(
                     is_end_of_path=True,
                     full_path="domain_two",
-                    config=PackageConfig(tag="domain_two", strict=False),
+                    config=ModuleConfig(
+                        path="domain_two", depends_on=["domain_one"], strict=False
+                    ),
                     children={
-                        "subdomain": PackageNode(
+                        "subdomain": ModuleNode(
                             is_end_of_path=True,
                             full_path="domain_two.subdomain",
-                            config=PackageConfig(tag="domain_two", strict=False),
+                            config=ModuleConfig(
+                                path="domain_two",
+                                depends_on=["domain_one"],
+                                strict=False,
+                            ),
                             children={},
                         )
                     },
                 ),
-                "domain_three": PackageNode(
+                "domain_three": ModuleNode(
                     is_end_of_path=True,
                     full_path="domain_three",
-                    config=PackageConfig(tag="domain_three", strict=False),
+                    config=ModuleConfig(path="domain_three", strict=False),
                     children={},
                 ),
             },
@@ -97,12 +94,9 @@ def package_trie() -> PackageTrie:
         ("external", "domain_three", False),
     ],
 )
-def test_check_import(
-    project_config, package_trie, file_mod_path, import_mod_path, expected_result
-):
+def test_check_import(module_tree, file_mod_path, import_mod_path, expected_result):
     check_error = check_import(
-        project_config=project_config,
-        package_trie=package_trie,
+        module_tree=module_tree,
         file_mod_path=file_mod_path,
         import_mod_path=import_mod_path,
     )

@@ -20,7 +20,7 @@ from tach.pkg import pkg_edit_interactive
 from tach.sync import prune_dependency_constraints, sync_project
 
 if TYPE_CHECKING:
-    from tach.core import TagDependencyRules
+    from tach.core import UnusedDependencies
 
 
 class TerminalEnvironment(Enum):
@@ -70,12 +70,12 @@ def build_error_message(error: BoundaryError) -> str:
     error_info = error.error_info
     if error_info.exception_message:
         return error_template.format(message=error_info.exception_message)
-    elif not error_info.is_tag_error:
+    elif not error_info.is_dependency_error:
         return error_template.format(message="Unexpected error")
 
     message = (
         f"Cannot import '{error.import_mod_path}'. "
-        f"Tag '{error_info.source_tag}' cannot depend on '{error_info.invalid_tag}'."
+        f"Tag '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
     )
 
     return error_template.format(message=message)
@@ -90,10 +90,12 @@ def print_errors(error_list: list[BoundaryError]) -> None:
         )
 
 
-def print_extra_constraints(constraints: list[TagDependencyRules]) -> None:
+def print_unused_dependencies(
+    all_unused_dependencies: list[UnusedDependencies],
+) -> None:
     constraint_messages = "\n".join(
-        f"\t{BCOLORS.WARNING}{constraint.tag} does not depend on: {constraint.depends_on}{BCOLORS.ENDC}"
-        for constraint in constraints
+        f"\t{BCOLORS.WARNING}{unused_dependencies.path} does not depend on: {unused_dependencies.dependencies}{BCOLORS.ENDC}"
+        for unused_dependencies in all_unused_dependencies
     )
     print(
         f"❌ {BCOLORS.FAIL}Found unused dependencies: {BCOLORS.ENDC}\n"
@@ -130,8 +132,8 @@ def build_parser() -> argparse.ArgumentParser:
     pkg_parser = subparsers.add_parser(
         "pkg",
         prog="tach pkg",
-        help="Configure package boundaries interactively",
-        description="Configure package boundaries interactively",
+        help="Configure module boundaries interactively",
+        description="Configure module boundaries interactively",
     )
     pkg_parser.add_argument(
         "-d",
@@ -145,8 +147,8 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser = subparsers.add_parser(
         "check",
         prog="tach check",
-        help="Check existing boundaries against your dependencies and package interfaces",
-        description="Check existing boundaries against your dependencies and package interfaces",
+        help="Check existing boundaries against your dependencies and module interfaces",
+        description="Check existing boundaries against your dependencies and module interfaces",
     )
     check_parser.add_argument(
         "--root",
@@ -258,9 +260,9 @@ def tach_check(
             pruned_config = prune_dependency_constraints(
                 root, project_config=project_config, exclude_paths=exclude_paths
             )
-            extra_constraints = pruned_config.find_extra_constraints(project_config)
-            if extra_constraints:
-                print_extra_constraints(extra_constraints)
+            unused_dependencies = pruned_config.compare_dependencies(project_config)
+            if unused_dependencies:
+                print_unused_dependencies(unused_dependencies)
                 sys.exit(1)
     except Exception as e:
         print(str(e))
@@ -269,7 +271,7 @@ def tach_check(
     if boundary_errors:
         print_errors(boundary_errors)
         sys.exit(1)
-    print(f"✅ {BCOLORS.OKGREEN}All package dependencies validated!{BCOLORS.ENDC}")
+    print(f"✅ {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -295,7 +297,7 @@ def tach_pkg(depth: int | None = 1, exclude_paths: list[str] | None = None):
         print("\n".join(warnings))
     if saved_changes:
         print(
-            f"✅ {BCOLORS.OKGREEN}Set packages! You may want to run '{TOOL_NAME} sync' "
+            f"✅ {BCOLORS.OKGREEN}Set modules! You may want to run '{TOOL_NAME} sync' "
             f"to automatically set boundaries.{BCOLORS.ENDC}"
         )
     sys.exit(0)

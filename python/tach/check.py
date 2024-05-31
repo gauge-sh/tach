@@ -7,102 +7,105 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.extension import get_project_imports, set_excluded_paths
-from tach.parsing import build_package_trie
+from tach.parsing.modules import build_module_tree
 
 if TYPE_CHECKING:
-    from tach.core import PackageNode, PackageTrie, ProjectConfig
+    from tach.core import ModuleNode, ModuleTree, ProjectConfig
 
 
 @dataclass
 class ErrorInfo:
-    source_tag: str = ""
-    invalid_tag: str = ""
-    allowed_tags: list[str] = field(default_factory=list)
+    source_module: str = ""
+    invalid_module: str = ""
+    allowed_modules: list[str] = field(default_factory=list)
     exception_message: str = ""
 
     @property
-    def is_tag_error(self) -> bool:
-        return all((self.source_tag, self.invalid_tag))
+    def is_dependency_error(self) -> bool:
+        return all((self.source_module, self.invalid_module))
 
 
-def is_top_level_package_import(mod_path: str, package: PackageNode) -> bool:
-    return mod_path == package.full_path
+def is_top_level_module_import(mod_path: str, module: ModuleNode) -> bool:
+    return mod_path == module.full_path
 
 
-def import_matches_interface_members(mod_path: str, package: PackageNode) -> bool:
+def import_matches_interface_members(mod_path: str, module: ModuleNode) -> bool:
     mod_path_segments = mod_path.rsplit(".", 1)
     if len(mod_path_segments) == 1:
-        return mod_path_segments[0] == package.full_path
+        return mod_path_segments[0] == module.full_path
     else:
         mod_pkg_path, mod_member_name = mod_path_segments
         return (
-            mod_pkg_path == package.full_path
-            and mod_member_name in package.interface_members
+            mod_pkg_path == module.full_path
+            and mod_member_name in module.interface_members
         )
 
 
 def check_import(
-    project_config: ProjectConfig,
-    package_trie: PackageTrie,
+    module_tree: ModuleTree,
     import_mod_path: str,
     file_mod_path: str,
-    file_nearest_package: PackageNode | None = None,
+    file_nearest_module: ModuleNode | None = None,
 ) -> ErrorInfo | None:
-    import_nearest_package = package_trie.find_nearest(import_mod_path)
-    if import_nearest_package is None:
+    import_nearest_module = module_tree.find_nearest(import_mod_path)
+    if import_nearest_module is None:
         # This shouldn't happen since we intend to filter out any external imports,
         # but we should allow external imports if they have made it here.
         return None
 
-    # Lookup file_mod_path if package not given
-    if file_nearest_package is None:
-        file_nearest_package = package_trie.find_nearest(file_mod_path)
-    # If package not found, we should fail since the implication is that
-    # an external package is importing directly from our project
-    if file_nearest_package is None:
+    # Lookup file_mod_path if module not given
+    if file_nearest_module is None:
+        file_nearest_module = module_tree.find_nearest(file_mod_path)
+    # If module not found, we should fail since the implication is that
+    # an external module is importing directly from our project
+    if file_nearest_module is None:
         return ErrorInfo(
-            exception_message=f"Package containing '{file_mod_path}' not found in project.",
+            exception_message=f"Module containing '{file_mod_path}' not found in project.",
         )
 
-    # Imports within the same package are always allowed
-    if import_nearest_package == file_nearest_package:
+    # Imports within the same module are always allowed
+    if import_nearest_module == file_nearest_module:
         return None
 
-    import_package_config = import_nearest_package.config
-    if import_package_config and import_package_config.strict:
-        if not is_top_level_package_import(
-            import_mod_path, import_nearest_package
+    import_module_config = import_nearest_module.config
+    if import_module_config and import_module_config.strict:
+        if not is_top_level_module_import(
+            import_mod_path, import_nearest_module
         ) and not import_matches_interface_members(
-            import_mod_path, import_nearest_package
+            import_mod_path, import_nearest_module
         ):
-            # In strict mode, import must be of the package itself or one of the
+            # In strict mode, import must be of the module itself or one of the
             # interface members (defined in __all__)
             return ErrorInfo(
                 exception_message=(
-                    f"Package '{import_nearest_package.full_path}' is in strict mode. "
-                    "Only imports from the root of this package are allowed. "
+                    f"Module '{import_nearest_module.full_path}' is in strict mode. "
+                    "Only imports from the public interface of this module are allowed. "
                     f"The import '{import_mod_path}' (in '{file_mod_path}') "
                     f"is not included in __all__."
                 ),
             )
 
-    # The import must be explicitly allowed based on the tags and top-level config
-    if not file_nearest_package.config or not import_nearest_package.config:
+    if not file_nearest_module.config or not import_nearest_module.config:
         return ErrorInfo(
-            exception_message="Could not find package configuration.",
+            exception_message="Could not find module configuration.",
         )
-    file_tag = file_nearest_package.config.tag
-    import_tag = import_nearest_package.config.tag
 
-    dependency_tags = project_config.dependencies_for_tag(file_tag)
-    if any(dependency_tag == import_tag for dependency_tag in dependency_tags):
+    file_nearest_module_path = file_nearest_module.config.path
+    import_nearest_module_path = import_nearest_module.config.path
+
+    # The import must be explicitly allowed
+    dependency_tags = file_nearest_module.config.depends_on
+    if any(
+        dependency_tag == import_nearest_module_path
+        for dependency_tag in dependency_tags
+    ):
         # The import matches at least one expected dependency
         return None
-    # This means the import's tag is not declared as a dependency of the file
+    # This means the import is not declared as a dependency of the file
     return ErrorInfo(
-        source_tag=file_tag,
-        invalid_tag=import_tag,
-        allowed_tags=dependency_tags,
+        source_module=file_nearest_module_path,
+        invalid_module=import_nearest_module_path,
+        allowed_modules=dependency_tags,
     )
 
 
@@ -131,10 +134,7 @@ def check(
         else:
             exclude_paths = project_config.exclude
 
-        package_trie = build_package_trie(
-            ".",
-            exclude_paths=exclude_paths,
-        )
+        module_tree = build_module_tree(project_config.modules)
 
         # This informs the Rust extension ahead-of-time which paths are excluded.
         # The extension builds regexes and uses them during `get_project_imports`
@@ -145,8 +145,8 @@ def check(
             exclude_paths=exclude_paths,
         ):
             mod_path = fs.file_to_module_path(file_path)
-            nearest_package = package_trie.find_nearest(mod_path)
-            if nearest_package is None:
+            nearest_module = module_tree.find_nearest(mod_path)
+            if nearest_module is None:
                 continue
 
             project_imports = get_project_imports(
@@ -156,10 +156,9 @@ def check(
             )
             for project_import in project_imports:
                 check_error = check_import(
-                    project_config=project_config,
-                    package_trie=package_trie,
+                    module_tree=module_tree,
                     import_mod_path=project_import[0],
-                    file_nearest_package=nearest_package,
+                    file_nearest_module=nearest_module,
                     file_mod_path=mod_path,
                 )
                 if check_error is None:

@@ -40,7 +40,7 @@ def parse_interface_members(path: str) -> list[str]:
     Parse the members of __all__ in the __init__.py of a package.
     'path' should be a path to the package directory.
     """
-    init_py_path = os.path.join(path, "__init__.py")
+    init_py_path = os.path.join(path.replace(".", os.sep), "__init__.py")
     if not os.path.exists(init_py_path):
         raise ValueError(
             f"Could not parse interface from path, no __init__.py found: {path}"
