@@ -10,6 +10,7 @@ jobs:
   # Phase 1: Build the extension on all platforms.
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
