@@ -176,4 +176,5 @@ jobs:
       - name: Publish Extension
         run: |
           cd lsp/vscode
-          npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./dist/tach-*.vsix
+          ls -al dist/
+#          npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./dist/tach-*.vsix
