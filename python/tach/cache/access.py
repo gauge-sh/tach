@@ -6,8 +6,6 @@ from pathlib import Path
 from tach.cache.setup import resolve_dot_tach
 from tach.filesystem import find_project_config_root
 
-# clean_project()
-
 
 def get_uid() -> uuid.UUID | None:
     project_root = find_project_config_root(str(Path.cwd()))
