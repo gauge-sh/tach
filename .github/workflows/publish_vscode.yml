@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main", "docs" ]
 
+defaults:
+ run:
+  working-directory: ./lsp/vscode
+
 jobs:
   # Phase 1: Build the extension on all platforms.
   build:
