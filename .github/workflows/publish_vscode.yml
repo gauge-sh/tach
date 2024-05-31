@@ -105,7 +105,9 @@ jobs:
       - run: cd lsp/vscode && npm install
       # Build the extension.
       - name: Package Extension (release)
-        run: npx vsce package -o "./lsp/vscode/dist/tach-${{ matrix.code-target }}.vsix" --target ${{ matrix.code-target }}
+        run: |
+          cd lsp/vscode
+          npx vsce package -o "./lsp/vscode/dist/tach-${{ matrix.code-target }}.vsix" --target ${{ matrix.code-target }}
 
       # Upload the extension.
       - name: Upload artifacts
@@ -132,44 +134,46 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dist-aarch64-apple-darwin
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-x86_64-apple-darwin
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-x86_64-unknown-linux-gnu
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-aarch64-unknown-linux-gnu
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-arm-unknown-linux-gnueabihf
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-x86_64-pc-windows-msvc
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-aarch64-pc-windows-msvc
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-x86_64-unknown-linux-musl
-          path: dist
+          path: lsp/vscode/dist
       - uses: actions/download-artifact@v4
         with:
           name: dist-aarch64-unknown-linux-musl
-          path: dist
+          path: lsp/vscode/dist
       - run: ls -al ./lsp/vscode/dist
 
       # Install Node dependencies.
-      - run: npm install
+      - run: cd lsp/vscode && npm install
 
       # Publish to the Code Marketplace.
       - name: Publish Extension
-        run: npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./lsp/vscode/dist/tach-*.vsix
+        run: |
+          cd lsp/vscode
+          npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./lsp/vscode/dist/tach-*.vsix
