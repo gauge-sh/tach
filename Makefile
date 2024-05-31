@@ -7,52 +7,52 @@ VENV=.venv
 
 # On Windows, `Scripts/` is used.
 ifeq ($(OS),Windows_NT)
-	VENV_BIN=$(VENV)/Scripts
+    VENV_BIN=$(VENV)/Scripts
 else
-	VENV_BIN=$(VENV)/bin
+    VENV_BIN=$(VENV)/bin
 endif
 
 
 .PHONY: deps
 deps: ## Install dependencies
-	python -m pip install --upgrade uv
+    python -m pip install --upgrade uv
 
-	@if [ ! -d "$(VENV)" ]; then \
-		uv venv $(VENV); \
-		echo "Virtual environment created at $(VENV)"; \
-	else \
-		echo "Virtual environment already exists at $(VENV)"; \
-	fi
+    @if [ ! -d "$(VENV)" ]; then \
+        uv venv $(VENV); \
+        echo "Virtual environment created at $(VENV)"; \
+    else \
+        echo "Virtual environment already exists at $(VENV)"; \
+    fi
 
-	source $(VENV_BIN)/activate && \
-	uv pip install -r dev-requirements.txt
+    source $(VENV_BIN)/activate && \
+    uv pip install -r dev-requirements.txt
 
-	@unset CONDA_PREFIX && \
-	maturin develop --profile release
+    @unset CONDA_PREFIX && \
+    maturin develop --profile release
 
 
 .PHONY: code
 code: ## Set up VS Code development environment
-	python -m pip install --upgrade uv
+    python -m pip install --upgrade uv
 
-	@if [ ! -d "$(VENV)" ]; then \
-		uv venv $(VENV); \
-		echo "Virtual environment created at $(VENV)"; \
-	else \
-		echo "Virtual environment already exists at $(VENV)"; \
-	fi
+    @if [ ! -d "$(VENV)" ]; then \
+        uv venv $(VENV); \
+        echo "Virtual environment created at $(VENV)"; \
+    else \
+        echo "Virtual environment already exists at $(VENV)"; \
+    fi
 
-	source $(VENV_BIN)/activate && \
-	uv pip install -r dev-requirements.txt
+    source $(VENV_BIN)/activate && \
+    uv pip install -r dev-requirements.txt
     # Note: this can take up to 10 minutes
     cd lsp/vscode && nox --session setup
-	cd lsp/vscode && npm install
+    cd lsp/vscode && npm install
 
 
 .PHONY: test	
 test: ## Run tests
-	cd python/tests && \
-	../../$(VENV_BIN)/pytest
+    cd python/tests && \
+    ../../$(VENV_BIN)/pytest
 
 
 .PHONY: lint fmt lint-rust lint-python fmt-rust fmt-python
@@ -62,41 +62,41 @@ fmt: fmt-rust fmt-python  ## Format Rust and Python code
 
 
 fmt-python: ## Format Python code
-	$(VENV_BIN)/ruff check . --fix
-	$(VENV_BIN)/ruff format .
+    $(VENV_BIN)/ruff check . --fix
+    $(VENV_BIN)/ruff format .
 
 
 fmt-rust: ## Format Rust code
-	cargo fmt --all
-	cargo clippy --fix --allow-dirty --allow-staged
+    cargo fmt --all
+    cargo clippy --fix --allow-dirty --allow-staged
 
 
 lint-python: ## Lint Python code
-	$(VENV_BIN)/ruff check .
-	$(VENV_BIN)/ruff format . --check
+    $(VENV_BIN)/ruff check .
+    $(VENV_BIN)/ruff format . --check
 
 
 lint-rust: ## Lint Rust code
-	cargo fmt --all --check
-	cargo clippy
+    cargo fmt --all --check
+    cargo clippy
 
 
 .PHONY: type-check
 type-check: ## Run type checking
-	$(VENV_BIN)/pyright
+    $(VENV_BIN)/pyright
 
 
 .PHONY: docs
 docs: ## Generate documentation
-	$(VENV_BIN)/mkdocs build -s
+    $(VENV_BIN)/mkdocs build -s
 
 
 .PHONY: docs-serve
 docs-serve: ## Serve documentation
-	$(VENV_BIN)/mkdocs serve
+    $(VENV_BIN)/mkdocs serve
 
 
 .PHONY: help
 help:  ## Display this help screen
-	@echo -e "\033[1mAvailable commands:\033[0m"
-	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}' | sort
+    @echo -e "\033[1mAvailable commands:\033[0m"
+    @grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}' | sort
