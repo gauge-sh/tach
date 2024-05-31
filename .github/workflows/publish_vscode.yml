@@ -107,7 +107,7 @@ jobs:
       - name: Package Extension (release)
         run: |
           cd lsp/vscode
-          npx vsce package -o "./lsp/vscode/dist/tach-${{ matrix.code-target }}.vsix" --target ${{ matrix.code-target }}
+          npx vsce package -o "./dist/tach-${{ matrix.code-target }}.vsix" --target ${{ matrix.code-target }}
 
       # Upload the extension.
       - name: Upload artifacts
@@ -176,4 +176,4 @@ jobs:
       - name: Publish Extension
         run: |
           cd lsp/vscode
-          npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./lsp/vscode/dist/tach-*.vsix
+          npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./dist/tach-*.vsix
