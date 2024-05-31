@@ -45,7 +45,6 @@ jobs:
             arch: aarch64
 
     name: Build (${{ matrix.target }})
-    needs: ["build-id"]
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
 
