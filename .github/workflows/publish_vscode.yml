@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [ "main", "docs" ]
 
-defaults:
- run:
-  working-directory: ./lsp/vscode
-
 jobs:
   # Phase 1: Build the extension on all platforms.
   build:
@@ -59,15 +55,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - uses: dtolnay/rust-toolchain@stable
-      # ARM builds on macOS, which should select Tach's universal binary.
-      - run: arch -arm64 python -m pip install -t ./bundled/libs --no-cache-dir --implementation py --no-deps --upgrade -r ./requirements.txt
 
+      # ARM builds on macOS, which should select Tach's universal binary.
+      - run: arch -arm64 python -m pip install -t ./lsp/vscode/bundled/libs --implementation py --no-deps --upgrade -r ./lsp/vscode/requirements.txt
         if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'aarch64') }}
 
       # x86_64 builds on macOS, which should select Tach's x86_64 binary.
-      - run: arch -x86_64 python -m pip install -t ./bundled/libs --no-cache-dir --implementation py --no-deps --upgrade -r ./requirements.txt
-
+      - run: arch -x86_64 python -m pip install -t ./lsp/vscode/bundled/libs --implementation py --no-deps --upgrade -r ./lsp/vscode/requirements.txt
         if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'x86_64') }}
 
       # ARM builds on Ubuntu, which should select Tach's ARM binary.
@@ -79,9 +73,9 @@ jobs:
           install: |
             apt-get update
             apt-get install -y --no-install-recommends python3 python3-pip
-            pip3 install -U pip nox
+            pip3 install -U pip
           run: |
-            nox --session setup
+            python3 -m pip install -t ./lsp/vscode/bundled/libs --implementation py --no-deps --upgrade -r ./lsp/vscode/requirements.txt
 
       # Alpine builds, which should select Tach's musl binaries.
       - uses: jirutka/setup-alpine@v1
@@ -92,12 +86,10 @@ jobs:
         if: ${{ startsWith(matrix.os, 'ubuntu') && endsWith(matrix.target, 'musl') }}
         run: |
           apk add --no-cache python3 py3-pip
-          python3 -m pip install -t ./bundled/libs --no-cache-dir --implementation py --no-deps --upgrade -r ./requirements.txt
-
+          python3 -m pip install -t ./lsp/vscode/bundled/libs --implementation py --no-deps --upgrade -r ./lsp/vscode/requirements.txt
 
       # Every other architecture, which should defer to `pip` without any special treatment.
-      - run: python -m pip install -t ./bundled/libs --no-cache-dir --implementation py --no-deps --upgrade -r ./requirements.txt
-
+      - run: python -m pip install -t ./lsp/vscode/bundled/libs --implementation py --no-deps --upgrade -r ./lsp/vscode/requirements.txt
         if: ${{ !startsWith(matrix.os, 'macos')
           && !(startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64') && !endsWith(matrix.target, 'musl'))
           && !(startsWith(matrix.os, 'ubuntu') && endsWith(matrix.target, 'musl')) }}
@@ -112,14 +104,14 @@ jobs:
       - run: cd lsp/vscode && npm install
       # Build the extension.
       - name: Package Extension (release)
-        run: npx vsce package -o "./dist/tach-${{ matrix.code-target }}.vsix" --target ${{ matrix.code-target }}
+        run: npx vsce package -o "./lsp/vscode/dist/tach-${{ matrix.code-target }}.vsix" --target ${{ matrix.code-target }}
 
       # Upload the extension.
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.target }}
-          path: ./dist
+          path: ./lsp/vscode/dist
 
   # Phase 3: Publish the built extension to the Marketplace.
   publish:
@@ -172,11 +164,11 @@ jobs:
         with:
           name: dist-aarch64-unknown-linux-musl
           path: dist
-      - run: ls -al ./dist
+      - run: ls -al ./lsp/vscode/dist
 
       # Install Node dependencies.
       - run: npm install
 
       # Publish to the Code Marketplace.
       - name: Publish Extension
-        run: npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./dist/tach-*.vsix
+        run: npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./lsp/vscode/dist/tach-*.vsix
