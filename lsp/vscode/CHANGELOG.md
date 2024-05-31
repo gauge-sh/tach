@@ -1,1 +1,1 @@
-update python version
+Support multiple architectures
