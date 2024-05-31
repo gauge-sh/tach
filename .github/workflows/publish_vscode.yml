@@ -2,10 +2,9 @@ name: publish_vscode
 
 on:
   push:
-    branches: [ "main", "lsp-support" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main", "docs" ]
-
 
 jobs:
   # Phase 1: Build the extension on all platforms.
