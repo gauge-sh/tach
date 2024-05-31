@@ -77,9 +77,9 @@ jobs:
           install: |
             apt-get update
             apt-get install -y --no-install-recommends python3 python3-pip
-            pip3 install -U pip
+            pip3 install -U pip nox
           run: |
-            python3 -m pip install -t ./bundled/libs --implementation py --no-deps --upgrade -r ./requirements.txt
+            nox --session setup
 
       # Alpine builds, which should select Tach's musl binaries.
       - uses: jirutka/setup-alpine@v1
