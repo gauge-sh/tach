@@ -36,14 +36,7 @@ jobs:
           - os: macos-14
             target: aarch64-apple-darwin
             code-target: darwin-arm64
-          - os: ubuntu-20.04
-            target: x86_64-unknown-linux-musl
-            code-target: alpine-x64
             arch: x86_64
-          - os: ubuntu-20.04
-            target: aarch64-unknown-linux-musl
-            code-target: alpine-arm64
-            arch: aarch64
 
     name: Build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
@@ -67,7 +60,7 @@ jobs:
 
       # ARM builds on Ubuntu, which should select Tach's ARM binary.
       - uses: uraimo/run-on-arch-action@v2
-        if: ${{ startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64') && !endsWith(matrix.target, 'musl') }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64') }}
         with:
           arch: ${{ matrix.arch }}
           distro: ubuntu20.04
@@ -78,22 +71,11 @@ jobs:
           run: |
             python3 -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
 
-      # Alpine builds, which should select Tach's musl binaries.
-      - uses: jirutka/setup-alpine@v1
-        if: ${{ startsWith(matrix.os, 'ubuntu') && endsWith(matrix.target, 'musl') }}
-        with:
-          arch: ${{ matrix.arch }}
-      - shell: alpine.sh --root {0}
-        if: ${{ startsWith(matrix.os, 'ubuntu') && endsWith(matrix.target, 'musl') }}
-        run: |
-          apk add --no-cache python3 py3-pip
-          python3 -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
-
       # Every other architecture, which should defer to `pip` without any special treatment.
       - run: python -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
         if: ${{ !startsWith(matrix.os, 'macos')
-          && !(startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64') && !endsWith(matrix.target, 'musl'))
-          && !(startsWith(matrix.os, 'ubuntu') && endsWith(matrix.target, 'musl')) }}
+          && !(startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64'))  }}
+
 
       # Install Node.
       - name: Install Node.js
@@ -158,14 +140,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: dist-aarch64-pc-windows-msvc
-          path: lsp/vscode/dist
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist-x86_64-unknown-linux-musl
-          path: lsp/vscode/dist
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist-aarch64-unknown-linux-musl
           path: lsp/vscode/dist
       - run: ls -al ./lsp/vscode/dist
 
