@@ -1,11 +1,8 @@
 name: publish_vscode
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main", "docs" ]
-
+  release:
+    types: [published]
 jobs:
   # Phase 1: Build the extension on all platforms.
   build:
@@ -49,7 +46,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - uses: dtolnay/rust-toolchain@stable
       # ARM builds on macOS, which should select Tach's universal binary.
       - run: arch -arm64 python -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
         if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'aarch64') }}
