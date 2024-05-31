@@ -1,4 +1,4 @@
-name: Publish VS Code
+name: publish_vscode
 
 on:
   push:
