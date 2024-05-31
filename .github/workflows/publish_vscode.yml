@@ -58,7 +58,7 @@ jobs:
       # Install Python dependencies (including Tach's native binary).
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.x"
 
       # ARM builds on macOS, which should select Tach's universal binary.
       - run: arch -arm64 python -m pip install -t ./bundled/libs --implementation py --no-deps --upgrade -r ./requirements.txt
