@@ -7,7 +7,7 @@ from tach.core import PackageConfig, PackageNode, PackageTrie
 
 @pytest.fixture
 def test_config() -> PackageConfig:
-    return PackageConfig(tags=["test"], strict=False)
+    return PackageConfig(tag="test", strict=False)
 
 
 @pytest.fixture
@@ -21,12 +21,12 @@ def package_trie() -> PackageTrie:
                 "domain_one": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_one",
-                    config=PackageConfig(tags=["test"], strict=False),
+                    config=PackageConfig(tag="test", strict=False),
                     children={
                         "subdomain": PackageNode(
                             is_end_of_path=True,
                             full_path="domain_one.subdomain",
-                            config=PackageConfig(tags=["test"], strict=False),
+                            config=PackageConfig(tag="test", strict=False),
                             children={},
                         )
                     },
@@ -34,12 +34,12 @@ def package_trie() -> PackageTrie:
                 "domain_two": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_two",
-                    config=PackageConfig(tags=["test"], strict=False),
+                    config=PackageConfig(tag="test", strict=False),
                     children={
                         "subdomain": PackageNode(
                             is_end_of_path=True,
                             full_path="domain_two.subdomain",
-                            config=PackageConfig(tags=["test"], strict=False),
+                            config=PackageConfig(tag="test", strict=False),
                             children={},
                         )
                     },
@@ -47,7 +47,7 @@ def package_trie() -> PackageTrie:
                 "domain_three": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_three",
-                    config=PackageConfig(tags=["test"], strict=False),
+                    config=PackageConfig(tag="test", strict=False),
                     children={},
                 ),
             },

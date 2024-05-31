@@ -12,11 +12,11 @@ class Config(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-def validate_tags(tags: list[str]) -> list[str]:
-    assert not any(
-        tag == ROOT_PACKAGE_SENTINEL_TAG for tag in tags
+def validate_tag(tag: str) -> str:
+    assert (
+        tag != ROOT_PACKAGE_SENTINEL_TAG
     ), f"{ROOT_PACKAGE_SENTINEL_TAG} is a reserved tag for your Python source root and cannot be used."
-    return tags
+    return tag
 
 
 class PackageConfig(Config):
@@ -24,13 +24,13 @@ class PackageConfig(Config):
     Configuration for a single package within a project.
     """
 
-    tags: Annotated[list[str], AfterValidator(validate_tags)]
+    tag: Annotated[str, AfterValidator(validate_tag)]
     strict: bool = False
 
 
-def validate_root_tags(tags: list[str]) -> list[str]:
-    assert tags == [ROOT_PACKAGE_SENTINEL_TAG]
-    return tags
+def validate_root_tag(tag: str) -> str:
+    assert tag == ROOT_PACKAGE_SENTINEL_TAG
+    return tag
 
 
 class RootPackageConfig(PackageConfig):
@@ -38,15 +38,13 @@ class RootPackageConfig(PackageConfig):
     Special-case schema for the implicit root package configuration.
     """
 
-    tags: Annotated[list[str], AfterValidator(validate_root_tags)] = Field(
-        default_factory=lambda: [ROOT_PACKAGE_SENTINEL_TAG]
-    )
+    tag: Annotated[str, AfterValidator(validate_root_tag)] = ROOT_PACKAGE_SENTINEL_TAG
     strict: bool = False
 
 
 class TagDependencyRules(Config):
     """
-    Dependency rules for a particular set of tags (typically one tag).
+    Dependency rules for a particular tag.
     """
 
     tag: str
@@ -98,27 +96,20 @@ class ProjectConfig(Config):
             [],  # type: ignore
         )
 
-    def add_dependencies_to_tags(self, tags: list[str], dependencies: list[str]):
-        for tag in tags:
-            current_dependency_rules = next(
-                (
-                    constraint
-                    for constraint in self.constraints
-                    if constraint.tag == tag
-                ),
-                None,
+    def add_dependency_to_tag(self, tag: str, dependency: str):
+        current_dependency_rules = next(
+            (constraint for constraint in self.constraints if constraint.tag == tag),
+            None,
+        )
+        if not current_dependency_rules:
+            # No constraint exists for tag, just add the new dependencies
+            self.constraints.append(
+                TagDependencyRules(tag=tag, depends_on=[dependency])
             )
-            if not current_dependency_rules:
-                # No constraint exists for tag, just add the new dependencies
-                self.constraints.append(
-                    TagDependencyRules(tag=tag, depends_on=dependencies)
-                )
-            else:
-                # Constraints already exist, set the union of existing and new as dependencies
-                new_dependencies = set(current_dependency_rules.depends_on) | set(
-                    dependencies
-                )
-                current_dependency_rules.depends_on = list(new_dependencies)
+        else:
+            # Constraints already exist, set the union of existing and new as dependencies
+            new_dependencies = set(current_dependency_rules.depends_on) | {dependency}
+            current_dependency_rules.depends_on = list(new_dependencies)
 
     def find_extra_constraints(
         self, other_config: ProjectConfig

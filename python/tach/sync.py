@@ -14,7 +14,6 @@ from tach.parsing import dump_project_config_to_yaml, parse_project_config
 def sync_dependency_constraints(
     root: str,
     project_config: ProjectConfig,
-    filter_tags: set[str] | None = None,
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
     """
@@ -29,24 +28,9 @@ def sync_dependency_constraints(
     for error in check_errors:
         error_info = error.error_info
         if error_info.is_tag_error:
-            if not filter_tags:
-                project_config.add_dependencies_to_tags(
-                    error_info.source_tags, error_info.invalid_tags
-                )
-            else:
-                source_tags = set(error_info.source_tags)
-                invalid_tags = set(error_info.invalid_tags)
-                if source_tags & filter_tags:
-                    # A package with one of the added tags caused this error and should update its dependencies
-                    project_config.add_dependencies_to_tags(
-                        error_info.source_tags, error_info.invalid_tags
-                    )
-                if invalid_tags & filter_tags:
-                    # A package now depends on one of the added tags and should add the newly added tags
-                    # Note that we should leave pre-existing invalid tags
-                    project_config.add_dependencies_to_tags(
-                        error_info.source_tags, list(invalid_tags & filter_tags)
-                    )
+            project_config.add_dependency_to_tag(
+                error_info.source_tag, error_info.invalid_tag
+            )
 
     return project_config
 

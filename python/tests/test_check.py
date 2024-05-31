@@ -14,7 +14,7 @@ from tach.core import (
 
 @pytest.fixture
 def test_config() -> PackageConfig:
-    return PackageConfig(tags=["test"], strict=False)
+    return PackageConfig(tag="test", strict=False)
 
 
 @pytest.fixture
@@ -41,13 +41,13 @@ def package_trie() -> PackageTrie:
                 "domain_one": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_one",
-                    config=PackageConfig(tags=["domain_one"], strict=True),
+                    config=PackageConfig(tag="domain_one", strict=True),
                     interface_members=["public_fn"],
                     children={
                         "subdomain": PackageNode(
                             is_end_of_path=True,
                             full_path="domain_one.subdomain",
-                            config=PackageConfig(tags=["domain_one"], strict=True),
+                            config=PackageConfig(tag="domain_one", strict=True),
                             children={},
                         )
                     },
@@ -55,12 +55,12 @@ def package_trie() -> PackageTrie:
                 "domain_two": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_two",
-                    config=PackageConfig(tags=["domain_two"], strict=False),
+                    config=PackageConfig(tag="domain_two", strict=False),
                     children={
                         "subdomain": PackageNode(
                             is_end_of_path=True,
                             full_path="domain_two.subdomain",
-                            config=PackageConfig(tags=["domain_two"], strict=False),
+                            config=PackageConfig(tag="domain_two", strict=False),
                             children={},
                         )
                     },
@@ -68,7 +68,7 @@ def package_trie() -> PackageTrie:
                 "domain_three": PackageNode(
                     is_end_of_path=True,
                     full_path="domain_three",
-                    config=PackageConfig(tags=["domain_three"], strict=False),
+                    config=PackageConfig(tag="domain_three", strict=False),
                     children={},
                 ),
             },

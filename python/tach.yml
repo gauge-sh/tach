@@ -34,12 +34,12 @@ constraints:
   - scope:parsing
   - scope:utils
 exclude:
-- tach.egg-info/
-- tests/
+- docs/
 - .*__pycache__/
 - dist/
+- tach.egg-info/
 - build/
-- docs/
+- tests/
 exact: true
 disable_logging: false
 ignore_type_checking_imports: false

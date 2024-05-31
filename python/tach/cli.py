@@ -75,7 +75,7 @@ def build_error_message(error: BoundaryError) -> str:
 
     message = (
         f"Cannot import '{error.import_mod_path}'. "
-        f"Tags {error_info.source_tags} cannot depend on {error_info.invalid_tags}."
+        f"Tag '{error_info.source_tag}' cannot depend on '{error_info.invalid_tag}'."
     )
 
     return error_template.format(message=message)

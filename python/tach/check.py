@@ -15,14 +15,14 @@ if TYPE_CHECKING:
 
 @dataclass
 class ErrorInfo:
-    source_tags: list[str] = field(default_factory=list)
-    invalid_tags: list[str] = field(default_factory=list)
+    source_tag: str = ""
+    invalid_tag: str = ""
     allowed_tags: list[str] = field(default_factory=list)
     exception_message: str = ""
 
     @property
     def is_tag_error(self) -> bool:
-        return all((self.source_tags, self.invalid_tags))
+        return all((self.source_tag, self.invalid_tag))
 
 
 def is_top_level_package_import(mod_path: str, package: PackageNode) -> bool:
@@ -91,25 +91,19 @@ def check_import(
         return ErrorInfo(
             exception_message="Could not find package configuration.",
         )
-    file_tags = file_nearest_package.config.tags
-    import_tags = import_nearest_package.config.tags
+    file_tag = file_nearest_package.config.tag
+    import_tag = import_nearest_package.config.tag
 
-    for file_tag in file_tags:
-        dependency_tags = project_config.dependencies_for_tag(file_tag)
-        if any(
-            any(dependency_tag == import_tag for dependency_tag in dependency_tags)
-            for import_tag in import_tags
-        ):
-            # The import has at least one tag which matches at least one expected dependency
-            continue
-        # This means the import has no tags which the file can depend on
-        return ErrorInfo(
-            source_tags=file_tags,
-            invalid_tags=import_tags,
-            allowed_tags=dependency_tags,
-        )
-
-    return None
+    dependency_tags = project_config.dependencies_for_tag(file_tag)
+    if any(dependency_tag == import_tag for dependency_tag in dependency_tags):
+        # The import matches at least one expected dependency
+        return None
+    # This means the import's tag is not declared as a dependency of the file
+    return ErrorInfo(
+        source_tag=file_tag,
+        invalid_tag=import_tag,
+        allowed_tags=dependency_tags,
+    )
 
 
 @dataclass

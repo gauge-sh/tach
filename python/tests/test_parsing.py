@@ -49,12 +49,12 @@ def test_run_valid_project_config():
 
 def test_parse_valid_strict_package_config():
     result = parse_package_config("example/valid/domain_one")
-    assert result == PackageConfig(strict=True, tags=["one"])
+    assert result == PackageConfig(strict=True, tag="one")
 
 
 def test_parse_valid_multi_tag_package_config():
     result = parse_package_config("example/valid/domain_two")
-    assert result == PackageConfig(strict=False, tags=["two", "shared"])
+    assert result == PackageConfig(strict=False, tag="two")
 
 
 def test_package_with_no_config():
