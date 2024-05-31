@@ -270,7 +270,7 @@ def _run_tool_on_document(
     # sys.path and that might not work for this scenario next time around.
     with utils.substitute_attr(sys, "path", sys.path[:]):
         try:
-            boundary_errors = run_tach_check(argv=argv, uri=document.uri)
+            boundary_errors = run_tach_check(argv=argv, path=document.path)
         except Exception:
             log_error(traceback.format_exc(chain=True))
             raise

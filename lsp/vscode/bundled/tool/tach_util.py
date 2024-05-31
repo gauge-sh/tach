@@ -9,11 +9,11 @@ from tach.filesystem import find_project_config_root
 from tach.parsing import parse_project_config
 
 
-def run_tach_check(argv: list[str], uri: str):
+def run_tach_check(argv: list[str], path: str):
     args, _ = parse_arguments(argv[1:])
     root = args.root
     if args.root == ".":
-        root = find_project_config_root(uri)
+        root = find_project_config_root(path)
     if not root:
         raise TachSetupError("Project config root not found")
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
