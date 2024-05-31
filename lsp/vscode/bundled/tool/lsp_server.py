@@ -47,7 +47,7 @@ GLOBAL_SETTINGS = {}
 MAX_WORKERS = 5
 # TODO: Centralize version
 LSP_SERVER = server.LanguageServer(
-    name="Tach", version="0.3.2", max_workers=MAX_WORKERS
+    name="Tach", version="0.3.4", max_workers=MAX_WORKERS
 )
 
 
