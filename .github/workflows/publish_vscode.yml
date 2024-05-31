@@ -54,7 +54,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
       # Install Python dependencies (including Tach's native binary).
       - uses: actions/setup-python@v5
         with:
@@ -129,7 +129,7 @@ jobs:
           node-version: 20
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       # Download all built artifacts.
       - uses: actions/download-artifact@v4
