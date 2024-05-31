@@ -59,7 +59,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
+      - uses: dtolnay/rust-toolchain@stable
       # ARM builds on macOS, which should select Tach's universal binary.
       - run: arch -arm64 python -m pip install -t ./bundled/libs --implementation py --no-deps --upgrade -r ./requirements.txt
         if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'aarch64') }}
@@ -102,7 +102,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 18
 
       # Install Node dependencies.
       - run: cd lsp/vscode && npm install
