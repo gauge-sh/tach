@@ -47,7 +47,7 @@ GLOBAL_SETTINGS = {}
 MAX_WORKERS = 5
 # TODO: Centralize version
 LSP_SERVER = server.LanguageServer(
-    name="Tach", version="0.3.1", max_workers=MAX_WORKERS
+    name="Tach", version="0.3.2", max_workers=MAX_WORKERS
 )
 
 
@@ -270,8 +270,7 @@ def _run_tool_on_document(
     # sys.path and that might not work for this scenario next time around.
     with utils.substitute_attr(sys, "path", sys.path[:]):
         try:
-            boundary_errors = run_tach_check(argv=argv)
-            log_to_output(str(boundary_errors))
+            boundary_errors = run_tach_check(argv=argv, uri=document.uri)
         except Exception:
             log_error(traceback.format_exc(chain=True))
             raise
