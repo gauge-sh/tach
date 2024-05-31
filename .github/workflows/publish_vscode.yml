@@ -2,7 +2,7 @@ name: publish_vscode
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "lsp-support" ]
   pull_request:
     branches: [ "main", "docs" ]
 
