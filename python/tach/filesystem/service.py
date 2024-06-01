@@ -4,7 +4,6 @@ import ast
 import os
 import re
 import stat
-import sys
 import threading
 from collections import defaultdict
 from dataclasses import dataclass
@@ -159,7 +158,6 @@ def parse_ast(path: str) -> ast.AST:
 def walk(
     root: str,
     depth: int | None = None,
-    exclude_root: bool = True,
     exclude_paths: list[str] | None = None,
 ) -> Generator[tuple[str, list[str]], None, None]:
     canonical_root = canonical(root)
@@ -168,10 +166,10 @@ def walk(
         dirpath = canonical(dirpath)
         dirpath_for_matching = f"{dirpath}/"
 
-        if exclude_root and dirpath == canonical_root:
-            continue
-
-        if os.path.basename(os.path.normpath(dirpath)).startswith("."):
+        # The root dir is a special case which starts with '.' but is not hidden
+        if dirpath != "." and os.path.basename(os.path.normpath(dirpath)).startswith(
+            "."
+        ):
             # This prevents recursing into child directories of hidden paths
             del dirnames[:]
             continue
@@ -264,74 +262,3 @@ def file_to_module_path(file_path: str) -> str:
         return ""
 
     return module_path
-
-
-def path_exists_case_sensitive(p: Path) -> bool:
-    if not p.exists():
-        return False
-
-    while True:
-        if p == p.parent:
-            return True
-        # If string representation of path is not in parent directory, return False
-        if str(p) not in map(str, p.parent.iterdir()):
-            return False
-        p = p.parent
-
-
-def module_to_file_path(mod_path: str) -> tuple[str, str]:
-    # Assumes that the mod_path is correctly formatted and refers to an actual module
-    fs_path = mod_path.replace(".", os.path.sep)
-
-    # mod_path may refer to a package
-    init_file_path = Path(fs_path) / "__init__.py"
-    if path_exists_case_sensitive(init_file_path):
-        return str(init_file_path), ""
-
-    # mod_path may refer to a file module
-    file_path = fs_path + ".py"
-    if path_exists_case_sensitive(Path(file_path)):
-        return file_path, ""
-
-    # mod_path may refer to a member within a file module
-    last_sep_index = fs_path.rfind(os.path.sep)
-    file_path = fs_path[:last_sep_index] + ".py"
-    if path_exists_case_sensitive(Path(file_path)):
-        member_name = fs_path[last_sep_index + 1 :]
-        return file_path, member_name
-
-    # mod_path may refer to a member within a package
-    init_file_path = fs_path[:last_sep_index] + os.path.sep + "__init__.py"
-    if path_exists_case_sensitive(Path(init_file_path)):
-        member_name = fs_path[last_sep_index + 1 :]
-        return init_file_path, member_name
-
-    raise errors.TachParseError(
-        f"Failed to translate module path {mod_path} into file path"
-    )
-
-
-if sys.version_info >= (3, 10):
-    stdlib_module_names = sys.stdlib_module_names
-else:
-    import stdlib_list
-
-    stdlib_module_names = stdlib_list.stdlib_list()
-
-
-def is_standard_lib_or_builtin_import(module_base: str) -> bool:
-    return module_base in stdlib_module_names or module_base in sys.builtin_module_names
-
-
-def is_project_import(project_root: str, mod_path: str) -> bool:
-    root_base = os.path.basename(os.path.realpath(project_root))
-    module_base = mod_path.split(".", 1)[0]
-    if is_standard_lib_or_builtin_import(module_base):
-        return False
-    if root_base == module_base:
-        return True
-    if os.path.isdir(os.path.join(project_root, module_base)) or os.path.isfile(
-        os.path.join(project_root, f"{module_base}.py")
-    ):
-        return True
-    return False

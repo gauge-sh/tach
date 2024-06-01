@@ -39,7 +39,7 @@ def parse_project_config(root: str = ".") -> ProjectConfig | None:
 
 
 def parse_package_config(root: str = ".") -> PackageConfig | None:
-    file_path = fs.validate_package_config(root)
+    file_path = fs.get_package_config_path(root)
     if file_path:
         with open(file_path) as f:
             result = yaml.safe_load(f)

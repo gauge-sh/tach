@@ -5,7 +5,7 @@
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # Tach
-a Python tool to enforce modular design
+a Python tool to enforce modular design, written in Rust.
 
 [Docs](https://gauge-sh.github.io/tach/)
 
@@ -34,7 +34,7 @@ Tach is:
 pip install tach
 ```
 ### Setup
-Tach allows you to configure what is and is not considered a package. By default, Tach will identify and create configuration for all top level packages it finds. 
+Tach allows you to configure where you want to place package boundaries in your project.
 
 You can do this interactively! From the root of your python project, run:
 ```bash
@@ -42,7 +42,7 @@ You can do this interactively! From the root of your python project, run:
 # Up/Down: Navigate  Ctrl + Up: Jump to parent  Right: Expand  Left: Collapse
 # Ctrl + c: Exit without saving  Ctrl + s: Save packages  Enter: Mark/unmark package  Ctrl + a: Mark/unmark all siblings
 ```
-Mark and unmark each package as needed, depending on what you want to define boundaries for.
+Mark and unmark each package with 'Enter' (or 'Ctrl + a' to mark all sibling directories as packages). You might want to include all of your Python source packages, or just a few packages which you want to isolate.
 
 Once you have marked all the packages you want to enforce constraints between, run:
 ```bash
@@ -55,7 +55,7 @@ You can then see what Tach has found by viewing the `tach.yml`'s contents:
 cat tach.yml
 ```
 
-Note: Dependencies on code that are not marked as packages are out of the scope of Tach and will not be enforced.
+NOTE: Your 'project root' directory (the directory containing your `tach.yml`) will implicitly be treated as a package boundary, and may show up in your dependency constraints as '<root>'.
 
 ### Enforcement
 Tach comes with a simple cli command to enforce the boundaries that you just set up! From the root of your Python project, run:
@@ -99,4 +99,4 @@ Tach also supports:
 More info in the [docs](https://gauge-sh.github.io/tach/). Tach logs anonymized usage statistics which are easily [opted out](https://gauge-sh.github.io/tach/faq/) of.
 If you have any feedback, we'd love to talk!
 
-[Discord](https://discord.gg/a58vW8dnmw)
+If you have any questions or run into any issues, let us know by either reaching out on [Discord](https://discord.gg/a58vW8dnmw) or submitting a [Github Issue](https://github.com/gauge-sh/tach/issues)!

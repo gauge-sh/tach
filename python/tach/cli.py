@@ -14,7 +14,6 @@ from tach.clean import clean_project
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.filesystem import install_pre_commit
-from tach.loading import start_spinner, stop_spinner
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.pkg import pkg_edit_interactive
@@ -237,7 +236,6 @@ def tach_check(
     try:
         project_config = parse_project_config(root=root)
         if project_config is None:
-            stop_spinner()
             print_no_config_yml()
             sys.exit(1)
 
@@ -262,15 +260,12 @@ def tach_check(
             )
             extra_constraints = pruned_config.find_extra_constraints(project_config)
             if extra_constraints:
-                stop_spinner()
                 print_extra_constraints(extra_constraints)
                 sys.exit(1)
     except Exception as e:
-        stop_spinner()
         print(str(e))
         sys.exit(1)
 
-    stop_spinner()
     if boundary_errors:
         print_errors(boundary_errors)
         sys.exit(1)
@@ -406,7 +401,6 @@ def main() -> None:
     elif args.command == "sync":
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
-        start_spinner("Scanning...")
         tach_check(root=args.root, exact=args.exact, exclude_paths=exclude_paths)
     elif args.command == "clean":
         tach_clean(force=args.force)

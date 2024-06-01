@@ -1,0 +1,10 @@
+constraints:
+- tag: sample2
+  depends_on:
+  - sample1
+exclude:
+- docs
+- tests
+exact: false
+disable_logging: false
+ignore_type_checking_imports: false

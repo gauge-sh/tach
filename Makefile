@@ -4,12 +4,14 @@ PYTHONPATH=
 SHELL=bash
 VENV=.venv
 
+
 # On Windows, `Scripts/` is used.
 ifeq ($(OS),Windows_NT)
 	VENV_BIN=$(VENV)/Scripts
 else
 	VENV_BIN=$(VENV)/bin
 endif
+
 
 .PHONY: deps
 deps: ## Install dependencies
@@ -28,11 +30,29 @@ deps: ## Install dependencies
 	@unset CONDA_PREFIX && \
 	maturin develop --profile release
 
-.PHONY: test	
+
+.PHONY: code
+code: ## Set up VS Code development environment
+	python -m pip install --upgrade uv
+
+	@if [ ! -d "$(VENV)" ]; then \
+		uv venv $(VENV); \
+		echo "Virtual environment created at $(VENV)"; \
+	else \
+		echo "Virtual environment already exists at $(VENV)"; \
+	fi
+
+	source $(VENV_BIN)/activate && \
+	uv pip install -r dev-requirements.txt
+	# Note: this can take up to 10 minutes
+	cd lsp/vscode && nox --session setup
+	cd lsp/vscode && npm install
+
+
+.PHONY: test
 test: ## Run tests
 	cd python/tests && \
 	../../$(VENV_BIN)/pytest
-
 
 
 .PHONY: lint fmt lint-rust lint-python fmt-rust fmt-python
@@ -40,33 +60,41 @@ test: ## Run tests
 lint: lint-rust lint-python  ## Run linting checks for Rust and Python code
 fmt: fmt-rust fmt-python  ## Format Rust and Python code
 
+
 fmt-python: ## Format Python code
 	$(VENV_BIN)/ruff check . --fix
 	$(VENV_BIN)/ruff format .
+
 
 fmt-rust: ## Format Rust code
 	cargo fmt --all
 	cargo clippy --fix --allow-dirty --allow-staged
 
+
 lint-python: ## Lint Python code
 	$(VENV_BIN)/ruff check .
 	$(VENV_BIN)/ruff format . --check
+
 
 lint-rust: ## Lint Rust code
 	cargo fmt --all --check
 	cargo clippy
 
+
 .PHONY: type-check
 type-check: ## Run type checking
 	$(VENV_BIN)/pyright
+
 
 .PHONY: docs
 docs: ## Generate documentation
 	$(VENV_BIN)/mkdocs build -s
 
+
 .PHONY: docs-serve
 docs-serve: ## Serve documentation
 	$(VENV_BIN)/mkdocs serve
+
 
 .PHONY: help
 help:  ## Display this help screen

@@ -73,9 +73,9 @@ def test_get_nonexistent_path(package_trie):
     assert package_trie.get("fakepath") is None
 
 
-def test_get_nonexistent_empty_path():
+def test_get_empty_path():
     trie = PackageTrie()
-    assert trie.get("") is None
+    assert trie.get("") is trie.root
 
 
 def test_get_actual_path(package_trie):
@@ -85,7 +85,8 @@ def test_get_actual_path(package_trie):
 def test_insert_empty_path(test_config):
     trie = PackageTrie()
     trie.insert(test_config, "", [])
-    assert set(node.full_path for node in trie) == {""}
+    node = trie.get("")
+    assert node is not None and node.config == test_config
 
 
 def test_insert_single_level_path(test_config):
