@@ -241,8 +241,7 @@ def tach_check(
             print_no_config_yml()
             sys.exit(1)
 
-        if exact is False and project_config.exact is True:
-            exact = True
+        exact |= project_config.exact
 
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)

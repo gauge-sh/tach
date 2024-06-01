@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME
-from tach.core import ProjectConfig
 from tach.parsing import dump_project_config_to_yaml, parse_project_config
+
+if TYPE_CHECKING:
+    from tach.core import ProjectConfig
 
 
 def sync_dependency_constraints(
@@ -37,17 +40,21 @@ def sync_dependency_constraints(
 
 def prune_dependency_constraints(
     root: str,
-    project_config: ProjectConfig | None = None,
+    project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
     """
     Build a minimal project configuration with auto-detected module dependencies.
     """
-    if project_config is not None:
-        # Force modules to be empty in case we received configuration with pre-existing modules
-        project_config = project_config.model_copy(update={"modules": []})
-    else:
-        project_config = ProjectConfig()
+    # Force module dependencies to be empty so that we can figure out the minimal set
+    project_config = project_config.model_copy(
+        update={
+            "modules": [
+                module.model_copy(update={"depends_on": []})
+                for module in project_config.modules
+            ]
+        }
+    )
 
     sync_dependency_constraints(
         root, project_config=project_config, exclude_paths=exclude_paths

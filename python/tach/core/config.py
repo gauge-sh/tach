@@ -31,7 +31,7 @@ def validate_root_path(path: str) -> str:
 
 class RootModuleConfig(ModuleConfig):
     """
-    Special-case schema for the implicit root package configuration.
+    Special-case schema for the implicit root module configuration.
     """
 
     path: Annotated[str, AfterValidator(validate_root_path)] = ROOT_MODULE_SENTINEL_TAG
@@ -58,7 +58,7 @@ class ProjectConfig(Config):
 
     def dependencies_for_module(self, module: str) -> list[str]:
         return next(
-            (module.depends_on for module in self.modules if module.path == module),
+            (mod.depends_on for mod in self.modules if mod.path == module),
             [],  # type: ignore
         )
 

@@ -1,4 +1,55 @@
-modules: []
+modules:
+- path: tach
+  depends_on:
+  - tach.colors
+  - tach.constants
+  - tach.core
+  - tach.filesystem
+  - tach.interactive
+  - tach.logging
+  - tach.parsing
+  strict: false
+- path: tach.cache
+  depends_on:
+  - tach.filesystem
+  strict: false
+- path: tach.colors
+  depends_on: []
+  strict: false
+- path: tach.constants
+  depends_on: []
+  strict: false
+- path: tach.core
+  depends_on:
+  - tach.constants
+  strict: false
+- path: tach.filesystem
+  depends_on:
+  - tach
+  - tach.colors
+  - tach.constants
+  - tach.hooks
+  strict: false
+- path: tach.hooks
+  depends_on:
+  - tach.constants
+  strict: false
+- path: tach.interactive
+  depends_on:
+  - tach
+  - tach.constants
+  - tach.filesystem
+  strict: false
+- path: tach.logging
+  depends_on:
+  - tach.cache
+  - tach.parsing
+  strict: false
+- path: tach.parsing
+  depends_on:
+  - tach.core
+  - tach.filesystem
+  strict: false
 exclude:
 - .*__pycache__/
 - build/

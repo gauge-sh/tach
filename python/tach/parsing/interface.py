@@ -40,6 +40,8 @@ def parse_interface_members(path: str) -> list[str]:
     Parse the members of __all__ in the __init__.py of a package.
     'path' should be a path to the package directory.
     """
+    # This is a temporary hack
+    # TODO: move this to the Rust extension and use module_to_file_path, also drop __init__.py expectation
     init_py_path = os.path.join(path.replace(".", os.sep), "__init__.py")
     if not os.path.exists(init_py_path):
         raise ValueError(
