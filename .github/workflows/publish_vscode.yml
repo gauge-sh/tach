@@ -1,9 +1,6 @@
 name: publish_vscode
 
 on:
-  push:
-    branches:
-      - "lsp-support"
   release:
     types: [published]
 
