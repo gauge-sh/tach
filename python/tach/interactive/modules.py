@@ -29,21 +29,11 @@ from rich.tree import Tree
 
 from tach import errors
 from tach import filesystem as fs
-from tach.constants import PACKAGE_FILE_NAME
 
 if TYPE_CHECKING:
     from prompt_toolkit.formatted_text import AnyFormattedText
 
-
-@dataclass
-class SelectedPackage:
-    full_path: str
-
-    @property
-    def tags(self) -> list[str]:
-        # In the future, might make this an attribute of the dataclass
-        # and set it interactively
-        return [fs.file_to_module_path(self.full_path)]
+    from tach.core import ProjectConfig
 
 
 @dataclass
@@ -51,7 +41,7 @@ class FileNode:
     full_path: str
     is_dir: bool
     expanded: bool = False
-    is_package: bool = False
+    is_module: bool = False
     parent: FileNode | None = None
     children: list[FileNode] = field(default_factory=list)
 
@@ -68,8 +58,7 @@ class FileNode:
     @classmethod
     def build_from_path(cls, path: str) -> FileNode:
         is_dir = os.path.isdir(path)
-        is_package = os.path.isfile(os.path.join(path, f"{PACKAGE_FILE_NAME}.yml"))
-        return cls(full_path=path, is_dir=is_dir, is_package=is_package)
+        return cls(full_path=path, is_dir=is_dir)
 
     @property
     def parent_sorted_children(self) -> list[FileNode] | None:
@@ -181,6 +170,11 @@ class FileTree:
                 # We simply bail if that happens, meaning it won't show up in the interactive viewer
                 return
 
+    def set_modules(self, module_paths: list[str]):
+        for module_path in module_paths:
+            if module_path in self.nodes:
+                self.nodes[module_path].is_module = True
+
     def __iter__(self):
         return file_tree_iterator(self)
 
@@ -212,24 +206,33 @@ class ExitCode(Enum):
     QUIT_SAVE = 2
 
 
-class InteractivePackageTree:
-    TREE_LABEL = "Confirm Your Packages"
+class InteractiveModuleTree:
+    TREE_LABEL = "Confirm Your Modules"
     AUTO_EXCLUDE_PATHS = [".*__pycache__"]
 
     def __init__(
-        self, path: str, depth: int | None = 1, exclude_paths: list[str] | None = None
+        self,
+        path: str,
+        project_config: ProjectConfig,
+        depth: int | None = 1,
     ):
         # By default, don't save if we exit for any reason
         self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
-        if exclude_paths is None:
-            exclude_paths = self.AUTO_EXCLUDE_PATHS
+        self.exclude_paths = project_config.exclude
+        if self.exclude_paths is None:
+            self.exclude_paths = self.AUTO_EXCLUDE_PATHS
         else:
-            exclude_paths.extend(self.AUTO_EXCLUDE_PATHS)
+            self.exclude_paths.extend(self.AUTO_EXCLUDE_PATHS)
         self.file_tree = FileTree.build_from_path(
             path=path,
             depth=depth,
-            exclude_paths=exclude_paths,
+            exclude_paths=self.exclude_paths,
         )
+        module_file_paths = [
+            module_path.replace(".", os.sep)
+            for module_path in project_config.module_paths
+        ]
+        self.file_tree.set_modules(module_paths=module_file_paths)
         self.selected_node = self.file_tree.root
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
         # y location starts at 1 because the FileTree is rendered with a labeled header above the first branch
@@ -282,7 +285,7 @@ class InteractivePackageTree:
 
     KEY_BINDING_LEGEND_TOP: list[tuple[str, str]] = [
         ("Up/Down", "Navigate"),
-        ("Enter", "Mark/unmark package"),
+        ("Enter", "Mark/unmark module"),
         ("Right", "Expand"),
         ("Left", "Collapse"),
         ("Ctrl + Up", "Jump to parent"),
@@ -406,7 +409,7 @@ class InteractivePackageTree:
 
         @self.key_bindings.add("enter")
         def _(event: KeyPressEvent):
-            self.selected_node.is_package = not self.selected_node.is_package
+            self.selected_node.is_module = not self.selected_node.is_module
             self._update_display()
 
         @self.key_bindings.add("c-a")
@@ -414,17 +417,17 @@ class InteractivePackageTree:
             if not self.selected_node.parent:
                 # This means we are the root node without siblings
                 # We should simply toggle ourselves
-                self.selected_node.is_package = not self.selected_node.is_package
+                self.selected_node.is_module = not self.selected_node.is_module
                 self._update_display()
                 return
 
-            # If all siblings are currently packages, we should un-set all of them (target value is False)
-            # Otherwise, we want to ensure all of them are set as packages (target value is True)
-            all_siblings_are_packages = all(
-                node.is_package for node in self.selected_node.siblings()
+            # If all siblings are currently modules, we should un-set all of them (target value is False)
+            # Otherwise, we want to ensure all of them are set as modules (target value is True)
+            all_siblings_are_modules = all(
+                node.is_module for node in self.selected_node.siblings()
             )
             for node in self.selected_node.siblings():
-                node.is_package = not all_siblings_are_packages
+                node.is_module = not all_siblings_are_modules
 
             self._update_display()
 
@@ -447,8 +450,8 @@ class InteractivePackageTree:
             text_parts.append(("-> ", "bold cyan"))
 
         basename = os.path.basename(node.full_path)
-        if node.is_package:
-            text_parts.append((f"[Package] {basename}", "bold yellow"))
+        if node.is_module:
+            text_parts.append((f"[Module] {basename}", "bold yellow"))
         elif node == self.selected_node:
             text_parts.append((basename, "bold"))
         else:
@@ -473,7 +476,7 @@ class InteractivePackageTree:
                 tree_node = tree_root.add(self._render_node(node))
             else:
                 if node.parent.full_path not in tree_mapping:
-                    raise errors.TachError("Failed to render package tree.")
+                    raise errors.TachError("Failed to render module tree.")
                 # Find parent rich.Tree branch,
                 # attach this FileNode to the parent's branch
                 parent_tree_node = tree_mapping[node.parent.full_path]
@@ -489,24 +492,20 @@ class InteractivePackageTree:
     def _update_display(self):
         self.tree_control.text = ANSI(self._render_tree())
 
-    def run(self) -> list[SelectedPackage] | None:
+    def run(self) -> list[str] | None:
         self.app.run()
         if self.exit_code == ExitCode.QUIT_SAVE:
-            return [
-                SelectedPackage(full_path=node.full_path)
-                for node in self.file_tree
-                if node.is_package
-            ]
+            return [node.full_path for node in self.file_tree if node.is_module]
 
 
-def get_selected_packages_interactive(
+def get_selected_modules_interactive(
     path: str,
+    project_config: ProjectConfig,
     depth: int | None = 1,
-    exclude_paths: list[str] | None = None,
-) -> list[SelectedPackage] | None:
-    ipt = InteractivePackageTree(
+) -> list[str] | None:
+    ipt = InteractiveModuleTree(
         path=path,
+        project_config=project_config,
         depth=depth,
-        exclude_paths=exclude_paths,
     )
     return ipt.run()

@@ -50,11 +50,33 @@ class ProjectConfig(Config):
     Controls which modules are defined, their dependencies, as well as global tool-related configuration.
     """
 
-    modules: list[ModuleConfig] = Field(default_factory=list, frozen=True)
+    modules: list[ModuleConfig] = Field(default_factory=list)
     exclude: list[str] | None = Field(default_factory=lambda: ["tests", "docs"])
     exact: bool = False
     disable_logging: bool = False
     ignore_type_checking_imports: bool = False
+
+    @property
+    def module_paths(self) -> list[str]:
+        return [module.path for module in self.modules]
+
+    def set_modules(self, module_paths: list[str]) -> None:
+        new_modules: list[ModuleConfig] = []
+        new_module_paths = set(module_paths)
+        original_modules_by_path = {
+            module_config.path: module_config for module_config in self.modules
+        }
+        for new_module_path in new_module_paths:
+            if new_module_path in original_modules_by_path:
+                original_module = original_modules_by_path[new_module_path]
+                original_module.depends_on = [
+                    dep for dep in original_module.depends_on if dep in new_module_paths
+                ]
+                new_modules.append(original_module)
+            else:
+                new_modules.append(ModuleConfig(path=new_module_path))
+
+        self.modules = new_modules
 
     def dependencies_for_module(self, module: str) -> list[str]:
         return next(

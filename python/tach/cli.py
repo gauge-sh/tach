@@ -13,10 +13,11 @@ from tach.check import BoundaryError, check
 from tach.clean import clean_project
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
+from tach.core.config import ProjectConfig
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
-from tach.pkg import pkg_edit_interactive
+from tach.pkg import mod_edit_interactive
 from tach.sync import prune_dependency_constraints, sync_project
 
 if TYPE_CHECKING:
@@ -285,8 +286,9 @@ def tach_pkg(depth: int | None = 1, exclude_paths: list[str] | None = None):
         },
     )
     try:
-        saved_changes, warnings = pkg_edit_interactive(
-            root=".", depth=depth, exclude_paths=exclude_paths
+        project_config = parse_project_config(root=".") or ProjectConfig()
+        saved_changes, warnings = mod_edit_interactive(
+            root=".", project_config=project_config, depth=depth
         )
     except Exception as e:
         print(str(e))
