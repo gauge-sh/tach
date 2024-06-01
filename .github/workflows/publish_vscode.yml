@@ -1,8 +1,12 @@
 name: publish_vscode
 
 on:
+  push:
+    branches:
+      - "lsp-support"
   release:
     types: [published]
+
 jobs:
   # Build the extension on all platforms.
   build:
@@ -46,31 +50,31 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      # ARM builds on macOS, which should select Tach's universal binary.
-      - run: arch -arm64 python -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
-        if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'aarch64') }}
-
-      # x86_64 builds on macOS, which should select Tach's x86_64 binary.
-      - run: arch -x86_64 python -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
-        if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'x86_64') }}
-
-      # ARM builds on Ubuntu, which should select Tach's ARM binary.
-      - uses: uraimo/run-on-arch-action@v2
-        if: ${{ startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64') }}
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ubuntu20.04
-          install: |
-            apt-get update
-            apt-get install -y --no-install-recommends python3 python3-pip
-            pip3 install -U pip
-          run: |
-            python3 -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
+#      # ARM builds on macOS, which should select Tach's universal binary.
+#      - run: arch -arm64 python -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
+#        if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'aarch64') }}
+#
+#      # x86_64 builds on macOS, which should select Tach's x86_64 binary.
+#      - run: arch -x86_64 python -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
+#        if: ${{ startsWith(matrix.os, 'macos') && startsWith(matrix.target, 'x86_64') }}
+#
+#      # ARM builds on Ubuntu, which should select Tach's ARM binary.
+#      - uses: uraimo/run-on-arch-action@v2
+#        if: ${{ startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64') }}
+#        with:
+#          arch: ${{ matrix.arch }}
+#          distro: ubuntu20.04
+#          install: |
+#            apt-get update
+#            apt-get install -y --no-install-recommends python3 python3-pip
+#            pip3 install -U pip
+#          run: |
+#            python3 -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
 
       # Every other architecture, which should defer to `pip` without any special treatment.
       - run: python -m pip install -t ./lsp/vscode/bundled/libs --no-deps --upgrade -r ./lsp/vscode/requirements.txt
-        if: ${{ !startsWith(matrix.os, 'macos')
-          && !(startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64'))  }}
+#        if: ${{ !startsWith(matrix.os, 'macos')
+#          && !(startsWith(matrix.os, 'ubuntu') && !startsWith(matrix.target, 'x86_64'))  }}
 
 
       # Install Node.
@@ -146,4 +150,4 @@ jobs:
       - name: Publish Extension
         run: |
           cd lsp/vscode
-          npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./dist/tach-*.vsix
+#          npx vsce publish --pat ${{ secrets.MARKETPLACE_TOKEN }} --packagePath ./dist/tach-*.vsix
