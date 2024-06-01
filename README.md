@@ -5,7 +5,7 @@
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # Tach
-a Python tool to enforce modular design
+a Python tool to enforce modular design, written in Rust.
 
 [Docs](https://gauge-sh.github.io/tach/)
 
