@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
-from tach.extension import get_project_imports
+from tach.extension import get_project_imports, set_excluded_paths
 from tach.parsing import build_package_trie
 
 if TYPE_CHECKING:
@@ -142,6 +142,9 @@ def check(
             exclude_paths=exclude_paths,
         )
 
+        # This informs the Rust extension ahead-of-time which paths are excluded.
+        # The extension builds regexes and uses them during `get_project_imports`
+        set_excluded_paths(exclude_paths=exclude_paths or [])
         boundary_errors: list[BoundaryError] = []
         for file_path in fs.walk_pyfiles(
             ".",
@@ -152,8 +155,6 @@ def check(
             if nearest_package is None:
                 continue
 
-            # This should only give us imports from within our project
-            # (excluding stdlib, builtins, and 3rd party packages)
             project_imports = get_project_imports(
                 ".",
                 file_path,

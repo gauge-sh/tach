@@ -2,11 +2,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field
+from typing_extensions import Annotated
+
+from tach.constants import ROOT_PACKAGE_SENTINEL_TAG
 
 
 class Config(BaseModel):
     model_config = {"extra": "forbid"}
+
+
+def validate_tags(tags: list[str]) -> list[str]:
+    assert not any(
+        tag == ROOT_PACKAGE_SENTINEL_TAG for tag in tags
+    ), f"{ROOT_PACKAGE_SENTINEL_TAG} is a reserved tag for your Python source root and cannot be used."
+    return tags
 
 
 class PackageConfig(Config):
@@ -14,7 +24,23 @@ class PackageConfig(Config):
     Configuration for a single package within a project.
     """
 
-    tags: list[str]
+    tags: Annotated[list[str], AfterValidator(validate_tags)]
+    strict: bool = False
+
+
+def validate_root_tags(tags: list[str]) -> list[str]:
+    assert tags == [ROOT_PACKAGE_SENTINEL_TAG]
+    return tags
+
+
+class RootPackageConfig(PackageConfig):
+    """
+    Special-case schema for the implicit root package configuration.
+    """
+
+    tags: Annotated[list[str], AfterValidator(validate_root_tags)] = Field(
+        default_factory=lambda: [ROOT_PACKAGE_SENTINEL_TAG]
+    )
     strict: bool = False
 
 

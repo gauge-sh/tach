@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Generator
 
-from tach.core.config import PackageConfig
+from tach.core.config import PackageConfig, RootPackageConfig
 
 
 @dataclass
@@ -29,6 +29,11 @@ class PackageNode:
     def empty(cls) -> PackageNode:
         return PackageNode(is_end_of_path=False, full_path="", config=None)
 
+    @classmethod
+    def implicit_root(cls) -> PackageNode:
+        config = RootPackageConfig()
+        return PackageNode(is_end_of_path=True, full_path=".", config=config)
+
     def fill(
         self, config: PackageConfig, full_path: str, interface_members: list[str]
     ) -> None:
@@ -45,7 +50,7 @@ class PackageTrie:
     with a trie structure for package prefix lookups.
     """
 
-    root: PackageNode = field(default_factory=PackageNode.empty)
+    root: PackageNode = field(default_factory=PackageNode.implicit_root)
 
     def __iter__(self):
         return package_trie_iterator(self)
@@ -95,7 +100,7 @@ class PackageTrie:
 
 
 def package_trie_iterator(trie: PackageTrie) -> Generator[PackageNode, None, None]:
-    stack = deque([trie.root])
+    stack = deque([*trie.root.children.values()])
 
     while stack:
         node = stack.popleft()

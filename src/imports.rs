@@ -68,8 +68,8 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
     ignores
 }
 
-trait IntoProjectImports<'a> {
-    fn into_project_imports<P: AsRef<Path>>(
+trait AsProjectImports<'a> {
+    fn as_project_imports<P: AsRef<Path>>(
         &self,
         project_root: P,
         file_mod_path: &str,
@@ -79,8 +79,8 @@ trait IntoProjectImports<'a> {
     ) -> ProjectImports;
 }
 
-impl<'a> IntoProjectImports<'a> for StmtImport {
-    fn into_project_imports<P: AsRef<Path>>(
+impl<'a> AsProjectImports<'a> for StmtImport {
+    fn as_project_imports<P: AsRef<Path>>(
         &self,
         project_root: P,
         _file_mod_path: &str,
@@ -124,8 +124,8 @@ impl<'a> IntoProjectImports<'a> for StmtImport {
     }
 }
 
-impl<'a> IntoProjectImports<'a> for StmtImportFrom {
-    fn into_project_imports<P: AsRef<Path>>(
+impl<'a> AsProjectImports<'a> for StmtImportFrom {
+    fn as_project_imports<P: AsRef<Path>>(
         &self,
         project_root: P,
         file_mod_path: &str,
@@ -256,7 +256,7 @@ impl<'a> ImportVisitor<'a> {
     }
 
     fn visit_stmt_import(&mut self, node: &StmtImport) {
-        self.project_imports.extend(node.into_project_imports(
+        self.project_imports.extend(node.as_project_imports(
             &self.project_root,
             &self.file_mod_path,
             &mut self.locator,
@@ -266,7 +266,7 @@ impl<'a> ImportVisitor<'a> {
     }
 
     fn visit_stmt_import_from(&mut self, node: &StmtImportFrom) {
-        self.project_imports.extend(node.into_project_imports(
+        self.project_imports.extend(node.as_project_imports(
             &self.project_root,
             &self.file_mod_path,
             &mut self.locator,
