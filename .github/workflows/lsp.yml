@@ -1,0 +1,41 @@
+name: lsp
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main", "docs" ]
+
+jobs:
+  vscode:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install uv
+        uv venv
+        source .venv/bin/activate
+        uv pip install pip
+        uv pip install nox
+    - name: Setup extension
+      run: |
+        source .venv/bin/activate
+        cd lsp/vscode
+        nox --session setup
+        npm install
+    - name: Test with nox
+      run: |
+        source .venv/bin/activate
+        cd lsp/vscode
+        nox --session tests
