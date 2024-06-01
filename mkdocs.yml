@@ -11,6 +11,7 @@ nav:
   - configuration.md
   - strict-mode.md
   - tach-ignore.md
+  - vscode.md
   - faq.md
 theme:
   name: material
