@@ -16,8 +16,8 @@ from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core.config import ProjectConfig
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
+from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
-from tach.pkg import mod_edit_interactive
 from tach.sync import prune_dependency_constraints, sync_project
 
 if TYPE_CHECKING:
@@ -130,13 +130,13 @@ def build_parser() -> argparse.ArgumentParser:
         " and `tach.yml` is present",
     )
     subparsers = parser.add_subparsers(title="commands", dest="command")
-    pkg_parser = subparsers.add_parser(
-        "pkg",
-        prog="tach pkg",
+    mod_parser = subparsers.add_parser(
+        "mod",
+        prog="tach mod",
         help="Configure module boundaries interactively",
         description="Configure module boundaries interactively",
     )
-    pkg_parser.add_argument(
+    mod_parser.add_argument(
         "-d",
         "--depth",
         type=int,
@@ -144,7 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="The number of child directories to expand from the root",
     )
-    add_base_arguments(pkg_parser)
+    add_base_arguments(mod_parser)
     check_parser = subparsers.add_parser(
         "check",
         prog="tach check",
@@ -275,12 +275,12 @@ def tach_check(
     sys.exit(0)
 
 
-def tach_pkg(depth: int | None = 1, exclude_paths: list[str] | None = None):
+def tach_mod(depth: int | None = 1, exclude_paths: list[str] | None = None):
     logger.info(
-        "tach pkg called",
+        "tach mod called",
         extra={
             "data": LogDataModel(
-                function="tach_pkg",
+                function="tach_mod",
                 parameters={"depth": depth},
             ),
         },
@@ -399,8 +399,8 @@ def tach_install(path: str, target: InstallTarget, project_root: str = "") -> No
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
-    if args.command == "pkg":
-        tach_pkg(depth=args.depth, exclude_paths=exclude_paths)
+    if args.command == "mod":
+        tach_mod(depth=args.depth, exclude_paths=exclude_paths)
     elif args.command == "sync":
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
