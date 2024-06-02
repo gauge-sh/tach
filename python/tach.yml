@@ -9,51 +9,50 @@ modules:
   - tach.interactive
   - tach.logging
   - tach.parsing
-  strict: false
+  strict: true
 - path: tach.cache
   depends_on:
   - tach.filesystem
-  strict: false
+  strict: true
 - path: tach.colors
   depends_on: []
-  strict: false
+  strict: true
 - path: tach.constants
   depends_on: []
-  strict: false
+  strict: true
 - path: tach.core
   depends_on:
   - tach.constants
-  strict: false
+  strict: true
 - path: tach.errors
   depends_on: []
-  strict: false
+  strict: true
 - path: tach.filesystem
   depends_on:
   - tach.colors
   - tach.constants
   - tach.errors
   - tach.hooks
-  strict: false
+  strict: true
 - path: tach.hooks
   depends_on:
   - tach.constants
-  strict: false
+  strict: true
 - path: tach.interactive
   depends_on:
-  - tach.core
   - tach.errors
   - tach.filesystem
-  strict: false
+  strict: true
 - path: tach.logging
   depends_on:
   - tach.cache
   - tach.parsing
-  strict: false
+  strict: true
 - path: tach.parsing
   depends_on:
   - tach.core
   - tach.filesystem
-  strict: false
+  strict: true
 exclude:
 - .*__pycache__/
 - build/
@@ -63,4 +62,4 @@ exclude:
 - tests/
 exact: true
 disable_logging: false
-ignore_type_checking_imports: false
+ignore_type_checking_imports: true

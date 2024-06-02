@@ -141,8 +141,8 @@ class FileTree:
                         # Ignore hidden files and directories
                         continue
                     entry_path = os.path.join(root.full_path, entry)
-                    if not os.path.isdir(entry_path):
-                        # Only interested in directories for now
+                    if os.path.isfile(entry_path) and not entry_path.endswith(".py"):
+                        # Only interested in Python files
                         continue
 
                     # Adding a trailing slash lets us match 'tests/' as an exclude pattern
@@ -228,10 +228,18 @@ class InteractiveModuleTree:
             depth=depth,
             exclude_paths=self.exclude_paths,
         )
-        module_file_paths = [
-            module_path.replace(".", os.sep)
-            for module_path in project_config.module_paths
-        ]
+        module_file_paths = list(
+            map(
+                str,
+                filter(
+                    None,
+                    [
+                        fs.module_to_pyfile_or_dir_path(module_path)
+                        for module_path in project_config.module_paths
+                    ],
+                ),
+            )
+        )
         self.file_tree.set_modules(module_paths=module_file_paths)
         self.selected_node = self.file_tree.root
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior

@@ -6,7 +6,7 @@ from tach.core import ModuleTree
 from tach.parsing import parse_interface_members
 
 if TYPE_CHECKING:
-    from tach.core.config import ModuleConfig
+    from tach.core import ModuleConfig
 
 
 def build_module_tree(modules: list[ModuleConfig]) -> ModuleTree:

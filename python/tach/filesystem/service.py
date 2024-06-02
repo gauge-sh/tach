@@ -262,3 +262,37 @@ def file_to_module_path(file_path: str) -> str:
         return ""
 
     return module_path
+
+
+@lru_cache(maxsize=None)
+def module_to_file_path_no_members(module_path: str) -> Path | None:
+    """
+    This resolves a dotted Python module path ('a.b.c')
+    into a Python file path or a Python package __init__.py
+    """
+    base_path = module_path.replace(".", os.sep)
+    pyfile_path = Path(f"{base_path}.py")
+    init_py_path = Path(base_path).joinpath("__init__.py")
+    if pyfile_path.exists():
+        return pyfile_path
+    elif init_py_path.exists():
+        return init_py_path
+
+    return None
+
+
+@lru_cache(maxsize=None)
+def module_to_pyfile_or_dir_path(module_path: str) -> Path | None:
+    """
+    This resolves a dotted Python module path ('a.b.c')
+    into a Python file or a Python package directory
+    """
+    base_path = module_path.replace(".", os.sep)
+    pyfile_path = Path(f"{base_path}.py")
+    dir_path = Path(base_path)
+    if pyfile_path.exists():
+        return pyfile_path
+    elif dir_path.is_dir():
+        return dir_path
+
+    return None

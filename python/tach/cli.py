@@ -13,7 +13,7 @@ from tach.check import BoundaryError, check
 from tach.clean import clean_project
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
-from tach.core.config import ProjectConfig
+from tach.core import ProjectConfig
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive

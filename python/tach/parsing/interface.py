@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import os
 from typing import Any
 
 from tach import filesystem as fs
@@ -37,17 +36,10 @@ class InterfaceVisitor(EarlyExitNodeVisitor):
 
 def parse_interface_members(path: str) -> list[str]:
     """
-    Parse the members of __all__ in the __init__.py of a package.
-    'path' should be a path to the package directory.
+    Parse the members of __all__ in a given module
     """
-    # This is a temporary hack
-    # TODO: move this to the Rust extension and use module_to_file_path, also drop __init__.py expectation
-    init_py_path = os.path.join(path.replace(".", os.sep), "__init__.py")
-    if not os.path.exists(init_py_path):
-        raise ValueError(
-            f"Could not parse interface from path, no __init__.py found: {path}"
-        )
-    parsed_ast = fs.parse_ast(init_py_path)
+    file_path = fs.module_to_file_path_no_members(path)
+    parsed_ast = fs.parse_ast(str(file_path))
     interface_visitor = InterfaceVisitor()
     interface_visitor.visit(parsed_ast)
     return interface_visitor.members

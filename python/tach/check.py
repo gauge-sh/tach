@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.extension import get_project_imports, set_excluded_paths
-from tach.parsing.modules import build_module_tree
+from tach.parsing import build_module_tree
 
 if TYPE_CHECKING:
     from tach.core import ModuleNode, ModuleTree, ProjectConfig
@@ -80,7 +80,7 @@ def check_import(
                 exception_message=(
                     f"Module '{import_nearest_module.full_path}' is in strict mode. "
                     "Only imports from the public interface of this module are allowed. "
-                    f"The import '{import_mod_path}' (in '{file_mod_path}') "
+                    f"The import '{import_mod_path}' (in module '{file_nearest_module.full_path}') "
                     f"is not included in __all__."
                 ),
             )
