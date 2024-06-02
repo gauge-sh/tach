@@ -36,9 +36,12 @@ def run_tach_check(argv: list[str], path: str):
     for boundary_error in boundary_errors:
         # Hack for now - update error message displayed to user
         error_info = boundary_error.error_info
-        if not error_info.exception_message and boundary_error.error_info.is_tag_error:
+        if (
+            not error_info.exception_message
+            and boundary_error.error_info.is_dependency_error
+        ):
             error_info.exception_message = (
                 f"Cannot import '{boundary_error.import_mod_path}'. "
-                f"Tags {error_info.source_tags} cannot depend on {error_info.invalid_tags}."
+                f"Module '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
             )
     return boundary_errors
