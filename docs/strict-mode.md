@@ -1,36 +1,29 @@
 # Strict Mode
 
-A package can enable 'strict mode' by setting `strict: true` in the [`package.yml` file](configuration.md#packageyml).
+A module can enable 'strict mode' by setting `strict: true` in its configuration within [`tach.yml`](configuration.md#tachyml).
 
 ## How does it work?
-When a package is in strict mode, other packages may only import names declared in `__all__` in the `__init__.py` of the package.
-This creates an explicit public interface for the package which prevents coupling to implementation details, and makes future changes easier.
+When a module is in strict mode, other modules may only import names declared in `__all__`.
+For Python packages marked as modules, `__all__` is checked within `__init__.py`.
+This creates an explicit public interface for the module which prevents coupling to implementation details, and makes future changes easier.
 
 ## Example
 
-Given packages called 'core' and 'parsing', we may have `package.yml` and `tach.yml` contents like this:
-
-```yaml
-# core/package.yml
-tags: ['core']
-strict: true
-```
-
-```yaml
-# parsing/package.yml
-tags: ['parsing']
-```
-
+Given modules called 'core' and 'parsing', we may have `tach.yml` contents like this:
 
 ```yaml
 # tach.yml
-constraints:
-- tag: parsing
+modules:
+- path: parsing
   depends_on:
   - core
+  strict: true
+- path: core
+  depends_on: []
+  strict: true
 ```
 
-Then, in a file within the 'parsing' package, we may have:
+Then, in `parsing.py`, we may have:
 ```python
 from core.main import get_data  # This import fails
 
@@ -39,10 +32,10 @@ get_data()
 
 This import would **fail** `tach check` with the following error:
 ```shell
-❌ parsing: Package 'core' is in strict mode. Only imports from the root of this package are allowed. The import 'core.main.get_data' (in 'parsing') is not included in __all__.
+❌ parsing.py[L1]: Module 'core' is in strict mode. Only imports from the public interface of this module are allowed. The import 'core.main.get_data' (in module 'parsing') is not included in __all__.
 ```
 
-If `get_data` should actually be part of the public interface of 'core', it needs to be specified in `__all__` of `core/__init__.py`:
+If `get_data` should actually be part of the public interface of 'core', it needs to be specified in `__all__` of `core/__init__.py` or `core.py`:
 
 `core/__init__.py`
 ```python
@@ -60,5 +53,5 @@ get_data()
 ```
 `tach check` will now pass!
 ```bash
-✅ All package dependencies validated!
+✅ All module dependencies validated!
 ```
