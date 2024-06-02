@@ -1,0 +1,162 @@
+{
+    "name": "tach",
+    "displayName": "Tach",
+    "description": "Linting support for python files using `tach`.",
+    "version": "0.4.0",
+    "preview": true,
+    "serverInfo": {
+        "name": "Tach",
+        "module": "tach"
+    },
+    "publisher": "gauge",
+    "license": "LGPL-3.0-only",
+    "homepage": "https://github.com/gauge-sh/tach",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/gauge-sh/tach/.git"
+    },
+    "bugs": {
+        "url": "https://github.com//gauge-sh/tach/issues"
+    },
+    "galleryBanner": {
+        "color": "#1e415e",
+        "theme": "dark"
+    },
+    "keywords": [
+        "python",
+        "tach",
+        "rust",
+        "lint",
+        "imports",
+        "package"
+    ],
+    "engines": {
+        "vscode": "^1.78.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Linters",
+        "Formatters"
+    ],
+    "extensionDependencies": [
+        "ms-python.python"
+    ],
+    "capabilities": {
+        "virtualWorkspaces": {
+            "supported": false,
+            "description": "Virtual Workspaces are not supported with Tach."
+        }
+    },
+    "activationEvents": [
+        "onLanguage:python",
+        "workspaceContains:*.py"
+    ],
+    "main": "./dist/extension.js",
+    "scripts": {
+        "vscode:prepublish": "npm run package",
+        "compile": "webpack",
+        "watch": "webpack --watch",
+        "package": "webpack --mode production --devtool source-map --config ./webpack.config.js",
+        "compile-tests": "tsc -p . --outDir out",
+        "watch-tests": "tsc -p . -w --outDir out",
+        "pretest": "npm run compile-tests && npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "format-check": "prettier --check 'src/**/*.ts' 'build/**/*.yml' '.github/**/*.yml'",
+        "test": "node ./out/test/runTest.js",
+        "vsce-package": "vsce package -o tach.vsix"
+    },
+    "contributes": {
+        "configuration": {
+            "properties": {
+                "tach.args": {
+                    "default": [],
+                    "description": "Arguments passed in. Each argument is a separate item in the array.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "scope": "resource",
+                    "type": "array"
+                },
+                "tach.path": {
+                    "default": [],
+                    "description": "When set to a path to tach binary, extension will use that. NOTE: Using this option may slowdown server response time.",
+                    "scope": "resource",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "tach.importStrategy": {
+                    "default": "useBundled",
+                    "description": "Defines where `tach` is imported from. This setting may be ignored if `tach.path` is set.",
+                    "enum": [
+                        "useBundled",
+                        "fromEnvironment"
+                    ],
+                    "enumDescriptions": [
+                        "Always use the bundled version of `tach`.",
+                        "Use `tach` from environment, fallback to bundled version only if `tach` not available in the environment."
+                    ],
+                    "scope": "window",
+                    "type": "string"
+                },
+                "tach.interpreter": {
+                    "default": [],
+                    "description": "When set to a path to python executable, extension will use that to launch the server and any subprocess.",
+                    "scope": "resource",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "tach.showNotifications": {
+                    "default": "off",
+                    "description": "Controls when notifications are shown by this extension.",
+                    "enum": [
+                        "off",
+                        "onError",
+                        "onWarning",
+                        "always"
+                    ],
+                    "enumDescriptions": [
+                        "All notifications are turned off, any errors or warning are still available in the logs.",
+                        "Notifications are shown only in the case of an error.",
+                        "Notifications are shown for errors and warnings.",
+                        "Notifications are show for anything that the server chooses to show."
+                    ],
+                    "scope": "machine",
+                    "type": "string"
+                }
+            }
+        },
+        "commands": [
+            {
+                "title": "Restart Server",
+                "category": "Tach",
+                "command": "tach.restart"
+            }
+        ]
+    },
+    "dependencies": {
+        "@vscode/python-extension": "^1.0.5",
+        "fs-extra": "^11.2.0",
+        "vscode-languageclient": "^8.1.0"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "^11.0.4",
+        "@types/glob": "^8.1.0",
+        "@types/node": "16.x",
+        "@types/vscode": "1.78.0",
+        "@typescript-eslint/eslint-plugin": "^6.17.0",
+        "@typescript-eslint/parser": "^6.17.0",
+        "@vscode/test-electron": "^2.3.8",
+        "@vscode/vsce": "^2.22.0",
+        "eslint": "^8.56.0",
+        "glob": "^10.3.10",
+        "prettier": "^3.1.1",
+        "ts-loader": "^9.5.1",
+        "typescript": "^5.3.3",
+        "webpack": "^5.89.0",
+        "webpack-cli": "^5.1.4"
+    }
+}

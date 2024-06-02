@@ -5,7 +5,7 @@
 [![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 # Tach
-a Python tool to enforce modular design
+a Python tool to enforce modular design, written in Rust.
 
 [Docs](https://gauge-sh.github.io/tach/)
 
@@ -99,4 +99,4 @@ Tach also supports:
 More info in the [docs](https://gauge-sh.github.io/tach/). Tach logs anonymized usage statistics which are easily [opted out](https://gauge-sh.github.io/tach/faq/) of.
 If you have any feedback, we'd love to talk!
 
-[Discord](https://discord.gg/a58vW8dnmw)
+If you have any questions or run into any issues, let us know by either reaching out on [Discord](https://discord.gg/a58vW8dnmw) or submitting a [Github Issue](https://github.com/gauge-sh/tach/issues)!
