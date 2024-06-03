@@ -77,7 +77,7 @@ def test_get_nonexistent_path(module_tree):
 
 def test_get_empty_path():
     tree = ModuleTree()
-    assert tree.get("") is tree.root
+    assert tree.get("") is None
 
 
 def test_get_actual_path(module_tree):
@@ -86,9 +86,8 @@ def test_get_actual_path(module_tree):
 
 def test_insert_empty_path(test_config):
     tree = ModuleTree()
-    tree.insert(test_config, "", [])
-    node = tree.get("")
-    assert node is not None and node.config == test_config
+    with pytest.raises(ValueError):
+        tree.insert(test_config, "", [])
 
 
 def test_insert_single_level_path(test_config):

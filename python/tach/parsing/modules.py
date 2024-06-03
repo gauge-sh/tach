@@ -14,7 +14,7 @@ def build_module_tree(modules: list[ModuleConfig]) -> ModuleTree:
     for module in modules:
         tree.insert(
             config=module,
-            path=module.path,
+            path=module.mod_path,
             interface_members=parse_interface_members(module.path),
         )
     return tree

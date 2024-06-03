@@ -23,6 +23,12 @@ class ModuleConfig(Config):
     depends_on: list[str] = Field(default_factory=list)
     strict: bool = False
 
+    @property
+    def mod_path(self) -> str:
+        if self.path == ROOT_MODULE_SENTINEL_TAG:
+            return "."
+        return self.path
+
 
 def validate_root_path(path: str) -> str:
     assert path == ROOT_MODULE_SENTINEL_TAG
