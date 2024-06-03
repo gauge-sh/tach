@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 from tach.filesystem.install import install_pre_commit
-from tach.filesystem.package import (
-    get_package_config_path,
-)
 from tach.filesystem.project import find_project_config_root, get_project_config_path
 from tach.filesystem.service import (
     canonical,
@@ -11,6 +8,8 @@ from tach.filesystem.service import (
     delete_file,
     file_to_module_path,
     get_cwd,
+    module_to_file_path_no_members,
+    module_to_pyfile_or_dir_path,
     parse_ast,
     read_file,
     walk,
@@ -33,8 +32,9 @@ __all__ = [
     "walk_pypackages",
     "walk_configured_packages",
     "file_to_module_path",
+    "module_to_file_path_no_members",
+    "module_to_pyfile_or_dir_path",
     "get_project_config_path",
-    "get_package_config_path",
     "find_project_config_root",
     "install_pre_commit",
 ]

@@ -1,12 +1,12 @@
 # Configuration
 
-Aside from running `tach pkg` and `tach sync`, you can configure `tach` by creating or modifying the files described below.
+Aside from running `tach mod` and `tach sync`, you can configure `tach` by creating or modifying the configuration file as described below.
 
 ## `tach.yml`
 
 This is the project-level configuration file which should be in the root of your project.
 
-`constraints` defines the expected dependencies between tags in your project, and accepts a list of constraints as shown below
+`modules` defines the modules in your project, and accepts the keys described [below.](#modules)
 
 `exclude` accepts a list of directory patterns to exclude from checking.
 
@@ -14,38 +14,34 @@ This is the project-level configuration file which should be in the root of your
 
 
 ```yaml
-constraints:
-- tag: scope:filesystem
+modules:
+- path: tach
+  depends_on: []
+  strict: true
+- path: tach.cache
   depends_on:
-  - scope:utils
-- tag: scope:parsing
-  depends_on:
-  - scope:core
-  - scope:filesystem
-  - scope:utils
-- tag: scope:root
-  depends_on:
-  - scope:utils
-  - scope:core
-  - scope:filesystem
-  - scope:parsing
+  - tach.filesystem
+  strict: true
+- path: tach.filesystem
+  depends_on: []
+  strict: true
 exclude:
-- tests/
-- docs/
+- .*__pycache__/
 - build/
+- dist/
+- docs/
+- tach.egg-info/
+- tests/
+exact: true
+disable_logging: false
 ignore_type_checking_imports: true
 ```
 
+## modules
+Each module listed under the `modules` key above can accept the following attributes:
 
-## `package.yml`
+`path` should be the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
 
-This is the package-level configuration file which should exist in each package in your project.
+`depends_on` should be a list of the other modules which the module is allowed to import from, using their 'paths' to identify them
 
-`tags` accepts a list of string tags which are checked against project-level `constraints`
-
-`strict` accepts a boolean which enables ['Strict Mode'](strict-mode.md) for the package.
-
-```yaml
-tags: ['scope:utils']
-strict: true
-```
+`strict` enables [strict mode](strict-mode.md) for the module

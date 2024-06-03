@@ -1,12 +1,13 @@
 # FAQ
 
 ### How does it work?
-`tach` works by analyzing the imports in your packages.
-When you define constraints in your project-level `tach.yml`, running `tach check` will verify that the imports in your packages don't create unwanted dependencies.
+`tach` works by analyzing the imports in your Python modules.
+When you define module dependencies in your project-level `tach.yml`, running `tach check` will verify that the imports in your modules match your expected dependencies.
 
-### What is a constraint?
-A constraint is a rule written into your `tach.yml` which specifies how packages can depend on each other, based on their tags.
-For example, you can write a constraint which prevents a shared `utility` package from depending on your `core` application code.
+### What is a module?
+A 'module' is a Python module with dependencies configured in `tach.yml`.
+The module is identified by its import path from your project root (e.g. `a.b` for `<root>/a/b.py`),
+and its dependencies are listed in the `depends_on` key containing module paths in the same format.
 
 ### Are conditional imports checked?
 At the moment, `tach` will check all imports in your source files, including those which are called conditionally.

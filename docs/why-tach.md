@@ -14,15 +14,15 @@ Attempts we've seen to fix this problem always came up short. A patchwork of sol
 ## The Solution
 With `tach`, you can:
 
-1. Declare your packages ([`package.yml`](configuration.md#packageyml))
-2. Define dependencies between packages ([`tach.yml`](configuration.md#tachyml))
+1. Declare your modules ([`tach mod`](usage.md#tach-mod))
+2. Define dependencies between modules ([`tach.yml`](configuration.md#tachyml))
 3. Enforce those dependencies ([`tach check`](usage.md#tach-check))
 
-You can also enforce a strict interface for each package. This means that only imports that are directly listed in `__init__.py` can be imported by other packages.
+You can also enforce a strict interface for each module. This means that only members that are listed in `__all__` (in the `__init__.py` of a package or in a standalone Python file) can be imported by other modules.
 
 `tach` is:
 
 - fully open source
-- able to be adopted incrementally ([`tach init`](usage.md#tach-init) and [`tach add`](usage.md#tach-add))
+- able to be adopted incrementally
 - implemented with no runtime footprint
 - interoperable with your existing tooling

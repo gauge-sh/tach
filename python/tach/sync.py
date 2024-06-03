@@ -1,20 +1,22 @@
 from __future__ import annotations
 
 import os
+from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME
-from tach.core import ProjectConfig
 from tach.parsing import dump_project_config_to_yaml, parse_project_config
+
+if TYPE_CHECKING:
+    from tach.core import ProjectConfig
 
 
 def sync_dependency_constraints(
     root: str,
     project_config: ProjectConfig,
-    filter_tags: set[str] | None = None,
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
     """
@@ -28,42 +30,31 @@ def sync_dependency_constraints(
     )
     for error in check_errors:
         error_info = error.error_info
-        if error_info.is_tag_error:
-            if not filter_tags:
-                project_config.add_dependencies_to_tags(
-                    error_info.source_tags, error_info.invalid_tags
-                )
-            else:
-                source_tags = set(error_info.source_tags)
-                invalid_tags = set(error_info.invalid_tags)
-                if source_tags & filter_tags:
-                    # A package with one of the added tags caused this error and should update its dependencies
-                    project_config.add_dependencies_to_tags(
-                        error_info.source_tags, error_info.invalid_tags
-                    )
-                if invalid_tags & filter_tags:
-                    # A package now depends on one of the added tags and should add the newly added tags
-                    # Note that we should leave pre-existing invalid tags
-                    project_config.add_dependencies_to_tags(
-                        error_info.source_tags, list(invalid_tags & filter_tags)
-                    )
+        if error_info.is_dependency_error:
+            project_config.add_dependency_to_module(
+                error_info.source_module, error_info.invalid_module
+            )
 
     return project_config
 
 
 def prune_dependency_constraints(
     root: str,
-    project_config: ProjectConfig | None = None,
+    project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
     """
-    Build a minimal project configuration with auto-detected dependency constraints.
+    Build a minimal project configuration with auto-detected module dependencies.
     """
-    if project_config is not None:
-        # Force constraints to be empty in case we received configuration with pre-existing constraints
-        project_config = project_config.model_copy(update={"constraints": []})
-    else:
-        project_config = ProjectConfig()
+    # Force module dependencies to be empty so that we can figure out the minimal set
+    project_config = project_config.model_copy(
+        update={
+            "modules": [
+                module.model_copy(update={"depends_on": []})
+                for module in project_config.modules
+            ]
+        }
+    )
 
     sync_dependency_constraints(
         root, project_config=project_config, exclude_paths=exclude_paths

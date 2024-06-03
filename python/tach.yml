@@ -1,45 +1,65 @@
-constraints:
-- tag: scope:cache
+modules:
+- path: tach
   depends_on:
-  - scope:filesystem
-- tag: scope:core
+  - tach.colors
+  - tach.constants
+  - tach.core
+  - tach.errors
+  - tach.filesystem
+  - tach.interactive
+  - tach.logging
+  - tach.parsing
+  strict: true
+- path: tach.cache
   depends_on:
-  - scope:utils
-- tag: scope:filesystem
+  - tach.filesystem
+  strict: true
+- path: tach.colors
+  depends_on: []
+  strict: true
+- path: tach.constants
+  depends_on: []
+  strict: true
+- path: tach.core
   depends_on:
-  - scope:hooks
-  - scope:utils
-- tag: scope:hooks
+  - tach.constants
+  strict: true
+- path: tach.errors
+  depends_on: []
+  strict: true
+- path: tach.filesystem
   depends_on:
-  - scope:utils
-- tag: scope:interactive
+  - tach.colors
+  - tach.constants
+  - tach.errors
+  - tach.hooks
+  strict: true
+- path: tach.hooks
   depends_on:
-  - scope:filesystem
-  - scope:utils
-- tag: scope:logging
+  - tach.constants
+  strict: true
+- path: tach.interactive
   depends_on:
-  - scope:cache
-  - scope:parsing
-- tag: scope:parsing
+  - tach.errors
+  - tach.filesystem
+  strict: true
+- path: tach.logging
   depends_on:
-  - scope:core
-  - scope:filesystem
-  - scope:utils
-- tag: scope:root
+  - tach.cache
+  - tach.parsing
+  strict: true
+- path: tach.parsing
   depends_on:
-  - scope:core
-  - scope:filesystem
-  - scope:interactive
-  - scope:logging
-  - scope:parsing
-  - scope:utils
+  - tach.core
+  - tach.filesystem
+  strict: true
 exclude:
+- .*__pycache__/
+- build/
+- dist/
+- docs/
 - tach.egg-info/
 - tests/
-- .*__pycache__/
-- dist/
-- build/
-- docs/
 exact: true
 disable_logging: false
-ignore_type_checking_imports: false
+ignore_type_checking_imports: true

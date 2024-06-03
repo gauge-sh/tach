@@ -1,12 +1,12 @@
 # Usage
 
 ## tach check
-`tach` will flag any unwanted imports between packages. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
+`tach` will flag any unwanted imports between modules. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
 usage: tach check [-h] [--exact] [-e file_or_path,...]
 
-Check existing boundaries against your dependencies and package interfaces
+Check existing boundaries against your dependencies and module interfaces
 
 options:
   -h, --help            show this help message and exit
@@ -18,8 +18,8 @@ options:
 An error will indicate:
 
 - the file path in which the error was detected
-- the tags associated with that file
-- the tags associated with the attempted import
+- the tag associated with that file
+- the tag associated with the attempted import
 
 If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.yml` that is not exercised by the code.
 
@@ -27,19 +27,19 @@ Example:
 ```bash
 # From the root of your Python project (in this example, `project/`)
 > tach check
-❌ utils/helpers.py[L10]: Cannot import 'core.PublicAPI'. Tags ['utils'] cannot depend on ['core'].
+❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'. 
 ```
 
 NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
 
 
-## tach pkg
+## tach mod
 `tach` comes bundled with a command to set up and define your initial boundaries.
 
 ```bash
-usage: tach pkg [-h] [-d [DEPTH]] [-e file_or_path,...]
+usage: tach mod [-h] [-d [DEPTH]] [-e file_or_path,...]
 
-Configure package boundaries interactively
+Configure module boundaries interactively
 
 options:
   -h, --help            show this help message and exit
@@ -49,14 +49,14 @@ options:
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
-Running `tach pkg` will open an interactive editor in your terminal which allows you to mark your package boundaries.
+Running `tach mod` will open an interactive editor in your terminal which allows you to mark your module boundaries.
 
-You can navigate with the arrow keys, mark individual packages with `Enter`, and mark all sibling directories
-as packages with `Ctrl + a`.
+You can navigate with the arrow keys, mark individual modules with `Enter`, and mark all siblings
+as modules with `Ctrl + a`.
 
-When you are ready to save your packages, use `Ctrl + s` to save and exit. Otherwise, to exit without saving you can use `Ctrl + c`.
+When you are ready to save your modules, use `Ctrl + s` to save and exit. Otherwise, to exit without saving you can use `Ctrl + c`.
 
-Any time you make changes with `tach pkg`, it is recommended to run [`tach sync`](usage.md#tach-sync)
+Any time you make changes with `tach mod`, it is recommended to run [`tach sync`](usage.md#tach-sync)
 to automatically configure dependency rules.
 
 ## tach sync
@@ -74,7 +74,7 @@ options:
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
-When this command runs, `tach` will analyze the imports in your packages.
+When this command runs, `tach` will analyze the imports in your Python project.
 
 Any undeclared dependencies or other dependency errors will be automatically resolved by
 adding the corresponding dependencies to your `tach.yml` file.
@@ -95,8 +95,7 @@ options:
   --force     Do not prompt for confirmation.
 ```
 
-This will find the nearest `tach` project in parent directories, or simply work from the current directory.
-It will remove `tach.yml` along with any `package.yml` files it finds.
+This will find the nearest `tach` project in parent directories, and remove the `tach.yml` configuration file.
 
 ## tach install
 `tach` can be installed into your development workflow automatically as a pre-commit hook.
@@ -108,7 +107,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
 -   repo: https://github.com/gauge-sh/tach
-    rev: v0.4.0  # change this to the latest tag!
+    rev: v0.5.0  # change this to the latest tag!
     hooks:
     -   id: tach
         # args: ["--root=backend_root"]
