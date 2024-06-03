@@ -44,7 +44,7 @@ class ModuleNode:
 
 
 def split_module_path(path: str) -> list[str]:
-    if not path:
+    if not path or path == ".":
         return []
     return path.split(".")
 
@@ -62,6 +62,9 @@ class ModuleTree:
         return module_tree_iterator(self)
 
     def get(self, path: str) -> ModuleNode | None:
+        if not path:
+            return None
+
         node = self.root
         parts = split_module_path(path)
 
@@ -73,6 +76,9 @@ class ModuleTree:
         return node if node.is_end_of_path else None
 
     def insert(self, config: ModuleConfig, path: str, interface_members: list[str]):
+        if not path:
+            raise ValueError("Cannot insert module with empty path.")
+
         node = self.root
         parts = split_module_path(path)
 

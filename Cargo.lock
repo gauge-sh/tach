@@ -1136,7 +1136,7 @@ dependencies = [
 
 [[package]]
 name = "tach"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "criterion",
  "once_cell",

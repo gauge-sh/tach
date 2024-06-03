@@ -145,6 +145,11 @@ class FileTree:
                         # Only interested in Python files
                         continue
 
+                    if os.path.basename(entry_path) == "__init__.py":
+                        # __init__.py does not have a unique module path from its containing package
+                        # so users should not be able to mark it as a standalone module
+                        continue
+
                     # Adding a trailing slash lets us match 'tests/' as an exclude pattern
                     entry_path_for_matching = f"{fs.canonical(entry_path)}/"
                     if exclude_paths is not None and any(
