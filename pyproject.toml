@@ -61,7 +61,7 @@ runtime-evaluated-decorators = [
 exempt-modules = ["typing", "typing_extensions"]
 
 [tool.pyright]
-include = ["python/tach", "lsp/vscode/src/test/python_tests", "lsp/vscode/bundled/tool"]
+include = ["python/tach"]
 exclude = ["**/__pycache__", ".venv"]
 strict = ["python/tach"]
 executionEnvironments = [

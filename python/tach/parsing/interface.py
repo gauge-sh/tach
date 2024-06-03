@@ -39,6 +39,9 @@ def parse_interface_members(path: str) -> list[str]:
     Parse the members of __all__ in a given module
     """
     file_path = fs.module_to_file_path_no_members(path)
+    if file_path is None:
+        return []
+
     parsed_ast = fs.parse_ast(str(file_path))
     interface_visitor = InterfaceVisitor()
     interface_visitor.visit(parsed_ast)

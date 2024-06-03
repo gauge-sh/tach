@@ -13,6 +13,7 @@ from typing import Generator
 
 from tach import errors
 from tach.colors import BCOLORS
+from tach.constants import ROOT_MODULE_SENTINEL_TAG
 
 
 @dataclass
@@ -270,6 +271,12 @@ def module_to_file_path_no_members(module_path: str) -> Path | None:
     This resolves a dotted Python module path ('a.b.c')
     into a Python file path or a Python package __init__.py
     """
+    if module_path == ROOT_MODULE_SENTINEL_TAG:
+        root_path = Path("__init__.py")
+        if root_path.exists():
+            return root_path
+        return None
+
     base_path = module_path.replace(".", os.sep)
     pyfile_path = Path(f"{base_path}.py")
     init_py_path = Path(base_path).joinpath("__init__.py")
