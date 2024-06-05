@@ -281,12 +281,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dyn-clone"
-version = "1.0.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d6ef0072f8a535281e4876be788938b528e9a1d43900b82c2569af7da799125"
-
-[[package]]
 name = "either"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -901,6 +895,7 @@ dependencies = [
 [[package]]
 name = "ruff_python_ast"
 version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=v0.4.5#550aa871d32b53a2f042fb0e7fea1080eadfa11d"
 dependencies = [
  "aho-corasick",
  "bitflags 2.5.0",
@@ -916,6 +911,7 @@ dependencies = [
 [[package]]
 name = "ruff_python_parser"
 version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=v0.4.5#550aa871d32b53a2f042fb0e7fea1080eadfa11d"
 dependencies = [
  "anyhow",
  "bitflags 2.5.0",
@@ -935,6 +931,7 @@ dependencies = [
 [[package]]
 name = "ruff_python_trivia"
 version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=v0.4.5#550aa871d32b53a2f042fb0e7fea1080eadfa11d"
 dependencies = [
  "itertools 0.12.1",
  "ruff_source_file",
@@ -945,6 +942,7 @@ dependencies = [
 [[package]]
 name = "ruff_source_file"
 version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=v0.4.5#550aa871d32b53a2f042fb0e7fea1080eadfa11d"
 dependencies = [
  "memchr",
  "once_cell",
@@ -954,9 +952,7 @@ dependencies = [
 [[package]]
 name = "ruff_text_size"
 version = "0.0.0"
-dependencies = [
- "schemars",
-]
+source = "git+https://github.com/astral-sh/ruff.git?tag=v0.4.5#550aa871d32b53a2f042fb0e7fea1080eadfa11d"
 
 [[package]]
 name = "rustc-demangle"
@@ -999,30 +995,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "schemars"
-version = "0.8.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09c024468a378b7e36765cd36702b7a90cc3cba11654f6685c8f233408e89e92"
-dependencies = [
- "dyn-clone",
- "schemars_derive",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "schemars_derive"
-version = "0.8.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1eee588578aff73f856ab961cd2f79e36bc45d7ded33a7562adba4667aecc0e"
-dependencies = [
- "proc-macro2",
- "quote",
- "serde_derive_internals",
- "syn",
-]
-
-[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1042,17 +1014,6 @@ name = "serde_derive"
 version = "1.0.202"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6048858004bcff69094cd972ed40a32500f153bd3be9f716b2eed2e8217c4838"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "serde_derive_internals"
-version = "0.29.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18d26a20a969b9e3fdf2fc2d9f21eda6c40e2de84c9408bb5d3b05d499aae711"
 dependencies = [
  "proc-macro2",
  "quote",
