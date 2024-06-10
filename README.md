@@ -1,3 +1,7 @@
+
+# Tach
+
+---
 [![downloads](https://static.pepy.tech/badge/tach/month)](https://pepy.tech/project/tach)
 [![version](https://img.shields.io/pypi/v/tach.svg)](https://pypi.Python.org/pypi/tach)
 [![license](https://img.shields.io/pypi/l/tach.svg)](https://pypi.Python.org/pypi/tach)
@@ -5,8 +9,12 @@
 [![ci](https://github.com/gauge-sh/tach/actions/workflows/ci.yml/badge.svg)](https://github.com/gauge-sh/tach/actions/workflows/ci.yml)
 [![pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-# Tach
+
 a Python tool to enforce modular design, written in Rust.
+
+<div align="center">
+    <img src="./logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
+</div>
 
 [Docs](https://gauge-sh.github.io/python-modular-monorepo-framework-tool/)
 
