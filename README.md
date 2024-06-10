@@ -11,12 +11,11 @@
 
 a Python tool to enforce modular design, written in Rust.
 
+[Docs](https://gauge-sh.github.io/python-modular-monorepo-framework-tool/)
+
 <div align="center">
     <img src="./logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
 </div>
-
-[Docs](https://gauge-sh.github.io/python-modular-monorepo-framework-tool/)
-
 
 Tach lets you define and enforce dependencies between Python modules in your project.
 
