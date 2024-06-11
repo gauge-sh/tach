@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 site_name: Tach
-site_url: https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/
+site_url: https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/
 repo_name: tach
 repo_url: https://github.com/gauge-sh/tach
 nav:
