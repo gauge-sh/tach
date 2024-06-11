@@ -60,7 +60,7 @@ This will wipe all the configuration generated and enforced by Tach.
 
 
 Tach also supports:
-- [Manual file configuration](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/configuration/)
-- [Strict public interfaces for modules](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/strict-mode/)
-- [Inline exceptions](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/tach-ignore/)
-- [Pre-commit hooks](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/usage/#tach-install)
+- [Manual file configuration](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/configuration/)
+- [Strict public interfaces for modules](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/strict-mode/)
+- [Inline exceptions](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/tach-ignore/)
+- [Pre-commit hooks](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/usage/#tach-install)

@@ -11,7 +11,7 @@
 
 a Python tool to enforce modular design, written in Rust.
 
-[Docs](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/)
+[Docs](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/)
 
 <div align="center">
     <img src="./logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
@@ -96,13 +96,13 @@ This will wipe all the configuration generated and enforced by Tach.
 
 
 Tach also supports:
-- [Manual file configuration](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/configuration/)
-- [Strict public interfaces for modules](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/strict-mode/)
-- [Inline exceptions](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/tach-ignore/)
-- [Pre-commit hooks](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/usage/#tach-install)
+- [Manual file configuration](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/configuration/)
+- [Strict public interfaces for modules](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/strict-mode/)
+- [Inline exceptions](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/tach-ignore/)
+- [Pre-commit hooks](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/usage/#tach-install)
 
 
-More info in the [docs](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/). Tach logs anonymized usage statistics which are easily [opted out](https://gauge-sh.github..io/tach-python-modular-monorepo-framework-tool/faq/) of.
+More info in the [docs](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/). Tach logs anonymized usage statistics which are easily [opted out](https://gauge-sh.github.io/tach-python-modular-monorepo-framework-tool/faq/) of.
 If you have any feedback, we'd love to talk!
 
 If you have any questions or run into any issues, let us know by either reaching out on [Discord](https://discord.gg/a58vW8dnmw) or submitting a [Github Issue](https://github.com/gauge-sh/tach/issues)!
