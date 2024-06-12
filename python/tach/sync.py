@@ -98,3 +98,6 @@ def sync_project(prune: bool = False, exclude_paths: list[str] | None = None) ->
 
     finally:
         fs.chdir(original_cwd)
+
+
+__all__ = ["sync_project", "prune_dependency_constraints"]

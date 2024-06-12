@@ -11,3 +11,6 @@ def clean_project(root: str) -> None:
     project_config_path = fs.get_project_config_path(root)
     if project_config_path:
         fs.delete_file(project_config_path)
+
+
+__all__ = ["clean_project"]
