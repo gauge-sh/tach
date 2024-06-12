@@ -8,6 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from tach import __version__
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
 from tach.clean import clean_project
@@ -129,6 +130,8 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="Make sure tach is run from the root of your Python project,"
         " and `tach.yml` is present",
     )
+    parser.add_argument("--version", action="version", version=f"tach {__version__}")
+
     subparsers = parser.add_subparsers(title="commands", dest="command")
     mod_parser = subparsers.add_parser(
         "mod",
