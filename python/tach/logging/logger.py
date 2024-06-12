@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
-from tach import cache
+from tach import __version__, cache
 from tach.logging.api import log_record, log_uid
 from tach.parsing import parse_project_config
 
@@ -26,6 +26,7 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
     is_gauge = "IS_GAUGE" in os.environ
     data: LogDataModel | None = getattr(record, "data", None)
     uid = cache.get_uid()
+    version = __version__
     log_data: dict[str, Any] = {
         "user": str(uid) if uid else None,
         "message": entry,
@@ -33,10 +34,12 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
         "timestamp": record.created,
         "function": data.function if data else None,
         "parameters": data.parameters if data else None,
+        "version": version,
     }
     if uid is not None:
         log_uid(uid=uid, is_ci=is_ci, is_gauge=is_gauge)
     log_record(record_data=log_data)
+    cache.update_latest_version()
 
 
 def handle_log_entry(record: logging.LogRecord, entry: str) -> None:

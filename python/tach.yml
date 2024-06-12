@@ -1,6 +1,7 @@
 modules:
 - path: tach
   depends_on:
+  - tach.check
   - tach.colors
   - tach.constants
   - tach.core
@@ -12,8 +13,15 @@ modules:
   strict: true
 - path: tach.cache
   depends_on:
+  - tach
   - tach.filesystem
   strict: true
+- path: tach.check
+  depends_on:
+  - tach.errors
+  - tach.filesystem
+  - tach.parsing
+  strict: false
 - path: tach.colors
   depends_on: []
   strict: true
@@ -45,6 +53,7 @@ modules:
   strict: true
 - path: tach.logging
   depends_on:
+  - tach
   - tach.cache
   - tach.parsing
   strict: true

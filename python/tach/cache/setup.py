@@ -3,14 +3,21 @@ from __future__ import annotations
 import uuid
 from pathlib import Path
 
+from tach import __version__
 from tach.filesystem import find_project_config_root
 
 
-def resolve_dot_tach() -> Path | None:
-    project_dir = find_project_config_root(str(Path.cwd()))
-    if project_dir is None:
+def get_project_path() -> Path | None:
+    project_root = find_project_config_root(str(Path.cwd()))
+    if project_root is None:
         return
-    project_path = Path(project_dir)
+    project_path = Path(project_root)
+    return project_path
+
+def resolve_dot_tach() -> Path | None:
+    project_path = get_project_path()
+    if project_path is None:
+        return
 
     def _create(path: Path, is_file: bool = False, file_content: str = "") -> None:
         if not path.exists():
@@ -34,4 +41,7 @@ def resolve_dot_tach() -> Path | None:
     """
     gitignore_path = tach_path / ".gitignore"
     _create(gitignore_path, is_file=True, file_content=gitignore_content)
+    # Create version
+    version_path = tach_path / ".latest-version"
+    _create(version_path, is_file=True, file_content=__version__)
     return Path(tach_path)
