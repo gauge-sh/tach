@@ -13,8 +13,8 @@ def get_uid() -> uuid.UUID | None:
         return
     if not (project_path / ".tach" / "tach.info").exists():
         resolve_dot_tach()
-    with open(project_path / ".tach" / "tach.info") as f:
-        uid = uuid.UUID(f.read().strip())
+    contents = (project_path / ".tach" / "tach.info").read_text().strip()
+    uid = uuid.UUID(contents)
     return uid
 
 
@@ -24,8 +24,7 @@ def get_latest_version() -> str | None:
         return
     if not (project_path / ".tach" / ".latest-version").exists():
         return
-    with open(project_path / ".tach" / ".latest-version") as f:
-        version = f.read().strip()
+    version = (project_path / ".tach" / "latest-version").read_text().strip()
     return version
 
 
