@@ -14,6 +14,7 @@ def get_project_path() -> Path | None:
     project_path = Path(project_root)
     return project_path
 
+
 def resolve_dot_tach() -> Path | None:
     project_path = get_project_path()
     if project_path is None:
