@@ -24,7 +24,7 @@ def get_latest_version() -> str | None:
         return
     if not (project_path / ".tach" / ".latest-version").exists():
         return
-    version = (project_path / ".tach" / "latest-version").read_text().strip()
+    version = (project_path / ".tach" / ".latest-version").read_text().strip()
     return version
 
 
