@@ -3,6 +3,8 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 
+use walkdir::{DirEntry, WalkDir};
+
 use crate::exclusion::is_path_excluded;
 
 #[derive(Debug, Clone)]
@@ -144,4 +146,38 @@ pub fn is_project_import<P: AsRef<Path>>(root: P, mod_path: &str) -> Result<bool
         // This is not a project import
         return Ok(false);
     }
+}
+
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with("."))
+        .unwrap_or(false)
+}
+
+fn direntry_is_excluded(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| is_path_excluded(s).unwrap_or(false))
+        .unwrap_or(false)
+}
+
+fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
+    if entry.path().is_dir() {
+        return true;
+    }
+    match entry.path().extension() {
+        Some(ext) => ext == "py",
+        None => false,
+    }
+}
+
+pub fn walk_pyfiles<P: AsRef<Path>>(root: P) -> impl Iterator<Item = PathBuf> {
+    let walker = WalkDir::new(root).into_iter();
+    walker
+        .filter_entry(|e| (!is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e)))
+        .map(|res| res.unwrap().into_path())
+        .filter(|path| path.is_file()) // filter_entry would skip dirs if they were excluded earlier
 }

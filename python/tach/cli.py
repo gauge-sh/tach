@@ -18,6 +18,7 @@ from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
+from tach.report import report
 from tach.sync import prune_dependency_constraints, sync_project
 
 if TYPE_CHECKING:
@@ -211,6 +212,16 @@ def build_parser() -> argparse.ArgumentParser:
     clean_parser.add_argument(
         "--force", action="store_true", help="Do not prompt for confirmation."
     )
+    report_parser = subparsers.add_parser(
+        "report",
+        prog="tach report",
+        help="Create a report of dependencies and usages of the given filepath or directory.",
+        description="Create a report of dependencies and usages of the given filepath or directory.",
+    )
+    report_parser.add_argument(
+        "path", help="The filepath or directory path used to generate the report."
+    )
+    add_base_arguments(report_parser)
     return parser
 
 
@@ -396,6 +407,27 @@ def tach_install(path: str, target: InstallTarget, project_root: str = "") -> No
         sys.exit(1)
 
 
+def tach_report(path: str, exclude_paths: list[str] | None = None):
+    logger.info(
+        "tach report called",
+        extra={
+            "data": LogDataModel(
+                function="tach_report",
+            ),
+        },
+    )
+    root = fs.find_project_config_root(".") or "."
+    project_config = parse_project_config(root=root)
+    if project_config is None:
+        print_no_config_yml()
+        sys.exit(1)
+
+    print(
+        report(root, path, project_config=project_config, exclude_paths=exclude_paths)
+    )
+    sys.exit(0)
+
+
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
@@ -416,6 +448,8 @@ def main() -> None:
         tach_install(
             path=args.path, target=install_target, project_root=args.project_root
         )
+    elif args.command == "report":
+        tach_report(path=args.path, exclude_paths=exclude_paths)
     else:
         print("Unrecognized command")
         parser.print_help()
