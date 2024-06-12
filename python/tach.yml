@@ -1,6 +1,7 @@
 modules:
 - path: tach
   depends_on:
+  - tach.cache
   - tach.check
   - tach.colors
   - tach.constants
