@@ -1,6 +1,5 @@
-use std::env::current_dir;
+use std::cmp::Ordering;
 use std::fmt::{self, Debug};
-use std::path::MAIN_SEPARATOR_STR;
 
 use crate::filesystem::{
     adjust_path_from_cwd_to_root, file_to_module_path, walk_pyfiles, FileSystemError,
@@ -41,6 +40,15 @@ struct Dependency {
     import: ProjectImport,
 }
 
+// less code than implementing/deriving all necessary traits for Ord
+fn compare_dependencies(left: &Dependency, right: &Dependency) -> Ordering {
+    let path_cmp = left.file_path.cmp(&right.file_path);
+    if path_cmp == Ordering::Equal {
+        return left.import.line_no.cmp(&right.import.line_no);
+    }
+    path_cmp
+}
+
 struct DependencyReport {
     path: String,
     pub external_dependencies: Vec<Dependency>,
@@ -65,7 +73,7 @@ impl DependencyReport {
         )
     }
 
-    fn render_to_string(&self) -> String {
+    fn render_to_string(&mut self) -> String {
         let title = format!("Dependency Report for {path}", path = self.path.as_str());
         let external_deps_title = format!(
             "{path} has external dependencies:",
@@ -74,6 +82,10 @@ impl DependencyReport {
         let external_usages_title =
             format!("These modules depend on {path}:", path = self.path.as_str());
 
+        self.external_dependencies
+            .sort_by(|l, r| compare_dependencies(l, r));
+        self.external_usages
+            .sort_by(|l, r| compare_dependencies(l, r));
         format!(
             "{title}\n\
             -------------------------------\n\
