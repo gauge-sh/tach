@@ -1,7 +1,12 @@
+use std::env::current_dir;
 use std::fmt;
 use std::fs;
+use std::io;
 use std::io::Read;
+use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
+
+use walkdir::{DirEntry, WalkDir};
 
 use crate::exclusion::is_path_excluded;
 
@@ -16,6 +21,22 @@ impl fmt::Display for FileSystemError {
     }
 }
 
+impl From<io::Error> for FileSystemError {
+    fn from(_: io::Error) -> Self {
+        FileSystemError {
+            message: "Encountered unexpected I/O error.".to_string(),
+        }
+    }
+}
+
+impl From<StripPrefixError> for FileSystemError {
+    fn from(_: StripPrefixError) -> Self {
+        FileSystemError {
+            message: "Path does not appear to be within project root.".to_string(),
+        }
+    }
+}
+
 pub type Result<T> = std::result::Result<T, FileSystemError>;
 
 pub fn canonical(root: &str, path: &str) -> Result<PathBuf> {
@@ -26,8 +47,14 @@ pub fn canonical(root: &str, path: &str) -> Result<PathBuf> {
     })
 }
 
+pub fn adjust_path_from_cwd_to_root(root: &str, path: &str) -> Result<PathBuf> {
+    let cwd = current_dir()?;
+    let diff_path = cwd.strip_prefix(root)?;
+    Ok(diff_path.join(path))
+}
+
 pub fn file_to_module_path(file_path: &str) -> String {
-    let file_path = file_path.trim_start_matches("./");
+    let file_path = file_path.trim_start_matches("./").trim_end_matches("/");
 
     if file_path == "." {
         return String::new();
@@ -144,4 +171,42 @@ pub fn is_project_import<P: AsRef<Path>>(root: P, mod_path: &str) -> Result<bool
         // This is not a project import
         return Ok(false);
     }
+}
+
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with("."))
+        .unwrap_or(false)
+}
+
+fn direntry_is_excluded(root: &str, entry: &DirEntry) -> bool {
+    let path = entry.path();
+    // TODO: too much unwrapping
+    let adjusted_path = adjust_path_from_cwd_to_root(root, path.to_str().unwrap()).unwrap();
+    is_path_excluded(adjusted_path.to_str().unwrap()).unwrap_or(false)
+}
+
+fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
+    if entry.path().is_dir() {
+        return true;
+    }
+    match entry.path().extension() {
+        Some(ext) => ext == "py",
+        None => false,
+    }
+}
+
+pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
+    let walker = WalkDir::new(root).into_iter();
+    let prefix_root = String::from(root);
+    let filter_root = prefix_root.clone();
+    walker
+        .filter_entry(move |e| {
+            !is_hidden(e) && !direntry_is_excluded(&filter_root, e) && is_pyfile_or_dir(e)
+        })
+        .map(|res| res.unwrap().into_path())
+        .filter(|path: &PathBuf| path.is_file()) // filter_entry would skip dirs if they were excluded earlier
+        .map(move |path| path.strip_prefix(&prefix_root).unwrap().to_path_buf())
 }
