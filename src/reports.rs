@@ -1,6 +1,10 @@
+use std::env::current_dir;
 use std::fmt::{self, Debug};
+use std::path::MAIN_SEPARATOR_STR;
 
-use crate::filesystem::{file_to_module_path, walk_pyfiles};
+use crate::filesystem::{
+    adjust_path_from_cwd_to_root, file_to_module_path, walk_pyfiles, FileSystemError,
+};
 use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
 
 #[derive(Debug)]
@@ -16,6 +20,14 @@ impl fmt::Display for ReportCreationError {
 
 impl From<ImportParseError> for ReportCreationError {
     fn from(value: ImportParseError) -> Self {
+        ReportCreationError {
+            message: value.message,
+        }
+    }
+}
+
+impl From<FileSystemError> for ReportCreationError {
+    fn from(value: FileSystemError) -> Self {
         ReportCreationError {
             message: value.message,
         }
@@ -94,9 +106,9 @@ pub fn create_dependency_report(
     path: String,
     ignore_type_checking_imports: bool,
 ) -> Result<String> {
-    // need to walk the project root for pyfiles -- didnt have this req before in Rust
-    let module_path = file_to_module_path(&path);
-    let mut result = DependencyReport::new(path.clone()); // TODO: clone shouldnt be necessary
+    let path_relative_to_root = adjust_path_from_cwd_to_root(&project_root, &path)?;
+    let module_path = file_to_module_path(path_relative_to_root.to_str().unwrap());
+    let mut result = DependencyReport::new(path_relative_to_root.to_string_lossy().to_string()); // TODO: clone shouldnt be necessary
 
     for pyfile in walk_pyfiles(&project_root) {
         let project_imports = get_project_imports(
@@ -105,7 +117,7 @@ pub fn create_dependency_report(
             ignore_type_checking_imports,
         )?;
 
-        if pyfile.starts_with(&path) {
+        if pyfile.starts_with(path_relative_to_root.to_str().unwrap()) {
             result
                 .external_dependencies
                 .extend(project_imports.into_iter().map(|import| Dependency {
@@ -116,7 +128,7 @@ pub fn create_dependency_report(
             for import in project_imports {
                 if import.mod_path.starts_with(&module_path) {
                     result.external_usages.push(Dependency {
-                        file_path: path.clone(),
+                        file_path: pyfile.to_string_lossy().to_string(),
                         import,
                     });
                 }
