@@ -98,7 +98,7 @@ This will wipe all the configuration generated and enforced by Tach.
 If you just want to see the external dependencies and external usage of a given file or module in your project, you can use `tach report`.
 
 ```bash
-tach report my_package
+tach report my_package/
 # OR
 tach report my_module.py
 ```
