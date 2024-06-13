@@ -117,14 +117,22 @@ pub fn create_dependency_report(
             ignore_type_checking_imports,
         )?;
 
-        if pyfile.starts_with(path_relative_to_root.to_str().unwrap()) {
-            result
-                .external_dependencies
-                .extend(project_imports.into_iter().map(|import| Dependency {
-                    file_path: pyfile.to_string_lossy().to_string(),
-                    import,
-                }));
+        let pyfile_in_target_module = pyfile.starts_with(path_relative_to_root.to_str().unwrap());
+        if pyfile_in_target_module {
+            // Any import from within the target module which points to an external mod_path
+            // is an external dependency
+            result.external_dependencies.extend(
+                project_imports
+                    .into_iter()
+                    .filter(|import| !import.mod_path.starts_with(&module_path))
+                    .map(|import| Dependency {
+                        file_path: pyfile.to_string_lossy().to_string(),
+                        import,
+                    }),
+            );
         } else {
+            // We are looking at imports from outside the target module,
+            // so any import which points to the target module is an external usage
             for import in project_imports {
                 if import.mod_path.starts_with(&module_path) {
                     result.external_usages.push(Dependency {

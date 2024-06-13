@@ -204,7 +204,7 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
     let filter_root = prefix_root.clone();
     walker
         .filter_entry(move |e| {
-            (!is_hidden(e) && !direntry_is_excluded(&filter_root, e) && is_pyfile_or_dir(e))
+            !is_hidden(e) && !direntry_is_excluded(&filter_root, e) && is_pyfile_or_dir(e)
         })
         .map(|res| res.unwrap().into_path())
         .filter(|path: &PathBuf| path.is_file()) // filter_entry would skip dirs if they were excluded earlier
