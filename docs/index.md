@@ -24,6 +24,7 @@ Tach is:
 * [`tach mod`](usage.md#tach-mod) - Interactively define module boundaries in your Python project.
 * [`tach check`](usage.md#tach-check) - Check that boundaries are respected.
 * [`tach sync`](usage.md#tach-sync) - Sync constraints with actual dependencies in your Python project.
+* [`tach report`](usage.md#tach-report) - Generate a dependency report for a file or module in your Python project.
 * [`tach install`](usage.md#tach-install) - Install `tach` into your development workflow (e.g. pre-commit)
 * [`tach clean`](usage.md#tach-clean) - Delete all existing configuration and start from a clean slate.
 
