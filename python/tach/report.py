@@ -17,7 +17,10 @@ def report(
     exclude_paths: list[str] | None = None,
 ) -> str:
     if not os.path.isdir(root):
-        raise errors.TachSetupError(f"The path {root} is not a valid directory.")
+        raise errors.TachSetupError(f"The path '{root}' is not a valid directory.")
+
+    if not os.path.exists(path):
+        raise errors.TachError(f"The path '{path}' does not exist.")
 
     if exclude_paths is not None and project_config.exclude is not None:
         exclude_paths.extend(project_config.exclude)

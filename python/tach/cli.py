@@ -14,6 +14,7 @@ from tach.clean import clean_project
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
+from tach.errors import TachError
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
@@ -422,10 +423,16 @@ def tach_report(path: str, exclude_paths: list[str] | None = None):
         print_no_config_yml()
         sys.exit(1)
 
-    print(
-        report(root, path, project_config=project_config, exclude_paths=exclude_paths)
-    )
-    sys.exit(0)
+    try:
+        print(
+            report(
+                root, path, project_config=project_config, exclude_paths=exclude_paths
+            )
+        )
+        sys.exit(0)
+    except TachError as e:
+        print(f"Report failed: {e}")
+        sys.exit(1)
 
 
 def main() -> None:
