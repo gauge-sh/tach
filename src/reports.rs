@@ -103,7 +103,7 @@ impl DependencyReport {
         let usages_display: String = match self.external_usages.len() {
             0 => "No external usages found.".to_string(),
             _ => self
-                .external_dependencies
+                .external_usages
                 .iter()
                 .map(|dep| self.render_dependency(dep))
                 .collect::<Vec<String>>()
