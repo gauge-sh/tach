@@ -30,10 +30,12 @@ modules:
   - tach.colors
   - tach.constants
   - tach.core
+  - tach.errors
   - tach.filesystem
   - tach.logging
   - tach.mod
   - tach.parsing
+  - tach.report
   - tach.sync
   strict: true
 - path: tach.colors
@@ -85,6 +87,10 @@ modules:
   depends_on:
   - tach.core
   - tach.filesystem
+  strict: true
+- path: tach.report
+  depends_on:
+  - tach.errors
   strict: true
 - path: tach.sync
   depends_on:

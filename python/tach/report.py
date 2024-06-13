@@ -31,3 +31,6 @@ def report(
     set_excluded_paths(exclude_paths=exclude_paths or [])
 
     return create_dependency_report(root, path)
+
+
+__all__ = ["report"]
