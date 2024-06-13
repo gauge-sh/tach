@@ -37,6 +37,26 @@ def test_valid_path(mock_project_config, mock_cwd):
     assert result
 
 
+def test_valid_dir(mock_project_config, mock_cwd):
+    mock_path = mock_cwd / "test"
+    mock_path.mkdir()
+    result = report(
+        root=str(mock_cwd), path=str(mock_path), project_config=mock_project_config
+    )
+    assert result
+
+
+def test_valid_dir_trailing_slash(mock_project_config, mock_cwd):
+    mock_path = mock_cwd / "test"
+    mock_path.mkdir()
+    result = report(
+        root=str(mock_cwd),
+        path=str(mock_path) + "/",
+        project_config=mock_project_config,
+    )
+    assert result
+
+
 def test_invalid_root(mock_project_config, mock_cwd):
     with pytest.raises(TachError):
         report(root="Invalid!!", path=str(mock_cwd), project_config=mock_project_config)

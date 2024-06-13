@@ -79,11 +79,8 @@ impl DependencyReport {
             "The report below shows all instances of imports which cross the boundary of '{path}'",
             path = self.path.as_str()
         );
-        let external_deps_title = format!(
-            "External Dependencies for {path}",
-            path = self.path.as_str()
-        );
-        let external_usages_title = format!("External Usages of {path}", path = self.path.as_str());
+        let external_deps_title = format!("Dependencies of '{path}'", path = self.path.as_str());
+        let external_usages_title = format!("Usages of '{path}'", path = self.path.as_str());
 
         self.external_dependencies
             .sort_by(|l, r| compare_dependencies(l, r));
@@ -91,7 +88,7 @@ impl DependencyReport {
             .sort_by(|l, r| compare_dependencies(l, r));
 
         let deps_display: String = match self.external_dependencies.len() {
-            0 => "No external dependencies found.".to_string(),
+            0 => "No dependencies found.".to_string(),
             _ => self
                 .external_dependencies
                 .iter()
@@ -101,7 +98,7 @@ impl DependencyReport {
                 .to_string(),
         };
         let usages_display: String = match self.external_usages.len() {
-            0 => "No external usages found.".to_string(),
+            0 => "No usages found.".to_string(),
             _ => self
                 .external_usages
                 .iter()

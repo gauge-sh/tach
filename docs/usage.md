@@ -99,7 +99,7 @@ This will find the nearest `tach` project in parent directories, and remove the 
 
 
 ## tach report
-`tach` can generate a report showing all the external dependencies and usages of a given file or directory in your project.
+`tach` can generate a report showing all the dependencies and usages of a given file or directory in your project.
 
 ```bash
 usage: tach report [-h] [-e file_or_path,...] path

@@ -95,7 +95,7 @@ tach clean
 This will wipe all the configuration generated and enforced by Tach.
 
 
-If you just want to see the external dependencies and external usage of a given file or module in your project, you can use `tach report`.
+If you just want to see the dependencies and usages of a given file or module in your project, you can use `tach report`.
 
 ```bash
 tach report my_package/

@@ -54,7 +54,7 @@ pub fn adjust_path_from_cwd_to_root(root: &str, path: &str) -> Result<PathBuf> {
 }
 
 pub fn file_to_module_path(file_path: &str) -> String {
-    let file_path = file_path.trim_start_matches("./");
+    let file_path = file_path.trim_start_matches("./").trim_end_matches("/");
 
     if file_path == "." {
         return String::new();
