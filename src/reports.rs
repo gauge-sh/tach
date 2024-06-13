@@ -66,7 +66,7 @@ impl DependencyReport {
 
     fn render_dependency(&self, dependency: &Dependency) -> String {
         format!(
-            "{file_path}[L{line_no}]  '{import_mod_path}'",
+            "{file_path}[L{line_no}]: Import '{import_mod_path}'",
             file_path = dependency.file_path.as_str(),
             line_no = dependency.import.line_no,
             import_mod_path = dependency.import.mod_path
@@ -75,40 +75,56 @@ impl DependencyReport {
 
     fn render_to_string(&mut self) -> String {
         let title = format!("Dependency Report for {path}", path = self.path.as_str());
-        let external_deps_title = format!(
-            "{path} has external dependencies:",
+        let subtitle = format!(
+            "The report below shows all instances of imports which cross the boundary of '{path}'",
             path = self.path.as_str()
         );
-        let external_usages_title =
-            format!("These modules depend on {path}:", path = self.path.as_str());
+        let external_deps_title = format!(
+            "External Dependencies for {path}",
+            path = self.path.as_str()
+        );
+        let external_usages_title = format!("External Usages of {path}", path = self.path.as_str());
 
         self.external_dependencies
             .sort_by(|l, r| compare_dependencies(l, r));
         self.external_usages
             .sort_by(|l, r| compare_dependencies(l, r));
-        format!(
-            "{title}\n\
-            -------------------------------\n\
-            {deps_title}\n\
-            {deps}\n\
-            \n\
-            {usages_title}\n\
-            {usages}",
-            title = title,
-            deps_title = external_deps_title,
-            usages_title = external_usages_title,
-            deps = self
+
+        let deps_display: String = match self.external_dependencies.len() {
+            0 => "No external dependencies found.".to_string(),
+            _ => self
                 .external_dependencies
                 .iter()
                 .map(|dep| self.render_dependency(dep))
                 .collect::<Vec<String>>()
-                .join("\n"),
-            usages = self
-                .external_usages
+                .join("\n")
+                .to_string(),
+        };
+        let usages_display: String = match self.external_usages.len() {
+            0 => "No external usages found.".to_string(),
+            _ => self
+                .external_dependencies
                 .iter()
                 .map(|dep| self.render_dependency(dep))
                 .collect::<Vec<String>>()
                 .join("\n")
+                .to_string(),
+        };
+
+        format!(
+            "[{title}]\n\
+            {subtitle}\n\
+            -------------------------------\n\
+            [{deps_title}]\n\
+            {deps}\n\
+            -------------------------------\n\
+            [{usages_title}]\n\
+            {usages}",
+            title = title,
+            deps_title = external_deps_title,
+            usages_title = external_usages_title,
+            deps = deps_display,
+            usages = usages_display
         )
     }
 }
