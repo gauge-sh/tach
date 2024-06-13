@@ -6,7 +6,7 @@ prompt-toolkit==3.0.43
 # Setup
 pip==24.0
 # Code Quality
-pyright==1.1.365
+pyright==1.1.367
 ruff==0.4.1
 # Build/Release
 setuptools==69.5.1

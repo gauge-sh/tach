@@ -1,18 +1,40 @@
 modules:
 - path: tach
+  depends_on: []
+  strict: true
+- path: tach.__main__
   depends_on:
-  - tach.colors
-  - tach.constants
-  - tach.core
-  - tach.errors
-  - tach.filesystem
-  - tach.interactive
-  - tach.logging
-  - tach.parsing
+  - tach.cli
   strict: true
 - path: tach.cache
   depends_on:
+  - tach
   - tach.filesystem
+  strict: true
+- path: tach.check
+  depends_on:
+  - tach.errors
+  - tach.filesystem
+  - tach.parsing
+  strict: true
+- path: tach.clean
+  depends_on:
+  - tach.filesystem
+  strict: true
+- path: tach.cli
+  depends_on:
+  - tach
+  - tach.cache
+  - tach.check
+  - tach.clean
+  - tach.colors
+  - tach.constants
+  - tach.core
+  - tach.filesystem
+  - tach.logging
+  - tach.mod
+  - tach.parsing
+  - tach.sync
   strict: true
 - path: tach.colors
   depends_on: []
@@ -45,13 +67,33 @@ modules:
   strict: true
 - path: tach.logging
   depends_on:
+  - tach
   - tach.cache
+  - tach.parsing
+  strict: true
+- path: tach.mod
+  depends_on:
+  - tach.colors
+  - tach.constants
+  - tach.core
+  - tach.errors
+  - tach.filesystem
+  - tach.interactive
   - tach.parsing
   strict: true
 - path: tach.parsing
   depends_on:
   - tach.core
   - tach.filesystem
+  strict: true
+- path: tach.sync
+  depends_on:
+  - tach.check
+  - tach.colors
+  - tach.constants
+  - tach.errors
+  - tach.filesystem
+  - tach.parsing
   strict: true
 exclude:
 - .*__pycache__/

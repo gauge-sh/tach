@@ -176,3 +176,6 @@ def check(
         return boundary_errors
     finally:
         fs.chdir(cwd)
+
+
+__all__ = ["BoundaryError", "check"]

@@ -8,6 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from tach import __version__, cache
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
 from tach.clean import clean_project
@@ -129,6 +130,8 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="Make sure tach is run from the root of your Python project,"
         " and `tach.yml` is present",
     )
+    parser.add_argument("--version", action="version", version=f"tach {__version__}")
+
     subparsers = parser.add_subparsers(title="commands", dest="command")
     mod_parser = subparsers.add_parser(
         "mod",
@@ -398,6 +401,12 @@ def tach_install(path: str, target: InstallTarget, project_root: str = "") -> No
 
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
+    latest_version = cache.get_latest_version()
+    if latest_version and latest_version != __version__:
+        print(
+            f"{BCOLORS.WARNING}WARNING: there is a new tach version available"
+            f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
+        )
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
     if args.command == "mod":
         tach_mod(depth=args.depth, exclude_paths=exclude_paths)
@@ -424,3 +433,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+__all__ = ["main"]
