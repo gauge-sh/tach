@@ -42,3 +42,6 @@ def mod_edit_interactive(
         return True, []
     else:
         return False, [f"{BCOLORS.OKCYAN}No changes saved.{BCOLORS.ENDC}"]
+
+
+__all__ = ["mod_edit_interactive"]
