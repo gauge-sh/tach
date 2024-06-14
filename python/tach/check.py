@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
+from tach.colors import BCOLORS
 from tach.extension import get_project_imports, set_excluded_paths
 from tach.parsing import build_module_tree
 
@@ -149,11 +150,22 @@ def check(
             if nearest_module is None:
                 continue
 
-            project_imports = get_project_imports(
-                ".",
-                file_path,
-                ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-            )
+            try:
+                project_imports = get_project_imports(
+                    ".",
+                    file_path,
+                    ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+                )
+            except SyntaxError:
+                print(
+                    f"{BCOLORS.WARNING}Skipping file '{file_path}' due to a syntax error.{BCOLORS.ENDC}"
+                )
+                continue
+            except OSError:
+                print(
+                    f"{BCOLORS.WARNING}Skipping file '{file_path}' due to a file system error.{BCOLORS.ENDC}"
+                )
+                continue
             for project_import in project_imports:
                 check_error = check_import(
                     module_tree=module_tree,

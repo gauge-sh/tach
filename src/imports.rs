@@ -14,8 +14,15 @@ use ruff_source_file::Locator;
 
 use crate::{filesystem, parsing};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+pub enum ImportParseErrorType {
+    FILESYSTEM,
+    PARSING,
+}
+
+#[derive(Debug)]
 pub struct ImportParseError {
+    pub err_type: ImportParseErrorType,
     pub message: String,
 }
 
@@ -298,14 +305,17 @@ pub fn get_project_imports(
 ) -> Result<ProjectImports> {
     let canonical_path: PathBuf = filesystem::canonical(project_root.as_ref(), file_path.as_ref())
         .map_err(|err| ImportParseError {
+            err_type: ImportParseErrorType::FILESYSTEM,
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
     let file_contents =
         filesystem::read_file_content(&canonical_path).map_err(|err| ImportParseError {
+            err_type: ImportParseErrorType::FILESYSTEM,
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
     let file_ast =
         parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
+            err_type: ImportParseErrorType::PARSING,
             message: format!(
                 "Failed to parse project imports. File: {:?} Failure: {:?}",
                 canonical_path.as_path().to_str().unwrap(),
