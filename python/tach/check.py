@@ -117,11 +117,17 @@ class BoundaryError:
     error_info: ErrorInfo
 
 
+@dataclass
+class CheckResult:
+    errors: list[BoundaryError] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+
 def check(
     root: str,
     project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
-) -> list[BoundaryError]:
+) -> CheckResult:
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a valid directory.")
 
@@ -140,6 +146,7 @@ def check(
         # The extension builds regexes and uses them during `get_project_imports`
         set_excluded_paths(exclude_paths=exclude_paths or [])
         boundary_errors: list[BoundaryError] = []
+        warnings: list[str] = []
         for file_path in fs.walk_pyfiles(
             ".",
             exclude_paths=exclude_paths,
@@ -149,11 +156,18 @@ def check(
             if nearest_module is None:
                 continue
 
-            project_imports = get_project_imports(
-                ".",
-                file_path,
-                ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-            )
+            try:
+                project_imports = get_project_imports(
+                    ".",
+                    file_path,
+                    ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+                )
+            except SyntaxError:
+                warnings.append(f"Skipping '{file_path}' due to a syntax error.")
+                continue
+            except OSError:
+                warnings.append(f"Skipping '{file_path}' due to a file system error.")
+                continue
             for project_import in project_imports:
                 check_error = check_import(
                     module_tree=module_tree,
@@ -173,7 +187,7 @@ def check(
                     )
                 )
 
-        return boundary_errors
+        return CheckResult(errors=boundary_errors, warnings=warnings)
     finally:
         fs.chdir(cwd)
 

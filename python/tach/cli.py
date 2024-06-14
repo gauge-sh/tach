@@ -85,7 +85,14 @@ def build_error_message(error: BoundaryError) -> str:
     return error_template.format(message=message)
 
 
+def print_warnings(warning_list: list[str]) -> None:
+    for warning in warning_list:
+        print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
+
+
 def print_errors(error_list: list[BoundaryError]) -> None:
+    if not error_list:
+        return
     sorted_results = sorted(error_list, key=lambda e: e.file_path)
     for error in sorted_results:
         print(
@@ -264,30 +271,36 @@ def tach_check(
         else:
             exclude_paths = project_config.exclude
 
-        boundary_errors: list[BoundaryError] = check(
+        check_result = check(
             root,
             project_config,
             exclude_paths=exclude_paths,
         )
+        if check_result.warnings:
+            print_warnings(check_result.warnings)
+
+        exit_code = 0
+
+        if check_result.errors:
+            print_errors(check_result.errors)
+            exit_code = 1
 
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
-        if not boundary_errors and exact:
+        if exact:
             pruned_config = prune_dependency_constraints(
                 root, project_config=project_config, exclude_paths=exclude_paths
             )
             unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:
                 print_unused_dependencies(unused_dependencies)
-                sys.exit(1)
+                exit_code = 1
     except Exception as e:
         print(str(e))
         sys.exit(1)
 
-    if boundary_errors:
-        print_errors(boundary_errors)
-        sys.exit(1)
-    print(f"✅ {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}")
-    sys.exit(0)
+    if exit_code == 0:
+        print(f"✅ {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}")
+    sys.exit(exit_code)
 
 
 def tach_mod(depth: int | None = 1, exclude_paths: list[str] | None = None):

@@ -53,6 +53,7 @@ struct DependencyReport {
     path: String,
     pub external_dependencies: Vec<Dependency>,
     pub external_usages: Vec<Dependency>,
+    pub warnings: Vec<String>,
 }
 
 impl DependencyReport {
@@ -61,6 +62,7 @@ impl DependencyReport {
             path,
             external_dependencies: vec![],
             external_usages: vec![],
+            warnings: vec![],
         }
     }
 
@@ -108,7 +110,7 @@ impl DependencyReport {
                 .to_string(),
         };
 
-        format!(
+        let mut result = format!(
             "[{title}]\n\
             {subtitle}\n\
             -------------------------------\n\
@@ -122,7 +124,20 @@ impl DependencyReport {
             usages_title = external_usages_title,
             deps = deps_display,
             usages = usages_display
-        )
+        );
+        if !self.warnings.is_empty() {
+            result.push_str(
+                format!(
+                    "\n\
+                    -------------------------------\n\
+                    [Warnings]\n\
+                    {}",
+                    self.warnings.join("\n")
+                )
+                .as_str(),
+            );
+        }
+        result
     }
 }
 
@@ -136,38 +151,44 @@ pub fn create_dependency_report(
     let mut result = DependencyReport::new(path_relative_to_root.to_string_lossy().to_string()); // TODO: clone shouldnt be necessary
 
     for pyfile in walk_pyfiles(&project_root) {
-        let project_imports = get_project_imports(
+        match get_project_imports(
             project_root.clone(), // TODO: not necessary, need to update the args
             pyfile.to_string_lossy().to_string(),
             ignore_type_checking_imports,
-        )?;
-
-        let pyfile_in_target_module = pyfile.starts_with(path_relative_to_root.to_str().unwrap());
-        if pyfile_in_target_module {
-            // Any import from within the target module which points to an external mod_path
-            // is an external dependency
-            result.external_dependencies.extend(
-                project_imports
-                    .into_iter()
-                    .filter(|import| !import.mod_path.starts_with(&module_path))
-                    .map(|import| Dependency {
-                        file_path: pyfile.to_string_lossy().to_string(),
-                        import,
-                    }),
-            );
-        } else {
-            // We are looking at imports from outside the target module,
-            // so any import which points to the target module is an external usage
-            for import in project_imports {
-                if import.mod_path.starts_with(&module_path) {
-                    result.external_usages.push(Dependency {
-                        file_path: pyfile.to_string_lossy().to_string(),
-                        import,
-                    });
+        ) {
+            Ok(project_imports) => {
+                let pyfile_in_target_module =
+                    pyfile.starts_with(path_relative_to_root.to_str().unwrap());
+                if pyfile_in_target_module {
+                    // Any import from within the target module which points to an external mod_path
+                    // is an external dependency
+                    result.external_dependencies.extend(
+                        project_imports
+                            .into_iter()
+                            .filter(|import| !import.mod_path.starts_with(&module_path))
+                            .map(|import| Dependency {
+                                file_path: pyfile.to_string_lossy().to_string(),
+                                import,
+                            }),
+                    );
+                } else {
+                    // We are looking at imports from outside the target module,
+                    // so any import which points to the target module is an external usage
+                    for import in project_imports {
+                        if import.mod_path.starts_with(&module_path) {
+                            result.external_usages.push(Dependency {
+                                file_path: pyfile.to_string_lossy().to_string(),
+                                import,
+                            });
+                        }
+                    }
                 }
+            }
+            Err(err) => {
+                // Failed to parse project imports
+                result.warnings.push(err.message);
             }
         }
     }
-
     Ok(result.render_to_string())
 }

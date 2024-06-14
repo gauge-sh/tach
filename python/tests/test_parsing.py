@@ -41,7 +41,7 @@ def test_run_valid_project_config():
             project_config,
             exclude_paths=project_config.exclude,
         )
-        assert results == []
+        assert results.errors == []
     finally:
         # Make sure not to dirty the test directory state
         fs.chdir(current_dir)

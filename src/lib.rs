@@ -4,12 +4,15 @@ pub mod imports;
 pub mod parsing;
 pub mod reports;
 
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
 
 impl From<imports::ImportParseError> for PyErr {
     fn from(err: imports::ImportParseError) -> Self {
-        PyValueError::new_err(err.message)
+        match err.err_type {
+            imports::ImportParseErrorType::FILESYSTEM => PyOSError::new_err(err.message),
+            imports::ImportParseErrorType::PARSING => PySyntaxError::new_err(err.message),
+        }
     }
 }
 
