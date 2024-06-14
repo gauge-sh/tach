@@ -31,24 +31,6 @@ deps: ## Install dependencies
 	maturin develop --profile release
 
 
-.PHONY: code
-code: ## Set up VS Code development environment
-	python -m pip install --upgrade uv
-
-	@if [ ! -d "$(VENV)" ]; then \
-		uv venv $(VENV); \
-		echo "Virtual environment created at $(VENV)"; \
-	else \
-		echo "Virtual environment already exists at $(VENV)"; \
-	fi
-
-	source $(VENV_BIN)/activate && \
-	uv pip install -r dev-requirements.txt
-	# Note: this can take up to 10 minutes
-	cd lsp/vscode && nox --session setup
-	cd lsp/vscode && npm install
-
-
 .PHONY: test
 test: ## Run tests
 	cd python/tests && \
