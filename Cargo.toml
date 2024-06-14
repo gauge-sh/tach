@@ -1,6 +1,6 @@
 [package]
 name = "tach"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2021"
 
 [lib]
@@ -12,6 +12,7 @@ bench = false
 pyo3 = "0.20.0"
 regex = "1.10.4"
 once_cell = "1.19.0"
+walkdir = "2.5.0"
 ruff_python_ast = { git = "https://github.com/astral-sh/ruff.git", tag = "v0.4.5" }
 ruff_python_parser = { git = "https://github.com/astral-sh/ruff.git", tag = "v0.4.5" }
 ruff_source_file = { git = "https://github.com/astral-sh/ruff.git", tag = "v0.4.5" }

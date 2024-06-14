@@ -97,6 +97,26 @@ options:
 
 This will find the nearest `tach` project in parent directories, and remove the `tach.yml` configuration file.
 
+
+## tach report
+`tach` can generate a report showing all the dependencies and usages of a given file or directory in your project.
+
+```bash
+usage: tach report [-h] [-e file_or_path,...] path
+
+Create a report of dependencies and usages of the given filepath or directory.
+
+positional arguments:
+  path                  The filepath or directory path used to generate the report.
+
+options:
+  -h, --help            show this help message and exit
+  -e file_or_path,..., --exclude file_or_path,...
+                        Comma separated path list to exclude. tests/, ci/, etc.
+```
+
+This will generate a textual report showing the file and line number of each relevant import.
+
 ## tach install
 `tach` can be installed into your development workflow automatically as a pre-commit hook.
 
@@ -107,7 +127,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
 -   repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.5.1  # change this to the latest tag!
+    rev: v0.5.2  # change this to the latest tag!
     hooks:
     -   id: tach
         # args: ["--root=backend_root"]

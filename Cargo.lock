@@ -1097,7 +1097,7 @@ dependencies = [
 
 [[package]]
 name = "tach"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "criterion",
  "once_cell",
@@ -1107,6 +1107,7 @@ dependencies = [
  "ruff_python_ast",
  "ruff_python_parser",
  "ruff_source_file",
+ "walkdir",
 ]
 
 [[package]]

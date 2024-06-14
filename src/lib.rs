@@ -2,6 +2,7 @@ pub mod exclusion;
 pub mod filesystem;
 pub mod imports;
 pub mod parsing;
+pub mod reports;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -14,6 +15,12 @@ impl From<imports::ImportParseError> for PyErr {
 
 impl From<exclusion::PathExclusionError> for PyErr {
     fn from(err: exclusion::PathExclusionError) -> Self {
+        PyValueError::new_err(err.message)
+    }
+}
+
+impl From<reports::ReportCreationError> for PyErr {
+    fn from(err: reports::ReportCreationError) -> Self {
         PyValueError::new_err(err.message)
     }
 }
@@ -38,9 +45,20 @@ fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
     exclusion::set_excluded_paths(exclude_paths)
 }
 
+#[pyfunction]
+#[pyo3(signature = (project_root, path, ignore_type_checking_imports=false))]
+fn create_dependency_report(
+    project_root: String,
+    path: String,
+    ignore_type_checking_imports: bool,
+) -> reports::Result<String> {
+    reports::create_dependency_report(project_root, path, ignore_type_checking_imports)
+}
+
 #[pymodule]
 fn extension(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction!(set_excluded_paths, m)?)?;
+    m.add_function(wrap_pyfunction!(create_dependency_report, m)?)?;
     Ok(())
 }
