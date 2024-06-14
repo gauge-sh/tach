@@ -15,20 +15,17 @@ if TYPE_CHECKING:
 
 
 def sync_dependency_constraints(
-    root: str,
-    project_config: ProjectConfig,
-    exclude_paths: list[str] | None = None,
+    root: str, project_config: ProjectConfig, exclude_paths: list[str] | None = None
 ) -> ProjectConfig:
     """
     Update project configuration with auto-detected dependency constraints.
     This is additive, meaning it will create dependencies to resolve existing errors,
     but will not remove any constraints.
-    Passing 'filter_tags' will limit updates to only those dependencies which include one of those tags.
     """
-    check_errors = check(
+    check_result = check(
         root, project_config=project_config, exclude_paths=exclude_paths
     )
-    for error in check_errors:
+    for error in check_result.errors:
         error_info = error.error_info
         if error_info.is_dependency_error:
             project_config.add_dependency_to_module(
