@@ -158,12 +158,12 @@ def check(
                 )
             except SyntaxError:
                 print(
-                    f"{BCOLORS.WARNING}Skipping file '{file_path}' due to a syntax error.{BCOLORS.ENDC}"
+                    f"{BCOLORS.WARNING}Skipping '{file_path}' due to a syntax error.{BCOLORS.ENDC}"
                 )
                 continue
             except OSError:
                 print(
-                    f"{BCOLORS.WARNING}Skipping file '{file_path}' due to a file system error.{BCOLORS.ENDC}"
+                    f"{BCOLORS.WARNING}Skipping '{file_path}' due to a file system error.{BCOLORS.ENDC}"
                 )
                 continue
             for project_import in project_imports:
