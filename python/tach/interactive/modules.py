@@ -188,6 +188,8 @@ class FileTree:
         if path not in self.nodes:
             return
         node = self.nodes[path]
+        # A source root should not also be a module
+        node.is_module = False
         if node is self.source_root:
             # source_root already pointing at this node, no-op
             return
@@ -445,6 +447,16 @@ class InteractiveModuleTree:
                 # Root should not be explicitly selected
                 return
             self.selected_node.is_module = not self.selected_node.is_module
+            if self.selected_node.is_module and self.selected_node.is_source_root:
+                # If we are marking the currently selected source root as a module,
+                # we should reset the source root to the root path.
+                # The source root cannot be a module.
+                self.file_tree.set_source_root(".")
+            self._update_display()
+
+        @self.key_bindings.add("s")
+        def _(event: KeyPressEvent):
+            self.file_tree.set_source_root(fs.canonical(self.selected_node.full_path))
             self._update_display()
 
         @self.key_bindings.add("c-a")
