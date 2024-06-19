@@ -82,22 +82,6 @@ adding the corresponding dependencies to your `tach.yml` file.
 If you supply `--prune`,
 any dependency constraints in your `tach.yml` which are not necessary will also be removed.
 
-## tach clean
-If you ever want to remove all configuration for `tach` and start over, you can use `tach clean`:
-
-```bash
-usage: tach clean [-h] [--force]
-
-Delete existing configuration and start from an empty slate.
-
-options:
-  -h, --help  show this help message and exit
-  --force     Do not prompt for confirmation.
-```
-
-This will find the nearest `tach` project in parent directories, and remove the `tach.yml` configuration file.
-
-
 ## tach report
 `tach` can generate a report showing all the dependencies and usages of a given file or directory in your project.
 

@@ -88,12 +88,6 @@ tach sync
 ```
 After running this command, `tach check` will always pass.
 
-If your configuration is in a bad state, from the root of your python project you can run: 
-```bash
-tach clean
-```
-This will wipe all the configuration generated and enforced by Tach.
-
 
 If you just want to see the dependencies and usages of a given file or module in your project, you can use `tach report`.
 
