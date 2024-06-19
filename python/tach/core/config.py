@@ -57,10 +57,11 @@ class ProjectConfig(Config):
     """
 
     modules: list[ModuleConfig] = Field(default_factory=list)
-    exclude: list[str] | None = Field(default_factory=lambda: ["tests", "docs"])
+    exclude: list[str] | None = Field(default_factory=lambda: ["tests", "docs", "venv"])
+    source_root: str = "."
     exact: bool = False
     disable_logging: bool = False
-    ignore_type_checking_imports: bool = False
+    ignore_type_checking_imports: bool = True
 
     @property
     def module_paths(self) -> list[str]:

@@ -105,5 +105,3 @@ exclude:
 - tach.egg-info/
 - tests/
 exact: true
-disable_logging: false
-ignore_type_checking_imports: true

@@ -14,9 +14,12 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     config.modules.sort(key=lambda mod: mod.path)
     for mod in config.modules:
         mod.depends_on.sort()
+    # NOTE: setting 'exclude' explicitly here also interacts with the 'exclude_unset' option
+    # being passed to 'model_dump'. It ensures that even on a fresh config, we will explicitly
+    # show excluded paths.
     config.exclude = list(set(config.exclude)) if config.exclude else []
     config.exclude.sort()
-    return yaml.dump(config.model_dump(), sort_keys=False)
+    return yaml.dump(config.model_dump(exclude_unset=True), sort_keys=False)
 
 
 def parse_project_config(root: str = ".") -> ProjectConfig | None:
