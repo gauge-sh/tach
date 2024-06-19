@@ -232,6 +232,12 @@ class ExitCode(Enum):
     QUIT_SAVE = 2
 
 
+@dataclass
+class InteractiveModuleConfiguration:
+    source_root: str
+    module_paths: list[str]
+
+
 class InteractiveModuleTree:
     TREE_LABEL = "Confirm Your Modules"
     AUTO_EXCLUDE_PATHS = [".*__pycache__"]
@@ -268,6 +274,9 @@ class InteractiveModuleTree:
         )
         self.file_tree.set_modules(module_paths=module_file_paths)
         self.selected_node = self.file_tree.root
+
+        self.file_tree.set_source_root(path=fs.canonical(project_config.source_root))
+
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
         # y location starts at 1 because the FileTree is rendered with a labeled header above the first branch
         self.cursor_point = Point(x=0, y=1)
@@ -541,17 +550,21 @@ class InteractiveModuleTree:
     def _update_display(self):
         self.tree_control.text = ANSI(self._render_tree())
 
-    def run(self) -> list[str] | None:
+    def run(self) -> InteractiveModuleConfiguration | None:
         self.app.run()
         if self.exit_code == ExitCode.QUIT_SAVE:
-            return [node.full_path for node in self.file_tree if node.is_module]
+            module_paths = [node.full_path for node in self.file_tree if node.is_module]
+            return InteractiveModuleConfiguration(
+                source_root=self.file_tree.source_root.full_path,
+                module_paths=module_paths,
+            )
 
 
 def get_selected_modules_interactive(
     path: str,
     project_config: ProjectConfig,
     depth: int | None = 1,
-) -> list[str] | None:
+) -> InteractiveModuleConfiguration | None:
     ipt = InteractiveModuleTree(
         path=path,
         project_config=project_config,
