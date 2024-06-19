@@ -331,10 +331,13 @@ class InteractiveModuleTree:
 
     KEY_BINDING_LEGEND_TOP: list[tuple[str, str]] = [
         ("Up/Down", "Navigate"),
-        ("Enter", "Mark/unmark module"),
         ("Right", "Expand"),
         ("Left", "Collapse"),
         ("Ctrl + Up", "Jump to parent"),
+    ]
+    KEY_BINDING_LEGEND_MIDDLE: list[tuple[str, str]] = [
+        ("Enter", "Mark/unmark Module"),
+        ("s", "Mark/unmark Source Root"),
     ]
     KEY_BINDING_LEGEND_BOTTOM: list[tuple[str, str]] = [
         ("Ctrl + s", "Exit and save"),
@@ -363,6 +366,7 @@ class InteractiveModuleTree:
         footer_text_top: AnyFormattedText = _build_footer_text(
             cls.KEY_BINDING_LEGEND_TOP
         )
+        footer_text_middle = _build_footer_text(cls.KEY_BINDING_LEGEND_MIDDLE)
         footer_text_bottom: AnyFormattedText = _build_footer_text(
             cls.KEY_BINDING_LEGEND_BOTTOM
         )
@@ -370,6 +374,10 @@ class InteractiveModuleTree:
             [
                 Window(
                     FormattedTextControl(text=footer_text_top), dont_extend_height=True
+                ),
+                Window(
+                    FormattedTextControl(text=footer_text_middle),
+                    dont_extend_height=True,
                 ),
                 Window(
                     FormattedTextControl(text=footer_text_bottom),
