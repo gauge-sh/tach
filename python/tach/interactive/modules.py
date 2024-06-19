@@ -42,6 +42,7 @@ class FileNode:
     is_dir: bool
     expanded: bool = False
     is_module: bool = False
+    is_source_root: bool = False
     parent: FileNode | None = None
     children: list[FileNode] = field(default_factory=list)
 
@@ -110,6 +111,7 @@ class FileNode:
 @dataclass
 class FileTree:
     root: FileNode
+    source_root: FileNode
     nodes: dict[str, FileNode] = field(default_factory=dict)
 
     @classmethod
@@ -122,7 +124,8 @@ class FileTree:
         root = FileNode.build_from_path(fs.canonical(path))
         root.is_module = False
         root.expanded = True
-        tree = cls(root)
+        root.is_source_root = True
+        tree = cls(root=root, source_root=root)
         tree.nodes[fs.canonical(path)] = root
         tree._build_subtree(
             root, depth=depth if depth is not None else 1, exclude_paths=exclude_paths
@@ -180,6 +183,21 @@ class FileTree:
         for module_path in module_paths:
             if module_path in self.nodes:
                 self.nodes[module_path].is_module = True
+
+    def set_source_root(self, path: str):
+        if path not in self.nodes:
+            return
+        node = self.nodes[path]
+        if node is self.source_root:
+            # source_root already pointing at this node, no-op
+            return
+
+        # Unmark current source_root
+        self.source_root.is_source_root = False
+        # Mark node at 'path' as a source root
+        node.is_source_root = True
+        # Update source root to node at 'path'
+        self.source_root = node
 
     def __iter__(self):
         return file_tree_iterator(self)
@@ -467,7 +485,9 @@ class InteractiveModuleTree:
             text_parts.append(("-> ", "bold cyan"))
 
         basename = os.path.basename(node.full_path)
-        if node.is_module:
+        if node.is_source_root:
+            text_parts.append((f"[Source Root] {basename}", "bold cyan"))
+        elif node.is_module:
             text_parts.append((f"[Module] {basename}", "bold yellow"))
         elif node == self.selected_node:
             text_parts.append((basename, "bold"))
