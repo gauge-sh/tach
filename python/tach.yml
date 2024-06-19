@@ -13,6 +13,7 @@ modules:
   strict: true
 - path: tach.check
   depends_on:
+  - tach.core
   - tach.errors
   - tach.filesystem
   - tach.parsing
