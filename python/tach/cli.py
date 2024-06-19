@@ -124,7 +124,7 @@ def print_unused_dependencies(
 
 def print_no_config_yml() -> None:
     print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {Path.cwd()}{BCOLORS.ENDC}",
+        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found{BCOLORS.ENDC}",
         file=sys.stderr,
     )
 
@@ -170,13 +170,6 @@ def build_parser() -> argparse.ArgumentParser:
         prog="tach check",
         help="Check existing boundaries against your dependencies and module interfaces",
         description="Check existing boundaries against your dependencies and module interfaces",
-    )
-    check_parser.add_argument(
-        "--root",
-        required=False,
-        type=str,
-        default=".",
-        help="The root directory from which the check should run",
     )
     check_parser.add_argument(
         "--exact",
@@ -244,7 +237,6 @@ def parse_arguments(
 
 
 def tach_check(
-    root: str = ".",
     exact: bool = False,
     exclude_paths: list[str] | None = None,
 ):
@@ -258,7 +250,12 @@ def tach_check(
         },
     )
     try:
-        project_config = parse_project_config(root=root)
+        project_config_root = fs.find_project_config_root(str(Path.cwd()))
+        if project_config_root is None:
+            print_no_config_yml()
+            sys.exit(1)
+
+        project_config = parse_project_config(project_config_root)
         if project_config is None:
             print_no_config_yml()
             sys.exit(1)
@@ -431,7 +428,7 @@ def main() -> None:
     elif args.command == "sync":
         tach_sync(prune=args.prune, exclude_paths=exclude_paths)
     elif args.command == "check":
-        tach_check(root=args.root, exact=args.exact, exclude_paths=exclude_paths)
+        tach_check(exact=args.exact, exclude_paths=exclude_paths)
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)

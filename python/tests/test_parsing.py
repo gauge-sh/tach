@@ -37,8 +37,7 @@ def test_run_valid_project_config():
         fs.chdir(project)
         project_config = parse_project_config()
         results = check(
-            ".",
-            project_config,
+            project_config=project_config,
             exclude_paths=project_config.exclude,
         )
         assert results.errors == []
