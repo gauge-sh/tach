@@ -6,6 +6,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Generator
 
 from prompt_toolkit import ANSI
@@ -266,7 +267,9 @@ class InteractiveModuleTree:
                 filter(
                     None,
                     [
-                        fs.module_to_pyfile_or_dir_path(module_path)
+                        fs.module_to_pyfile_or_dir_path(
+                            str(Path(project_config.source_root) / module_path)
+                        )
                         for module_path in project_config.module_paths
                     ],
                 ),

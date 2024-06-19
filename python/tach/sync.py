@@ -15,16 +15,14 @@ if TYPE_CHECKING:
 
 
 def sync_dependency_constraints(
-    root: str, project_config: ProjectConfig, exclude_paths: list[str] | None = None
+    project_config: ProjectConfig, exclude_paths: list[str] | None = None
 ) -> ProjectConfig:
     """
     Update project configuration with auto-detected dependency constraints.
     This is additive, meaning it will create dependencies to resolve existing errors,
     but will not remove any constraints.
     """
-    check_result = check(
-        root, project_config=project_config, exclude_paths=exclude_paths
-    )
+    check_result = check(project_config=project_config, exclude_paths=exclude_paths)
     for error in check_result.errors:
         error_info = error.error_info
         if error_info.is_dependency_error:
@@ -36,7 +34,6 @@ def sync_dependency_constraints(
 
 
 def prune_dependency_constraints(
-    root: str,
     project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
@@ -54,7 +51,7 @@ def prune_dependency_constraints(
     )
 
     sync_dependency_constraints(
-        root, project_config=project_config, exclude_paths=exclude_paths
+        project_config=project_config, exclude_paths=exclude_paths
     )
 
     return project_config
@@ -82,11 +79,11 @@ def sync_project(prune: bool = False, exclude_paths: list[str] | None = None) ->
 
         if prune:
             project_config = prune_dependency_constraints(
-                root, project_config=project_config, exclude_paths=exclude_paths
+                project_config=project_config, exclude_paths=exclude_paths
             )
         else:
             project_config = sync_dependency_constraints(
-                root, project_config=project_config, exclude_paths=exclude_paths
+                project_config=project_config, exclude_paths=exclude_paths
             )
 
         tach_yml_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")

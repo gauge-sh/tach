@@ -1,28 +1,27 @@
 modules:
 - path: tach
   depends_on: []
-  strict: true
 - path: tach.__main__
   depends_on:
   - tach.cli
-  strict: true
 - path: tach.cache
   depends_on:
   - tach
   - tach.filesystem
-  strict: true
 - path: tach.check
   depends_on:
-  - tach.core
   - tach.errors
   - tach.filesystem
   - tach.parsing
-  strict: true
+- path: tach.clean
+  depends_on:
+  - tach.filesystem
 - path: tach.cli
   depends_on:
   - tach
   - tach.cache
   - tach.check
+  - tach.clean
   - tach.colors
   - tach.constants
   - tach.core
@@ -33,42 +32,33 @@ modules:
   - tach.parsing
   - tach.report
   - tach.sync
-  strict: true
 - path: tach.colors
   depends_on: []
-  strict: true
 - path: tach.constants
   depends_on: []
-  strict: true
 - path: tach.core
   depends_on:
   - tach.constants
-  strict: true
 - path: tach.errors
   depends_on: []
-  strict: true
 - path: tach.filesystem
   depends_on:
   - tach.colors
   - tach.constants
   - tach.errors
   - tach.hooks
-  strict: true
 - path: tach.hooks
   depends_on:
   - tach.constants
-  strict: true
 - path: tach.interactive
   depends_on:
   - tach.errors
   - tach.filesystem
-  strict: true
 - path: tach.logging
   depends_on:
   - tach
   - tach.cache
   - tach.parsing
-  strict: true
 - path: tach.mod
   depends_on:
   - tach.colors
@@ -78,16 +68,13 @@ modules:
   - tach.filesystem
   - tach.interactive
   - tach.parsing
-  strict: true
 - path: tach.parsing
   depends_on:
   - tach.core
   - tach.filesystem
-  strict: true
 - path: tach.report
   depends_on:
   - tach.errors
-  strict: true
 - path: tach.sync
   depends_on:
   - tach.check
@@ -96,12 +83,8 @@ modules:
   - tach.errors
   - tach.filesystem
   - tach.parsing
-  strict: true
 exclude:
-- .*__pycache__/
-- build/
-- dist/
-- docs/
-- tach.egg-info/
-- tests/
-exact: true
+- docs
+- tests
+- venv
+source_root: python

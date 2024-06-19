@@ -143,10 +143,10 @@ def validate_project_modules(
 
 
 def check(
-    root: str,
     project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> CheckResult:
+    root = project_config.source_root
     if not os.path.isdir(root):
         raise errors.TachSetupError(f"The path {root} is not a valid directory.")
 

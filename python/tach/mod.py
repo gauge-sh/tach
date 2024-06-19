@@ -18,19 +18,18 @@ from tach.parsing import dump_project_config_to_yaml, parse_project_config
 
 def update_modules(root: str, source_root: str, selected_modules: list[str]):
     project_config = parse_project_config(root=root) or ProjectConfig()
-
-    module_paths = [
-        fs.file_to_module_path(selected_module_file_path)
-        for selected_module_file_path in selected_modules
-    ]
-    project_config.set_modules(module_paths=module_paths)
-
     source_root = fs.canonical(source_root)
     if project_config.source_root != source_root:
         # Only assign to this field if it has changed,
         # since the project config writes any field that
         # has been touched out to YML.
         project_config.source_root = fs.canonical(source_root)
+
+    module_paths = [
+        fs.file_to_module_path(os.path.relpath(selected_module_file_path, source_root))
+        for selected_module_file_path in selected_modules
+    ]
+    project_config.set_modules(module_paths=module_paths)
 
     project_config_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
     config_yml_content = dump_project_config_to_yaml(project_config)

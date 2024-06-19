@@ -271,7 +271,6 @@ def tach_check(
             exclude_paths = project_config.exclude
 
         check_result = check(
-            root,
             project_config,
             exclude_paths=exclude_paths,
         )
@@ -287,7 +286,7 @@ def tach_check(
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
         if exact:
             pruned_config = prune_dependency_constraints(
-                root, project_config=project_config, exclude_paths=exclude_paths
+                project_config=project_config, exclude_paths=exclude_paths
             )
             unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:
