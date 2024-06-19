@@ -99,6 +99,10 @@ def print_errors(error_list: list[BoundaryError]) -> None:
             build_error_message(error),
             file=sys.stderr,
         )
+    print(
+        f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
+        f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
+    )
 
 
 def print_unused_dependencies(
