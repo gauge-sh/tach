@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
+from tach.core import ModuleConfig
 from tach.extension import get_project_imports, set_excluded_paths
 from tach.parsing import build_module_tree
 
@@ -123,6 +124,24 @@ class CheckResult:
     warnings: list[str] = field(default_factory=list)
 
 
+@dataclass
+class ProjectModuleValidationResult:
+    valid_modules: list[ModuleConfig] = field(default_factory=list)
+    invalid_modules: list[ModuleConfig] = field(default_factory=list)
+
+
+def validate_project_modules(
+    modules: list[ModuleConfig],
+) -> ProjectModuleValidationResult:
+    result = ProjectModuleValidationResult()
+    for module in modules:
+        if fs.module_to_pyfile_or_dir_path(module.path):
+            result.valid_modules.append(module)
+        else:
+            result.invalid_modules.append(module)
+    return result
+
+
 def check(
     root: str,
     project_config: ProjectConfig,
@@ -135,18 +154,24 @@ def check(
     try:
         fs.chdir(root)
 
+        boundary_errors: list[BoundaryError] = []
+        warnings: list[str] = []
+
         if exclude_paths is not None and project_config.exclude is not None:
             exclude_paths.extend(project_config.exclude)
         else:
             exclude_paths = project_config.exclude
 
-        module_tree = build_module_tree(project_config.modules)
+        module_validation_result = validate_project_modules(project_config.modules)
+        warnings.extend(
+            f"Module '{module.path}' not found. It will be ignored."
+            for module in module_validation_result.invalid_modules
+        )
+        module_tree = build_module_tree(module_validation_result.valid_modules)
 
         # This informs the Rust extension ahead-of-time which paths are excluded.
         # The extension builds regexes and uses them during `get_project_imports`
         set_excluded_paths(exclude_paths=exclude_paths or [])
-        boundary_errors: list[BoundaryError] = []
-        warnings: list[str] = []
         for file_path in fs.walk_pyfiles(
             ".",
             exclude_paths=exclude_paths,
