@@ -52,12 +52,6 @@ tach sync
 ```
 After running this command, `tach check` will always pass.
 
-If your configuration is in a bad state, from the root of your python project you can run: 
-```bash
-tach clean
-```
-This will wipe all the configuration generated and enforced by Tach.
-
 
 Tach also supports:
 - [Manual file configuration](https://gauge-sh.github.io/tach/configuration/)
