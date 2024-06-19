@@ -294,6 +294,11 @@ def module_to_pyfile_or_dir_path(module_path: str) -> Path | None:
     This resolves a dotted Python module path ('a.b.c')
     into a Python file or a Python package directory
     """
+    if not module_path:
+        # Path("") turns into PosixPath("."), but we don't want to
+        # treat an empty module path as the root directory
+        return None
+
     base_path = module_path.replace(".", os.sep)
     pyfile_path = Path(f"{base_path}.py")
     dir_path = Path(base_path)

@@ -120,6 +120,7 @@ class FileTree:
         exclude_paths: list[str] | None = None,
     ) -> FileTree:
         root = FileNode.build_from_path(fs.canonical(path))
+        root.is_module = False
         root.expanded = True
         tree = cls(root)
         tree.nodes[fs.canonical(path)] = root
@@ -422,6 +423,9 @@ class InteractiveModuleTree:
 
         @self.key_bindings.add("enter")
         def _(event: KeyPressEvent):
+            if self.selected_node is self.file_tree.root:
+                # Root should not be explicitly selected
+                return
             self.selected_node.is_module = not self.selected_node.is_module
             self._update_display()
 
