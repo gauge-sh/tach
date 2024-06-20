@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
-from tach.filesystem.project import get_project_config_path
+from tach.filesystem import get_project_config_path
 from tach.parsing import dump_project_config_to_yaml
 
 if TYPE_CHECKING:

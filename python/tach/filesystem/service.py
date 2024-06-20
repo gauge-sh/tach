@@ -234,7 +234,7 @@ def file_to_module_path(source_root: Path, file_path: Path) -> str:
 
 
 @lru_cache(maxsize=None)
-def module_to_file_path_no_members(module_path: str) -> Path | None:
+def module_to_file_path_no_members(source_root: Path, module_path: str) -> Path | None:
     """
     This resolves a dotted Python module path ('a.b.c')
     into a Python file path or a Python package __init__.py
@@ -246,8 +246,8 @@ def module_to_file_path_no_members(module_path: str) -> Path | None:
         return None
 
     base_path = module_path.replace(".", os.sep)
-    pyfile_path = Path(f"{base_path}.py")
-    init_py_path = Path(base_path).joinpath("__init__.py")
+    pyfile_path = source_root / f"{base_path}.py"
+    init_py_path = source_root / base_path / "__init__.py"
     if pyfile_path.exists():
         return pyfile_path
     elif init_py_path.exists():

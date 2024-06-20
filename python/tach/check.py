@@ -163,14 +163,19 @@ def check(
     else:
         exclude_paths = project_config.exclude
 
+    source_root = project_root / project_config.source_root
+
     module_validation_result = validate_project_modules(
-        source_root=project_config.source_root, modules=project_config.modules
+        source_root=source_root, modules=project_config.modules
     )
     warnings.extend(
         f"Module '{module.path}' not found. It will be ignored."
         for module in module_validation_result.invalid_modules
     )
-    module_tree = build_module_tree(module_validation_result.valid_modules)
+    module_tree = build_module_tree(
+        source_root=source_root,
+        modules=module_validation_result.valid_modules,
+    )
 
     # This informs the Rust extension ahead-of-time which paths are excluded.
     # The extension builds regexes and uses them during `get_project_imports`
@@ -181,7 +186,7 @@ def check(
     ):
         abs_file_path = project_root / file_path
         mod_path = fs.file_to_module_path(
-            source_root=project_config.source_root, file_path=file_path
+            source_root=source_root, file_path=abs_file_path
         )
         nearest_module = module_tree.find_nearest(mod_path)
         if nearest_module is None:

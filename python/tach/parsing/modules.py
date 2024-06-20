@@ -6,6 +6,8 @@ from tach.core import ModuleTree
 from tach.parsing import parse_interface_members
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tach.core import ModuleConfig
 
 
@@ -20,7 +22,7 @@ def find_duplicate_modules(modules: list[ModuleConfig]) -> list[str]:
     return duplicate_module_paths
 
 
-def build_module_tree(modules: list[ModuleConfig]) -> ModuleTree:
+def build_module_tree(source_root: Path, modules: list[ModuleConfig]) -> ModuleTree:
     duplicate_modules = find_duplicate_modules(modules)
     if duplicate_modules:
         raise ValueError(
@@ -31,6 +33,8 @@ def build_module_tree(modules: list[ModuleConfig]) -> ModuleTree:
         tree.insert(
             config=module,
             path=module.mod_path,
-            interface_members=parse_interface_members(module.path),
+            interface_members=parse_interface_members(
+                source_root=source_root, module_path=module.path
+            ),
         )
     return tree
