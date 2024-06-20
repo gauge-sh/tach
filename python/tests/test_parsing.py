@@ -11,6 +11,12 @@ from tach.filesystem import file_to_module_path
 from tach.parsing import parse_project_config
 
 
+@pytest.fixture
+def example_dir() -> Path:
+    current_dir = Path(__file__).parent
+    return current_dir / "example"
+
+
 def test_file_to_mod_path():
     assert file_to_module_path(Path("."), Path("__init__.py")) == ""
     assert (
@@ -22,8 +28,8 @@ def test_file_to_mod_path():
     )
 
 
-def test_parse_valid_project_config():
-    result = parse_project_config(Path("example/valid/"))
+def test_parse_valid_project_config(example_dir):
+    result = parse_project_config(example_dir / "valid")
     assert result == ProjectConfig(
         modules=[
             ModuleConfig(path="domain_one", depends_on=["domain_two"]),
@@ -34,9 +40,8 @@ def test_parse_valid_project_config():
     )
 
 
-def test_run_valid_project_config():
-    project = "example/valid/"
-    project_root = Path(project).resolve()
+def test_run_valid_project_config(example_dir):
+    project_root = example_dir / "valid"
     project_config = parse_project_config(project_root)
     results = check(
         project_root=project_root,
@@ -46,11 +51,11 @@ def test_run_valid_project_config():
     assert results.errors == []
 
 
-def test_invalid_project_config():
+def test_invalid_project_config(example_dir):
     with pytest.raises(ValidationError):
-        parse_project_config(Path("example/invalid/"))
+        parse_project_config(example_dir / "invalid")
 
 
-def test_empty_project_config():
+def test_empty_project_config(example_dir):
     with pytest.raises(ValueError):
-        parse_project_config(Path("example/invalid/empty"))
+        parse_project_config(example_dir / "invalid" / "empty")
