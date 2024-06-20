@@ -179,6 +179,7 @@ def check(
         project_root,
         exclude_paths=exclude_paths,
     ):
+        abs_file_path = project_root / file_path
         mod_path = fs.file_to_module_path(
             source_root=project_config.source_root, file_path=file_path
         )
@@ -190,7 +191,7 @@ def check(
             project_imports = get_project_imports(
                 project_root=str(project_root),
                 source_root=str(project_config.source_root),
-                file_path=str(file_path),
+                file_path=str(abs_file_path),
                 ignore_type_checking_imports=project_config.ignore_type_checking_imports,
             )
         except SyntaxError:

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
-use std::fs;
-use std::path::{Path, PathBuf, MAIN_SEPARATOR};
+use std::path::{Path, PathBuf};
 
 use pyo3::conversion::IntoPy;
 use pyo3::PyObject;
@@ -321,13 +320,10 @@ pub fn get_project_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> Result<ProjectImports> {
-    let absolute_path = fs::canonicalize(&file_path).map_err(|_| ImportParseError {
-        err_type: ImportParseErrorType::FILESYSTEM,
-        message: "Failed to parse project imports.".to_string(),
-    })?;
+    let file_path = PathBuf::from(&file_path);
     let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
     let file_contents =
-        filesystem::read_file_content(&absolute_path).map_err(|err| ImportParseError {
+        filesystem::read_file_content(&file_path).map_err(|err| ImportParseError {
             err_type: ImportParseErrorType::FILESYSTEM,
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
@@ -336,23 +332,22 @@ pub fn get_project_imports(
             err_type: ImportParseErrorType::PARSING,
             message: format!(
                 "Failed to parse project imports. File: {:?} Failure: {:?}",
-                absolute_path.to_str().unwrap(),
+                file_path.to_str().unwrap(),
                 err
             ),
         })?;
-    let is_package = file_path.ends_with(format!("{}__init__.py", MAIN_SEPARATOR).as_str())
-        || file_path == "__init__.py";
+    let is_package = file_path.ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);
     let file_mod_path = filesystem::file_to_module_path(
         &absolute_source_root.to_str().unwrap(),
-        absolute_path.to_str().unwrap(),
+        &file_path.to_str().unwrap(),
     )
     .map_err(|err| ImportParseError {
         err_type: ImportParseErrorType::FILESYSTEM,
         message: format!(
             "Failed to translate file to module path. File: {:?} Failure: {:?}",
-            file_path.as_str(),
+            file_path.to_str().unwrap(),
             err
         ),
     })?;
