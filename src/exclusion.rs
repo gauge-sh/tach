@@ -30,11 +30,9 @@ pub fn set_excluded_paths(exclude_paths: Vec<String>) -> Result<()> {
             let _ = exclusions.insert(PathExclusions::try_from(exclude_paths)?);
             Ok(())
         }
-        Err(_) => {
-            return Err(PathExclusionError {
-                message: "A concurrency error occurred when setting excluded paths.".to_string(),
-            })
-        }
+        Err(_) => Err(PathExclusionError {
+            message: "A concurrency error occurred when setting excluded paths.".to_string(),
+        }),
     }
 }
 
@@ -45,7 +43,7 @@ impl PathExclusions {
                 return true;
             }
         }
-        return false;
+        false
     }
 }
 
@@ -67,9 +65,9 @@ pub fn is_path_excluded(path: &str) -> Result<bool> {
                 .as_ref()
                 .is_some_and(|path_exclusions| path_exclusions.is_path_excluded(path))
             {
-                return Ok(true);
+                Ok(true)
             } else {
-                return Ok(false);
+                Ok(false)
             }
         }
         Err(_) => Err(PathExclusionError {
