@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -19,11 +20,12 @@ def create_temp_file(directory, filename, content):
 @pytest.fixture
 def temp_project():
     with tempfile.TemporaryDirectory() as project_root:
+        project_root = Path(project_root)
         # Creating some sample Python files in a nested structure
-        os.makedirs(os.path.join(project_root, "a", "b"), exist_ok=True)
-        os.makedirs(os.path.join(project_root, "d"), exist_ok=True)
-        os.makedirs(os.path.join(project_root, "local", "g"), exist_ok=True)
-        os.makedirs(os.path.join(project_root, "parent"), exist_ok=True)
+        (project_root / "a" / "b").mkdir(parents=True, exist_ok=True)
+        (project_root / "d").mkdir(parents=True, exist_ok=True)
+        (project_root / "local" / "g").mkdir(parents=True, exist_ok=True)
+        (project_root / "parent").mkdir(parents=True, exist_ok=True)
 
         file1_content = """
 import os
@@ -55,7 +57,10 @@ import file3
 
 def test_regular_imports(temp_project):
     result = get_project_imports(
-        temp_project, "file1.py", ignore_type_checking_imports=True
+        str(temp_project),
+        ".",
+        str(temp_project / "file1.py"),
+        ignore_type_checking_imports=True,
     )
     expected = [("local.file2.b", 3)]
     assert result == expected
@@ -63,7 +68,10 @@ def test_regular_imports(temp_project):
 
 def test_relative_imports(temp_project):
     result = get_project_imports(
-        temp_project, "local/file2.py", ignore_type_checking_imports=True
+        str(temp_project),
+        ".",
+        str(temp_project / "local/file2.py"),
+        ignore_type_checking_imports=True,
     )
     expected = [("file1.y", 2)]
     assert result == expected
@@ -71,7 +79,10 @@ def test_relative_imports(temp_project):
 
 def test_ignore_type_checking_imports(temp_project):
     result = get_project_imports(
-        temp_project, "file3.py", ignore_type_checking_imports=True
+        str(temp_project),
+        ".",
+        str(temp_project / "file3.py"),
+        ignore_type_checking_imports=True,
     )
     expected = []
     assert result == expected
@@ -79,7 +90,10 @@ def test_ignore_type_checking_imports(temp_project):
 
 def test_include_type_checking_imports(temp_project):
     result = get_project_imports(
-        temp_project, "file3.py", ignore_type_checking_imports=False
+        str(temp_project),
+        ".",
+        str(temp_project / "file3.py"),
+        ignore_type_checking_imports=False,
     )
     expected = [("local.file2.c", 3)]
     assert result == expected
@@ -94,13 +108,19 @@ from ..file1 import x
 """
     create_temp_file(temp_project, "local/file4.py", mixed_content)
     result = get_project_imports(
-        temp_project, "local/file4.py", ignore_type_checking_imports=True
+        str(temp_project),
+        ".",
+        str(temp_project / "local/file4.py"),
+        ignore_type_checking_imports=True,
     )
     expected = [("file1.x", 5)]
     assert result == expected
 
     result = get_project_imports(
-        temp_project, "local/file4.py", ignore_type_checking_imports=False
+        str(temp_project),
+        ".",
+        str(temp_project / "local/file4.py"),
+        ignore_type_checking_imports=False,
     )
     expected = [("local.file2.c", 4), ("file1.x", 5)]
     assert result == expected
@@ -113,7 +133,10 @@ from external_module import something
 """
     create_temp_file(temp_project, "file5.py", external_content)
     result = get_project_imports(
-        temp_project, "file5.py", ignore_type_checking_imports=True
+        str(temp_project),
+        ".",
+        str(temp_project / "file5.py"),
+        ignore_type_checking_imports=True,
     )
     expected = []  # 'os' and 'external_module' are not within the project root
     assert result == expected
@@ -127,7 +150,10 @@ from external_module import something
 """
     create_temp_file(temp_project, "file6.py", mixed_content)
     result = get_project_imports(
-        temp_project, "file6.py", ignore_type_checking_imports=True
+        str(temp_project),
+        ".",
+        str(temp_project / "file6.py"),
+        ignore_type_checking_imports=True,
     )
     expected = [
         ("file1.c", 3),
@@ -137,7 +163,10 @@ from external_module import something
 
 def test_ignored_imports(temp_project):
     result = get_project_imports(
-        temp_project, "file4.py", ignore_type_checking_imports=True
+        str(temp_project),
+        ".",
+        str(temp_project / "file4.py"),
+        ignore_type_checking_imports=True,
     )
     expected = [("file3", 7)]
     assert result == expected
