@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import yaml
 
 from tach import filesystem as fs
@@ -22,7 +24,8 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     return yaml.dump(config.model_dump(exclude_unset=True), sort_keys=False)
 
 
-def parse_project_config(root: str = ".") -> ProjectConfig | None:
+def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
+    root = root or Path.cwd()
     file_path = fs.get_project_config_path(root)
     if not file_path:
         return None

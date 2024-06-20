@@ -247,13 +247,13 @@ def walk_configured_packages(
 
 
 @lru_cache(maxsize=None)
-def file_to_module_path(file_path: str) -> str:
+def file_to_module_path(source_root: Path, file_path: Path) -> str:
     # Assuming that the file_path has been 'canonicalized' and does not traverse multiple directories
-    file_path = file_path.lstrip("./")
-    if file_path == ".":
+    file_path = file_path.relative_to(source_root)
+    if file_path == Path("."):
         return ""
 
-    module_path = file_path.replace(os.sep, ".")
+    module_path = str(file_path).replace(os.sep, ".")
 
     if module_path.endswith(".py"):
         module_path = module_path[:-3]
@@ -289,7 +289,7 @@ def module_to_file_path_no_members(module_path: str) -> Path | None:
 
 
 @lru_cache(maxsize=None)
-def module_to_pyfile_or_dir_path(module_path: str) -> Path | None:
+def module_to_pyfile_or_dir_path(source_root: Path, module_path: str) -> Path | None:
     """
     This resolves a dotted Python module path ('a.b.c')
     into a Python file or a Python package directory
@@ -300,8 +300,8 @@ def module_to_pyfile_or_dir_path(module_path: str) -> Path | None:
         return None
 
     base_path = module_path.replace(".", os.sep)
-    pyfile_path = Path(f"{base_path}.py")
-    dir_path = Path(base_path)
+    pyfile_path = source_root / f"{base_path}.py"
+    dir_path = source_root / base_path
     if pyfile_path.exists():
         return pyfile_path
     elif dir_path.is_dir():

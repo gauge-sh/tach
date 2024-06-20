@@ -8,7 +8,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from tach import __version__, cache
+from tach import __version__
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
 from tach.colors import BCOLORS
@@ -298,7 +298,9 @@ def tach_check(
     sys.exit(exit_code)
 
 
-def tach_mod(depth: int | None = 1, exclude_paths: list[str] | None = None):
+def tach_mod(
+    project_root: Path, depth: int | None = 1, exclude_paths: list[str] | None = None
+):
     logger.info(
         "tach mod called",
         extra={
@@ -309,9 +311,9 @@ def tach_mod(depth: int | None = 1, exclude_paths: list[str] | None = None):
         },
     )
     try:
-        project_config = parse_project_config(root=".") or ProjectConfig()
+        project_config = parse_project_config(root=project_root) or ProjectConfig()
         saved_changes, warnings = mod_edit_interactive(
-            root=".", project_config=project_config, depth=depth
+            project_root=project_root, project_config=project_config, depth=depth
         )
     except Exception as e:
         print(str(e))
@@ -416,19 +418,28 @@ def tach_report(path: str, exclude_paths: list[str] | None = None):
 
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
-    latest_version = cache.get_latest_version()
-    if latest_version and latest_version != __version__:
-        print(
-            f"{BCOLORS.WARNING}WARNING: there is a new tach version available"
-            f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
-        )
+    # latest_version = cache.get_latest_version()
+    # if latest_version and latest_version != __version__:
+    #     print(
+    #         f"{BCOLORS.WARNING}WARNING: there is a new tach version available"
+    #         f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
+    #     )
+
+    # TODO: rename throughout to 'exclude_patterns' to indicate that these are regex patterns
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
+    project_root = fs.find_project_config_root() or Path.cwd()
     if args.command == "mod":
-        tach_mod(depth=args.depth, exclude_paths=exclude_paths)
+        tach_mod(
+            project_root=project_root, depth=args.depth, exclude_paths=exclude_paths
+        )
     elif args.command == "sync":
-        tach_sync(prune=args.prune, exclude_paths=exclude_paths)
+        tach_sync(
+            project_root=project_root, prune=args.prune, exclude_paths=exclude_paths
+        )
     elif args.command == "check":
-        tach_check(exact=args.exact, exclude_paths=exclude_paths)
+        tach_check(
+            project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
+        )
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)
@@ -439,7 +450,9 @@ def main() -> None:
             path=args.path, target=install_target, project_root=args.project_root
         )
     elif args.command == "report":
-        tach_report(path=args.path, exclude_paths=exclude_paths)
+        tach_report(
+            project_root=project_root, path=args.path, exclude_paths=exclude_paths
+        )
     else:
         print("Unrecognized command")
         parser.print_help()

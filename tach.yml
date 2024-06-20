@@ -81,6 +81,7 @@ modules:
   - tach.filesystem
   - tach.parsing
 exclude:
+- .*__pycache__
 - docs
 - tests
 - venv
