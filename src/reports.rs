@@ -1,6 +1,8 @@
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 
+use crate::colors::*;
+
 use crate::filesystem::{
     adjust_path_from_cwd_to_root, file_to_module_path, walk_pyfiles, FileSystemError,
 };
@@ -84,10 +86,8 @@ impl DependencyReport {
         let external_deps_title = format!("Dependencies of '{path}'", path = self.path.as_str());
         let external_usages_title = format!("Usages of '{path}'", path = self.path.as_str());
 
-        self.external_dependencies
-            .sort_by(|l, r| compare_dependencies(l, r));
-        self.external_usages
-            .sort_by(|l, r| compare_dependencies(l, r));
+        self.external_dependencies.sort_by(compare_dependencies);
+        self.external_usages.sort_by(compare_dependencies);
 
         let deps_display: String = match self.external_dependencies.len() {
             0 => "No dependencies found.".to_string(),
@@ -115,15 +115,18 @@ impl DependencyReport {
             {subtitle}\n\
             -------------------------------\n\
             [{deps_title}]\n\
-            {deps}\n\
+            {cyan}{deps}\n\
             -------------------------------\n\
-            [{usages_title}]\n\
-            {usages}",
+            {green}[{usages_title}]\n\
+            {usages}{end_color}",
             title = title,
             deps_title = external_deps_title,
             usages_title = external_usages_title,
             deps = deps_display,
-            usages = usages_display
+            usages = usages_display,
+            cyan = BColors::OKCYAN,
+            green = BColors::OKGREEN,
+            end_color = BColors::ENDC
         );
         if !self.warnings.is_empty() {
             result.push_str(
@@ -131,8 +134,10 @@ impl DependencyReport {
                     "\n\
                     -------------------------------\n\
                     [Warnings]\n\
-                    {}",
-                    self.warnings.join("\n")
+                    {warning_color}{warnings}{end_color}",
+                    warning_color = BColors::WARNING,
+                    end_color = BColors::ENDC,
+                    warnings = self.warnings.join("\n")
                 )
                 .as_str(),
             );
