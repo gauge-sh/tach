@@ -60,7 +60,6 @@ modules:
   depends_on:
   - tach.colors
   - tach.constants
-  - tach.core
   - tach.errors
   - tach.filesystem
   - tach.interactive
@@ -75,14 +74,12 @@ modules:
 - path: tach.sync
   depends_on:
   - tach.check
-  - tach.colors
-  - tach.constants
   - tach.errors
   - tach.filesystem
   - tach.parsing
 exclude:
 - .*__pycache__
 - docs
-- tests
+- python/tests
 - venv
 source_root: python

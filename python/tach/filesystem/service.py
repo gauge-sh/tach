@@ -157,20 +157,18 @@ def parse_ast(path: str) -> ast.AST:
 
 
 def walk(
-    root: str,
+    root: Path,
     depth: int | None = None,
     exclude_paths: list[str] | None = None,
-) -> Generator[tuple[str, list[str]], None, None]:
-    canonical_root = canonical(root)
-    base_depth = 0 if canonical_root == "." else canonical_root.count(os.path.sep) + 1
-    for dirpath, dirnames, filenames in os.walk(canonical_root):
-        dirpath = canonical(dirpath)
-        dirpath_for_matching = f"{dirpath}/"
+) -> Generator[tuple[Path, list[Path]], None, None]:
+    if depth is not None and depth <= 0:
+        return
+    root = root.resolve()
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel_dirpath = Path(dirpath).relative_to(root)
+        dirpath_for_matching = f"{rel_dirpath}/"
 
-        # The root dir is a special case which starts with '.' but is not hidden
-        if dirpath != "." and os.path.basename(os.path.normpath(dirpath)).startswith(
-            "."
-        ):
+        if rel_dirpath.name.startswith("."):
             # This prevents recursing into child directories of hidden paths
             del dirnames[:]
             continue
@@ -184,66 +182,36 @@ def walk(
 
         if depth:
             # Ignore anything past requested depth
-            current_depth = dirpath.count(os.path.sep)
-            if current_depth >= base_depth + depth:
+            current_depth = len(rel_dirpath.parts) - 1
+            if current_depth > depth:
                 continue
 
         def filter_filename(filename: str) -> bool:
             if filename.startswith("."):
                 return False
-            file_path = os.path.join(dirpath, filename)
+            file_path = rel_dirpath / filename
             if exclude_paths is not None and any(
-                re.match(exclude_path, file_path) for exclude_path in exclude_paths
+                re.match(exclude_path, str(file_path)) for exclude_path in exclude_paths
             ):
                 return False
             return True
 
-        yield dirpath, list(filter(filter_filename, filenames))
+        yield rel_dirpath, list(map(Path, filter(filter_filename, filenames)))
 
 
 def walk_pyfiles(
-    root: str,
+    root: Path,
     depth: int | None = None,
     exclude_paths: list[str] | None = None,
-) -> Generator[str, None, None]:
-    for dirpath, filenames in walk(
+) -> Generator[Path, None, None]:
+    for dirpath, filepaths in walk(
         root,
         depth=depth,
         exclude_paths=exclude_paths,
     ):
-        for filename in filenames:
-            if filename.endswith(".py"):
-                yield os.path.join(dirpath, filename)
-
-
-def walk_pypackages(
-    root: str,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
-) -> Generator[str, None, None]:
-    for filepath in walk_pyfiles(
-        root,
-        depth=depth,
-        exclude_paths=exclude_paths,
-    ):
-        init_file_ending = f"{os.path.sep}__init__.py"
-        if filepath.endswith(init_file_ending):
-            yield filepath[: -len(init_file_ending)]
-
-
-def walk_configured_packages(
-    root: str,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
-) -> Generator[tuple[str, str], None, None]:
-    for dirpath in walk_pypackages(
-        root,
-        depth=depth,
-        exclude_paths=exclude_paths,
-    ):
-        package_yml_path = os.path.join(dirpath, "package.yml")
-        if os.path.isfile(package_yml_path):
-            yield dirpath, package_yml_path
+        for filepath in filepaths:
+            if filepath.name.endswith(".py"):
+                yield dirpath / filepath
 
 
 @lru_cache(maxsize=None)

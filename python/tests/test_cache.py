@@ -2,26 +2,11 @@ from __future__ import annotations
 
 import json
 import uuid
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 from urllib.error import URLError
 
 from tach.cache.access import get_latest_version, get_uid, update_latest_version
-from tach.cache.setup import get_project_path, resolve_dot_tach
-
-
-@patch("tach.cache.setup.find_project_config_root")
-def test_get_project_path(mock_find_project_config_root):
-    mock_find_project_config_root.return_value = "/fake/project"
-    result = get_project_path()
-    assert result == Path("/fake/project")
-
-
-@patch("tach.cache.setup.find_project_config_root")
-def test_get_project_path_no_root(mock_find_project_config_root):
-    mock_find_project_config_root.return_value = None
-    result = get_project_path()
-    assert result is None
+from tach.cache.setup import resolve_dot_tach
 
 
 @patch("tach.cache.setup.get_project_path")

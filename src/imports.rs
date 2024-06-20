@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
+use std::fs;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 
 use pyo3::conversion::IntoPy;
@@ -79,6 +80,7 @@ trait AsProjectImports<'a> {
     fn as_project_imports<P: AsRef<Path>>(
         &self,
         project_root: P,
+        source_root: P,
         file_mod_path: &str,
         locator: &mut Locator<'a>,
         is_package: bool,
@@ -90,6 +92,7 @@ impl<'a> AsProjectImports<'a> for StmtImport {
     fn as_project_imports<P: AsRef<Path>>(
         &self,
         project_root: P,
+        source_root: P,
         _file_mod_path: &str,
         locator: &mut Locator<'a>,
         _is_package: bool,
@@ -114,7 +117,11 @@ impl<'a> AsProjectImports<'a> for StmtImport {
                     }
                 }
 
-                match filesystem::is_project_import(project_root.as_ref(), alias.name.as_str()) {
+                match filesystem::is_project_import(
+                    project_root.as_ref(),
+                    source_root.as_ref(),
+                    alias.name.as_str(),
+                ) {
                     Ok(true) => Some(ProjectImport {
                         mod_path: alias.name.to_string(),
                         line_no: locator
@@ -135,6 +142,7 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
     fn as_project_imports<P: AsRef<Path>>(
         &self,
         project_root: P,
+        source_root: P,
         file_mod_path: &str,
         locator: &mut Locator<'a>,
         is_package: bool,
@@ -205,7 +213,11 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
                 None => name.name.to_string(),
             };
 
-            match filesystem::is_project_import(project_root.as_ref(), &global_mod_path) {
+            match filesystem::is_project_import(
+                project_root.as_ref(),
+                source_root.as_ref(),
+                &global_mod_path,
+            ) {
                 Ok(true) => imports.push(ProjectImport {
                     mod_path: global_mod_path,
                     line_no: locator
@@ -225,7 +237,8 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
 }
 
 pub struct ImportVisitor<'a> {
-    project_root: String,
+    project_root: PathBuf,
+    source_root: PathBuf,
     file_mod_path: String,
     locator: Locator<'a>,
     is_package: bool,
@@ -236,7 +249,8 @@ pub struct ImportVisitor<'a> {
 
 impl<'a> ImportVisitor<'a> {
     pub fn new(
-        project_root: String,
+        project_root: PathBuf,
+        source_root: PathBuf,
         file_mod_path: String,
         locator: Locator<'a>,
         is_package: bool,
@@ -245,6 +259,7 @@ impl<'a> ImportVisitor<'a> {
     ) -> Self {
         ImportVisitor {
             project_root,
+            source_root,
             file_mod_path,
             locator,
             is_package,
@@ -265,6 +280,7 @@ impl<'a> ImportVisitor<'a> {
     fn visit_stmt_import(&mut self, node: &StmtImport) {
         self.project_imports.extend(node.as_project_imports(
             &self.project_root,
+            &self.source_root,
             &self.file_mod_path,
             &mut self.locator,
             self.is_package,
@@ -275,6 +291,7 @@ impl<'a> ImportVisitor<'a> {
     fn visit_stmt_import_from(&mut self, node: &StmtImportFrom) {
         self.project_imports.extend(node.as_project_imports(
             &self.project_root,
+            &self.source_root,
             &self.file_mod_path,
             &mut self.locator,
             self.is_package,
@@ -300,16 +317,17 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
 
 pub fn get_project_imports(
     project_root: String,
+    source_root: String,
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> Result<ProjectImports> {
-    let canonical_path: PathBuf = filesystem::canonical(project_root.as_ref(), file_path.as_ref())
-        .map_err(|err| ImportParseError {
-            err_type: ImportParseErrorType::FILESYSTEM,
-            message: format!("Failed to parse project imports. Failure: {}", err.message),
-        })?;
+    let absolute_path = fs::canonicalize(&file_path).map_err(|_| ImportParseError {
+        err_type: ImportParseErrorType::FILESYSTEM,
+        message: "Failed to parse project imports.".to_string(),
+    })?;
+    let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
     let file_contents =
-        filesystem::read_file_content(&canonical_path).map_err(|err| ImportParseError {
+        filesystem::read_file_content(&absolute_path).map_err(|err| ImportParseError {
             err_type: ImportParseErrorType::FILESYSTEM,
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
@@ -318,7 +336,7 @@ pub fn get_project_imports(
             err_type: ImportParseErrorType::PARSING,
             message: format!(
                 "Failed to parse project imports. File: {:?} Failure: {:?}",
-                canonical_path.as_path().to_str().unwrap(),
+                absolute_path.to_str().unwrap(),
                 err
             ),
         })?;
@@ -326,9 +344,22 @@ pub fn get_project_imports(
         || file_path == "__init__.py";
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);
+    let file_mod_path = filesystem::file_to_module_path(
+        &absolute_source_root.to_str().unwrap(),
+        absolute_path.to_str().unwrap(),
+    )
+    .map_err(|err| ImportParseError {
+        err_type: ImportParseErrorType::FILESYSTEM,
+        message: format!(
+            "Failed to translate file to module path. File: {:?} Failure: {:?}",
+            file_path.as_str(),
+            err
+        ),
+    })?;
     let mut import_visitor = ImportVisitor::new(
-        project_root,
-        filesystem::file_to_module_path(file_path.as_str()),
+        PathBuf::from(&project_root),
+        absolute_source_root,
+        file_mod_path,
         locator,
         is_package,
         ignore_directives,

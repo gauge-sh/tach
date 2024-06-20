@@ -11,7 +11,7 @@ def get_project_config_path(root: Path | None = None) -> Path | None:
     if file_path.exists():
         return file_path
     file_path = root / f"{CONFIG_FILE_NAME}.yaml"
-    if root.exists():
+    if file_path.exists():
         return file_path
     return None
 

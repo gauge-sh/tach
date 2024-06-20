@@ -1,25 +1,28 @@
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING
 
 from tach import errors
 from tach.extension import create_dependency_report, set_excluded_paths
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tach.core import ProjectConfig
 
 
 def report(
-    root: str,
-    path: str,
+    project_root: Path,
+    path: Path,
     project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> str:
-    if not os.path.isdir(root):
-        raise errors.TachSetupError(f"The path '{root}' is not a valid directory.")
+    if not project_root.is_dir():
+        raise errors.TachSetupError(
+            f"The path '{project_root}' is not a valid directory."
+        )
 
-    if not os.path.exists(path):
+    if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
     if exclude_paths is not None and project_config.exclude is not None:
@@ -30,7 +33,11 @@ def report(
     # This informs the Rust extension ahead-of-time which paths are excluded.
     set_excluded_paths(exclude_paths=exclude_paths or [])
 
-    return create_dependency_report(root, path)
+    return create_dependency_report(
+        project_root=str(project_root),
+        source_root=str(project_config.source_root),
+        path=str(path),
+    )
 
 
 __all__ = ["report"]

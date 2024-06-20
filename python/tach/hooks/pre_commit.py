@@ -9,7 +9,5 @@ set -e
 {command}"""
 
 
-def build_pre_commit_hook_content(root: str = "") -> str:
-    if root:
-        return template.format(command=f"{TOOL_NAME} check --root {root}")
+def build_pre_commit_hook_content() -> str:
     return template.format(command=f"{TOOL_NAME} check")
