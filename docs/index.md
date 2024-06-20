@@ -17,7 +17,7 @@ Tach is:
 - 🌎 Open source
 - 🐍 Installable via pip
 - 🔧 Able to be adopted incrementally
-- ⚡  Implemented with no runtime impact
+- ⚡ Implemented with no runtime impact
 - ♾️ Interoperable with your existing systems (cli, hooks, ci, etc.)
 
 ## Commands
