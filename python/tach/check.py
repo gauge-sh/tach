@@ -177,6 +177,7 @@ def check(
         modules=module_validation_result.valid_modules,
     )
 
+    found_at_least_one_project_import = False
     # This informs the Rust extension ahead-of-time which paths are excluded.
     # The extension builds regexes and uses them during `get_project_imports`
     set_excluded_paths(exclude_paths=exclude_paths or [])
@@ -206,6 +207,7 @@ def check(
             warnings.append(f"Skipping '{file_path}' due to a file system error.")
             continue
         for project_import in project_imports:
+            found_at_least_one_project_import = True
             check_error = check_import(
                 module_tree=module_tree,
                 import_mod_path=project_import[0],
@@ -224,6 +226,10 @@ def check(
                 )
             )
 
+    if not found_at_least_one_project_import:
+        warnings.append(
+            "WARNING: No first-party imports were found. You may need to use 'tach mod' to update your Python source root. Docs: https://gauge-sh.github.io/tach/configuration#source-root"
+        )
     return CheckResult(errors=boundary_errors, warnings=warnings)
 
 
