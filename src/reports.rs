@@ -115,10 +115,10 @@ impl DependencyReport {
             {subtitle}\n\
             -------------------------------\n\
             [{deps_title}]\n\
-            {cyan}{deps}\n\
+            {cyan}{deps}{end_color}\n\
             -------------------------------\n\
-            {green}[{usages_title}]\n\
-            {usages}{end_color}",
+            [{usages_title}]\n\
+            {green}{usages}{end_color}",
             title = title,
             deps_title = external_deps_title,
             usages_title = external_usages_title,
