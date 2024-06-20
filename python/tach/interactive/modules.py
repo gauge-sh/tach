@@ -281,6 +281,7 @@ class InteractiveModuleTree:
         self.selected_node = self.file_tree.root
 
         self.file_tree.set_source_root(path=source_root)
+        self.file_tree.source_root.expanded = True
 
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
         # y location starts at 1 because the FileTree is rendered with a labeled header above the first branch
