@@ -154,7 +154,9 @@ class FileTree:
                         continue
 
                     # Exclude patterns are relative to project root, and may include a trailing slash
-                    entry_path_for_matching = f"{entry.relative_to(root.full_path)}/"
+                    entry_path_for_matching = (
+                        f"{entry.relative_to(self.root.full_path)}/"
+                    )
                     if exclude_paths is not None and any(
                         re.match(exclude_path, entry_path_for_matching)
                         for exclude_path in exclude_paths

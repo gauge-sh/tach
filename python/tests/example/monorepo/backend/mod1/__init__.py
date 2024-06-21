@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from domain_one import x
+from mod1.src import x
 
 __all__ = ["x"]

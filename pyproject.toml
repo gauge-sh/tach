@@ -42,7 +42,7 @@ Issues = "https://github.com/gauge-sh/tach/issues"
 
 [tool.ruff]
 src = ["python"]
-exclude = ["crates"]
+exclude = ["python/tests/example"]
 target-version = "py38"
 lint.extend-select = ["I", "TCH", "UP"]
 
