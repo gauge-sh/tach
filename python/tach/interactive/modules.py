@@ -243,7 +243,6 @@ class InteractiveModuleConfiguration:
 
 class InteractiveModuleTree:
     TREE_LABEL = "Confirm Your Modules"
-    AUTO_EXCLUDE_PATHS = [".*__pycache__"]
 
     def __init__(
         self,
@@ -254,10 +253,6 @@ class InteractiveModuleTree:
         # By default, don't save if we exit for any reason
         self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
         self.exclude_paths = project_config.exclude
-        if self.exclude_paths is None:
-            self.exclude_paths = self.AUTO_EXCLUDE_PATHS
-        else:
-            self.exclude_paths.extend(self.AUTO_EXCLUDE_PATHS)
         self.file_tree = FileTree.build_from_path(
             path=path,
             depth=depth,
