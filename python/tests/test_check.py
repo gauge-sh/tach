@@ -153,3 +153,10 @@ def test_valid_example_dir(example_dir):
     with pytest.raises(SystemExit) as exc_info:
         tach_check(project_root=project_root)
     assert exc_info.value.code == 0
+
+
+def test_valid_example_dir_monorepo(example_dir):
+    project_root = example_dir / "monorepo"
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(project_root=project_root)
+    assert exc_info.value.code == 0

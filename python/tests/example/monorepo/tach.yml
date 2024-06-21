@@ -1,0 +1,18 @@
+modules:
+- path: mod1
+  depends_on: []
+  strict: true
+- path: mod2
+  depends_on: []
+  strict: true
+- path: mod3
+  depends_on:
+  - mod2
+exclude:
+- .*__pycache__
+- .*egg-info
+- docs
+- tests
+- venv
+source_root: backend
+exact: true
