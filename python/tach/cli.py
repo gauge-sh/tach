@@ -243,11 +243,6 @@ def tach_check(
 
         exact |= project_config.exact
 
-        if exclude_paths is not None and project_config.exclude is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
-
         check_result = check(
             project_root=project_root,
             project_config=project_config,

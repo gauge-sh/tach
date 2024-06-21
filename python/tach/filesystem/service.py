@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import os
-import re
 import stat
 import threading
 from collections import defaultdict
@@ -157,27 +156,17 @@ def parse_ast(path: str) -> ast.AST:
 
 
 def walk(
-    root: Path,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
+    root: Path, depth: int | None = None
 ) -> Generator[tuple[Path, list[Path]], None, None]:
     if depth is not None and depth <= 0:
         return
     root = root.resolve()
     for dirpath, dirnames, filenames in os.walk(root):
         rel_dirpath = Path(dirpath).relative_to(root)
-        dirpath_for_matching = f"{rel_dirpath}/"
 
         if rel_dirpath.name.startswith("."):
             # This prevents recursing into child directories of hidden paths
             del dirnames[:]
-            continue
-
-        if exclude_paths is not None and any(
-            re.match(exclude_path, dirpath_for_matching)
-            for exclude_path in exclude_paths
-        ):
-            # Treat excluded paths as invisible
             continue
 
         if depth:
@@ -187,28 +176,13 @@ def walk(
                 continue
 
         def filter_filename(filename: str) -> bool:
-            if filename.startswith("."):
-                return False
-            file_path = rel_dirpath / filename
-            if exclude_paths is not None and any(
-                re.match(exclude_path, str(file_path)) for exclude_path in exclude_paths
-            ):
-                return False
-            return True
+            return not filename.startswith(".")
 
         yield rel_dirpath, list(map(Path, filter(filter_filename, filenames)))
 
 
-def walk_pyfiles(
-    root: Path,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
-) -> Generator[Path, None, None]:
-    for dirpath, filepaths in walk(
-        root,
-        depth=depth,
-        exclude_paths=exclude_paths,
-    ):
+def walk_pyfiles(root: Path, depth: int | None = None) -> Generator[Path, None, None]:
+    for dirpath, filepaths in walk(root, depth=depth):
         for filepath in filepaths:
             if filepath.name.endswith(".py"):
                 yield dirpath / filepath
