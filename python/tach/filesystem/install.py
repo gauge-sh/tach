@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 def install_pre_commit(project_root: Path) -> tuple[bool, str]:
-    git_hooks_dir = project_root / ".git/hooks"
+    git_hooks_dir = project_root / ".git" / "hooks"
     hook_dst = git_hooks_dir / "pre-commit"
 
     if not git_hooks_dir.exists():
