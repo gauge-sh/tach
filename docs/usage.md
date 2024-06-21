@@ -114,16 +114,12 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
 -   repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.5.4  # change this to the latest tag!
+    rev: v0.6.0  # change this to the latest tag!
     hooks:
     -   id: tach
-        # args: ["--root=backend_root"]
 ```
 
 Note that you should specify the version you are using in the `rev` key.
-
-Using `args`, you can specify the root of your Python project, where `tach check` should run.
-This path should be relative to your git root.
 
 ### Standard install
 If you don't already have pre-commit hooks set up, you can run:
