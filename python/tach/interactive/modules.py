@@ -144,8 +144,7 @@ class FileTree:
                     if entry.name.startswith("."):
                         # Ignore hidden files and directories
                         continue
-                    entry_path = root.full_path.joinpath(entry)
-                    if entry_path.is_file() and not entry_path.name.endswith(".py"):
+                    if entry.is_file() and not entry.name.endswith(".py"):
                         # Only interested in Python files
                         continue
 
@@ -154,8 +153,8 @@ class FileTree:
                         # so users should not be able to mark it as a standalone module
                         continue
 
-                    # Adding a trailing slash lets us match 'tests/' as an exclude pattern
-                    entry_path_for_matching = f"{entry}/"
+                    # Exclude patterns are relative to project root, and may include a trailing slash
+                    entry_path_for_matching = f"{entry.relative_to(root.full_path)}/"
                     if exclude_paths is not None and any(
                         re.match(exclude_path, entry_path_for_matching)
                         for exclude_path in exclude_paths
