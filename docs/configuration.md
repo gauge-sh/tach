@@ -39,8 +39,9 @@ ignore_type_checking_imports: true
 ```
 
 ## Source Root
-The `source_root` key is critically important for Tach to understand the imports within your project.
-By default, `source_root` is set to `'.'`, which means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists (call this the 'project root').
+The `source_root` key is required for Tach to understand the imports within your project.
+If it is not set explicitly, `source_root` will take the default value of `'.'` automatically.
+This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists (call this the 'project root').
 
 Below is a typical case in which `source_root` is necessary.
 
