@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 from itertools import chain
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from tach.check import check_import, validate_project_modules
+from tach.cli import tach_check
 from tach.core import (
     ModuleConfig,
     ModuleNode,
     ModuleTree,
 )
 from tach.core.config import RootModuleConfig
+
+
+@pytest.fixture
+def example_dir() -> Path:
+    current_dir = Path(__file__).parent
+    return current_dir / "example"
 
 
 @pytest.fixture
@@ -138,3 +146,10 @@ def test_check_import(module_tree, file_mod_path, import_mod_path, expected_resu
     )
     result = check_error is None
     assert result == expected_result
+
+
+def test_valid_example_dir(example_dir):
+    project_root = example_dir / "valid"
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(project_root=project_root)
+    assert exc_info.value.code == 0

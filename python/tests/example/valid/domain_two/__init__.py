@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from domain_three import x
+from domain_one import x
 
 __all__ = ["x"]
