@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import os
 import re
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Generator
 
 from prompt_toolkit import ANSI
@@ -38,10 +38,11 @@ if TYPE_CHECKING:
 
 @dataclass
 class FileNode:
-    full_path: str
+    full_path: Path
     is_dir: bool
     expanded: bool = False
     is_module: bool = False
+    is_source_root: bool = False
     parent: FileNode | None = None
     children: list[FileNode] = field(default_factory=list)
 
@@ -56,8 +57,8 @@ class FileNode:
         return self.children
 
     @classmethod
-    def build_from_path(cls, path: str) -> FileNode:
-        is_dir = os.path.isdir(path)
+    def build_from_path(cls, path: Path) -> FileNode:
+        is_dir = path.is_dir()
         return cls(full_path=path, is_dir=is_dir)
 
     @property
@@ -110,20 +111,22 @@ class FileNode:
 @dataclass
 class FileTree:
     root: FileNode
+    source_root: FileNode
     nodes: dict[str, FileNode] = field(default_factory=dict)
 
     @classmethod
     def build_from_path(
         cls,
-        path: str,
+        path: Path,
         depth: int | None = 1,
         exclude_paths: list[str] | None = None,
     ) -> FileTree:
-        root = FileNode.build_from_path(fs.canonical(path))
+        root = FileNode.build_from_path(path)
         root.is_module = False
         root.expanded = True
-        tree = cls(root)
-        tree.nodes[fs.canonical(path)] = root
+        root.is_source_root = True
+        tree = cls(root=root, source_root=root)
+        tree.nodes[str(path)] = root
         tree._build_subtree(
             root, depth=depth if depth is not None else 1, exclude_paths=exclude_paths
         )
@@ -137,34 +140,33 @@ class FileTree:
     ):
         if root.is_dir:
             try:
-                for entry in os.listdir(root.full_path):
-                    if entry.startswith("."):
+                for entry in root.full_path.iterdir():
+                    if entry.name.startswith("."):
                         # Ignore hidden files and directories
                         continue
-                    entry_path = os.path.join(root.full_path, entry)
-                    if os.path.isfile(entry_path) and not entry_path.endswith(".py"):
+                    if entry.is_file() and not entry.name.endswith(".py"):
                         # Only interested in Python files
                         continue
 
-                    if os.path.basename(entry_path) == "__init__.py":
+                    if entry.name == "__init__.py":
                         # __init__.py does not have a unique module path from its containing package
                         # so users should not be able to mark it as a standalone module
                         continue
 
-                    # Adding a trailing slash lets us match 'tests/' as an exclude pattern
-                    entry_path_for_matching = f"{fs.canonical(entry_path)}/"
+                    # Exclude patterns are relative to project root, and may include a trailing slash
+                    entry_path_for_matching = f"{entry.relative_to(root.full_path)}/"
                     if exclude_paths is not None and any(
                         re.match(exclude_path, entry_path_for_matching)
                         for exclude_path in exclude_paths
                     ):
                         # This path is ignored
                         continue
-                    child_node = FileNode.build_from_path(entry_path)
+                    child_node = FileNode.build_from_path(entry)
                     if depth > 1:
                         child_node.expanded = True
                     child_node.parent = root
                     root.children.append(child_node)
-                    self.nodes[fs.canonical(entry_path)] = child_node
+                    self.nodes[str(entry)] = child_node
                     if child_node.is_dir:
                         self._build_subtree(
                             child_node,
@@ -172,14 +174,34 @@ class FileTree:
                             exclude_paths=exclude_paths,
                         )
             except PermissionError:
-                # This is expected to occur during listdir when the directory cannot be accessed
+                # This is expected to occur during iterdir when the directory cannot be accessed
                 # We simply bail if that happens, meaning it won't show up in the interactive viewer
                 return
 
-    def set_modules(self, module_paths: list[str]):
+    def set_modules(self, module_paths: list[Path]):
+        # NOTE: module_paths here are filesystem paths; they may be files or dirs
         for module_path in module_paths:
+            module_path = str(module_path)
             if module_path in self.nodes:
                 self.nodes[module_path].is_module = True
+
+    def set_source_root(self, path: Path):
+        path_key = str(path)
+        if path_key not in self.nodes:
+            return
+        node = self.nodes[path_key]
+        # A source root should not also be a module
+        node.is_module = False
+        if node is self.source_root:
+            # source_root already pointing at this node, no-op
+            return
+
+        # Unmark current source_root
+        self.source_root.is_source_root = False
+        # Mark node at 'path' as a source root
+        node.is_source_root = True
+        # Update source root to node at 'path'
+        self.source_root = node
 
     def __iter__(self):
         return file_tree_iterator(self)
@@ -212,42 +234,49 @@ class ExitCode(Enum):
     QUIT_SAVE = 2
 
 
+@dataclass
+class InteractiveModuleConfiguration:
+    source_root: Path
+    module_paths: list[Path]
+
+
 class InteractiveModuleTree:
     TREE_LABEL = "Confirm Your Modules"
-    AUTO_EXCLUDE_PATHS = [".*__pycache__"]
 
     def __init__(
         self,
-        path: str,
+        path: Path,
         project_config: ProjectConfig,
         depth: int | None = 1,
     ):
         # By default, don't save if we exit for any reason
         self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
         self.exclude_paths = project_config.exclude
-        if self.exclude_paths is None:
-            self.exclude_paths = self.AUTO_EXCLUDE_PATHS
-        else:
-            self.exclude_paths.extend(self.AUTO_EXCLUDE_PATHS)
         self.file_tree = FileTree.build_from_path(
             path=path,
             depth=depth,
             exclude_paths=self.exclude_paths,
         )
+
+        source_root = path / project_config.source_root
         module_file_paths = list(
-            map(
-                str,
-                filter(
-                    None,
-                    [
-                        fs.module_to_pyfile_or_dir_path(module_path)
-                        for module_path in project_config.module_paths
-                    ],
-                ),
-            )
+            filter(
+                None,
+                [
+                    fs.module_to_pyfile_or_dir_path(
+                        source_root=source_root,
+                        module_path=module_path,
+                    )
+                    for module_path in project_config.module_paths
+                ],
+            ),
         )
         self.file_tree.set_modules(module_paths=module_file_paths)
         self.selected_node = self.file_tree.root
+
+        self.file_tree.set_source_root(path=source_root)
+        self.file_tree.source_root.expanded = True
+
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
         # y location starts at 1 because the FileTree is rendered with a labeled header above the first branch
         self.cursor_point = Point(x=0, y=1)
@@ -299,10 +328,13 @@ class InteractiveModuleTree:
 
     KEY_BINDING_LEGEND_TOP: list[tuple[str, str]] = [
         ("Up/Down", "Navigate"),
-        ("Enter", "Mark/unmark module"),
         ("Right", "Expand"),
         ("Left", "Collapse"),
         ("Ctrl + Up", "Jump to parent"),
+    ]
+    KEY_BINDING_LEGEND_MIDDLE: list[tuple[str, str]] = [
+        ("Enter", "Mark/unmark Module"),
+        ("s", "Mark/unmark Source Root"),
     ]
     KEY_BINDING_LEGEND_BOTTOM: list[tuple[str, str]] = [
         ("Ctrl + s", "Exit and save"),
@@ -331,6 +363,7 @@ class InteractiveModuleTree:
         footer_text_top: AnyFormattedText = _build_footer_text(
             cls.KEY_BINDING_LEGEND_TOP
         )
+        footer_text_middle = _build_footer_text(cls.KEY_BINDING_LEGEND_MIDDLE)
         footer_text_bottom: AnyFormattedText = _build_footer_text(
             cls.KEY_BINDING_LEGEND_BOTTOM
         )
@@ -338,6 +371,10 @@ class InteractiveModuleTree:
             [
                 Window(
                     FormattedTextControl(text=footer_text_top), dont_extend_height=True
+                ),
+                Window(
+                    FormattedTextControl(text=footer_text_middle),
+                    dont_extend_height=True,
                 ),
                 Window(
                     FormattedTextControl(text=footer_text_bottom),
@@ -427,6 +464,16 @@ class InteractiveModuleTree:
                 # Root should not be explicitly selected
                 return
             self.selected_node.is_module = not self.selected_node.is_module
+            if self.selected_node.is_module and self.selected_node.is_source_root:
+                # If we are marking the currently selected source root as a module,
+                # we should reset the source root to the root path.
+                # The source root cannot be a module.
+                self.file_tree.set_source_root(Path("."))
+            self._update_display()
+
+        @self.key_bindings.add("s")
+        def _(event: KeyPressEvent):
+            self.file_tree.set_source_root(self.selected_node.full_path)
             self._update_display()
 
         @self.key_bindings.add("c-a")
@@ -466,8 +513,10 @@ class InteractiveModuleTree:
         if node == self.selected_node:
             text_parts.append(("-> ", "bold cyan"))
 
-        basename = os.path.basename(node.full_path)
-        if node.is_module:
+        basename = node.full_path.name
+        if node.is_source_root:
+            text_parts.append((f"[Source Root] {basename}", "bold cyan"))
+        elif node.is_module:
             text_parts.append((f"[Module] {basename}", "bold yellow"))
         elif node == self.selected_node:
             text_parts.append((basename, "bold"))
@@ -492,15 +541,15 @@ class InteractiveModuleTree:
                 # If no parent on FileNode, add to rich.Tree root
                 tree_node = tree_root.add(self._render_node(node))
             else:
-                if node.parent.full_path not in tree_mapping:
+                if str(node.parent.full_path) not in tree_mapping:
                     raise errors.TachError("Failed to render module tree.")
                 # Find parent rich.Tree branch,
                 # attach this FileNode to the parent's branch
-                parent_tree_node = tree_mapping[node.parent.full_path]
+                parent_tree_node = tree_mapping[str(node.parent.full_path)]
                 tree_node = parent_tree_node.add(self._render_node(node))
 
             # Add this new FileNode to the mapping
-            tree_mapping[node.full_path] = tree_node
+            tree_mapping[str(node.full_path)] = tree_node
 
         with self.console.capture() as capture:
             self.console.print(tree_root)
@@ -509,17 +558,21 @@ class InteractiveModuleTree:
     def _update_display(self):
         self.tree_control.text = ANSI(self._render_tree())
 
-    def run(self) -> list[str] | None:
+    def run(self) -> InteractiveModuleConfiguration | None:
         self.app.run()
         if self.exit_code == ExitCode.QUIT_SAVE:
-            return [node.full_path for node in self.file_tree if node.is_module]
+            module_paths = [node.full_path for node in self.file_tree if node.is_module]
+            return InteractiveModuleConfiguration(
+                source_root=self.file_tree.source_root.full_path,
+                module_paths=module_paths,
+            )
 
 
 def get_selected_modules_interactive(
-    path: str,
+    path: Path,
     project_config: ProjectConfig,
     depth: int | None = 1,
-) -> list[str] | None:
+) -> InteractiveModuleConfiguration | None:
     ipt = InteractiveModuleTree(
         path=path,
         project_config=project_config,

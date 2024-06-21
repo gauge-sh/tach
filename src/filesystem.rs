@@ -1,4 +1,3 @@
-use std::env::current_dir;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -39,28 +38,26 @@ impl From<StripPrefixError> for FileSystemError {
 
 pub type Result<T> = std::result::Result<T, FileSystemError>;
 
-pub fn canonical(root: &str, path: &str) -> Result<PathBuf> {
-    let root = Path::new(root);
-    let file_path = root.join(path);
-    file_path.canonicalize().map_err(|_| FileSystemError {
-        message: format!("Failed to canonicalize path: {}", path),
-    })
+pub fn relative_to<P: AsRef<Path>>(path: P, root: P) -> Result<PathBuf> {
+    let diff_path = path.as_ref().strip_prefix(root)?;
+    Ok(diff_path.to_owned())
 }
 
-pub fn adjust_path_from_cwd_to_root(root: &str, path: &str) -> Result<PathBuf> {
-    let cwd = current_dir()?;
-    let diff_path = cwd.strip_prefix(root)?;
-    Ok(diff_path.join(path))
-}
+pub fn file_to_module_path(source_root: &str, file_path: &str) -> Result<String> {
+    let relative_file_path = relative_to(file_path, source_root)?;
 
-pub fn file_to_module_path(file_path: &str) -> String {
-    let file_path = file_path.trim_start_matches("./").trim_end_matches("/");
-
-    if file_path == "." {
-        return String::new();
+    if relative_file_path
+        .file_name()
+        .is_some_and(|name| name == ".")
+    {
+        return Ok(String::new());
     }
 
-    let module_path = file_path.replace(MAIN_SEPARATOR, ".");
+    let module_path = relative_file_path
+        .as_os_str()
+        .to_str()
+        .unwrap()
+        .replace(MAIN_SEPARATOR, ".");
 
     let mut module_path = if module_path.ends_with(".py") {
         module_path.trim_end_matches(".py").to_string()
@@ -73,12 +70,13 @@ pub fn file_to_module_path(file_path: &str) -> String {
     }
 
     if module_path == "__init__" {
-        return String::new();
+        return Ok(String::new());
     }
 
-    module_path
+    Ok(module_path)
 }
 
+#[derive(Debug)]
 pub struct ResolvedModule {
     pub file_path: PathBuf,
     pub member_name: Option<String>,
@@ -156,11 +154,19 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-pub fn is_project_import<P: AsRef<Path>>(root: P, mod_path: &str) -> Result<bool> {
-    let resolved_module = module_to_file_path(root, mod_path);
+pub fn is_project_import<P: AsRef<Path>>(
+    project_root: P,
+    source_root: P,
+    mod_path: &str,
+) -> Result<bool> {
+    let resolved_module = module_to_file_path(source_root, mod_path);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
-        return match is_path_excluded(module.file_path.to_str().unwrap()) {
+        return match is_path_excluded(
+            relative_to(module.file_path.as_path(), project_root.as_ref())?
+                .to_str()
+                .unwrap(),
+        ) {
             Ok(true) => Ok(false),
             Ok(false) => Ok(true),
             Err(_) => Err(FileSystemError {
@@ -184,7 +190,7 @@ fn is_hidden(entry: &DirEntry) -> bool {
 fn direntry_is_excluded(root: &str, entry: &DirEntry) -> bool {
     let path = entry.path();
     // TODO: too much unwrapping
-    let adjusted_path = adjust_path_from_cwd_to_root(root, path.to_str().unwrap()).unwrap();
+    let adjusted_path = relative_to(path.to_str().unwrap(), root).unwrap();
     is_path_excluded(adjusted_path.to_str().unwrap()).unwrap_or(false)
 }
 

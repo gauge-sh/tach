@@ -4,11 +4,14 @@ import json
 import uuid
 from urllib import error, request
 
-from tach.cache.setup import get_project_path, resolve_dot_tach
+from tach.cache.setup import resolve_dot_tach
+from tach.filesystem import find_project_config_root
+
+# TODO: don't call find_project_config_root separately in each function, pass as argument
 
 
 def get_uid() -> uuid.UUID | None:
-    project_path = get_project_path()
+    project_path = find_project_config_root()
     if project_path is None:
         return
     info_path = project_path / ".tach" / "tach.info"
@@ -20,7 +23,7 @@ def get_uid() -> uuid.UUID | None:
 
 
 def get_latest_version() -> str | None:
-    project_path = get_project_path()
+    project_path = find_project_config_root()
     if project_path is None:
         return
     latest_version_path = project_path / ".tach" / ".latest-version"
@@ -31,7 +34,7 @@ def get_latest_version() -> str | None:
 
 
 def update_latest_version() -> None:
-    project_path = get_project_path()
+    project_path = find_project_config_root()
     if project_path is None:
         return
     url = "https://pypi.org/pypi/tach/json"

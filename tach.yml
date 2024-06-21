@@ -73,7 +73,6 @@ modules:
   depends_on:
   - tach.colors
   - tach.constants
-  - tach.core
   - tach.errors
   - tach.filesystem
   - tach.interactive
@@ -91,19 +90,17 @@ modules:
 - path: tach.sync
   depends_on:
   - tach.check
-  - tach.colors
-  - tach.constants
   - tach.errors
   - tach.filesystem
   - tach.parsing
   strict: true
 exclude:
-- .*__pycache__/
+- .*__pycache__
 - build/
 - dist/
 - docs/
+- python/tests/
 - tach.egg-info/
-- tests/
+- venv/
+source_root: python
 exact: true
-disable_logging: false
-ignore_type_checking_imports: true

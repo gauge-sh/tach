@@ -32,12 +32,51 @@ exclude:
 - docs/
 - tach.egg-info/
 - tests/
+source_root: backend
 exact: true
 disable_logging: false
 ignore_type_checking_imports: true
 ```
 
-## modules
+## Source Root
+The `source_root` key is required for Tach to understand the imports within your project.
+If it is not set explicitly, `source_root` will take the default value of `'.'` automatically.
+This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists (call this the 'project root').
+
+Below is a typical case in which `source_root` is necessary.
+
+### Example
+
+Suppose your repository contains a subfolder where all of your Python code lives. This could be a web server, a collection of serverless functions, or even utility scripts.
+In this example we will assume the Python code in our repo lives in the `backend/` folder.
+```
+my_repo/
+  tach.yml
+  backend/
+    module1.py
+    module2/
+      __init__.py
+      service.py
+    module3.py
+  docs/
+  tests/
+```
+
+In an individual Python module such as `backend/module1.py`, we might see imports from other modules.
+```python
+# In backend/module1.py
+
+import module3
+from module2.service import MyService
+```
+
+Notice that these import paths (`module3`, `module2.service.MyService`) are rooted in the `backend/` folder, NOT the project root.
+
+To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](usage.md#tach-mod) and interactively mark the `backend` folder as the source root.
+
+In `tach.yml`, the `source_root` value is always interpreted as a relative path from the project root.
+
+## Modules
 Each module listed under the `modules` key above can accept the following attributes:
 
 `path` should be the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)

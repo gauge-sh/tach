@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tach import errors
@@ -112,7 +112,7 @@ def check_import(
 
 @dataclass
 class BoundaryError:
-    file_path: str
+    file_path: Path
     line_number: int
     import_mod_path: str
     error_info: ErrorInfo
@@ -131,11 +131,14 @@ class ProjectModuleValidationResult:
 
 
 def validate_project_modules(
+    source_root: Path,
     modules: list[ModuleConfig],
 ) -> ProjectModuleValidationResult:
     result = ProjectModuleValidationResult()
     for module in modules:
-        if fs.module_to_pyfile_or_dir_path(module.path):
+        if fs.module_to_pyfile_or_dir_path(
+            source_root=source_root, module_path=module.path
+        ):
             result.valid_modules.append(module)
         else:
             result.invalid_modules.append(module)
@@ -143,78 +146,91 @@ def validate_project_modules(
 
 
 def check(
-    root: str,
+    project_root: Path,
     project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> CheckResult:
-    if not os.path.isdir(root):
-        raise errors.TachSetupError(f"The path {root} is not a valid directory.")
-
-    cwd = fs.get_cwd()
-    try:
-        fs.chdir(root)
-
-        boundary_errors: list[BoundaryError] = []
-        warnings: list[str] = []
-
-        if exclude_paths is not None and project_config.exclude is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
-
-        module_validation_result = validate_project_modules(project_config.modules)
-        warnings.extend(
-            f"Module '{module.path}' not found. It will be ignored."
-            for module in module_validation_result.invalid_modules
+    if not project_root.is_dir():
+        raise errors.TachSetupError(
+            f"The path {project_root} is not a valid directory."
         )
-        module_tree = build_module_tree(module_validation_result.valid_modules)
 
-        # This informs the Rust extension ahead-of-time which paths are excluded.
-        # The extension builds regexes and uses them during `get_project_imports`
-        set_excluded_paths(exclude_paths=exclude_paths or [])
-        for file_path in fs.walk_pyfiles(
-            ".",
-            exclude_paths=exclude_paths,
-        ):
-            mod_path = fs.file_to_module_path(file_path)
-            nearest_module = module_tree.find_nearest(mod_path)
-            if nearest_module is None:
+    boundary_errors: list[BoundaryError] = []
+    warnings: list[str] = []
+
+    if exclude_paths is not None and project_config.exclude is not None:
+        exclude_paths.extend(project_config.exclude)
+    else:
+        exclude_paths = project_config.exclude
+
+    source_root = project_root / project_config.source_root
+
+    module_validation_result = validate_project_modules(
+        source_root=source_root, modules=project_config.modules
+    )
+    warnings.extend(
+        f"Module '{module.path}' not found. It will be ignored."
+        for module in module_validation_result.invalid_modules
+    )
+    module_tree = build_module_tree(
+        source_root=source_root,
+        modules=module_validation_result.valid_modules,
+    )
+
+    found_at_least_one_project_import = False
+    # This informs the Rust extension ahead-of-time which paths are excluded.
+    # The extension builds regexes and uses them during `get_project_imports`
+    set_excluded_paths(exclude_paths=exclude_paths or [])
+    for file_path in fs.walk_pyfiles(
+        project_root,
+        exclude_paths=exclude_paths,
+    ):
+        abs_file_path = project_root / file_path
+        mod_path = fs.file_to_module_path(
+            source_root=source_root, file_path=abs_file_path
+        )
+        nearest_module = module_tree.find_nearest(mod_path)
+        if nearest_module is None:
+            continue
+
+        try:
+            project_imports = get_project_imports(
+                project_root=str(project_root),
+                source_root=str(project_config.source_root),
+                file_path=str(abs_file_path),
+                ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+            )
+        except SyntaxError:
+            warnings.append(f"Skipping '{file_path}' due to a syntax error.")
+            continue
+        except OSError:
+            warnings.append(f"Skipping '{file_path}' due to a file system error.")
+            continue
+        for project_import in project_imports:
+            found_at_least_one_project_import = True
+            check_error = check_import(
+                module_tree=module_tree,
+                import_mod_path=project_import[0],
+                file_nearest_module=nearest_module,
+                file_mod_path=mod_path,
+            )
+            if check_error is None:
                 continue
 
-            try:
-                project_imports = get_project_imports(
-                    ".",
-                    file_path,
-                    ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-                )
-            except SyntaxError:
-                warnings.append(f"Skipping '{file_path}' due to a syntax error.")
-                continue
-            except OSError:
-                warnings.append(f"Skipping '{file_path}' due to a file system error.")
-                continue
-            for project_import in project_imports:
-                check_error = check_import(
-                    module_tree=module_tree,
+            boundary_errors.append(
+                BoundaryError(
+                    file_path=file_path,
                     import_mod_path=project_import[0],
-                    file_nearest_module=nearest_module,
-                    file_mod_path=mod_path,
+                    line_number=project_import[1],
+                    error_info=check_error,
                 )
-                if check_error is None:
-                    continue
+            )
 
-                boundary_errors.append(
-                    BoundaryError(
-                        file_path=file_path,
-                        import_mod_path=project_import[0],
-                        line_number=project_import[1],
-                        error_info=check_error,
-                    )
-                )
-
-        return CheckResult(errors=boundary_errors, warnings=warnings)
-    finally:
-        fs.chdir(cwd)
+    if not found_at_least_one_project_import:
+        warnings.append(
+            "WARNING: No first-party imports were found. You may need to use 'tach mod' to update your Python source root. Docs: https://gauge-sh.github.io/tach/configuration#source-root"
+        )
+    return CheckResult(errors=boundary_errors, warnings=warnings)
 
 
 __all__ = ["BoundaryError", "check"]

@@ -2,29 +2,14 @@ from __future__ import annotations
 
 import json
 import uuid
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 from urllib.error import URLError
 
 from tach.cache.access import get_latest_version, get_uid, update_latest_version
-from tach.cache.setup import get_project_path, resolve_dot_tach
+from tach.cache.setup import resolve_dot_tach
 
 
 @patch("tach.cache.setup.find_project_config_root")
-def test_get_project_path(mock_find_project_config_root):
-    mock_find_project_config_root.return_value = "/fake/project"
-    result = get_project_path()
-    assert result == Path("/fake/project")
-
-
-@patch("tach.cache.setup.find_project_config_root")
-def test_get_project_path_no_root(mock_find_project_config_root):
-    mock_find_project_config_root.return_value = None
-    result = get_project_path()
-    assert result is None
-
-
-@patch("tach.cache.setup.get_project_path")
 def test_resolve_dot_tach(mock_get_project_path, tmp_path):
     project_path = tmp_path / "project"
     project_path.mkdir(parents=True, exist_ok=True)
@@ -44,7 +29,7 @@ def test_resolve_dot_tach(mock_get_project_path, tmp_path):
     assert result == tach_path
 
 
-@patch("tach.cache.access.get_project_path")
+@patch("tach.cache.access.find_project_config_root")
 @patch("tach.cache.access.resolve_dot_tach")
 def test_get_uid(mock_resolve_dot_tach, mock_get_project_path, tmp_path):
     project_path = tmp_path / "project"
@@ -59,14 +44,14 @@ def test_get_uid(mock_resolve_dot_tach, mock_get_project_path, tmp_path):
     assert result == uid
 
 
-@patch("tach.cache.access.get_project_path")
+@patch("tach.cache.access.find_project_config_root")
 def test_get_uid_no_project_path(mock_get_project_path):
     mock_get_project_path.return_value = None
     result = get_uid()
     assert result is None
 
 
-@patch("tach.cache.access.get_project_path")
+@patch("tach.cache.access.find_project_config_root")
 def test_get_latest_version(mock_get_project_path, tmp_path):
     project_path = tmp_path / "project"
     latest_version_path = project_path / ".tach" / ".latest-version"
@@ -80,7 +65,7 @@ def test_get_latest_version(mock_get_project_path, tmp_path):
     assert result == version
 
 
-@patch("tach.cache.access.get_project_path")
+@patch("tach.cache.access.find_project_config_root")
 def test_update_latest_version(mock_get_project_path, tmp_path):
     project_path = tmp_path / "project"
     latest_version_path = project_path / ".tach" / ".latest-version"
@@ -102,7 +87,7 @@ def test_update_latest_version(mock_get_project_path, tmp_path):
     assert latest_version_path.read_text().strip() == "1.0.1"
 
 
-@patch("tach.cache.access.get_project_path")
+@patch("tach.cache.access.find_project_config_root")
 @patch("tach.cache.access.request.urlopen")
 def test_update_latest_version_network_error(
     mock_urlopen, mock_get_project_path, tmp_path

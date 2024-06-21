@@ -13,6 +13,8 @@ You can do this interactively! From the root of your python project, run:
 ```
 Mark and unmark each module boundary you want to create with 'Enter' (or 'Ctrl + a' to mark all sibling modules). Common choices would be to mark all of your top-level Python source packages, or just a few packages which you want to isolate.
 
+If your Python code lives below your project root, you should mark your Python [source root](configuration.md#source-root) using the 's' key.
+
 Once you have marked all the modules you want to enforce constraints between, run:
 ```bash
 tach sync

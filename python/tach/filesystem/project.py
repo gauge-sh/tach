@@ -1,29 +1,30 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from tach.constants import CONFIG_FILE_NAME
 
 
-# TODO convert all str paths to pathlib.Path
-def get_project_config_path(root: str = ".") -> str:
-    file_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yml")
-    if os.path.exists(file_path):
+def get_project_config_path(root: Path | None = None) -> Path | None:
+    root = root or Path.cwd()
+    file_path = root / f"{CONFIG_FILE_NAME}.yml"
+    if file_path.exists():
         return file_path
-    file_path = os.path.join(root, f"{CONFIG_FILE_NAME}.yaml")
-    if os.path.exists(file_path):
+    file_path = root / f"{CONFIG_FILE_NAME}.yaml"
+    if file_path.exists():
         return file_path
-    return ""
+    return None
 
 
-def find_project_config_root(path: str) -> str | None:
-    path = os.path.abspath(path)
-    if os.path.isdir(path):
-        if get_project_config_path(path):
-            return path
-    path_obj = Path(path)
+def find_project_config_root() -> Path | None:
+    cwd = Path.cwd()
+
+    if get_project_config_path(cwd) is not None:
+        return cwd
+
     # Iterate upwards, looking for project config
-    for parent in path_obj.parents:
-        if get_project_config_path(str(parent)):
-            return str(parent)
+    for parent in cwd.parents:
+        if get_project_config_path(parent):
+            return parent
+
+    return None
