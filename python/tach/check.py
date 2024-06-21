@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tach import errors
 from tach import filesystem as fs
+from tach.constants import ROOT_MODULE_SENTINEL_TAG
 from tach.core import ModuleConfig
 from tach.extension import get_project_imports, set_excluded_paths
 from tach.parsing import build_module_tree
@@ -136,13 +138,20 @@ def validate_project_modules(
 ) -> ProjectModuleValidationResult:
     result = ProjectModuleValidationResult()
     for module in modules:
-        if fs.module_to_pyfile_or_dir_path(
+        if module.path == ROOT_MODULE_SENTINEL_TAG or fs.module_to_pyfile_or_dir_path(
             source_root=source_root, module_path=module.path
         ):
             result.valid_modules.append(module)
         else:
             result.invalid_modules.append(module)
     return result
+
+
+def is_path_excluded(path: Path, exclude_paths: list[str]) -> bool:
+    dirpath_for_matching = f"{path}/"
+    return any(
+        re.match(exclude_path, dirpath_for_matching) for exclude_path in exclude_paths
+    )
 
 
 def check(
@@ -181,11 +190,12 @@ def check(
     # This informs the Rust extension ahead-of-time which paths are excluded.
     # The extension builds regexes and uses them during `get_project_imports`
     set_excluded_paths(exclude_paths=exclude_paths or [])
-    for file_path in fs.walk_pyfiles(
-        project_root,
-        exclude_paths=exclude_paths,
-    ):
-        abs_file_path = project_root / file_path
+    for file_path in fs.walk_pyfiles(source_root):
+        abs_file_path = source_root / file_path
+        rel_file_path = abs_file_path.relative_to(project_root)
+        if is_path_excluded(rel_file_path, exclude_paths=exclude_paths or []):
+            continue
+
         mod_path = fs.file_to_module_path(
             source_root=source_root, file_path=abs_file_path
         )
