@@ -72,7 +72,7 @@ from module2.service import MyService
 
 Notice that these import paths (`module3`, `module2.service.MyService`) are rooted in the `backend/` folder, NOT the project root.
 
-To indicate this structure to Tach, you could set `source_root: backend` in your `tach.yml`, or use [`tach mod`](usage.md#tach-mod) and interactively mark the `backend` folder as the source root.
+To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](usage.md#tach-mod) and interactively mark the `backend` folder as the source root.
 
 In `tach.yml`, the `source_root` value is always interpreted as a relative path from the project root.
 
