@@ -4,8 +4,11 @@ modules:
   strict: true
 - path: tach.__main__
   depends_on:
-  - tach.cli
+  - tach.start
   strict: true
+- path: tach.start
+  depends_on:
+  - tach.cli
 - path: tach.cache
   depends_on:
   - tach
