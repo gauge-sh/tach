@@ -10,7 +10,6 @@ from tach.parsing import dump_project_config_to_yaml
 
 if TYPE_CHECKING:
     from pathlib import Path
-
     from tach.core import ProjectConfig
 
 
@@ -19,11 +18,6 @@ def sync_dependency_constraints(
     project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
-    """
-    Update project configuration with auto-detected dependency constraints.
-    This is additive, meaning it will create dependencies to resolve existing errors,
-    but will not remove any constraints.
-    """
     check_result = check(
         project_root=project_root,
         project_config=project_config,
@@ -35,7 +29,6 @@ def sync_dependency_constraints(
             project_config.add_dependency_to_module(
                 error_info.source_module, error_info.invalid_module
             )
-
     return project_config
 
 
@@ -44,10 +37,6 @@ def prune_dependency_constraints(
     project_config: ProjectConfig,
     exclude_paths: list[str] | None = None,
 ) -> ProjectConfig:
-    """
-    Build a minimal project configuration with auto-detected module dependencies.
-    """
-    # Force module dependencies to be empty so that we can figure out the minimal set
     project_config = project_config.model_copy(
         update={
             "modules": [
@@ -56,14 +45,21 @@ def prune_dependency_constraints(
             ]
         }
     )
-
     sync_dependency_constraints(
         project_root=project_root,
         project_config=project_config,
         exclude_paths=exclude_paths,
     )
-
     return project_config
+
+
+def reorder_modules(project_config: ProjectConfig) -> None:
+    modules = project_config.modules
+    root_module = next((module for module in modules if module.name == "<root>"), None)
+    if root_module:
+        modules.remove(root_module)
+        modules.append(root_module)
+    project_config.modules = modules
 
 
 def sync_project(
@@ -77,7 +73,6 @@ def sync_project(
         raise errors.TachError(
             "Unexpected error. Could not find configuration file during 'sync'."
         )
-
     if prune:
         project_config = prune_dependency_constraints(
             project_root=project_root,
@@ -90,9 +85,9 @@ def sync_project(
             project_config=project_config,
             exclude_paths=exclude_paths,
         )
-
+    reorder_modules(project_config)
     tach_yml_content = dump_project_config_to_yaml(project_config)
     fs.write_file(str(tach_yml_path), tach_yml_content)
 
 
-__all__ = ["sync_project", "prune_dependency_constraints"]
+__all__ = ["sync_project", "prune_dependency_constraints", "reorder_modules"]
