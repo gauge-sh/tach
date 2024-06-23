@@ -79,4 +79,4 @@ module-name = "tach.extension"
 features = ["pyo3/extension-module"]
 
 [project.scripts]
-tach = "tach.cli:main"
+tach = "tach.start:start"
