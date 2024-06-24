@@ -41,7 +41,9 @@ def detect_environment() -> TerminalEnvironment:
     return TerminalEnvironment.UNKNOWN
 
 
-def create_clickable_link(file_path: Path, line: int | None = None) -> str:
+def create_clickable_link(
+    file_path: Path, display_path: Path | None = None, line: int | None = None
+) -> str:
     terminal_env = detect_environment()
     abs_path = file_path.resolve()
 
@@ -60,15 +62,19 @@ def create_clickable_link(file_path: Path, line: int | None = None) -> str:
     # ANSI escape codes for clickable link
     if line and terminal_env != TerminalEnvironment.UNKNOWN:
         # Show the line number if clicking will take you to the line
-        display_file_path = f"{file_path}[L{line}]"
+        display_file_path = f"{display_path or file_path}[L{line}]"
     else:
-        display_file_path = file_path
+        display_file_path = str(display_path) if display_path else str(file_path)
     clickable_link = f"\033]8;;{link}\033\\{display_file_path}\033]8;;\033\\"
     return clickable_link
 
 
-def build_error_message(error: BoundaryError) -> str:
-    error_location = create_clickable_link(error.file_path, error.line_number)
+def build_error_message(error: BoundaryError, source_root: Path) -> str:
+    error_location = create_clickable_link(
+        source_root / error.file_path,
+        display_path=error.file_path,
+        line=error.line_number,
+    )
     error_template = f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: {{message}} {BCOLORS.ENDC}"
     error_info = error.error_info
     if error_info.exception_message:
@@ -89,13 +95,13 @@ def print_warnings(warning_list: list[str]) -> None:
         print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
 
 
-def print_errors(error_list: list[BoundaryError]) -> None:
+def print_errors(error_list: list[BoundaryError], source_root: Path) -> None:
     if not error_list:
         return
     sorted_results = sorted(error_list, key=lambda e: e.file_path)
     for error in sorted_results:
         print(
-            build_error_message(error),
+            build_error_message(error, source_root=source_root),
             file=sys.stderr,
         )
     print(
@@ -254,7 +260,10 @@ def tach_check(
         exit_code = 0
 
         if check_result.errors:
-            print_errors(check_result.errors)
+            print_errors(
+                check_result.errors,
+                source_root=project_root / project_config.source_root,
+            )
             exit_code = 1
 
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
