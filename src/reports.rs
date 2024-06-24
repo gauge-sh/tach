@@ -161,7 +161,7 @@ pub fn create_dependency_report(
     path: String,
     ignore_type_checking_imports: bool,
 ) -> Result<String> {
-    let absolute_path = fs::canonicalize(&path)?;
+    let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(&path)?);
     let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
     let module_path = file_to_module_path(
         absolute_source_root.to_str().unwrap(),
@@ -170,14 +170,14 @@ pub fn create_dependency_report(
     let mut result = DependencyReport::new(path.clone()); // TODO: clone shouldnt be necessary
 
     for pyfile in walk_pyfiles(&project_root) {
+        let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
         match get_project_imports(
             project_root.clone(), // TODO: clones shouldn't be necessary, need to update the args
             source_root.clone(),
-            pyfile.to_string_lossy().to_string(),
+            absolute_pyfile.to_string_lossy().to_string(),
             ignore_type_checking_imports,
         ) {
             Ok(project_imports) => {
-                let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
                 let pyfile_in_target_module = absolute_pyfile.starts_with(&absolute_path);
                 if pyfile_in_target_module {
                     // Any import from within the target module which points to an external mod_path
