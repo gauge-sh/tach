@@ -42,13 +42,15 @@ pip install tach
 ### Setup
 Tach allows you to configure where you want to place module boundaries in your project.
 
-You can do this interactively! From the root of your python project, run:
+You can do this interactively! Run:
 ```bash
  tach mod
 # Up/Down: Navigate  Enter: Mark/unmark module  Right: Expand  Left: Collapse  Ctrl + Up: Jump to parent
 # Ctrl + s: Exit and save  Ctrl + c: Exit without saving  Ctrl + a: Mark/unmark all
 ```
 Mark and unmark each module boundary you want to create with 'Enter' (or 'Ctrl + a' to mark all sibling modules). Common choices would be to mark all of your top-level Python source packages, or just a few packages which you want to isolate.
+
+If your Python code lives below your project root, you should mark your Python [source root](https://gauge-sh.github.io/tach/configuration#source-root) using the 's' key.
 
 Once you have marked all the modules you want to enforce constraints between, run:
 ```bash
@@ -75,10 +77,12 @@ You will see:
 
 You can validate that Tach is working by either commenting out an item in a `depends_on` key in `tach.yml`, or by adding an import between modules that didn't previously import from each other. 
 
-Give both a try and run `tach check` again. This will generate an error:
+Give both a try and run `tach check` again. This will generate an error similar to this one:
 ```bash
-❌ path/file.py[LNO]: Cannot import 'path.other'. Tags ['scope:other'] cannot depend on ['scope:file']. 
+❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'. 
 ```
+
+Each error indicates an import which violates your module's declared dependencies. If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
 
 ### Extras
 

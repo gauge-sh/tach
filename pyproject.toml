@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.5.4"
+version = "0.6.3"
 authors = [
   { name="Caelean Barnes", email="caeleanb@gmail.com" },
   { name="Evan Doyle", email="evanmdoyle@gmail.com" },
@@ -42,7 +42,7 @@ Issues = "https://github.com/gauge-sh/tach/issues"
 
 [tool.ruff]
 src = ["python"]
-exclude = ["crates"]
+exclude = ["python/tests/example"]
 target-version = "py38"
 lint.extend-select = ["I", "TCH", "UP"]
 
@@ -79,4 +79,4 @@ module-name = "tach.extension"
 features = ["pyo3/extension-module"]
 
 [project.scripts]
-tach = "tach.cli:main"
+tach = "tach.start:start"

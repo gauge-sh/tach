@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
+use std::fs;
+use std::io;
+use std::path::PathBuf;
 
 use crate::colors::*;
 
-use crate::filesystem::{
-    adjust_path_from_cwd_to_root, file_to_module_path, walk_pyfiles, FileSystemError,
-};
+use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
 use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
 
 #[derive(Debug)]
@@ -31,6 +32,14 @@ impl From<FileSystemError> for ReportCreationError {
     fn from(value: FileSystemError) -> Self {
         ReportCreationError {
             message: value.message,
+        }
+    }
+}
+
+impl From<io::Error> for ReportCreationError {
+    fn from(_: io::Error) -> Self {
+        ReportCreationError {
+            message: "I/O failure during report generation.".to_string(),
         }
     }
 }
@@ -148,22 +157,28 @@ impl DependencyReport {
 
 pub fn create_dependency_report(
     project_root: String,
+    source_root: String,
     path: String,
     ignore_type_checking_imports: bool,
 ) -> Result<String> {
-    let path_relative_to_root = adjust_path_from_cwd_to_root(&project_root, &path)?;
-    let module_path = file_to_module_path(path_relative_to_root.to_str().unwrap());
-    let mut result = DependencyReport::new(path_relative_to_root.to_string_lossy().to_string()); // TODO: clone shouldnt be necessary
+    let absolute_path = fs::canonicalize(&path)?;
+    let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
+    let module_path = file_to_module_path(
+        absolute_source_root.to_str().unwrap(),
+        absolute_path.to_str().unwrap(),
+    )?;
+    let mut result = DependencyReport::new(path.clone()); // TODO: clone shouldnt be necessary
 
     for pyfile in walk_pyfiles(&project_root) {
         match get_project_imports(
-            project_root.clone(), // TODO: not necessary, need to update the args
+            project_root.clone(), // TODO: clones shouldn't be necessary, need to update the args
+            source_root.clone(),
             pyfile.to_string_lossy().to_string(),
             ignore_type_checking_imports,
         ) {
             Ok(project_imports) => {
-                let pyfile_in_target_module =
-                    pyfile.starts_with(path_relative_to_root.to_str().unwrap());
+                let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
+                let pyfile_in_target_module = absolute_pyfile.starts_with(&absolute_path);
                 if pyfile_in_target_module {
                     // Any import from within the target module which points to an external mod_path
                     // is an external dependency

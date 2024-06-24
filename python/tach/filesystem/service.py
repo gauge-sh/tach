@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 import os
-import re
 import stat
 import threading
 from collections import defaultdict
@@ -157,103 +156,46 @@ def parse_ast(path: str) -> ast.AST:
 
 
 def walk(
-    root: str,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
-) -> Generator[tuple[str, list[str]], None, None]:
-    canonical_root = canonical(root)
-    base_depth = 0 if canonical_root == "." else canonical_root.count(os.path.sep) + 1
-    for dirpath, dirnames, filenames in os.walk(canonical_root):
-        dirpath = canonical(dirpath)
-        dirpath_for_matching = f"{dirpath}/"
+    root: Path, depth: int | None = None
+) -> Generator[tuple[Path, list[Path]], None, None]:
+    if depth is not None and depth <= 0:
+        return
+    root = root.resolve()
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel_dirpath = Path(dirpath).relative_to(root)
 
-        # The root dir is a special case which starts with '.' but is not hidden
-        if dirpath != "." and os.path.basename(os.path.normpath(dirpath)).startswith(
-            "."
-        ):
+        if rel_dirpath.name.startswith("."):
             # This prevents recursing into child directories of hidden paths
             del dirnames[:]
             continue
 
-        if exclude_paths is not None and any(
-            re.match(exclude_path, dirpath_for_matching)
-            for exclude_path in exclude_paths
-        ):
-            # Treat excluded paths as invisible
-            continue
-
         if depth:
             # Ignore anything past requested depth
-            current_depth = dirpath.count(os.path.sep)
-            if current_depth >= base_depth + depth:
+            current_depth = len(rel_dirpath.parts) - 1
+            if current_depth > depth:
                 continue
 
         def filter_filename(filename: str) -> bool:
-            if filename.startswith("."):
-                return False
-            file_path = os.path.join(dirpath, filename)
-            if exclude_paths is not None and any(
-                re.match(exclude_path, file_path) for exclude_path in exclude_paths
-            ):
-                return False
-            return True
+            return not filename.startswith(".")
 
-        yield dirpath, list(filter(filter_filename, filenames))
+        yield rel_dirpath, list(map(Path, filter(filter_filename, filenames)))
 
 
-def walk_pyfiles(
-    root: str,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
-) -> Generator[str, None, None]:
-    for dirpath, filenames in walk(
-        root,
-        depth=depth,
-        exclude_paths=exclude_paths,
-    ):
-        for filename in filenames:
-            if filename.endswith(".py"):
-                yield os.path.join(dirpath, filename)
-
-
-def walk_pypackages(
-    root: str,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
-) -> Generator[str, None, None]:
-    for filepath in walk_pyfiles(
-        root,
-        depth=depth,
-        exclude_paths=exclude_paths,
-    ):
-        init_file_ending = f"{os.path.sep}__init__.py"
-        if filepath.endswith(init_file_ending):
-            yield filepath[: -len(init_file_ending)]
-
-
-def walk_configured_packages(
-    root: str,
-    depth: int | None = None,
-    exclude_paths: list[str] | None = None,
-) -> Generator[tuple[str, str], None, None]:
-    for dirpath in walk_pypackages(
-        root,
-        depth=depth,
-        exclude_paths=exclude_paths,
-    ):
-        package_yml_path = os.path.join(dirpath, "package.yml")
-        if os.path.isfile(package_yml_path):
-            yield dirpath, package_yml_path
+def walk_pyfiles(root: Path, depth: int | None = None) -> Generator[Path, None, None]:
+    for dirpath, filepaths in walk(root, depth=depth):
+        for filepath in filepaths:
+            if filepath.name.endswith(".py"):
+                yield dirpath / filepath
 
 
 @lru_cache(maxsize=None)
-def file_to_module_path(file_path: str) -> str:
+def file_to_module_path(source_root: Path, file_path: Path) -> str:
     # Assuming that the file_path has been 'canonicalized' and does not traverse multiple directories
-    file_path = file_path.lstrip("./")
-    if file_path == ".":
+    file_path = file_path.relative_to(source_root)
+    if file_path == Path("."):
         return ""
 
-    module_path = file_path.replace(os.sep, ".")
+    module_path = str(file_path).replace(os.sep, ".")
 
     if module_path.endswith(".py"):
         module_path = module_path[:-3]
@@ -266,7 +208,7 @@ def file_to_module_path(file_path: str) -> str:
 
 
 @lru_cache(maxsize=None)
-def module_to_file_path_no_members(module_path: str) -> Path | None:
+def module_to_file_path_no_members(source_root: Path, module_path: str) -> Path | None:
     """
     This resolves a dotted Python module path ('a.b.c')
     into a Python file path or a Python package __init__.py
@@ -278,8 +220,8 @@ def module_to_file_path_no_members(module_path: str) -> Path | None:
         return None
 
     base_path = module_path.replace(".", os.sep)
-    pyfile_path = Path(f"{base_path}.py")
-    init_py_path = Path(base_path).joinpath("__init__.py")
+    pyfile_path = source_root / f"{base_path}.py"
+    init_py_path = source_root / base_path / "__init__.py"
     if pyfile_path.exists():
         return pyfile_path
     elif init_py_path.exists():
@@ -289,7 +231,7 @@ def module_to_file_path_no_members(module_path: str) -> Path | None:
 
 
 @lru_cache(maxsize=None)
-def module_to_pyfile_or_dir_path(module_path: str) -> Path | None:
+def module_to_pyfile_or_dir_path(source_root: Path, module_path: str) -> Path | None:
     """
     This resolves a dotted Python module path ('a.b.c')
     into a Python file or a Python package directory
@@ -300,8 +242,8 @@ def module_to_pyfile_or_dir_path(module_path: str) -> Path | None:
         return None
 
     base_path = module_path.replace(".", os.sep)
-    pyfile_path = Path(f"{base_path}.py")
-    dir_path = Path(base_path)
+    pyfile_path = source_root / f"{base_path}.py"
+    dir_path = source_root / base_path
     if pyfile_path.exists():
         return pyfile_path
     elif dir_path.is_dir():

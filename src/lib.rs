@@ -31,13 +31,19 @@ impl From<reports::ReportCreationError> for PyErr {
 
 /// Get first-party imports from file_path relative to project_root
 #[pyfunction]
-#[pyo3(signature = (project_root, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, source_root, file_path, ignore_type_checking_imports=false))]
 fn get_project_imports(
     project_root: String,
+    source_root: String,
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::ProjectImports> {
-    imports::get_project_imports(project_root, file_path, ignore_type_checking_imports)
+    imports::get_project_imports(
+        project_root,
+        source_root,
+        file_path,
+        ignore_type_checking_imports,
+    )
 }
 
 /// Set excluded paths globally.
@@ -50,13 +56,19 @@ fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, source_root, path, ignore_type_checking_imports=false))]
 fn create_dependency_report(
     project_root: String,
+    source_root: String,
     path: String,
     ignore_type_checking_imports: bool,
 ) -> reports::Result<String> {
-    reports::create_dependency_report(project_root, path, ignore_type_checking_imports)
+    reports::create_dependency_report(
+        project_root,
+        source_root,
+        path,
+        ignore_type_checking_imports,
+    )
 }
 
 #[pymodule]

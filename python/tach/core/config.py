@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass
+from pathlib import Path
 
-from pydantic import AfterValidator, BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field, field_serializer
 from typing_extensions import Annotated
 
-from tach.constants import ROOT_MODULE_SENTINEL_TAG
+from tach.constants import DEFAULT_EXCLUDE_PATHS, ROOT_MODULE_SENTINEL_TAG
 
 
 class Config(BaseModel):
@@ -57,10 +59,17 @@ class ProjectConfig(Config):
     """
 
     modules: list[ModuleConfig] = Field(default_factory=list)
-    exclude: list[str] | None = Field(default_factory=lambda: ["tests", "docs"])
+    exclude: list[str] | None = Field(
+        default_factory=lambda: copy(DEFAULT_EXCLUDE_PATHS)
+    )
+    source_root: Path = Field(default_factory=lambda: Path("."))
     exact: bool = False
     disable_logging: bool = False
-    ignore_type_checking_imports: bool = False
+    ignore_type_checking_imports: bool = True
+
+    @field_serializer("source_root")
+    def serialize_source_root(self, source_root: Path, _) -> str:
+        return str(source_root)
 
     @property
     def module_paths(self) -> list[str]:

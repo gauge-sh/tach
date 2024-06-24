@@ -7,16 +7,8 @@ from tach import __version__
 from tach.filesystem import find_project_config_root
 
 
-def get_project_path() -> Path | None:
-    project_root = find_project_config_root(str(Path.cwd()))
-    if project_root is None:
-        return
-    project_path = Path(project_root)
-    return project_path
-
-
 def resolve_dot_tach() -> Path | None:
-    project_path = get_project_path()
+    project_path = find_project_config_root()
     if project_path is None:
         return
 

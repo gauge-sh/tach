@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -32,7 +33,7 @@ def test_valid_path(mock_project_config, mock_cwd):
     mock_path = mock_cwd / "test.py"
     mock_path.touch()
     result = report(
-        root=str(mock_cwd), path=str(mock_path), project_config=mock_project_config
+        project_root=mock_cwd, path=mock_path, project_config=mock_project_config
     )
     assert result
 
@@ -41,7 +42,7 @@ def test_valid_dir(mock_project_config, mock_cwd):
     mock_path = mock_cwd / "test"
     mock_path.mkdir()
     result = report(
-        root=str(mock_cwd), path=str(mock_path), project_config=mock_project_config
+        project_root=mock_cwd, path=mock_path, project_config=mock_project_config
     )
     assert result
 
@@ -50,8 +51,8 @@ def test_valid_dir_trailing_slash(mock_project_config, mock_cwd):
     mock_path = mock_cwd / "test"
     mock_path.mkdir()
     result = report(
-        root=str(mock_cwd),
-        path=str(mock_path) + "/",
+        project_root=mock_cwd,
+        path=Path(str(mock_path) + "/"),
         project_config=mock_project_config,
     )
     assert result
@@ -59,9 +60,17 @@ def test_valid_dir_trailing_slash(mock_project_config, mock_cwd):
 
 def test_invalid_root(mock_project_config, mock_cwd):
     with pytest.raises(TachError):
-        report(root="Invalid!!", path=str(mock_cwd), project_config=mock_project_config)
+        report(
+            project_root=Path("Invalid!!"),
+            path=mock_cwd,
+            project_config=mock_project_config,
+        )
 
 
 def test_invalid_path(mock_project_config, mock_cwd):
     with pytest.raises(TachError):
-        report(root=str(mock_cwd), path="Invalid!!", project_config=mock_project_config)
+        report(
+            project_root=mock_cwd,
+            path=Path("Invalid!!"),
+            project_config=mock_project_config,
+        )

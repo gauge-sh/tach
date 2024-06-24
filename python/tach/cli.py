@@ -41,9 +41,11 @@ def detect_environment() -> TerminalEnvironment:
     return TerminalEnvironment.UNKNOWN
 
 
-def create_clickable_link(file_path: str, line: int | None = None) -> str:
+def create_clickable_link(
+    file_path: Path, display_path: Path | None = None, line: int | None = None
+) -> str:
     terminal_env = detect_environment()
-    abs_path = os.path.abspath(file_path)
+    abs_path = file_path.resolve()
 
     if terminal_env == TerminalEnvironment.JETBRAINS:
         link = f"file://{abs_path}:{line}" if line is not None else f"file://{abs_path}"
@@ -60,15 +62,19 @@ def create_clickable_link(file_path: str, line: int | None = None) -> str:
     # ANSI escape codes for clickable link
     if line and terminal_env != TerminalEnvironment.UNKNOWN:
         # Show the line number if clicking will take you to the line
-        display_file_path = f"{file_path}[L{line}]"
+        display_file_path = f"{display_path or file_path}[L{line}]"
     else:
-        display_file_path = file_path
+        display_file_path = str(display_path) if display_path else str(file_path)
     clickable_link = f"\033]8;;{link}\033\\{display_file_path}\033]8;;\033\\"
     return clickable_link
 
 
-def build_error_message(error: BoundaryError) -> str:
-    error_location = create_clickable_link(error.file_path, error.line_number)
+def build_error_message(error: BoundaryError, source_root: Path) -> str:
+    error_location = create_clickable_link(
+        source_root / error.file_path,
+        display_path=error.file_path,
+        line=error.line_number,
+    )
     error_template = f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: {{message}} {BCOLORS.ENDC}"
     error_info = error.error_info
     if error_info.exception_message:
@@ -89,13 +95,13 @@ def print_warnings(warning_list: list[str]) -> None:
         print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
 
 
-def print_errors(error_list: list[BoundaryError]) -> None:
+def print_errors(error_list: list[BoundaryError], source_root: Path) -> None:
     if not error_list:
         return
     sorted_results = sorted(error_list, key=lambda e: e.file_path)
     for error in sorted_results:
         print(
-            build_error_message(error),
+            build_error_message(error, source_root=source_root),
             file=sys.stderr,
         )
     print(
@@ -124,7 +130,7 @@ def print_unused_dependencies(
 
 def print_no_config_yml() -> None:
     print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found in {Path.cwd()}{BCOLORS.ENDC}",
+        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found{BCOLORS.ENDC}",
         file=sys.stderr,
     )
 
@@ -172,13 +178,6 @@ def build_parser() -> argparse.ArgumentParser:
         description="Check existing boundaries against your dependencies and module interfaces",
     )
     check_parser.add_argument(
-        "--root",
-        required=False,
-        type=str,
-        default=".",
-        help="The root directory from which the check should run",
-    )
-    check_parser.add_argument(
         "--exact",
         action="store_true",
         help="Raise errors if any dependency constraints are unused.",
@@ -194,21 +193,6 @@ def build_parser() -> argparse.ArgumentParser:
         "target",
         choices=InstallTarget.choices(),
         help="What kind of installation to perform (e.g. pre-commit)",
-    )
-    install_parser.add_argument(
-        "-p",
-        "--path",
-        required=False,
-        type=str,
-        default=".",
-        help="The path where this installation should occur (e.g. git root for hooks)",
-    )
-    install_parser.add_argument(
-        "--project-root",
-        required=False,
-        type=str,
-        default="",
-        help="The relative path where 'tach check' should run (defaults to git root)",
     )
     sync_parser = subparsers.add_parser(
         "sync",
@@ -244,7 +228,7 @@ def parse_arguments(
 
 
 def tach_check(
-    root: str = ".",
+    project_root: Path,
     exact: bool = False,
     exclude_paths: list[str] | None = None,
 ):
@@ -258,21 +242,16 @@ def tach_check(
         },
     )
     try:
-        project_config = parse_project_config(root=root)
+        project_config = parse_project_config(project_root)
         if project_config is None:
             print_no_config_yml()
             sys.exit(1)
 
         exact |= project_config.exact
 
-        if exclude_paths is not None and project_config.exclude is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
-
         check_result = check(
-            root,
-            project_config,
+            project_root=project_root,
+            project_config=project_config,
             exclude_paths=exclude_paths,
         )
         if check_result.warnings:
@@ -281,13 +260,18 @@ def tach_check(
         exit_code = 0
 
         if check_result.errors:
-            print_errors(check_result.errors)
+            print_errors(
+                check_result.errors,
+                source_root=project_root / project_config.source_root,
+            )
             exit_code = 1
 
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
         if exact:
             pruned_config = prune_dependency_constraints(
-                root, project_config=project_config, exclude_paths=exclude_paths
+                project_root=project_root,
+                project_config=project_config,
+                exclude_paths=exclude_paths,
             )
             unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:
@@ -302,7 +286,9 @@ def tach_check(
     sys.exit(exit_code)
 
 
-def tach_mod(depth: int | None = 1, exclude_paths: list[str] | None = None):
+def tach_mod(
+    project_root: Path, depth: int | None = 1, exclude_paths: list[str] | None = None
+):
     logger.info(
         "tach mod called",
         extra={
@@ -313,9 +299,9 @@ def tach_mod(depth: int | None = 1, exclude_paths: list[str] | None = None):
         },
     )
     try:
-        project_config = parse_project_config(root=".") or ProjectConfig()
+        project_config = parse_project_config(root=project_root) or ProjectConfig()
         saved_changes, warnings = mod_edit_interactive(
-            root=".", project_config=project_config, depth=depth
+            project_root=project_root, project_config=project_config, depth=depth
         )
     except Exception as e:
         print(str(e))
@@ -331,7 +317,9 @@ def tach_mod(depth: int | None = 1, exclude_paths: list[str] | None = None):
     sys.exit(0)
 
 
-def tach_sync(prune: bool = False, exclude_paths: list[str] | None = None):
+def tach_sync(
+    project_root: Path, prune: bool = False, exclude_paths: list[str] | None = None
+):
     logger.info(
         "tach sync called",
         extra={
@@ -342,7 +330,22 @@ def tach_sync(prune: bool = False, exclude_paths: list[str] | None = None):
         },
     )
     try:
-        sync_project(prune=prune, exclude_paths=exclude_paths)
+        project_config = parse_project_config(root=project_root)
+        if project_config is None:
+            print_no_config_yml()
+            sys.exit(1)
+
+        if exclude_paths is not None and project_config.exclude is not None:
+            exclude_paths.extend(project_config.exclude)
+        else:
+            exclude_paths = project_config.exclude
+
+        sync_project(
+            project_root=project_root,
+            project_config=project_config,
+            prune=prune,
+            exclude_paths=exclude_paths,
+        )
     except Exception as e:
         print(str(e))
         sys.exit(1)
@@ -359,7 +362,7 @@ class InstallTarget(Enum):
         return [item.value for item in cls]
 
 
-def tach_install(path: str, target: InstallTarget, project_root: str = "") -> None:
+def tach_install(project_root: Path, target: InstallTarget) -> None:
     logger.info(
         "tach install called",
         extra={
@@ -370,9 +373,7 @@ def tach_install(path: str, target: InstallTarget, project_root: str = "") -> No
     )
     try:
         if target == InstallTarget.PRE_COMMIT:
-            installed, warning = install_pre_commit(
-                path=path, project_root=project_root
-            )
+            installed, warning = install_pre_commit(project_root=project_root)
         else:
             raise NotImplementedError(f"Target {target} is not supported by 'install'.")
     except Exception as e:
@@ -391,7 +392,7 @@ def tach_install(path: str, target: InstallTarget, project_root: str = "") -> No
         sys.exit(1)
 
 
-def tach_report(path: str, exclude_paths: list[str] | None = None):
+def tach_report(project_root: Path, path: str, exclude_paths: list[str] | None = None):
     logger.info(
         "tach report called",
         extra={
@@ -400,16 +401,19 @@ def tach_report(path: str, exclude_paths: list[str] | None = None):
             ),
         },
     )
-    root = fs.find_project_config_root(".") or "."
-    project_config = parse_project_config(root=root)
+    project_config = parse_project_config(root=project_root)
     if project_config is None:
         print_no_config_yml()
         sys.exit(1)
 
+    report_path = Path(path)
     try:
         print(
             report(
-                root, path, project_config=project_config, exclude_paths=exclude_paths
+                project_root,
+                report_path,
+                project_config=project_config,
+                exclude_paths=exclude_paths,
             )
         )
         sys.exit(0)
@@ -420,38 +424,45 @@ def tach_report(path: str, exclude_paths: list[str] | None = None):
 
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
+    project_root = fs.find_project_config_root() or Path.cwd()
+
     latest_version = cache.get_latest_version()
     if latest_version and latest_version != __version__:
         print(
             f"{BCOLORS.WARNING}WARNING: there is a new tach version available"
             f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
         )
+
+    # TODO: rename throughout to 'exclude_patterns' to indicate that these are regex patterns
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
+
     if args.command == "mod":
-        tach_mod(depth=args.depth, exclude_paths=exclude_paths)
+        tach_mod(
+            project_root=project_root, depth=args.depth, exclude_paths=exclude_paths
+        )
     elif args.command == "sync":
-        tach_sync(prune=args.prune, exclude_paths=exclude_paths)
+        tach_sync(
+            project_root=project_root, prune=args.prune, exclude_paths=exclude_paths
+        )
     elif args.command == "check":
-        tach_check(root=args.root, exact=args.exact, exclude_paths=exclude_paths)
+        tach_check(
+            project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
+        )
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)
         except ValueError:
             print(f"{args.target} is not a valid installation target.")
             sys.exit(1)
-        tach_install(
-            path=args.path, target=install_target, project_root=args.project_root
-        )
+        tach_install(project_root=project_root, target=install_target)
     elif args.command == "report":
-        tach_report(path=args.path, exclude_paths=exclude_paths)
+        tach_report(
+            project_root=project_root, path=args.path, exclude_paths=exclude_paths
+        )
     else:
         print("Unrecognized command")
         parser.print_help()
         exit(1)
-
-
-if __name__ == "__main__":
-    main()
 
 
 __all__ = ["main"]

@@ -13,9 +13,7 @@ from tach.filesystem.service import (
     parse_ast,
     read_file,
     walk,
-    walk_configured_packages,
     walk_pyfiles,
-    walk_pypackages,
     write_file,
 )
 
@@ -29,8 +27,6 @@ __all__ = [
     "parse_ast",
     "walk",
     "walk_pyfiles",
-    "walk_pypackages",
-    "walk_configured_packages",
     "file_to_module_path",
     "module_to_file_path_no_members",
     "module_to_pyfile_or_dir_path",

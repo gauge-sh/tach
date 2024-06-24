@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from domain_two import x
+from mod2 import y
 
-x
+y

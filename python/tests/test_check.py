@@ -1,13 +1,25 @@
 from __future__ import annotations
 
+from itertools import chain
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 
-from tach.check import check_import
+from tach.check import check_import, validate_project_modules
+from tach.cli import tach_check
 from tach.core import (
     ModuleConfig,
     ModuleNode,
     ModuleTree,
 )
+from tach.core.config import RootModuleConfig
+
+
+@pytest.fixture
+def example_dir() -> Path:
+    current_dir = Path(__file__).parent
+    return current_dir / "example"
 
 
 @pytest.fixture
@@ -74,6 +86,38 @@ def module_tree() -> ModuleTree:
 
 
 @pytest.mark.parametrize(
+    "valid_modules,invalid_modules",
+    [
+        (["mod.a"], []),
+        ([], ["mod.b"]),
+        (["mod.a", "mod.b"], ["mod.c"]),
+        (["mod.a", "mod.b"], ["mod.c", "mod.d"]),
+    ],
+)
+def test_validate_project_modules(tmp_path, valid_modules, invalid_modules):
+    def mock_fs_check(source_root, module_path):
+        return module_path in valid_modules
+
+    mock_source_root = tmp_path / "src"
+    with patch("tach.filesystem.module_to_pyfile_or_dir_path", wraps=mock_fs_check):
+        result = validate_project_modules(
+            mock_source_root,
+            [ModuleConfig(path=path) for path in chain(valid_modules, invalid_modules)],
+        )
+        assert set(mod.path for mod in result.valid_modules) == set(valid_modules)
+        assert set(mod.path for mod in result.invalid_modules) == set(invalid_modules)
+
+
+@patch("tach.filesystem.module_to_pyfile_or_dir_path")
+def test_validate_project_modules_root_is_always_valid(tmp_path):
+    result = validate_project_modules(tmp_path / "src", [RootModuleConfig()])
+    assert (
+        len(result.valid_modules) == 1 and result.valid_modules[0] == RootModuleConfig()
+    )
+    assert not result.invalid_modules
+
+
+@pytest.mark.parametrize(
     "file_mod_path,import_mod_path,expected_result",
     [
         ("domain_one", "domain_one", True),
@@ -102,3 +146,17 @@ def test_check_import(module_tree, file_mod_path, import_mod_path, expected_resu
     )
     result = check_error is None
     assert result == expected_result
+
+
+def test_valid_example_dir(example_dir):
+    project_root = example_dir / "valid"
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(project_root=project_root)
+    assert exc_info.value.code == 0
+
+
+def test_valid_example_dir_monorepo(example_dir):
+    project_root = example_dir / "monorepo"
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(project_root=project_root)
+    assert exc_info.value.code == 0

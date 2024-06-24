@@ -5,7 +5,9 @@ modules:
 - path: domain_two
   depends_on:
   - domain_one
-- path: domain_three
-  depends_on: []
+- path: <root>
+  depends_on:
+  - domain_one
 exclude:
 - domain_thr.*
+exact: true

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from tach import filesystem as fs
 from tach.parsing.ast_visitor import EarlyExitNodeVisitor
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class InterfaceVisitor(EarlyExitNodeVisitor):
@@ -34,11 +37,11 @@ class InterfaceVisitor(EarlyExitNodeVisitor):
         self.generic_visit(node)
 
 
-def parse_interface_members(path: str) -> list[str]:
+def parse_interface_members(source_root: Path, module_path: str) -> list[str]:
     """
     Parse the members of __all__ in a given module
     """
-    file_path = fs.module_to_file_path_no_members(path)
+    file_path = fs.module_to_file_path_no_members(source_root, module_path)
     if file_path is None:
         return []
 
