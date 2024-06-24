@@ -47,7 +47,7 @@ def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
     try:
         if os.fork() != 0:
             return
-    except OSError:  # TODO WIN support
+    except AttributeError:  # TODO WIN support
         return
 
     import sys
