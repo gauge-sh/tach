@@ -15,3 +15,5 @@ def start():
 
 if __name__ == "__main__":
     start()
+
+__all__ = ["start"]

@@ -9,6 +9,7 @@ modules:
 - path: tach.start
   depends_on:
   - tach.cli
+  strict: true
 - path: tach.cache
   depends_on:
   - tach
