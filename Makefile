@@ -36,7 +36,6 @@ install: ##  Install the crate as module in the current virtualenv
 	maturin develop --release
 
 
-
 .PHONY: test
 test: ## Run tests
 	cd python/tests && \

@@ -60,8 +60,8 @@ def create_clickable_link(
         link = f"file://{abs_path}"
 
     # ANSI escape codes for clickable link
-    if line and terminal_env != TerminalEnvironment.UNKNOWN:
-        # Show the line number if clicking will take you to the line
+    if line:
+        # Show the line number if we have it
         display_file_path = f"{display_path or file_path}[L{line}]"
     else:
         display_file_path = str(display_path) if display_path else str(file_path)

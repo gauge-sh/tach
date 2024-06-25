@@ -11,11 +11,6 @@ enum TerminalEnvironment {
     VSCode,
 }
 
-impl fmt::Display for TerminalEnvironment {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
 
 fn detect_environment() -> TerminalEnvironment {
     let terminal_emulator = env::var("TERMINAL_EMULATOR").unwrap_or_default().to_lowercase();
@@ -25,9 +20,8 @@ fn detect_environment() -> TerminalEnvironment {
         TerminalEnvironment::JetBrains
     } else if term_program.contains("vscode") {
         TerminalEnvironment::VSCode
-    } else {
-        TerminalEnvironment::Unknown
     }
+    TerminalEnvironment::Unknown
 }
 
 pub fn create_clickable_link(dependency: &Dependency) -> String {
