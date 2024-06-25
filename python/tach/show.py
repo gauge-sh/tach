@@ -7,14 +7,16 @@ from urllib import error, request
 if TYPE_CHECKING:
     from tach.core import ProjectConfig
 
-TACH_SHOW_URL = "https://tach-show.onrender.com/api/core/graph/"
+TACH_SHOW_URL = "https://tach-show.onrender.com"
 
 
 def generate_show_url(project_config: ProjectConfig) -> str | None:
     json_data = project_config.model_dump_json()
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
-        TACH_SHOW_URL, data=json_bytes, headers={"Content-Type": "application/json"}
+        f"{TACH_SHOW_URL}/api/core/graph/",
+        data=json_bytes,
+        headers={"Content-Type": "application/json"},
     )
 
     try:
@@ -22,8 +24,8 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
         with request.urlopen(req) as response:
             response_data = response.read().decode("utf-8")
             response_json = json.loads(response_data)
-            url = response_json.get("url")
-            return url
+            url = response_json.get("uid")
+            return f"{TACH_SHOW_URL}?uid={url}"
     except error.URLError as e:
         print(f"Error: {e.reason}")
         return None
