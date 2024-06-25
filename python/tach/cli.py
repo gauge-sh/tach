@@ -445,6 +445,7 @@ def tach_show(project_root: Path):
     try:
         result = generate_show_url(project_config)
         if result:
+            print("View your dependency graph here:")
             print(result)
             sys.exit(0)
         else:
