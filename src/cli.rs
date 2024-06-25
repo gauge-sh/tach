@@ -1,5 +1,5 @@
 use std::env;
-use crate::imports::{Dependency};
+use std::path::PathBuf;
 
 
 #[derive(Debug, PartialEq, Eq)]
@@ -23,22 +23,21 @@ fn detect_environment() -> TerminalEnvironment {
     }
 }
 
-pub fn create_clickable_link(dependency: &Dependency) -> String {
+pub fn create_clickable_link(file_path: &PathBuf, abs_path: &PathBuf, line: &u32) -> String {
     let terminal_env = detect_environment();
-    let file_path = dependency.file_path.to_string_lossy().to_string();
-    let abs_path = dependency.absolute_path.to_string_lossy().to_string();
-    let line = dependency.import.line_no;
+    let file_path_str = file_path.to_string_lossy().to_string();
+    let abs_path_str = abs_path.to_string_lossy().to_string();
     let link = match terminal_env {
         TerminalEnvironment::JetBrains => {
-            format!("file://{}:{}", abs_path, line)
+            format!("file://{}:{}", abs_path_str, line)
         },
         TerminalEnvironment::VSCode => {
-            format!("vscode://file/{}:{}", abs_path, line)
+            format!("vscode://file/{}:{}", abs_path_str, line)
         },
         TerminalEnvironment::Unknown => {
-            format!("file://{}", abs_path)
+            format!("file://{}", abs_path_str)
         }
     };
-    let display_with_line = format!("{}[L{}]", file_path, line);
+    let display_with_line = format!("{}[L{}]", file_path_str, line);
     format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", link, display_with_line)
 }

@@ -75,7 +75,9 @@ impl DependencyReport {
     }
 
     fn render_dependency(&self, dependency: &Dependency) -> String {
-        let clickable_link = create_clickable_link(dependency);
+        let clickable_link = create_clickable_link(
+             &dependency.file_path, &dependency.absolute_path, &dependency.import.line_no
+        );
         format!(
             "{clickable_link}: Import '{import_mod_path}'",
             clickable_link = clickable_link,
