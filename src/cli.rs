@@ -21,7 +21,7 @@ fn detect_environment() -> TerminalEnvironment {
     } else if term_program.contains("vscode") {
         TerminalEnvironment::VSCode
     }
-    TerminalEnvironment::Unknown
+    return TerminalEnvironment::Unknown
 }
 
 pub fn create_clickable_link(dependency: &Dependency) -> String {
