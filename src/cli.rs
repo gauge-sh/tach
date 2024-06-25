@@ -1,5 +1,5 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Debug, PartialEq, Eq)]
 enum TerminalEnvironment {
@@ -23,7 +23,7 @@ fn detect_environment() -> TerminalEnvironment {
     }
 }
 
-pub fn create_clickable_link(file_path: &PathBuf, abs_path: &PathBuf, line: &u32) -> String {
+pub fn create_clickable_link(file_path: &Path, abs_path: &Path, line: &u32) -> String {
     let terminal_env = detect_environment();
     let file_path_str = file_path.to_string_lossy().to_string();
     let abs_path_str = abs_path.to_string_lossy().to_string();
