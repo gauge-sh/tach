@@ -1,3 +1,5 @@
+pub mod cli;
+pub mod colors;
 pub mod exclusion;
 pub mod filesystem;
 pub mod imports;

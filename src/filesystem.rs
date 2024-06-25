@@ -45,7 +45,6 @@ pub fn relative_to<P: AsRef<Path>>(path: P, root: P) -> Result<PathBuf> {
 
 pub fn file_to_module_path(source_root: &str, file_path: &str) -> Result<String> {
     let relative_file_path = relative_to(file_path, source_root)?;
-
     if relative_file_path
         .file_name()
         .is_some_and(|name| name == ".")
@@ -83,7 +82,7 @@ pub struct ResolvedModule {
 }
 
 pub fn module_to_file_path<P: AsRef<Path>>(root: P, mod_path: &str) -> Option<ResolvedModule> {
-    let mod_as_file_path = mod_path.replace(".", MAIN_SEPARATOR_STR);
+    let mod_as_file_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
     let fs_path = root.as_ref().join(&mod_as_file_path);
     let file_path = fs_path.display().to_string();
 
@@ -115,7 +114,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(root: P, mod_path: &str) -> Option<Re
 
     if let Some(last_sep_index) = file_path.rfind(MAIN_SEPARATOR) {
         // mod_path may refer to a member within a file
-        let py_file_path = format!("{}.py", file_path[..last_sep_index].to_string());
+        let py_file_path = format!("{}.py", &file_path[..last_sep_index]);
         if Path::new(&py_file_path).exists() {
             let member_name = file_path[last_sep_index + 1..].to_string();
             return Some(ResolvedModule {
@@ -127,7 +126,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(root: P, mod_path: &str) -> Option<Re
         // mod_path may refer to a member within a package
         let init_py_file_path = format!(
             "{}{}__init__.py",
-            file_path[..last_sep_index].to_string(),
+            &file_path[..last_sep_index],
             MAIN_SEPARATOR
         );
         if Path::new(&init_py_file_path).exists() {
@@ -175,7 +174,7 @@ pub fn is_project_import<P: AsRef<Path>>(
         };
     } else {
         // This is not a project import
-        return Ok(false);
+        Ok(false)
     }
 }
 
@@ -183,7 +182,7 @@ fn is_hidden(entry: &DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
-        .map(|s| s.starts_with("."))
+        .map(|s| s.starts_with('.'))
         .unwrap_or(false)
 }
 

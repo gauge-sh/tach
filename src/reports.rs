@@ -4,8 +4,17 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
+use crate::colors::*;
+
+use crate::cli::create_clickable_link;
 use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
 use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
+
+struct Dependency {
+    file_path: PathBuf,
+    absolute_path: PathBuf,
+    import: ProjectImport,
+}
 
 #[derive(Debug)]
 pub struct ReportCreationError {
@@ -44,11 +53,6 @@ impl From<io::Error> for ReportCreationError {
 
 pub type Result<T> = std::result::Result<T, ReportCreationError>;
 
-struct Dependency {
-    file_path: String,
-    import: ProjectImport,
-}
-
 // less code than implementing/deriving all necessary traits for Ord
 fn compare_dependencies(left: &Dependency, right: &Dependency) -> Ordering {
     let path_cmp = left.file_path.cmp(&right.file_path);
@@ -76,10 +80,16 @@ impl DependencyReport {
     }
 
     fn render_dependency(&self, dependency: &Dependency) -> String {
+        let clickable_link = create_clickable_link(
+            &dependency.file_path,
+            &dependency.absolute_path,
+            &dependency.import.line_no,
+        );
         format!(
-            "{file_path}[L{line_no}]: Import '{import_mod_path}'",
-            file_path = dependency.file_path.as_str(),
-            line_no = dependency.import.line_no,
+            "{green}{clickable_link}{end_color}: Import '{import_mod_path}'",
+            green = BColors::OKGREEN,
+            clickable_link = clickable_link,
+            end_color = BColors::ENDC,
             import_mod_path = dependency.import.mod_path
         )
     }
@@ -93,10 +103,8 @@ impl DependencyReport {
         let external_deps_title = format!("Dependencies of '{path}'", path = self.path.as_str());
         let external_usages_title = format!("Usages of '{path}'", path = self.path.as_str());
 
-        self.external_dependencies
-            .sort_by(|l, r| compare_dependencies(l, r));
-        self.external_usages
-            .sort_by(|l, r| compare_dependencies(l, r));
+        self.external_dependencies.sort_by(compare_dependencies);
+        self.external_usages.sort_by(compare_dependencies);
 
         let deps_display: String = match self.external_dependencies.len() {
             0 => "No dependencies found.".to_string(),
@@ -124,15 +132,17 @@ impl DependencyReport {
             {subtitle}\n\
             -------------------------------\n\
             [{deps_title}]\n\
-            {deps}\n\
+            {cyan}{deps}{end_color}\n\
             -------------------------------\n\
             [{usages_title}]\n\
-            {usages}",
+            {cyan}{usages}{end_color}",
             title = title,
             deps_title = external_deps_title,
             usages_title = external_usages_title,
             deps = deps_display,
-            usages = usages_display
+            usages = usages_display,
+            cyan = BColors::OKCYAN,
+            end_color = BColors::ENDC,
         );
         if !self.warnings.is_empty() {
             result.push_str(
@@ -140,8 +150,10 @@ impl DependencyReport {
                     "\n\
                     -------------------------------\n\
                     [Warnings]\n\
-                    {}",
-                    self.warnings.join("\n")
+                    {warning_color}{warnings}{end_color}",
+                    warning_color = BColors::WARNING,
+                    end_color = BColors::ENDC,
+                    warnings = self.warnings.join("\n")
                 )
                 .as_str(),
             );
@@ -182,7 +194,8 @@ pub fn create_dependency_report(
                             .into_iter()
                             .filter(|import| !import.mod_path.starts_with(&module_path))
                             .map(|import| Dependency {
-                                file_path: pyfile.to_string_lossy().to_string(),
+                                file_path: pyfile.clone(),
+                                absolute_path: absolute_pyfile.clone(),
                                 import,
                             }),
                     );
@@ -192,7 +205,8 @@ pub fn create_dependency_report(
                     for import in project_imports {
                         if import.mod_path.starts_with(&module_path) {
                             result.external_usages.push(Dependency {
-                                file_path: pyfile.to_string_lossy().to_string(),
+                                file_path: pyfile.clone(),
+                                absolute_path: absolute_pyfile.clone(),
                                 import,
                             });
                         }
