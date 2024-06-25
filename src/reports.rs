@@ -8,7 +8,13 @@ use crate::colors::*;
 
 use crate::cli::create_clickable_link;
 use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
-use crate::imports::{get_project_imports, Dependency, ImportParseError};
+use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
+
+struct Dependency {
+    file_path: PathBuf,
+    absolute_path: PathBuf,
+    import: ProjectImport,
+}
 
 #[derive(Debug)]
 pub struct ReportCreationError {
@@ -80,8 +86,10 @@ impl DependencyReport {
             &dependency.import.line_no,
         );
         format!(
-            "{clickable_link}: Import '{import_mod_path}'",
+            "{green}{clickable_link}{end_color}: Import '{import_mod_path}'",
+            green = BColors::OKGREEN,
             clickable_link = clickable_link,
+            end_color = BColors::ENDC,
             import_mod_path = dependency.import.mod_path
         )
     }
@@ -127,15 +135,14 @@ impl DependencyReport {
             {cyan}{deps}{end_color}\n\
             -------------------------------\n\
             [{usages_title}]\n\
-            {green}{usages}{end_color}",
+            {cyan}{usages}{end_color}",
             title = title,
             deps_title = external_deps_title,
             usages_title = external_usages_title,
             deps = deps_display,
             usages = usages_display,
             cyan = BColors::OKCYAN,
-            green = BColors::OKGREEN,
-            end_color = BColors::ENDC
+            end_color = BColors::ENDC,
         );
         if !self.warnings.is_empty() {
             result.push_str(
