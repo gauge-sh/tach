@@ -327,7 +327,7 @@ pub fn get_project_imports(
     ignore_type_checking_imports: bool,
 ) -> Result<ProjectImports> {
     let file_path = PathBuf::from(&file_path);
-    let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
+    let absolute_source_root = PathBuf::from(&project_root).join(source_root);
     let file_contents =
         filesystem::read_file_content(&file_path).map_err(|err| ImportParseError {
             err_type: ImportParseErrorType::FILESYSTEM,
@@ -346,8 +346,8 @@ pub fn get_project_imports(
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);
     let file_mod_path = filesystem::file_to_module_path(
-        &absolute_source_root.to_str().unwrap(),
-        &file_path.to_str().unwrap(),
+        absolute_source_root.to_str().unwrap(),
+        file_path.to_str().unwrap(),
     )
     .map_err(|err| ImportParseError {
         err_type: ImportParseErrorType::FILESYSTEM,

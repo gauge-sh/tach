@@ -40,5 +40,5 @@ pub fn create_clickable_link(dependency: &Dependency) -> String {
         }
     };
     let display_with_line = format!("{}[L{}]", file_path, line);
-    return format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", link, display_with_line);
+    format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", link, display_with_line)
 }
