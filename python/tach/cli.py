@@ -183,17 +183,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Raise errors if any dependency constraints are unused.",
     )
     add_base_arguments(check_parser)
-    install_parser = subparsers.add_parser(
-        "install",
-        prog="tach install",
-        help="Install tach into your workflow (e.g. as a pre-commit hook)",
-        description="Install tach into your workflow (e.g. as a pre-commit hook)",
-    )
-    install_parser.add_argument(
-        "target",
-        choices=InstallTarget.choices(),
-        help="What kind of installation to perform (e.g. pre-commit)",
-    )
     sync_parser = subparsers.add_parser(
         "sync",
         prog="tach sync",
@@ -214,6 +203,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     report_parser.add_argument(
         "path", help="The filepath or directory path used to generate the report."
+    )
+    subparsers.add_parser(
+        "show",
+        prog="tach show",
+        help="Visualize the dependency graph of your project on the web.",
+        description="Visualize the dependency graph of your project on the web.",
+    )
+    install_parser = subparsers.add_parser(
+        "install",
+        prog="tach install",
+        help="Install tach into your workflow (e.g. as a pre-commit hook)",
+        description="Install tach into your workflow (e.g. as a pre-commit hook)",
+    )
+    install_parser.add_argument(
+        "target",
+        choices=InstallTarget.choices(),
+        help="What kind of installation to perform (e.g. pre-commit)",
     )
     add_base_arguments(report_parser)
     return parser
@@ -459,6 +465,8 @@ def main() -> None:
         tach_report(
             project_root=project_root, path=args.path, exclude_paths=exclude_paths
         )
+    elif args.command == "show":
+        print("show!")
     else:
         print("Unrecognized command")
         parser.print_help()
