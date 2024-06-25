@@ -4,6 +4,7 @@ pub mod filesystem;
 pub mod imports;
 pub mod parsing;
 pub mod reports;
+pub mod cli;
 
 use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;

@@ -75,10 +75,10 @@ impl DependencyReport {
     }
 
     fn render_dependency(&self, dependency: &Dependency) -> String {
+        let clickable_link = create_clickable_link(dependency);
         format!(
-            "{file_path}[L{line_no}]: Import '{import_mod_path}'",
-            file_path = dependency.file_path.as_str(),
-            line_no = dependency.import.line_no,
+            "{clickable_link}: Import '{import_mod_path}'",
+            clickable_link = clickable_link,
             import_mod_path = dependency.import.mod_path
         )
     }
@@ -184,7 +184,8 @@ pub fn create_dependency_report(
                             .into_iter()
                             .filter(|import| !import.mod_path.starts_with(&module_path))
                             .map(|import| Dependency {
-                                file_path: pyfile.to_string_lossy().to_string(),
+                                file_path: pyfile.clone(),
+                                absolute_path: absolute_pyfile.clone(),
                                 import,
                             }),
                     );
@@ -194,7 +195,8 @@ pub fn create_dependency_report(
                     for import in project_imports {
                         if import.mod_path.starts_with(&module_path) {
                             result.external_usages.push(Dependency {
-                                file_path: pyfile.to_string_lossy().to_string(),
+                                file_path: pyfile.clone(),
+                                absolute_path: absolute_pyfile.clone(),
                                 import,
                             });
                         }

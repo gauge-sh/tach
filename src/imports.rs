@@ -41,7 +41,8 @@ pub struct ProjectImport {
 }
 
 pub struct Dependency {
-    pub file_path: String,
+    pub file_path: PathBuf,
+    pub absolute_path: PathBuf,
     pub import: ProjectImport,
 }
 
