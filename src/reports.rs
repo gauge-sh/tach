@@ -6,9 +6,9 @@ use std::path::PathBuf;
 
 use crate::colors::*;
 
-use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
-use crate::imports::{get_project_imports, ImportParseError, Dependency};
 use crate::cli::create_clickable_link;
+use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
+use crate::imports::{get_project_imports, Dependency, ImportParseError};
 
 #[derive(Debug)]
 pub struct ReportCreationError {
@@ -47,7 +47,6 @@ impl From<io::Error> for ReportCreationError {
 
 pub type Result<T> = std::result::Result<T, ReportCreationError>;
 
-
 // less code than implementing/deriving all necessary traits for Ord
 fn compare_dependencies(left: &Dependency, right: &Dependency) -> Ordering {
     let path_cmp = left.file_path.cmp(&right.file_path);
@@ -76,7 +75,9 @@ impl DependencyReport {
 
     fn render_dependency(&self, dependency: &Dependency) -> String {
         let clickable_link = create_clickable_link(
-             &dependency.file_path, &dependency.absolute_path, &dependency.import.line_no
+            &dependency.file_path,
+            &dependency.absolute_path,
+            &dependency.import.line_no,
         );
         format!(
             "{clickable_link}: Import '{import_mod_path}'",

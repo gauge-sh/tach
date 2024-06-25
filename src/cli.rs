@@ -1,7 +1,6 @@
 use std::env;
 use std::path::PathBuf;
 
-
 #[derive(Debug, PartialEq, Eq)]
 enum TerminalEnvironment {
     Unknown,
@@ -9,9 +8,10 @@ enum TerminalEnvironment {
     VSCode,
 }
 
-
 fn detect_environment() -> TerminalEnvironment {
-    let terminal_emulator = env::var("TERMINAL_EMULATOR").unwrap_or_default().to_lowercase();
+    let terminal_emulator = env::var("TERMINAL_EMULATOR")
+        .unwrap_or_default()
+        .to_lowercase();
     let term_program = env::var("TERM_PROGRAM").unwrap_or_default().to_lowercase();
 
     if terminal_emulator.contains("jetbrains") {
@@ -30,10 +30,10 @@ pub fn create_clickable_link(file_path: &PathBuf, abs_path: &PathBuf, line: &u32
     let link = match terminal_env {
         TerminalEnvironment::JetBrains => {
             format!("file://{}:{}", abs_path_str, line)
-        },
+        }
         TerminalEnvironment::VSCode => {
             format!("vscode://file/{}:{}", abs_path_str, line)
-        },
+        }
         TerminalEnvironment::Unknown => {
             format!("file://{}", abs_path_str)
         }
