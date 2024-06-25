@@ -33,6 +33,7 @@ modules:
   - tach.mod
   - tach.parsing
   - tach.report
+  - tach.show
   - tach.sync
   strict: true
 - path: tach.colors
@@ -88,6 +89,7 @@ modules:
   depends_on:
   - tach.errors
   strict: true
+- path: tach.show
 - path: tach.start
   depends_on:
   - tach.cli

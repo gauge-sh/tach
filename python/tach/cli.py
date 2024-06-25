@@ -20,6 +20,7 @@ from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
 from tach.report import report
+from tach.show import generate_show_url
 from tach.sync import prune_dependency_constraints, sync_project
 
 if TYPE_CHECKING:
@@ -428,6 +429,31 @@ def tach_report(project_root: Path, path: str, exclude_paths: list[str] | None =
         sys.exit(1)
 
 
+def tach_show(project_root: Path):
+    logger.info(
+        "tach show called",
+        extra={
+            "data": LogDataModel(
+                function="tach_show",
+            ),
+        },
+    )
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_yml()
+        sys.exit(1)
+    try:
+        result = generate_show_url(project_config)
+        if result:
+            print(result)
+            sys.exit(0)
+        else:
+            sys.exit(1)
+    except TachError as e:
+        print(f"Show failed: {e}")
+        sys.exit(1)
+
+
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
     project_root = fs.find_project_config_root() or Path.cwd()
@@ -466,7 +492,7 @@ def main() -> None:
             project_root=project_root, path=args.path, exclude_paths=exclude_paths
         )
     elif args.command == "show":
-        print("show!")
+        tach_show(project_root=project_root)
     else:
         print("Unrecognized command")
         parser.print_help()
