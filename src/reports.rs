@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::colors::*;
 
 use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
-use crate::imports::{get_project_imports, ImportParseError, ProjectImport, Dependency};
+use crate::imports::{get_project_imports, ImportParseError, Dependency};
 use crate::cli::create_clickable_link;
 
 #[derive(Debug)]
