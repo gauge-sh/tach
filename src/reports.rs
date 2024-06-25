@@ -7,7 +7,8 @@ use std::path::PathBuf;
 use crate::colors::*;
 
 use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
-use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
+use crate::imports::{get_project_imports, ImportParseError, ProjectImport, Dependency};
+use crate::cli::create_clickable_link;
 
 #[derive(Debug)]
 pub struct ReportCreationError {
@@ -46,10 +47,6 @@ impl From<io::Error> for ReportCreationError {
 
 pub type Result<T> = std::result::Result<T, ReportCreationError>;
 
-struct Dependency {
-    file_path: String,
-    import: ProjectImport,
-}
 
 // less code than implementing/deriving all necessary traits for Ord
 fn compare_dependencies(left: &Dependency, right: &Dependency) -> Ordering {

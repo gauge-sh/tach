@@ -40,6 +40,11 @@ pub struct ProjectImport {
     pub line_no: u32,
 }
 
+pub struct Dependency {
+    pub file_path: String,
+    pub import: ProjectImport,
+}
+
 pub type ProjectImports = Vec<ProjectImport>;
 
 impl IntoPy<PyObject> for ProjectImport {
