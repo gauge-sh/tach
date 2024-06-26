@@ -9,7 +9,7 @@ from tach import __version__
 if TYPE_CHECKING:
     from tach.core import ProjectConfig
 
-TACH_SHOW_URL = "https://tach-show.onrender.com"
+TACH_SHOW_URL = "https://show.gauge.sh"
 
 
 def generate_show_url(project_config: ProjectConfig) -> str | None:
