@@ -6,10 +6,6 @@ modules:
   depends_on:
   - tach.start
   strict: true
-- path: tach.start
-  depends_on:
-  - tach.cli
-  strict: true
 - path: tach.cache
   depends_on:
   - tach
@@ -37,6 +33,7 @@ modules:
   - tach.mod
   - tach.parsing
   - tach.report
+  - tach.show
   - tach.sync
   strict: true
 - path: tach.colors
@@ -91,6 +88,14 @@ modules:
 - path: tach.report
   depends_on:
   - tach.errors
+  strict: true
+- path: tach.show
+  depends_on:
+  - tach
+  strict: true
+- path: tach.start
+  depends_on:
+  - tach.cli
   strict: true
 - path: tach.sync
   depends_on:
