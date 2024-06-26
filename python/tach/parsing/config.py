@@ -14,7 +14,10 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # Instead, should provide custom yaml.Dumper & yaml.Representer or just write our own
     # Sort only constraints and dependencies alphabetically for now
     config.modules.sort(key=lambda mod: mod.path)
-    for mod in config.modules:
+    for ind,mod in enumerate(config.modules):
+        if mod.path == "<root>":
+            config.modules.pop(ind)
+            config.modules.append(mod)
         mod.depends_on.sort()
     # NOTE: setting 'exclude' explicitly here also interacts with the 'exclude_unset' option
     # being passed to 'model_dump'. It ensures that even on a fresh config, we will explicitly
