@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod cli;
 pub mod colors;
 pub mod exclusion;
@@ -30,6 +31,12 @@ impl From<reports::ReportCreationError> for PyErr {
     }
 }
 
+impl From<cache::CacheError> for PyErr {
+    fn from(_: cache::CacheError) -> Self {
+        PyValueError::new_err("Failure accessing computation cache.")
+    }
+}
+
 /// Get first-party imports from file_path relative to project_root
 #[pyfunction]
 #[pyo3(signature = (project_root, source_root, file_path, ignore_type_checking_imports=false))]
@@ -56,6 +63,7 @@ fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
     exclusion::set_excluded_paths(exclude_paths)
 }
 
+/// Create a report of dependencies and usages of a given path
 #[pyfunction]
 #[pyo3(signature = (project_root, source_root, path, ignore_type_checking_imports=false))]
 fn create_dependency_report(
@@ -72,10 +80,20 @@ fn create_dependency_report(
     )
 }
 
+#[pyfunction]
+#[pyo3(signature = (action, py_interpreter_version))]
+fn check_computation_cache(
+    action: String,
+    py_interpreter_version: String,
+) -> cache::Result<Option<String>> {
+    cache::check_computation_cache(action, Some(vec![py_interpreter_version]))
+}
+
 #[pymodule]
 fn extension(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction!(set_excluded_paths, m)?)?;
     m.add_function(wrap_pyfunction!(create_dependency_report, m)?)?;
+    m.add_function(wrap_pyfunction!(check_computation_cache, m)?)?;
     Ok(())
 }
