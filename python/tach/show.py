@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
 
@@ -28,8 +29,8 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
             response_json = json.loads(response_data)
             url = response_json.get("uid")
             return f"{TACH_SHOW_URL}?uid={url}"
-    except error.URLError as e:
-        print(f"Error: {e.reason}")
+    except (UnicodeDecodeError, JSONDecodeError, error.URLError) as e:
+        print(f"Error: {e}")
         return None
 
 
