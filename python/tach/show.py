@@ -5,8 +5,6 @@ from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
 
-from tach import __version__
-
 if TYPE_CHECKING:
     from tach.core import ProjectConfig
 
@@ -17,7 +15,7 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
     json_data = project_config.model_dump_json()
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
-        f"{TACH_SHOW_URL}/api/core/{__version__}/graph/",
+        f"{TACH_SHOW_URL}/api/core/0.6.5/graph/",
         data=json_bytes,
         headers={"Content-Type": "application/json"},
     )

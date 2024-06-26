@@ -90,8 +90,7 @@ modules:
   - tach.errors
   strict: true
 - path: tach.show
-  depends_on:
-  - tach
+  depends_on: []
   strict: true
 - path: tach.start
   depends_on:
