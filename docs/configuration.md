@@ -62,7 +62,7 @@ my_repo/
   tests/
 ```
 
-In a Python module such as `backend/module1.py`, we might see imports from other modules.
+In a Python module such as `backend/module1.py`, we can see imports from other modules.
 ```python
 # In backend/module1.py
 
@@ -74,7 +74,7 @@ Notice that these import paths (`module3`, `module2.service.MyService`) are root
 
 To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](usage.md#tach-mod) and mark the `backend` folder as the source root.
 
-In `tach.yml`, the `source_root` value is always interpreted as a relative path from the project root.
+In `tach.yml`, the `source_root` is always interpreted as a relative path from the project root.
 
 ## Modules
 Each module listed under the `modules` key above can accept the following attributes:

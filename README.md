@@ -16,7 +16,7 @@ a Python tool to enforce dependencies, written in Rust.
 [Discord](https://discord.gg/a58vW8dnmw)
 
 <div align="center">
-    <img src="./logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
+    <img src="docs/assets/logo_black_background.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
 </div>
 
 Tach lets you define and enforce dependencies between Python modules within your project.
@@ -100,7 +100,7 @@ tach show
 Tach will generate a graph of your dependencies. Here's what this looks like for Tach:
 
 <div align="center">
-    <img src="./tach_show.png" alt="tach-show" width="100%"  style="padding-bottom: 20px"/>
+    <img src="docs/assets/tach_show.png" alt="tach-show" style="padding-bottom: 20px"/>
 </div>
 
 Note that this graph is generated remotely using your `tach.yml` contents.

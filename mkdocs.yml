@@ -15,7 +15,8 @@ nav:
   - faq.md
 theme:
   name: material
-  favicon: favicon.ico
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
   icon:
     logo: fontawesome/solid/shield-halved
     repo: fontawesome/brands/git-alt

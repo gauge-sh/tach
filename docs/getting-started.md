@@ -62,7 +62,7 @@ tach show
 Tach will generate a graph of your dependencies. Here's what this looks like for Tach:
 
 <div align="center">
-    <img src="../tach_show.png" alt="tach-show" width="100%"  style="padding-bottom: 20px"/>
+    <img src="assets/tach_show.png" alt="tach-show" style="padding-bottom: 20px"/>
 </div>
 
 Note that this graph is generated remotely using your `tach.yml` contents.
