@@ -4,15 +4,18 @@ from pathlib import Path
 
 from git import GitCommandError, InvalidGitRepositoryError, NoSuchPathError, Repo
 
+from tach.errors import TachError, TachSetupError
+
 
 def get_changed_files(
     project_root: Path, head: str = "", base: str = "main"
 ) -> list[Path]:
     try:
         repo = Repo(project_root, search_parent_directories=True)
-    except (InvalidGitRepositoryError, NoSuchPathError) as e:
-        print(f"Error: {e}")
-        return []
+    except (InvalidGitRepositoryError, NoSuchPathError):
+        raise TachSetupError(
+            "The project does not appear to be a git repository, cannot determine changed files!"
+        )
 
     try:
         if head:
@@ -20,9 +23,9 @@ def get_changed_files(
         else:
             # If head is not provided, we can diff against 'base' from the current filesystem
             diff: str = repo.git.diff("--name-only", base)
-    except GitCommandError as e:
-        print(f"Error: {e}")
-        return []
+    except GitCommandError:
+        head_display = f"'{head}'" if head else "current filesystem"
+        raise TachError(f"Failed to check diff between '{base}' and {head_display}!")
 
     changed_files = diff.splitlines()
 

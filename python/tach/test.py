@@ -83,8 +83,8 @@ def get_affected_modules(
 def run_affected_tests(
     project_root: Path,
     project_config: ProjectConfig,
-    head: str = "",
-    base: str = "main",
+    head: str,
+    base: str,
     pytest_args: list[Any] | None = None,
 ) -> int:
     try:

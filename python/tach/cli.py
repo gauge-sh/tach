@@ -237,6 +237,21 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run tests on modules impacted by the current changes.",
     )
     test_parser.add_argument(
+        "--base",
+        type=str,
+        nargs="?",
+        default="main",
+        help="The base commit to use when determining which modules are impacted by changes. [default: 'main']",
+    )
+
+    test_parser.add_argument(
+        "--head",
+        type=str,
+        nargs="?",
+        default="",
+        help="The head commit to use when determining which modules are impacted by changes. [default: current filesystem]",
+    )
+    test_parser.add_argument(
         "pytest_args",
         nargs=argparse.REMAINDER,
         help="Arguments forwarded to pytest. Use '--' to separate these arguments. Ex: 'tach test -- -v'",
@@ -552,7 +567,7 @@ def tach_show(project_root: Path):
         sys.exit(1)
 
 
-def tach_test(project_root: Path, pytest_args: list[Any]):
+def tach_test(project_root: Path, head: str, base: str, pytest_args: list[Any]):
     logger.info(
         "tach test called",
         extra={
@@ -568,7 +583,7 @@ def tach_test(project_root: Path, pytest_args: list[Any]):
 
     try:
         cached_output = check_cache_for_action(
-            project_root, project_config, f"tach-test,{pytest_args}"
+            project_root, project_config, f"tach-test,{head},{base},{pytest_args}"
         )
         if cached_output.exists:
             # Early exit, cached terminal output was found
@@ -593,6 +608,8 @@ def tach_test(project_root: Path, pytest_args: list[Any]):
             exit_code = run_affected_tests(
                 project_root=project_root,
                 project_config=project_config,
+                head=head,
+                base=base,
                 pytest_args=pytest_args[1:],  # Remove '--' pseudo-argument
             )
 
@@ -603,7 +620,7 @@ def tach_test(project_root: Path, pytest_args: list[Any]):
         )
         sys.exit(exit_code)
     except TachError as e:
-        print(f"Report failed: {e}")
+        print(f"{BCOLORS.FAIL}Report failed: {e}{BCOLORS.ENDC}")
         sys.exit(1)
 
 
@@ -645,7 +662,12 @@ def main() -> None:
             project_root=project_root, path=args.path, exclude_paths=exclude_paths
         )
     elif args.command == "test":
-        tach_test(project_root=project_root, pytest_args=args.pytest_args)
+        tach_test(
+            project_root=project_root,
+            head=args.head,
+            base=args.base,
+            pytest_args=args.pytest_args,
+        )
     elif args.command == "show":
         tach_show(project_root=project_root)
     else:

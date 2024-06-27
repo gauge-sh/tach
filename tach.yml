@@ -57,7 +57,8 @@ modules:
   - tach.hooks
   strict: true
 - path: tach.filesystem.git_ops
-  depends_on: []
+  depends_on:
+  - tach.errors
   strict: true
 - path: tach.hooks
   depends_on:
@@ -112,6 +113,9 @@ modules:
   - tach.filesystem
   - tach.filesystem.git_ops
   - tach.parsing
+cache:
+  file_dependencies:
+  - src/*.rs
 exclude:
 - .*__pycache__
 - build/
@@ -122,6 +126,3 @@ exclude:
 - venv/
 source_root: python
 exact: true
-cache:
-  file_dependencies:
-  - src/*.rs
