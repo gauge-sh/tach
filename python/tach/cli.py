@@ -252,6 +252,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="The head commit to use when determining which modules are impacted by changes. [default: current filesystem]",
     )
     test_parser.add_argument(
+        "--disable-cache",
+        action="store_true",
+        help="Do not check cache for results, and do not push results to cache.",
+    )
+    test_parser.add_argument(
         "pytest_args",
         nargs=argparse.REMAINDER,
         help="Arguments forwarded to pytest. Use '--' to separate these arguments. Ex: 'tach test -- -v'",
@@ -319,7 +324,7 @@ class TeeStream:
         self.source_stream.write(data)
         self.capture.append((self.fd, data))
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         # Hack: Proxy attribute access to the source stream
         return getattr(self.source_stream, name)
 
@@ -568,7 +573,13 @@ def tach_show(project_root: Path):
         sys.exit(1)
 
 
-def tach_test(project_root: Path, head: str, base: str, pytest_args: list[Any]):
+def tach_test(
+    project_root: Path,
+    head: str,
+    base: str,
+    disable_cache: bool,
+    pytest_args: list[Any],
+):
     logger.info(
         "tach test called",
         extra={
@@ -582,7 +593,24 @@ def tach_test(project_root: Path, head: str, base: str, pytest_args: list[Any]):
         print_no_config_yml()
         sys.exit(1)
 
+    if pytest_args and pytest_args[0] != "--":
+        print(
+            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: 'tach test -- -v'{BCOLORS.ENDC}"
+        )
+        sys.exit(1)
+
     try:
+        if disable_cache:
+            # If cache disabled, just run affected tests and exit
+            exit_code = run_affected_tests(
+                project_root=project_root,
+                project_config=project_config,
+                head=head,
+                base=base,
+                pytest_args=pytest_args[1:],  # Remove '--' pseudo-argument
+            )
+            sys.exit(exit_code)
+
         cached_output = check_cache_for_action(
             project_root, project_config, f"tach-test,{head},{base},{pytest_args}"
         )
@@ -598,12 +626,6 @@ def tach_test(project_root: Path, head: str, base: str, pytest_args: list[Any]):
             sys.exit(cached_output.exit_code)
 
         # Cache missed, capture terminal output while tests run so we can update the cache
-
-        if pytest_args and pytest_args[0] != "--":
-            print(
-                f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: 'tach test -- -v'{BCOLORS.ENDC}"
-            )
-            sys.exit(1)
 
         with Tee() as captured:
             exit_code = run_affected_tests(
@@ -667,6 +689,7 @@ def main() -> None:
             project_root=project_root,
             head=args.head,
             base=args.base,
+            disable_cache=args.disable_cache,
             pytest_args=args.pytest_args,
         )
     elif args.command == "show":
