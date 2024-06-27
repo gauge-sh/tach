@@ -5,8 +5,8 @@ from pathlib import Path
 import yaml
 
 from tach import filesystem as fs
-from tach.core import ProjectConfig
 from tach.constants import ROOT_MODULE_SENTINEL_TAG
+from tach.core import ProjectConfig
 
 
 def dump_project_config_to_yaml(config: ProjectConfig) -> str:
