@@ -1,12 +1,12 @@
 use cached::stores::DiskCacheBuildError;
 use cached::{DiskCache, DiskCacheError, IOCached};
 use std::collections::hash_map::DefaultHasher;
-use std::env;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
+use std::{env, fs};
 use toml::Value;
 
-use crate::filesystem::{self, read_file_content, walk_pyfiles};
+use crate::filesystem::{self, walk_pyfiles};
 
 pub struct CacheError;
 
@@ -29,8 +29,8 @@ struct CacheKey {
     hash: String,
 }
 
-impl FromIterator<String> for CacheKey {
-    fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
+impl FromIterator<u8> for CacheKey {
+    fn from_iter<T: IntoIterator<Item = u8>>(iter: T) -> Self {
         let mut hasher = DefaultHasher::new();
         for item in iter {
             item.hash(&mut hasher);
@@ -121,9 +121,9 @@ fn parse_project_dependencies<P: AsRef<Path>>(project_root: P) -> impl Iterator<
 fn read_file_dependencies(
     project_root: &str,
     file_dependencies: Vec<String>,
-) -> impl Iterator<Item = String> {
+) -> impl Iterator<Item = u8> {
     filesystem::walk_globbed_files(project_root, file_dependencies)
-        .map(|path| filesystem::read_file_content(path).unwrap())
+        .flat_map(|path| fs::read(path).unwrap())
 }
 
 fn read_env_dependencies(env_dependencies: Vec<String>) -> impl Iterator<Item = String> {
@@ -141,13 +141,18 @@ pub fn create_computation_cache_key(
     env_dependencies: Vec<String>,
     _backend: String,
 ) -> String {
+    let source_pyfiles = walk_pyfiles(&project_root).flat_map(|path| fs::read(&path).unwrap());
+    let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());
+    let project_dependencies =
+        parse_project_dependencies(&project_root).flat_map(|d| d.into_bytes());
+    let file_dependencies = read_file_dependencies(&project_root, file_dependencies);
     CacheKey::from_iter(
-        walk_pyfiles(&project_root)
-            .map(|path| read_file_content(&path).unwrap())
-            .chain(vec![action, py_interpreter_version].into_iter())
-            .chain(read_env_dependencies(env_dependencies))
-            .chain(read_file_dependencies(&project_root, file_dependencies))
-            .chain(parse_project_dependencies(&project_root)),
+        source_pyfiles
+            .chain(env_dependencies)
+            .chain(project_dependencies)
+            .chain(file_dependencies)
+            .chain(action.into_bytes().into_iter())
+            .chain(py_interpreter_version.into_bytes().into_iter()),
     )
     .hash
 }
