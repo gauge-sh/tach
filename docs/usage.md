@@ -115,7 +115,7 @@ options:
   -h, --help  show this help message and exit
 ```
 <div align="center">
-    <img src="./tach_show.png" alt="tach-show" style="padding-bottom: 20px"/>
+    <img src="assets/tach_show.png" alt="tach-show" style="padding-bottom: 20px"/>
 </div>
 
 
