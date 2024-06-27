@@ -112,8 +112,14 @@ def run_affected_tests(
             items: list[pytest.Item],
         ):
             seen: set[Path] = set()
+            removed: set[Path] = set()
             for item in copy(items):
-                if not item.path or item.path in seen:
+                if not item.path:
+                    continue
+                if item.path in removed:
+                    items.remove(item)
+                    continue
+                if item.path in seen:
                     continue
                 project_imports = get_project_imports(
                     project_root=str(self.project_root),
@@ -134,6 +140,7 @@ def run_affected_tests(
                         f"Test file: {item.path} is unaffected by changes. Skipping..."
                     )
                     items.remove(item)
+                    removed.add(item.path)
                 seen.add(item.path)
 
     absolute_source_root = project_root / project_config.source_root
