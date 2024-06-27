@@ -5,6 +5,8 @@ use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 
+use globset::Glob;
+use globset::GlobSetBuilder;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::exclusion::is_path_excluded;
@@ -214,4 +216,21 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
         .map(|res| res.unwrap().into_path())
         .filter(|path: &PathBuf| path.is_file()) // filter_entry would skip dirs if they were excluded earlier
         .map(move |path| path.strip_prefix(&prefix_root).unwrap().to_path_buf())
+}
+
+pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<Item = PathBuf> {
+    let mut glob_builder = GlobSetBuilder::new();
+
+    for pattern in patterns {
+        glob_builder.add(Glob::new(&pattern).unwrap());
+    }
+
+    let glob_set = glob_builder.build().unwrap();
+
+    let walker = WalkDir::new(root).into_iter();
+
+    walker
+        .filter_entry(|e| !is_hidden(e))
+        .map(|res| res.unwrap().into_path())
+        .filter(move |path| glob_set.is_match(path))
 }

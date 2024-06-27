@@ -1,10 +1,12 @@
 use cached::stores::DiskCacheBuildError;
 use cached::{DiskCache, DiskCacheError, IOCached};
 use std::collections::hash_map::DefaultHasher;
+use std::env;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
+use toml::Value;
 
-use crate::filesystem::{read_file_content, walk_pyfiles};
+use crate::filesystem::{self, read_file_content, walk_pyfiles};
 
 pub struct CacheError;
 
@@ -57,19 +59,95 @@ fn build_computation_cache<P: AsRef<Path>>(
     )
 }
 
+fn parse_project_dependencies<P: AsRef<Path>>(project_root: P) -> impl Iterator<Item = String> {
+    let project_root = project_root.as_ref();
+    let mut dependencies = Vec::new();
+
+    // Check for requirements.txt
+    let requirements_path = project_root.join("requirements.txt");
+    if requirements_path.is_file() {
+        if let Ok(content) = filesystem::read_file_content(&requirements_path) {
+            for line in content.lines() {
+                if !line.trim().is_empty() && !line.trim().starts_with('#') {
+                    dependencies.push(line.trim().to_string());
+                }
+            }
+            return dependencies.into_iter();
+        }
+    }
+
+    // Check for pyproject.toml
+    let pyproject_path = project_root.join("pyproject.toml");
+    if pyproject_path.is_file() {
+        let content = filesystem::read_file_content(&pyproject_path).unwrap_or_default();
+        let toml_value = content.parse::<Value>().unwrap_or(Value::Integer(0));
+        if let Some(dependencies_array) = toml_value
+            .get("project")
+            .and_then(|v| v.get("dependencies"))
+            .and_then(|v| v.as_array())
+        {
+            for dep in dependencies_array {
+                if let Some(dep_str) = dep.as_str() {
+                    dependencies.push(dep_str.to_string());
+                }
+            }
+        }
+        // Handle optional dependencies if necessary
+        if let Some(optional_dependencies) = toml_value
+            .get("project")
+            .and_then(|v| v.get("optional-dependencies"))
+            .and_then(|v| v.as_table())
+        {
+            for deps in optional_dependencies.values() {
+                if let Some(deps_array) = deps.as_array() {
+                    for dep in deps_array {
+                        if let Some(dep_str) = dep.as_str() {
+                            dependencies.push(dep_str.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
+        return dependencies.into_iter();
+    }
+
+    // Didn't find any dependencies
+    println!("Did not auto-detect dependencies. Is there a 'requirements.txt' or 'pyproject.toml' in your project root?");
+
+    vec![].into_iter()
+}
+
+fn read_file_dependencies(
+    project_root: &str,
+    file_dependencies: Vec<String>,
+) -> impl Iterator<Item = String> {
+    filesystem::walk_globbed_files(project_root, file_dependencies)
+        .map(|path| filesystem::read_file_content(path).unwrap())
+}
+
+fn read_env_dependencies(env_dependencies: Vec<String>) -> impl Iterator<Item = String> {
+    env_dependencies.into_iter().map(|var| {
+        let value = env::var(&var).unwrap_or_else(|_| "".to_string());
+        format!("{}={}", var, value)
+    })
+}
+
 pub fn create_computation_cache_key(
     project_root: String,
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
-    backend: String,
+    _backend: String,
 ) -> String {
-    // next step is to actually parse environment, external dependency versions
     CacheKey::from_iter(
         walk_pyfiles(&project_root)
             .map(|path| read_file_content(&path).unwrap())
-            .chain(std::iter::once(action)),
+            .chain(vec![action, py_interpreter_version].into_iter())
+            .chain(read_env_dependencies(env_dependencies))
+            .chain(read_file_dependencies(&project_root, file_dependencies))
+            .chain(parse_project_dependencies(&project_root)),
     )
     .hash
 }
