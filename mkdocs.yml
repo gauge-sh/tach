@@ -53,7 +53,16 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+
 extra:
   social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/gauge-sh/tach
     - icon: fontawesome/solid/envelope
-      link: mailto:admin@0x63problems.dev
+      link: mailto:caelean@gauge.sh
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/a58vW8dnmw
+  generator: false
+
+plugins:
+  - social
