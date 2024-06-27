@@ -114,9 +114,8 @@ Visualize the dependency graph of your project on the web.
 options:
   -h, --help  show this help message and exit
 ```
-<div align="center">
-    <img src="assets/tach_show.png" alt="tach-show" style="padding-bottom: 20px"/>
-</div>
+
+![tach show](assets/tach_show.png)
 
 
 ## tach install
