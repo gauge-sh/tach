@@ -115,6 +115,7 @@ modules:
   - tach.parsing
 cache:
   file_dependencies:
+  - python/tests/**
   - src/*.rs
 exclude:
 - .*__pycache__

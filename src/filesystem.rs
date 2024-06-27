@@ -233,8 +233,9 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
         .filter_entry(|e| !is_hidden(e))
         .map(|res| res.unwrap().into_path())
         .filter(move |path| {
-            glob_set.is_match(
-                relative_to(path, &PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
-            )
+            path.is_file()
+                && glob_set.is_match(
+                    relative_to(path, &PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
+                )
         })
 }
