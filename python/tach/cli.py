@@ -21,6 +21,7 @@ from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
 from tach.report import report
 from tach.sync import prune_dependency_constraints, sync_project
+from tach.test import run_affected_tests
 
 if TYPE_CHECKING:
     from tach.core import UnusedDependencies
@@ -216,6 +217,12 @@ def build_parser() -> argparse.ArgumentParser:
         "path", help="The filepath or directory path used to generate the report."
     )
     add_base_arguments(report_parser)
+    subparsers.add_parser(
+        "test",
+        prog="tach test",
+        help="Run tests on modules impacted by the current changes.",
+        description="Run tests on modules impacted by the current changes.",
+    )
     return parser
 
 
@@ -422,6 +429,28 @@ def tach_report(project_root: Path, path: str, exclude_paths: list[str] | None =
         sys.exit(1)
 
 
+def tach_test(project_root: Path):
+    logger.info(
+        "tach test called",
+        extra={
+            "data": LogDataModel(
+                function="tach_test",
+            ),
+        },
+    )
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_yml()
+        sys.exit(1)
+
+    try:
+        run_affected_tests(project_root=project_root, project_config=project_config)
+        sys.exit(0)
+    except TachError as e:
+        print(f"Report failed: {e}")
+        sys.exit(1)
+
+
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
     project_root = fs.find_project_config_root() or Path.cwd()
@@ -459,6 +488,8 @@ def main() -> None:
         tach_report(
             project_root=project_root, path=args.path, exclude_paths=exclude_paths
         )
+    elif args.command == "test":
+        tach_test(project_root=project_root)
     else:
         print("Unrecognized command")
         parser.print_help()

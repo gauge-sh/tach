@@ -32,6 +32,7 @@ modules:
   - tach.parsing
   - tach.report
   - tach.sync
+  - tach.test
   strict: true
 - path: tach.colors
   depends_on: []
@@ -103,7 +104,6 @@ modules:
   strict: true
 - path: tach.test
   depends_on:
-  - tach.core
   - tach.errors
   - tach.filesystem
   - tach.filesystem.git_ops

@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from pathlib import Path
+from copy import copy
+from typing import TYPE_CHECKING
 
 from tach import filesystem as fs
-from tach.core import ModuleConfig, ProjectConfig
-from tach.errors import TachError
+from tach.errors import TachError, TachSetupError
+from tach.extension import get_project_imports
 from tach.filesystem.git_ops import get_changed_files
 from tach.parsing import build_module_tree
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from tach.core import ModuleConfig, ModuleTree, ProjectConfig
 
 
 def build_module_consumer_map(modules: list[ModuleConfig]) -> dict[str, list[str]]:
@@ -40,22 +46,14 @@ def find_affected_modules(
 
 
 def get_affected_modules(
-    project_root: Path, project_config: ProjectConfig, changed_files: list[Path]
+    project_root: Path,
+    project_config: ProjectConfig,
+    changed_files: list[Path],
+    module_tree: ModuleTree,
 ) -> set[str]:
     source_root = project_root / project_config.source_root
 
-    module_validation_result = fs.validate_project_modules(
-        source_root=source_root, modules=project_config.modules
-    )
     module_consumers = build_module_consumer_map(project_config.modules)
-    # TODO: log warning
-    for module in module_validation_result.invalid_modules:
-        print(f"Module '{module.path}' not found. It will be ignored.")
-
-    module_tree = build_module_tree(
-        source_root=source_root,
-        modules=module_validation_result.valid_modules,
-    )
     changed_module_paths = [
         fs.file_to_module_path(
             source_root=source_root, file_path=changed_file.resolve()
@@ -88,8 +86,81 @@ def run_affected_tests(
     head: str = "",
     base: str = "main",
 ):
+    try:
+        import pytest  # type: ignore  # noqa: F401
+    except ImportError:
+        raise TachSetupError("Cannot run tests, could not find 'pytest'.")
+
+    class TachPytestPlugin:
+        def __init__(
+            self,
+            project_root: Path,
+            source_root: Path,
+            module_tree: ModuleTree,
+            affected_modules: set[str],
+        ):
+            self.project_root = project_root
+            self.source_root = source_root
+            self.module_tree = module_tree
+            self.affected_modules = affected_modules
+
+        def pytest_collection_modifyitems(
+            self,
+            session: pytest.Session,
+            config: pytest.Config,
+            items: list[pytest.Item],
+        ):
+            seen: set[Path] = set()
+            for item in copy(items):
+                if not item.path or item.path in seen:
+                    continue
+                project_imports = get_project_imports(
+                    project_root=str(self.project_root),
+                    source_root=str(self.source_root),
+                    file_path=str(item.path.resolve()),
+                    ignore_type_checking_imports=True,
+                )
+                for mod_path, _ in project_imports:
+                    nearest_module = self.module_tree.find_nearest(mod_path)
+                    if not nearest_module:
+                        continue
+                    if nearest_module.full_path in self.affected_modules:
+                        # We can break early without any modifications, since we know this file path is affected
+                        break
+                else:
+                    # If none of the project imports in the test are affected, we can skip the test
+                    print(
+                        f"Test file: {item.path} is unaffected by changes. Skipping..."
+                    )
+                    items.remove(item)
+                seen.add(item.path)
+
+    absolute_source_root = project_root / project_config.source_root
+
+    module_validation_result = fs.validate_project_modules(
+        source_root=absolute_source_root, modules=project_config.modules
+    )
+    # TODO: log warning
+    for module in module_validation_result.invalid_modules:
+        print(f"Module '{module.path}' not found. It will be ignored.")
+
+    module_tree = build_module_tree(
+        source_root=absolute_source_root,
+        modules=module_validation_result.valid_modules,
+    )
+
     # These paths come from git output, which means they are relative to cwd
     changed_files = get_changed_files(project_root, head=head, base=base)
-    return get_affected_modules(
-        project_root, project_config, changed_files=changed_files
+    affected_module_paths = get_affected_modules(
+        project_root,
+        project_config,
+        changed_files=changed_files,
+        module_tree=module_tree,
     )
+    pytest_plugin = TachPytestPlugin(
+        project_root=project_root,
+        source_root=project_config.source_root,
+        module_tree=module_tree,
+        affected_modules=affected_module_paths,
+    )
+    pytest.main([], plugins=[pytest_plugin])
