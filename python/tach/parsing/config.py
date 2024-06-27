@@ -15,7 +15,9 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # Instead, should provide custom yaml.Dumper & yaml.Representer or just write our own
     # Sort only constraints and dependencies alphabetically for now
     # And during the sorting of modules the ROOT_MODULE_SENTINEL_TAG is moved to the bottom of the list
-    config.modules.sort(key=lambda mod: (mod.path == ROOT_MODULE_SENTINEL_TAG, mod.path))
+    config.modules.sort(
+        key=lambda mod: (mod.path == ROOT_MODULE_SENTINEL_TAG, mod.path)
+    )
     for mod in config.modules:
         mod.depends_on.sort()
     # NOTE: setting 'exclude' explicitly here also interacts with the 'exclude_unset' option
