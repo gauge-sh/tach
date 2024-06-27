@@ -104,6 +104,21 @@ options:
 
 This will generate a textual report showing the file and line number of each relevant import.
 
+## tach show
+`tach` will generate a visual representation of your dependency graph!
+```bash
+usage: tach show [-h]
+
+Visualize the dependency graph of your project on the web.
+
+options:
+  -h, --help  show this help message and exit
+```
+<div align="center">
+    <img src="../tach_show.png" alt="tach-show" width="100%"  style="padding-bottom: 20px"/>
+</div>
+
+
 ## tach install
 `tach` can be installed into your development workflow automatically as a pre-commit hook.
 
