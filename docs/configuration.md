@@ -40,8 +40,8 @@ ignore_type_checking_imports: true
 
 ## Source Root
 The `source_root` key is required for Tach to understand the imports within your project.
-If it is not set explicitly, `source_root` will take the default value of `'.'` automatically.
-This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists (call this the 'project root').
+If it is not set explicitly, `source_root` defaults to `'.'`.
+This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists (the 'project root').
 
 Below is a typical case in which `source_root` is necessary.
 
@@ -62,7 +62,7 @@ my_repo/
   tests/
 ```
 
-In an individual Python module such as `backend/module1.py`, we might see imports from other modules.
+In a Python module such as `backend/module1.py`, we can see imports from other modules.
 ```python
 # In backend/module1.py
 
@@ -72,15 +72,13 @@ from module2.service import MyService
 
 Notice that these import paths (`module3`, `module2.service.MyService`) are rooted in the `backend/` folder, NOT the project root.
 
-To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](usage.md#tach-mod) and interactively mark the `backend` folder as the source root.
+To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](usage.md#tach-mod) and mark the `backend` folder as the source root.
 
-In `tach.yml`, the `source_root` value is always interpreted as a relative path from the project root.
+In `tach.yml`, the `source_root` is always interpreted as a relative path from the project root.
 
 ## Modules
 Each module listed under the `modules` key above can accept the following attributes:
 
-`path` should be the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
-
-`depends_on` should be a list of the other modules which the module is allowed to import from, using their 'paths' to identify them
-
-`strict` enables [strict mode](strict-mode.md) for the module
+- `path`: the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
+- `depends_on`: a list of the other modules which the module is allowed to import from, using their 'paths' to identify them
+- `strict`: enables [strict mode](strict-mode.md) for the module

@@ -15,7 +15,8 @@ nav:
   - faq.md
 theme:
   name: material
-  favicon: favicon.ico
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
   icon:
     logo: fontawesome/solid/shield-halved
     repo: fontawesome/brands/git-alt
@@ -52,7 +53,16 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+
 extra:
   social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/gauge-sh/tach
     - icon: fontawesome/solid/envelope
-      link: mailto:admin@0x63problems.dev
+      link: mailto:caelean@gauge.sh
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/a58vW8dnmw
+  generator: false
+
+plugins:
+  - social

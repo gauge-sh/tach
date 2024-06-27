@@ -21,8 +21,9 @@ Tach is:
 - ♾️ Interoperable with your existing systems (cli, hooks, ci, etc.)
 
 ## Commands
-* [`tach mod`](usage.md#tach-mod) - Interactively define module boundaries in your Python project.
+* [`tach mod`](usage.md#tach-mod) - Interactively define module boundaries.
 * [`tach check`](usage.md#tach-check) - Check that boundaries are respected.
-* [`tach sync`](usage.md#tach-sync) - Sync constraints with actual dependencies in your Python project.
-* [`tach report`](usage.md#tach-report) - Generate a dependency report for a file or module in your Python project.
+* [`tach sync`](usage.md#tach-sync) - Sync constraints with the actual dependencies in your project.
+* [`tach show`](usage.md#tach-show) - Visualize your project's dependency graph.
+* [`tach report`](usage.md#tach-report) - Generate a dependency report for a file or module.
 * [`tach install`](usage.md#tach-install) - Install `tach` into your development workflow (e.g. pre-commit)
