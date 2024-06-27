@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import copy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from tach import filesystem as fs
 from tach.errors import TachError, TachSetupError
@@ -85,6 +85,7 @@ def run_affected_tests(
     project_config: ProjectConfig,
     head: str = "",
     base: str = "main",
+    pytest_args: list[Any] | None = None,
 ) -> int:
     try:
         import pytest  # type: ignore  # noqa: F401
@@ -163,4 +164,5 @@ def run_affected_tests(
         module_tree=module_tree,
         affected_modules=affected_module_paths,
     )
-    return pytest.main([], plugins=[pytest_plugin])
+
+    return pytest.main(pytest_args, plugins=[pytest_plugin])

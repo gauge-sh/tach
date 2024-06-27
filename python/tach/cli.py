@@ -230,11 +230,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="What kind of installation to perform (e.g. pre-commit)",
     )
     add_base_arguments(report_parser)
-    subparsers.add_parser(
+    test_parser = subparsers.add_parser(
         "test",
         prog="tach test",
         help="Run tests on modules impacted by the current changes.",
         description="Run tests on modules impacted by the current changes.",
+    )
+    test_parser.add_argument(
+        "pytest_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments forwarded to pytest. Use '--' to separate these arguments. Ex: 'tach test -- -v'",
     )
     return parser
 
@@ -547,7 +552,7 @@ def tach_show(project_root: Path):
         sys.exit(1)
 
 
-def tach_test(project_root: Path):
+def tach_test(project_root: Path, pytest_args: list[Any]):
     logger.info(
         "tach test called",
         extra={
@@ -563,9 +568,10 @@ def tach_test(project_root: Path):
 
     try:
         cached_output = check_cache_for_action(
-            project_root, project_config, "tach-test"
+            project_root, project_config, f"tach-test,{pytest_args}"
         )
         if cached_output.exists:
+            # Early exit, cached terminal output was found
             print(
                 f"{BCOLORS.OKGREEN}============ Cached results found!  ============{BCOLORS.ENDC}"
             )
@@ -575,9 +581,19 @@ def tach_test(project_root: Path):
             )
             sys.exit(cached_output.exit_code)
 
+        # Cache missed, capture terminal output while tests run so we can update the cache
+
+        if pytest_args and pytest_args[0] != "--":
+            print(
+                f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: 'tach test -- -v'{BCOLORS.ENDC}"
+            )
+            sys.exit(1)
+
         with Tee() as captured:
             exit_code = run_affected_tests(
-                project_root=project_root, project_config=project_config
+                project_root=project_root,
+                project_config=project_config,
+                pytest_args=pytest_args[1:],  # Remove '--' pseudo-argument
             )
 
         update_computation_cache(
@@ -629,7 +645,7 @@ def main() -> None:
             project_root=project_root, path=args.path, exclude_paths=exclude_paths
         )
     elif args.command == "test":
-        tach_test(project_root=project_root)
+        tach_test(project_root=project_root, pytest_args=args.pytest_args)
     elif args.command == "show":
         tach_show(project_root=project_root)
     else:
