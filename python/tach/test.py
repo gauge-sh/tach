@@ -104,6 +104,8 @@ def run_affected_tests(
             self.source_root = source_root
             self.module_tree = module_tree
             self.affected_modules = affected_modules
+            self.removed_test_paths: set[Path] = set()
+            self.num_removed_items: int = 0
 
         def pytest_collection_modifyitems(
             self,
@@ -112,11 +114,11 @@ def run_affected_tests(
             items: list[pytest.Item],
         ):
             seen: set[Path] = set()
-            removed: set[Path] = set()
             for item in copy(items):
                 if not item.path:
                     continue
-                if item.path in removed:
+                if item.path in self.removed_test_paths:
+                    self.num_removed_items += 1
                     items.remove(item)
                     continue
                 if item.path in seen:
@@ -135,13 +137,28 @@ def run_affected_tests(
                         # We can break early without any modifications, since we know this file path is affected
                         break
                 else:
-                    # If none of the project imports in the test are affected, we can skip the test
-                    print(
-                        f"Test file: {item.path} is unaffected by changes. Skipping..."
-                    )
+                    # If none of the project imports in the test are affected, we can skip all tests in the file path
+                    self.num_removed_items += 1
                     items.remove(item)
-                    removed.add(item.path)
+                    self.removed_test_paths.add(item.path)
                 seen.add(item.path)
+
+        def pytest_report_collectionfinish(
+            self,
+            config: pytest.Config,
+            start_path: Path,
+            startdir: Any,
+            items: list[pytest.Item],
+        ) -> str | list[str]:
+            return [
+                f"[Tach] Skipped {len(self.removed_test_paths)} test file{'s' if len(self.removed_test_paths) > 1 else ''}"
+                f" ({self.num_removed_items} tests)"
+                " since they were unaffected by current changes.",
+                *(
+                    f"[Tach] > Skipped '{test_path}'"
+                    for test_path in self.removed_test_paths
+                ),
+            ]
 
     absolute_source_root = project_root / project_config.source_root
 
