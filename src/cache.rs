@@ -135,13 +135,16 @@ fn read_env_dependencies(env_dependencies: Vec<String>) -> impl Iterator<Item = 
 
 pub fn create_computation_cache_key(
     project_root: String,
+    source_root: String,
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     _backend: String,
 ) -> String {
-    let source_pyfiles = walk_pyfiles(&project_root).flat_map(|path| fs::read(&path).unwrap());
+    let absolute_source_root = Path::new(&project_root).join(&source_root);
+    let source_pyfiles = walk_pyfiles(absolute_source_root.to_str().unwrap())
+        .flat_map(|path| fs::read(&absolute_source_root.join(path)).unwrap());
     let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());
     let project_dependencies =
         parse_project_dependencies(&project_root).flat_map(|d| d.into_bytes());

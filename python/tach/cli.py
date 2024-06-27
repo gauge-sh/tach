@@ -290,6 +290,7 @@ def check_cache_for_action(
 ) -> CachedOutput:
     cache_key = create_computation_cache_key(
         project_root=str(project_root),
+        source_root=str(project_config.source_root),
         action=action,
         py_interpreter_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         file_dependencies=project_config.cache.file_dependencies,

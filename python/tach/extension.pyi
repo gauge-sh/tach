@@ -8,6 +8,7 @@ def set_excluded_paths(exclude_paths: list[str]) -> None: ...
 def create_dependency_report(project_root: str, source_root: str, path: str) -> str: ...
 def create_computation_cache_key(
     project_root: str,
+    source_root: str,
     action: str,
     py_interpreter_version: str,
     file_dependencies: list[str],

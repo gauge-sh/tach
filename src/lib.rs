@@ -82,9 +82,10 @@ fn create_dependency_report(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, action, py_interpreter_version, file_dependencies, env_dependencies, backend))]
+#[pyo3(signature = (project_root, source_root, action, py_interpreter_version, file_dependencies, env_dependencies, backend))]
 fn create_computation_cache_key(
     project_root: String,
+    source_root: String,
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,
@@ -93,6 +94,7 @@ fn create_computation_cache_key(
 ) -> String {
     cache::create_computation_cache_key(
         project_root,
+        source_root,
         action,
         py_interpreter_version,
         file_dependencies,
