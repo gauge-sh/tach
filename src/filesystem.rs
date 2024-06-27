@@ -228,9 +228,13 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
     let glob_set = glob_builder.build().unwrap();
 
     let walker = WalkDir::new(root).into_iter();
-
+    let owned_root = root.to_string();
     walker
         .filter_entry(|e| !is_hidden(e))
         .map(|res| res.unwrap().into_path())
-        .filter(move |path| glob_set.is_match(path))
+        .filter(move |path| {
+            glob_set.is_match(
+                relative_to(path, &PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
+            )
+        })
 }

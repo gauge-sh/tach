@@ -122,3 +122,6 @@ exclude:
 - venv/
 source_root: python
 exact: true
+cache:
+  file_dependencies:
+  - src/*
