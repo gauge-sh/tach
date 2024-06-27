@@ -40,15 +40,21 @@ impl FromIterator<String> for CacheKey {
 
 static CACHE_DIR: &'static str = ".tach";
 
-fn build_computation_cache<P: AsRef<Path>>(project_root: P) -> Result<DiskCache<String, String>> {
-    Ok(DiskCache::<String, String>::new("computation-cache")
-        .set_disk_directory(
-            project_root
-                .as_ref()
-                .join(CACHE_DIR)
-                .join("computation-cache"),
-        )
-        .build()?)
+pub type ComputationCacheValue = (String, String, u8);
+
+fn build_computation_cache<P: AsRef<Path>>(
+    project_root: P,
+) -> Result<DiskCache<String, ComputationCacheValue>> {
+    Ok(
+        DiskCache::<String, ComputationCacheValue>::new("computation-cache")
+            .set_disk_directory(
+                project_root
+                    .as_ref()
+                    .join(CACHE_DIR)
+                    .join("computation-cache"),
+            )
+            .build()?,
+    )
 }
 
 pub fn check_computation_cache(
@@ -58,7 +64,7 @@ pub fn check_computation_cache(
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     backend: String,
-) -> Result<Option<String>> {
+) -> Result<Option<ComputationCacheValue>> {
     let cache = build_computation_cache(&project_root)?;
 
     // next step is to actually parse environment, external dependency versions

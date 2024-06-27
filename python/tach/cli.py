@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -15,6 +16,7 @@ from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
 from tach.errors import TachError
+from tach.extension import check_computation_cache
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
@@ -234,6 +236,31 @@ def parse_arguments(
     return parsed_args, parser
 
 
+@dataclass
+class CachedOutput:
+    stdout: str
+    stderr: str
+    exit_code: int
+
+
+def check_cache_for_action(
+    project_root: Path, project_config: ProjectConfig, action: str
+) -> CachedOutput | None:
+    cache_result = check_computation_cache(
+        project_root=str(project_root),
+        action=action,
+        py_interpreter_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        file_dependencies=project_config.cache.file_dependencies,
+        env_dependencies=project_config.cache.env_dependencies,
+        backend=project_config.cache.backend,
+    )
+    if cache_result:
+        return CachedOutput(
+            stdout=cache_result[0], stderr=cache_result[1], exit_code=cache_result[2]
+        )
+    return None
+
+
 def tach_check(
     project_root: Path,
     exact: bool = False,
@@ -444,6 +471,13 @@ def tach_test(project_root: Path):
         sys.exit(1)
 
     try:
+        cached_output = check_cache_for_action(
+            project_root, project_config, "tach-test"
+        )
+        if cached_output is not None:
+            print(cached_output.stdout)
+            print(cached_output.stderr, file=sys.stderr)
+            sys.exit(cached_output.exit_code)
         run_affected_tests(project_root=project_root, project_config=project_config)
         sys.exit(0)
     except TachError as e:

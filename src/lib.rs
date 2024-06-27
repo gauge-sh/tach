@@ -89,7 +89,7 @@ fn check_computation_cache(
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     backend: String,
-) -> cache::Result<Option<String>> {
+) -> cache::Result<Option<cache::ComputationCacheValue>> {
     cache::check_computation_cache(
         project_root,
         action,
