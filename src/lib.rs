@@ -7,6 +7,7 @@ pub mod imports;
 pub mod parsing;
 pub mod reports;
 
+use cache::ComputationCacheValue;
 use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
 
@@ -82,15 +83,15 @@ fn create_dependency_report(
 
 #[pyfunction]
 #[pyo3(signature = (project_root, action, py_interpreter_version, file_dependencies, env_dependencies, backend))]
-fn check_computation_cache(
+fn create_computation_cache_key(
     project_root: String,
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     backend: String,
-) -> cache::Result<Option<cache::ComputationCacheValue>> {
-    cache::check_computation_cache(
+) -> String {
+    cache::create_computation_cache_key(
         project_root,
         action,
         py_interpreter_version,
@@ -100,11 +101,32 @@ fn check_computation_cache(
     )
 }
 
+#[pyfunction]
+#[pyo3(signature = (project_root, cache_key))]
+fn check_computation_cache(
+    project_root: String,
+    cache_key: String,
+) -> cache::Result<Option<ComputationCacheValue>> {
+    cache::check_computation_cache(project_root, cache_key)
+}
+
+#[pyfunction]
+#[pyo3(signature = (project_root, cache_key, value))]
+fn update_computation_cache(
+    project_root: String,
+    cache_key: String,
+    value: ComputationCacheValue,
+) -> cache::Result<Option<ComputationCacheValue>> {
+    cache::update_computation_cache(project_root, cache_key, value)
+}
+
 #[pymodule]
 fn extension(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction!(set_excluded_paths, m)?)?;
     m.add_function(wrap_pyfunction!(create_dependency_report, m)?)?;
+    m.add_function(wrap_pyfunction!(create_computation_cache_key, m)?)?;
     m.add_function(wrap_pyfunction!(check_computation_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(update_computation_cache, m)?)?;
     Ok(())
 }

@@ -85,7 +85,7 @@ def run_affected_tests(
     project_config: ProjectConfig,
     head: str = "",
     base: str = "main",
-):
+) -> int:
     try:
         import pytest  # type: ignore  # noqa: F401
     except ImportError:
@@ -163,4 +163,4 @@ def run_affected_tests(
         module_tree=module_tree,
         affected_modules=affected_module_paths,
     )
-    pytest.main([], plugins=[pytest_plugin])
+    return pytest.main([], plugins=[pytest_plugin])

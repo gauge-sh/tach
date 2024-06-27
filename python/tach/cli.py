@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import io
 import os
 import sys
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, Any
 
 from tach import __version__, cache
 from tach import filesystem as fs
@@ -16,7 +17,11 @@ from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
 from tach.errors import TachError
-from tach.extension import check_computation_cache
+from tach.extension import (
+    check_computation_cache,
+    create_computation_cache_key,
+    update_computation_cache,
+)
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
@@ -238,15 +243,20 @@ def parse_arguments(
 
 @dataclass
 class CachedOutput:
-    stdout: str
-    stderr: str
-    exit_code: int
+    key: str
+    stdout: str = ""
+    stderr: str = ""
+    exit_code: int | None = None
+
+    @property
+    def exists(self) -> bool:
+        return self.exit_code is not None
 
 
 def check_cache_for_action(
     project_root: Path, project_config: ProjectConfig, action: str
-) -> CachedOutput | None:
-    cache_result = check_computation_cache(
+) -> CachedOutput:
+    cache_key = create_computation_cache_key(
         project_root=str(project_root),
         action=action,
         py_interpreter_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
@@ -254,11 +264,65 @@ def check_cache_for_action(
         env_dependencies=project_config.cache.env_dependencies,
         backend=project_config.cache.backend,
     )
+    cache_result = check_computation_cache(
+        project_root=str(project_root), cache_key=cache_key
+    )
     if cache_result:
         return CachedOutput(
-            stdout=cache_result[0], stderr=cache_result[1], exit_code=cache_result[2]
+            key=cache_key,
+            stdout=cache_result[0],
+            stderr=cache_result[1],
+            exit_code=cache_result[2],
         )
-    return None
+    return CachedOutput(key=cache_key)
+
+
+class TeeStream:
+    def __init__(self, *streams: IO[Any]):
+        if not streams:
+            raise ValueError("TeeStream requires at least one stream")
+        self.streams = streams
+
+    def write(self, data: Any):
+        for stream in self.streams:
+            stream.write(data)
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+    def __getattr__(self, name: str):
+        # Hack: Proxy attribute access to the first stream
+        return getattr(self.streams[0], name)
+
+
+class Tee:
+    def __init__(self):
+        self.stdout_capture = io.StringIO()
+        self.stderr_capture = io.StringIO()
+        self.original_stdout: Any = None
+        self.original_stderr: Any = None
+
+    def __enter__(self):
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+
+        sys.stdout = TeeStream(sys.stdout, self.stdout_capture)
+        sys.stderr = TeeStream(sys.stderr, self.stderr_capture)
+
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+        sys.stdout = self.original_stdout
+        sys.stderr = self.original_stderr
+
+    @property
+    def stdout(self) -> str:
+        return self.stdout_capture.getvalue()
+
+    @property
+    def stderr(self) -> str:
+        return self.stderr_capture.getvalue()
 
 
 def tach_check(
@@ -474,12 +538,28 @@ def tach_test(project_root: Path):
         cached_output = check_cache_for_action(
             project_root, project_config, "tach-test"
         )
-        if cached_output is not None:
-            print(cached_output.stdout)
-            print(cached_output.stderr, file=sys.stderr)
+        if cached_output.exists:
+            print(
+                f"{BCOLORS.OKGREEN}============ Cached results found!  ============{BCOLORS.ENDC}"
+            )
+            print(cached_output.stdout, end=None)
+            print(cached_output.stderr, end=None, file=sys.stderr)
+            print(
+                f"{BCOLORS.OKGREEN}============ END Cached results  ============{BCOLORS.ENDC}"
+            )
             sys.exit(cached_output.exit_code)
-        run_affected_tests(project_root=project_root, project_config=project_config)
-        sys.exit(0)
+
+        with Tee() as captured:
+            exit_code = run_affected_tests(
+                project_root=project_root, project_config=project_config
+            )
+
+        update_computation_cache(
+            str(project_root),
+            cache_key=cached_output.key,
+            value=(captured.stdout, captured.stderr, exit_code),
+        )
+        sys.exit(exit_code)
     except TachError as e:
         print(f"Report failed: {e}")
         sys.exit(1)
