@@ -81,13 +81,23 @@ fn create_dependency_report(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, action, py_interpreter_version))]
+#[pyo3(signature = (project_root, action, py_interpreter_version, file_dependencies, env_dependencies, backend))]
 fn check_computation_cache(
     project_root: String,
     action: String,
     py_interpreter_version: String,
+    file_dependencies: Vec<String>,
+    env_dependencies: Vec<String>,
+    backend: String,
 ) -> cache::Result<Option<String>> {
-    cache::check_computation_cache(project_root, action, Some(vec![py_interpreter_version]))
+    cache::check_computation_cache(
+        project_root,
+        action,
+        py_interpreter_version,
+        file_dependencies,
+        env_dependencies,
+        backend,
+    )
 }
 
 #[pymodule]

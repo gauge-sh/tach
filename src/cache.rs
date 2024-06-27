@@ -54,20 +54,19 @@ fn build_computation_cache<P: AsRef<Path>>(project_root: P) -> Result<DiskCache<
 pub fn check_computation_cache(
     project_root: String,
     action: String,
-    extra: Option<Vec<String>>,
+    py_interpreter_version: String,
+    file_dependencies: Vec<String>,
+    env_dependencies: Vec<String>,
+    backend: String,
 ) -> Result<Option<String>> {
     let cache = build_computation_cache(&project_root)?;
 
     // next step is to actually parse environment, external dependency versions
     // also need to allow Python to send configuration about which env vars to check, maybe even which deps to check/exclude
-    let cache_key = match extra {
-        Some(extras) => CacheKey::from_iter(
-            extras
-                .into_iter()
-                .chain(walk_pyfiles(&project_root).map(|path| read_file_content(&path).unwrap()))
-                .chain(std::iter::once(action)),
-        ),
-        None => CacheKey::from_iter(std::iter::once(action)),
-    };
+    let cache_key = CacheKey::from_iter(
+        walk_pyfiles(&project_root)
+            .map(|path| read_file_content(&path).unwrap())
+            .chain(std::iter::once(action)),
+    );
     Ok(cache.cache_get(&cache_key.hash)?)
 }

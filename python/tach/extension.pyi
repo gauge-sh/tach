@@ -7,5 +7,10 @@ def get_project_imports(
 def set_excluded_paths(exclude_paths: list[str]) -> None: ...
 def create_dependency_report(project_root: str, source_root: str, path: str) -> str: ...
 def check_computation_cache(
-    project_root: str, action: str, py_interpreter_version: str
+    project_root: str,
+    action: str,
+    py_interpreter_version: str,
+    file_dependencies: list[str],
+    env_dependencies: list[str],
+    backend: str,
 ) -> str | None: ...
