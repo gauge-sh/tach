@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import io
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -251,13 +250,19 @@ def parse_arguments(
 @dataclass
 class CachedOutput:
     key: str
-    stdout: str = ""
-    stderr: str = ""
+    output: list[tuple[int, str]] = field(default_factory=list)
     exit_code: int | None = None
 
     @property
     def exists(self) -> bool:
         return self.exit_code is not None
+
+    def replay(self):
+        for fd, output in self.output:
+            if fd == 1:
+                print(output, end="", file=sys.stdout)
+            elif fd == 2:
+                print(output, end="", file=sys.stderr)
 
 
 def check_cache_for_action(
@@ -277,36 +282,31 @@ def check_cache_for_action(
     if cache_result:
         return CachedOutput(
             key=cache_key,
-            stdout=cache_result[0],
-            stderr=cache_result[1],
-            exit_code=cache_result[2],
+            output=cache_result[0],
+            exit_code=cache_result[1],
         )
     return CachedOutput(key=cache_key)
 
 
 class TeeStream:
-    def __init__(self, *streams: IO[Any]):
-        if not streams:
-            raise ValueError("TeeStream requires at least one stream")
-        self.streams = streams
+    def __init__(self, fd: int, source_stream: IO[Any], capture: list[tuple[int, str]]):
+        self.fd = fd
+        self.source_stream = source_stream
+        self.capture = capture
 
     def write(self, data: Any):
-        for stream in self.streams:
-            stream.write(data)
-
-    def flush(self):
-        for stream in self.streams:
-            stream.flush()
+        self.source_stream.write(data)
+        self.capture.append((self.fd, data))
 
     def __getattr__(self, name: str):
-        # Hack: Proxy attribute access to the first stream
-        return getattr(self.streams[0], name)
+        # Hack: Proxy attribute access to the source stream
+        return getattr(self.source_stream, name)
 
 
 class Tee:
     def __init__(self):
-        self.stdout_capture = io.StringIO()
-        self.stderr_capture = io.StringIO()
+        # stdout output will be indicated by (1, <data>), stderr output by (2, <data>)
+        self.output_capture: list[tuple[int, str]] = []
         self.original_stdout: Any = None
         self.original_stderr: Any = None
 
@@ -314,22 +314,14 @@ class Tee:
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
 
-        sys.stdout = TeeStream(sys.stdout, self.stdout_capture)
-        sys.stderr = TeeStream(sys.stderr, self.stderr_capture)
+        sys.stdout = TeeStream(1, sys.stdout, self.output_capture)
+        sys.stderr = TeeStream(2, sys.stderr, self.output_capture)
 
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
         sys.stdout = self.original_stdout
         sys.stderr = self.original_stderr
-
-    @property
-    def stdout(self) -> str:
-        return self.stdout_capture.getvalue()
-
-    @property
-    def stderr(self) -> str:
-        return self.stderr_capture.getvalue()
 
 
 def tach_check(
@@ -577,8 +569,7 @@ def tach_test(project_root: Path):
             print(
                 f"{BCOLORS.OKGREEN}============ Cached results found!  ============{BCOLORS.ENDC}"
             )
-            print(cached_output.stdout, end=None)
-            print(cached_output.stderr, end=None, file=sys.stderr)
+            cached_output.replay()
             print(
                 f"{BCOLORS.OKGREEN}============ END Cached results  ============{BCOLORS.ENDC}"
             )
@@ -592,7 +583,7 @@ def tach_test(project_root: Path):
         update_computation_cache(
             str(project_root),
             cache_key=cached_output.key,
-            value=(captured.stdout, captured.stderr, exit_code),
+            value=(captured.output_capture, exit_code),
         )
         sys.exit(exit_code)
     except TachError as e:

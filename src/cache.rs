@@ -42,7 +42,7 @@ impl FromIterator<String> for CacheKey {
 
 static CACHE_DIR: &'static str = ".tach";
 
-pub type ComputationCacheValue = (String, String, u8);
+pub type ComputationCacheValue = (Vec<(u8, String)>, u8);
 
 fn build_computation_cache<P: AsRef<Path>>(
     project_root: P,
