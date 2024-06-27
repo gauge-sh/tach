@@ -6,6 +6,7 @@ import yaml
 
 from tach import filesystem as fs
 from tach.core import ProjectConfig
+from tach.constants import ROOT_MODULE_SENTINEL_TAG
 
 
 def dump_project_config_to_yaml(config: ProjectConfig) -> str:
@@ -13,11 +14,9 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # so that 'tag' appears before 'depends_on'
     # Instead, should provide custom yaml.Dumper & yaml.Representer or just write our own
     # Sort only constraints and dependencies alphabetically for now
-    config.modules.sort(key=lambda mod: mod.path)
-    for ind,mod in enumerate(config.modules):
-        if mod.path == "<root>":
-            config.modules.pop(ind)
-            config.modules.append(mod)
+    # And during the sorting of modules the ROOT_MODULE_SENTINEL_TAG is moved to the bottom of the list
+    config.modules.sort(key=lambda mod: (mod.path == ROOT_MODULE_SENTINEL_TAG, mod.path))
+    for mod in config.modules:
         mod.depends_on.sort()
     # NOTE: setting 'exclude' explicitly here also interacts with the 'exclude_unset' option
     # being passed to 'model_dump'. It ensures that even on a fresh config, we will explicitly
