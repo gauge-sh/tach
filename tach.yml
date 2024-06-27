@@ -86,6 +86,7 @@ modules:
   strict: true
 - path: tach.parsing
   depends_on:
+  - tach.constants
   - tach.core
   - tach.filesystem
   strict: true

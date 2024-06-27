@@ -206,11 +206,11 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser = subparsers.add_parser(
         "report",
         prog="tach report",
-        help="Create a report of dependencies and usages of the given filepath or directory.",
-        description="Create a report of dependencies and usages of the given filepath or directory.",
+        help="Create a report of dependencies and usages of the given path or directory.",
+        description="Create a report of dependencies and usages of the given path or directory.",
     )
     report_parser.add_argument(
-        "path", help="The filepath or directory path used to generate the report."
+        "path", help="The path or directory path used to generate the report."
     )
     subparsers.add_parser(
         "show",
