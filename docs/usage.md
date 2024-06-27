@@ -1,7 +1,7 @@
 # Usage
 
 ## tach mod
-`tach` comes bundled with a command to set up and define your initial boundaries.
+Tach comes bundled with a command to set up your initial boundaries - `tach mod`.
 
 ```bash
 usage: tach mod [-h] [-d [DEPTH]] [-e file_or_path,...]
@@ -16,22 +16,46 @@ options:
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
-Running `tach mod` will open an interactive editor in your terminal which allows you to mark your module boundaries.
+Running `tach mod` will open an editor in your terminal where you can mark your module boundaries.
 
 You can navigate with the arrow keys, mark individual modules with `Enter`, and mark all siblings
 as modules with `Ctrl + a`.
 
 You can also mark your Python [source root](configuration.md#source-root) by pressing `s`.
-This allows Tach to understand the module paths used in your project, and to correctly identify first-party imports.
+This allows Tach to understand module paths and correctly identify first-party imports.
 
-When you are ready to save your modules, use `Ctrl + s` to save and exit. Otherwise, to exit without saving you can use `Ctrl + c`.
+To save your modules, use `Ctrl + s`. Otherwise, to exit without saving, use `Ctrl + c`.
 
-Any time you make changes with `tach mod`, it is recommended to run [`tach sync`](usage.md#tach-sync)
+Any time you make changes with `tach mod`, run [`tach sync`](usage.md#tach-sync)
 to automatically configure dependency rules.
 
 
+## tach sync
+Tach can automatically sync your project configuration (`tach.yml`) with your project's actual dependencies.
+
+```bash
+usage: tach sync [-h] [--prune] [-e file_or_path,...]
+
+Sync constraints with actual dependencies in your project.
+
+options:
+  -h, --help            show this help message and exit
+  --prune               Prune all existing constraints and re-sync dependencies.
+  -e file_or_path,..., --exclude file_or_path,...
+                        Comma separated path list to exclude. tests/, ci/, etc.
+```
+
+When this command runs, Tach will analyze the imports in your Python project.
+
+Any undeclared dependencies will be automatically resolved by
+adding the corresponding dependencies to your `tach.yml` file.
+
+With `--prune`,
+any dependency constraints in your `tach.yml` which are not necessary will also be removed.
+
+
 ## tach check
-`tach` will flag any unwanted imports between modules. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
+Tach will flag any unwanted imports between modules. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
 usage: tach check [-h] [--exact] [-e file_or_path,...]
@@ -51,7 +75,7 @@ An error will indicate:
 - the tag associated with that file
 - the tag associated with the attempted import
 
-If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.yml` that is not exercised by the code.
+If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.yml` that does not exist in the code.
 
 Example:
 ```bash
@@ -61,40 +85,16 @@ Example:
 
 NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
 
-
-## tach sync
-`tach` can automatically sync your project configuration (`tach.yml`) with your project's actual dependencies.
-
-```bash
-usage: tach sync [-h] [--prune] [-e file_or_path,...]
-
-Sync constraints with actual dependencies in your project.
-
-options:
-  -h, --help            show this help message and exit
-  --prune               Prune all existing constraints and re-sync dependencies.
-  -e file_or_path,..., --exclude file_or_path,...
-                        Comma separated path list to exclude. tests/, ci/, etc.
-```
-
-When this command runs, `tach` will analyze the imports in your Python project.
-
-Any undeclared dependencies or other dependency errors will be automatically resolved by
-adding the corresponding dependencies to your `tach.yml` file.
-
-If you supply `--prune`,
-any dependency constraints in your `tach.yml` which are not necessary will also be removed.
-
 ## tach report
-`tach` can generate a report showing all the dependencies and usages of a given file or directory in your project.
+Tach can generate a report showing all the dependencies and usages of a given module.
 
 ```bash
 usage: tach report [-h] [-e file_or_path,...] path
 
-Create a report of dependencies and usages of the given filepath or directory.
+Create a report of dependencies and usages of the given path or directory.
 
 positional arguments:
-  path                  The filepath or directory path used to generate the report.
+  path                  The path or directory path used to generate the report.
 
 options:
   -h, --help            show this help message and exit
@@ -105,7 +105,7 @@ options:
 This will generate a textual report showing the file and line number of each relevant import.
 
 ## tach show
-`tach` will generate a visual representation of your dependency graph!
+Tach will generate a visual representation of your dependency graph!
 ```bash
 usage: tach show [-h]
 
@@ -119,7 +119,7 @@ options:
 
 
 ## tach install
-`tach` can be installed into your development workflow automatically as a pre-commit hook.
+Tach can be installed into your development workflow automatically as a pre-commit hook.
 
 
 ### With pre-commit framework

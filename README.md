@@ -124,6 +124,7 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 ```
 
 Tach also supports:
+
 - [Manual file configuration](https://gauge-sh.github.io/tach/configuration/)
 - [Strict public interfaces for modules](https://gauge-sh.github.io/tach/strict-mode/)
 - [Inline exceptions](https://gauge-sh.github.io/tach/tach-ignore/)
