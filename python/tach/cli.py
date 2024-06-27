@@ -27,6 +27,7 @@ from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
 from tach.report import report
+from tach.show import generate_show_url
 from tach.sync import prune_dependency_constraints, sync_project
 from tach.test import run_affected_tests
 
@@ -191,17 +192,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Raise errors if any dependency constraints are unused.",
     )
     add_base_arguments(check_parser)
-    install_parser = subparsers.add_parser(
-        "install",
-        prog="tach install",
-        help="Install tach into your workflow (e.g. as a pre-commit hook)",
-        description="Install tach into your workflow (e.g. as a pre-commit hook)",
-    )
-    install_parser.add_argument(
-        "target",
-        choices=InstallTarget.choices(),
-        help="What kind of installation to perform (e.g. pre-commit)",
-    )
     sync_parser = subparsers.add_parser(
         "sync",
         prog="tach sync",
@@ -222,6 +212,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     report_parser.add_argument(
         "path", help="The filepath or directory path used to generate the report."
+    )
+    subparsers.add_parser(
+        "show",
+        prog="tach show",
+        help="Visualize the dependency graph of your project on the web.",
+        description="Visualize the dependency graph of your project on the web.",
+    )
+    install_parser = subparsers.add_parser(
+        "install",
+        prog="tach install",
+        help="Install tach into your workflow (e.g. as a pre-commit hook)",
+        description="Install tach into your workflow (e.g. as a pre-commit hook)",
+    )
+    install_parser.add_argument(
+        "target",
+        choices=InstallTarget.choices(),
+        help="What kind of installation to perform (e.g. pre-commit)",
     )
     add_base_arguments(report_parser)
     subparsers.add_parser(
@@ -520,6 +527,34 @@ def tach_report(project_root: Path, path: str, exclude_paths: list[str] | None =
         sys.exit(1)
 
 
+def tach_show(project_root: Path):
+    logger.info(
+        "tach show called",
+        extra={
+            "data": LogDataModel(
+                function="tach_show",
+            ),
+        },
+    )
+
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_yml()
+        sys.exit(1)
+
+    try:
+        result = generate_show_url(project_config)
+        if result:
+            print("View your dependency graph here:")
+            print(result)
+            sys.exit(0)
+        else:
+            sys.exit(1)
+    except TachError as e:
+        print(f"Show failed: {e}")
+        sys.exit(1)
+
+
 def tach_test(project_root: Path):
     logger.info(
         "tach test called",
@@ -604,6 +639,8 @@ def main() -> None:
         )
     elif args.command == "test":
         tach_test(project_root=project_root)
+    elif args.command == "show":
+        tach_show(project_root=project_root)
     else:
         print("Unrecognized command")
         parser.print_help()

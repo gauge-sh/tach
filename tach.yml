@@ -31,6 +31,7 @@ modules:
   - tach.mod
   - tach.parsing
   - tach.report
+  - tach.show
   - tach.sync
   - tach.test
   strict: true
@@ -90,6 +91,9 @@ modules:
 - path: tach.report
   depends_on:
   - tach.errors
+  strict: true
+- path: tach.show
+  depends_on: []
   strict: true
 - path: tach.start
   depends_on:
