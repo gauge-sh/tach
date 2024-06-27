@@ -9,7 +9,7 @@
 [![pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-a Python tool to enforce dependencies, written in Rust.
+a Python tool to enforce dependencies, written in Rust. Inspired by modular monolithic architecture.
 
 [Docs](https://gauge-sh.github.io/tach/)
 
@@ -25,7 +25,7 @@ Here's an example:
 
 ![tach_demo](https://github.com/gauge-sh/tach/assets/10570340/6fc1e9b4-5a78-4330-a329-9187bd9c374d)
 
-If a module tries to import from another module that is not listed as a dependency, `tach check` will error.
+If a module tries to import from another module that is not listed as a dependency, Tach can prevent it.
 
 Tach is:
 - 🌎 Open source
@@ -43,19 +43,19 @@ pip install tach
 ### Setup
 Tach allows you to configure where you want to place module boundaries in your project.
 
-You can do this interactively! Run:
+You can do this interactively - run:
 ```bash
  tach mod
 # Up/Down: Navigate  Enter: Mark/unmark module  Right: Expand  Left: Collapse  Ctrl + Up: Jump to parent
 # Ctrl + s: Exit and save  Ctrl + c: Exit without saving  Ctrl + a: Mark/unmark all
 ```
-Mark and unmark each module boundary you want to create with 'Enter'. You can mark all of your top-level Python source packages, or just a few which you want to isolate.
+Mark each module boundary with 'Enter'. You can mark all of your top-level Python source packages, or just a few which you want to isolate.
 
 If your Python code lives below your project root, mark your Python [source root](https://gauge-sh.github.io/tach/configuration#source-root) using the 's' key.
 
 This will create the config file for your project, `tach.yml`.
 
-Once you've marked all the modules you want to enforce constraints between, run:
+Once you've marked all the modules you want to enforce dependencies between, run:
 ```bash
 tach sync
 ```
@@ -66,7 +66,7 @@ Check out what Tach has found!
 cat tach.yml
 ```
 
-NOTE: Your 'project root' directory (where `tach.yml` is) will be treated as a module boundary, and can show up as `<root>`.
+Note: Your 'project root' directory (where `tach.yml` is) will be treated as a module boundary, and can show up as `<root>`.
 
 ### Enforcement
 Tach comes with a cli command to enforce the boundaries that you just set up! From the root of your Python project, run:
@@ -89,11 +89,11 @@ Give both a try and run `tach check` again. This will generate an error:
 
 Each error indicates an import which violates your dependencies. If your terminal supports hyperlinks, click on the file path to go directly to the error.
 
-`tach check` will also return an error code, and can be easily integrated with CI/CD, [Pre-commit hooks](https://gauge-sh.github.io/tach/usage/#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach), and more!  
+`tach check` will also raise an error code. It can be easily integrated with CI/CD, [Pre-commit hooks](https://gauge-sh.github.io/tach/usage/#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach), and more!  
 
 ### Extras
 
-Visualize your dependency graph! 
+Visualize your dependency graph.
 ```bash
 tach show
 ```
@@ -101,7 +101,7 @@ Tach will generate a graph of your dependencies. Here's what this looks like for
 
 ![tach show](docs/assets/tach_show.png)
 
-Note that this graph is generated remotely using your `tach.yml` contents.
+Note that this graph is generated remotely the contents of your `tach.yml`.
 
 You can view the dependencies and usages for a given path:
 ```bash
