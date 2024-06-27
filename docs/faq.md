@@ -1,7 +1,7 @@
 # FAQ
 
 ### How does it work?
-`tach` works by analyzing the imports in your Python modules.
+Tach works by analyzing the imports in your Python modules.
 When you define dependencies in your project-level `tach.yml`, running `tach check` will verify that the imports in your modules match your expected dependencies.
 
 ### What is a module?
@@ -10,12 +10,12 @@ The module is identified by its import path from your project root (e.g. `a.b` f
 and its dependencies are listed in the `depends_on` key containing module paths in the same format.
 
 ### Are conditional imports checked?
-`tach` will check all imports in your source files, including those which are called conditionally.
+Tach will check all imports in your source files, including those which are called conditionally.
 The only exceptions are imports made within `TYPE_CHECKING` conditional blocks. If you want to disable checks for
 these imports, you can add `ignore_type_checking_imports: true` to your `tach.yml`.
 
 ### Can you catch dynamic references?
-Since `tach` uses the AST to find imports and public members, dynamic imports (e.g. using a string path) and dynamic names (e.g. using `setattr`, `locals`, `globals`) are not supported. If these usages cause `tach` to report incorrect errors, the [ignore directive](tach-ignore.md#tach-ignore) should be sufficient to reach a passing state.
+Since Tach uses the AST to find imports and public members, dynamic imports (e.g. using a string path) and dynamic names (e.g. using `setattr`, `locals`, `globals`) are not supported. If these usages cause Tach to report incorrect errors, the [ignore directive](tach-ignore.md#tach-ignore) should be sufficient to reach a passing state.
 
 
 ### How can I make a feature request or file a bug?

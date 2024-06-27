@@ -1,16 +1,16 @@
 # Overview
 
 ## What is tach?
-`tach` allows you to define boundaries and control dependencies between your Python modules.
-Modules can also define an explicit public interface through `__all__` to prevent deep coupling.
+Tach allows you to control dependencies between your Python modules.
+Modules can also define an explicit public interface to prevent deep coupling.
 
-This enforces a decoupled, modular architecture, which makes maintenance and development easier.
+This creates a decoupled, modular architecture, which makes maintenance and development easier.
 
-If a module tries to import from another module that is not listed as a dependency, `tach` will report an error.
+If a module tries to import from another module that is not listed as a dependency, Tach will report an error.
 
-When a module is in ['strict mode'](strict-mode.md), if another module tries to import from it without using its public interface, `tach` will report an error.
+When a module is in ['strict mode'](strict-mode.md), if another module tries to import from it without using its public interface, Tach will report an error.
 
-`tach` runs on the CLI, and is ideal for pre-commit hooks and CI checks.
+Tach is a CLI tool, and is ideal for pre-commit hooks and CI checks.
 
 Tach is:
 
@@ -26,4 +26,4 @@ Tach is:
 * [`tach sync`](usage.md#tach-sync) - Sync constraints with the actual dependencies in your project.
 * [`tach show`](usage.md#tach-show) - Visualize your project's dependency graph.
 * [`tach report`](usage.md#tach-report) - Generate a dependency report for a file or module.
-* [`tach install`](usage.md#tach-install) - Install `tach` into your development workflow (e.g. pre-commit)
+* [`tach install`](usage.md#tach-install) - Install Tach into your development workflow (e.g. pre-commit)

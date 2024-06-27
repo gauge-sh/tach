@@ -1,6 +1,6 @@
 # Configuration
 
-Aside from running `tach mod` and `tach sync`, you can configure `tach` by creating or modifying the configuration file as described below.
+Aside from running `tach mod` and `tach sync`, you can configure Tach by creating or modifying the configuration file as described below.
 
 ## `tach.yml`
 
