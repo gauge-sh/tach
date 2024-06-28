@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,12 @@ from tach.filesystem.git_ops import get_changed_files
 
 
 @pytest.fixture
-def git_repo(tmp_path) -> Path:
+def git_repo(tmp_path):
+    os.environ["GIT_AUTHOR_NAME"] = "Temporary User"
+    os.environ["GIT_AUTHOR_EMAIL"] = "temporary.user@example.com"
+    os.environ["GIT_COMMITTER_NAME"] = "Temporary User"
+    os.environ["GIT_COMMITTER_EMAIL"] = "temporary.user@example.com"
+
     repo_path = tmp_path / "test_repo"
     repo = Repo.init(repo_path)
 
@@ -27,7 +33,12 @@ def git_repo(tmp_path) -> Path:
     repo.git.add("-A")
     repo.git.commit("-m", "Initial commit on main branch")
 
-    return repo_path
+    yield repo_path
+
+    del os.environ["GIT_AUTHOR_NAME"]
+    del os.environ["GIT_AUTHOR_EMAIL"]
+    del os.environ["GIT_COMMITTER_NAME"]
+    del os.environ["GIT_COMMITTER_EMAIL"]
 
 
 @pytest.mark.parametrize(
