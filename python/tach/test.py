@@ -26,6 +26,21 @@ def build_module_consumer_map(modules: list[ModuleConfig]) -> dict[str, list[str
     return consumer_map
 
 
+def get_changed_module_paths(
+    project_root: Path, project_config: ProjectConfig, changed_files: list[Path]
+) -> list[str]:
+    source_root = project_root / project_config.source_root
+    changed_module_paths = [
+        fs.file_to_module_path(
+            source_root=source_root, file_path=changed_file.resolve()
+        )
+        for changed_file in changed_files
+        if source_root in changed_file.resolve().parents
+    ]
+
+    return changed_module_paths
+
+
 def find_affected_modules(
     root_module_path: str,
     module_consumers: dict[str, list[str]],
@@ -51,17 +66,9 @@ def get_affected_modules(
     changed_files: list[Path],
     module_tree: ModuleTree,
 ) -> set[str]:
-    source_root = project_root / project_config.source_root
-
-    module_consumers = build_module_consumer_map(project_config.modules)
-    changed_module_paths = [
-        fs.file_to_module_path(
-            source_root=source_root, file_path=changed_file.resolve()
-        )
-        for changed_file in changed_files
-        if source_root in changed_file.resolve().parents
-    ]
-
+    changed_module_paths = get_changed_module_paths(
+        project_root, project_config, changed_files
+    )
     affected_modules: set[str] = set()
     for changed_mod_path in changed_module_paths:
         nearest_module = module_tree.find_nearest(changed_mod_path)
@@ -71,6 +78,7 @@ def get_affected_modules(
             )
         affected_modules.add(nearest_module.full_path)
 
+    module_consumers = build_module_consumer_map(project_config.modules)
     for module in list(affected_modules):
         find_affected_modules(
             module,
