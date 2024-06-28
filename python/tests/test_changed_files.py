@@ -17,7 +17,7 @@ def git_repo(tmp_path):
     os.environ["GIT_COMMITTER_EMAIL"] = "temporary.user@example.com"
 
     repo_path = tmp_path / "test_repo"
-    repo = Repo.init(repo_path)
+    repo = Repo.init(repo_path, initial_branch="main")
 
     files = {
         "file1.txt": "Hello, World!",
