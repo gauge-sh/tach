@@ -62,7 +62,7 @@ tach show
 ```
 Tach will generate a graph of your dependencies. Here's what this looks like for Tach:
 
-![tach show](docs/assets/tach_show.png)
+![tach show](assets/tach_show.png)
 
 Note that this graph is generated remotely the contents of your `tach.yml`.
 
