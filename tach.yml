@@ -1,116 +1,117 @@
+# yaml-language-server: $schema=docs/assets/tach-yml-schema.json
 modules:
-- path: tach
-  depends_on: []
-  strict: true
-- path: tach.__main__
-  depends_on:
-  - tach.start
-  strict: true
-- path: tach.cache
-  depends_on:
-  - tach
-  - tach.filesystem
-  strict: true
-- path: tach.check
-  depends_on:
-  - tach.constants
-  - tach.core
-  - tach.errors
-  - tach.filesystem
-  - tach.parsing
-  strict: true
-- path: tach.cli
-  depends_on:
-  - tach
-  - tach.cache
-  - tach.check
-  - tach.colors
-  - tach.constants
-  - tach.core
-  - tach.errors
-  - tach.filesystem
-  - tach.logging
-  - tach.mod
-  - tach.parsing
-  - tach.report
-  - tach.show
-  - tach.sync
-  strict: true
-- path: tach.colors
-  depends_on: []
-  strict: true
-- path: tach.constants
-  depends_on: []
-  strict: true
-- path: tach.core
-  depends_on:
-  - tach.constants
-  strict: true
-- path: tach.errors
-  depends_on: []
-  strict: true
-- path: tach.filesystem
-  depends_on:
-  - tach.colors
-  - tach.constants
-  - tach.errors
-  - tach.hooks
-  strict: true
-- path: tach.hooks
-  depends_on:
-  - tach.constants
-  strict: true
-- path: tach.interactive
-  depends_on:
-  - tach.errors
-  - tach.filesystem
-  strict: true
-- path: tach.logging
-  depends_on:
-  - tach
-  - tach.cache
-  - tach.parsing
-  strict: true
-- path: tach.mod
-  depends_on:
-  - tach.colors
-  - tach.constants
-  - tach.errors
-  - tach.filesystem
-  - tach.interactive
-  - tach.parsing
-  strict: true
-- path: tach.parsing
-  depends_on:
-  - tach.constants
-  - tach.core
-  - tach.filesystem
-  strict: true
-- path: tach.report
-  depends_on:
-  - tach.errors
-  strict: true
-- path: tach.show
-  depends_on: []
-  strict: true
-- path: tach.start
-  depends_on:
-  - tach.cli
-  strict: true
-- path: tach.sync
-  depends_on:
-  - tach.check
-  - tach.errors
-  - tach.filesystem
-  - tach.parsing
-  strict: true
+  - path: tach
+    depends_on: []
+    strict: true
+  - path: tach.__main__
+    depends_on:
+      - tach.start
+    strict: true
+  - path: tach.cache
+    depends_on:
+      - tach
+      - tach.filesystem
+    strict: true
+  - path: tach.check
+    depends_on:
+      - tach.constants
+      - tach.core
+      - tach.errors
+      - tach.filesystem
+      - tach.parsing
+    strict: true
+  - path: tach.cli
+    depends_on:
+      - tach
+      - tach.cache
+      - tach.check
+      - tach.colors
+      - tach.constants
+      - tach.core
+      - tach.errors
+      - tach.filesystem
+      - tach.logging
+      - tach.mod
+      - tach.parsing
+      - tach.report
+      - tach.show
+      - tach.sync
+    strict: true
+  - path: tach.colors
+    depends_on: []
+    strict: true
+  - path: tach.constants
+    depends_on: []
+    strict: true
+  - path: tach.core
+    depends_on:
+      - tach.constants
+    strict: true
+  - path: tach.errors
+    depends_on: []
+    strict: true
+  - path: tach.filesystem
+    depends_on:
+      - tach.colors
+      - tach.constants
+      - tach.errors
+      - tach.hooks
+    strict: true
+  - path: tach.hooks
+    depends_on:
+      - tach.constants
+    strict: true
+  - path: tach.interactive
+    depends_on:
+      - tach.errors
+      - tach.filesystem
+    strict: true
+  - path: tach.logging
+    depends_on:
+      - tach
+      - tach.cache
+      - tach.parsing
+    strict: true
+  - path: tach.mod
+    depends_on:
+      - tach.colors
+      - tach.constants
+      - tach.errors
+      - tach.filesystem
+      - tach.interactive
+      - tach.parsing
+    strict: true
+  - path: tach.parsing
+    depends_on:
+      - tach.constants
+      - tach.core
+      - tach.filesystem
+    strict: true
+  - path: tach.report
+    depends_on:
+      - tach.errors
+    strict: true
+  - path: tach.show
+    depends_on: []
+    strict: true
+  - path: tach.start
+    depends_on:
+      - tach.cli
+    strict: true
+  - path: tach.sync
+    depends_on:
+      - tach.check
+      - tach.errors
+      - tach.filesystem
+      - tach.parsing
+    strict: true
 exclude:
-- .*__pycache__
-- build/
-- dist/
-- docs/
-- python/tests/
-- tach.egg-info/
-- venv/
+  - .*__pycache__
+  - build/
+  - dist/
+  - docs/
+  - python/tests/
+  - tach.egg-info/
+  - venv/
 source_root: python
 exact: true
