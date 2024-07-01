@@ -198,3 +198,6 @@ def run_affected_tests(
     )
 
     return pytest.main(pytest_args, plugins=[pytest_plugin])
+
+
+__all__ = ["run_affected_tests"]

@@ -115,6 +115,7 @@ modules:
       - tach.filesystem
       - tach.filesystem.git_ops
       - tach.parsing
+    strict: true
 cache:
   file_dependencies:
     - python/tests/**
