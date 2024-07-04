@@ -107,11 +107,13 @@ def run_affected_tests(
             source_root: Path,
             module_tree: ModuleTree,
             affected_modules: set[str],
+            all_affected_files: set[Path],
         ):
             self.project_root = project_root
             self.source_root = source_root
             self.module_tree = module_tree
             self.affected_modules = affected_modules
+            self.all_affected_files = all_affected_files
             self.removed_test_paths: set[Path] = set()
             self.num_removed_items: int = 0
 
@@ -130,6 +132,12 @@ def run_affected_tests(
                     items.remove(item)
                     continue
                 if item.path in seen:
+                    continue
+
+                if item.path in self.all_affected_files:
+                    # If this test file was changed,
+                    # then we know we need to rerun it
+                    seen.add(item.path)
                     continue
 
                 project_imports = get_project_imports(
@@ -196,6 +204,7 @@ def run_affected_tests(
         source_root=project_config.source_root,
         module_tree=module_tree,
         affected_modules=affected_module_paths,
+        all_affected_files={changed_file.resolve() for changed_file in changed_files},
     )
 
     return pytest.main(pytest_args, plugins=[pytest_plugin])
