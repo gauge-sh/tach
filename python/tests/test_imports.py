@@ -170,3 +170,25 @@ def test_ignored_imports(temp_project):
     )
     expected = [("file3", 7)]
     assert result == expected
+
+
+def test_file_outside_source_root(temp_project, tmp_path):
+    mixed_content = """
+import os
+from file1 import c
+from external_module import something
+"""
+
+    path_outside_source_root = tmp_path / "outside_src_root.py"
+    path_outside_source_root.write_text(mixed_content)
+
+    result = get_project_imports(
+        str(temp_project),
+        ".",
+        str(path_outside_source_root),
+        ignore_type_checking_imports=True,
+    )
+    expected = [
+        ("file1.c", 3),
+    ]
+    assert result == expected

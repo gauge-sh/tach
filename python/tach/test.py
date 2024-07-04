@@ -131,6 +131,7 @@ def run_affected_tests(
                     continue
                 if item.path in seen:
                     continue
+
                 project_imports = get_project_imports(
                     project_root=str(self.project_root),
                     source_root=str(self.source_root),

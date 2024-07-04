@@ -45,7 +45,10 @@ pub fn relative_to<P: AsRef<Path>>(path: P, root: P) -> Result<PathBuf> {
     Ok(diff_path.to_owned())
 }
 
-pub fn file_to_module_path(source_root: &str, file_path: &str) -> Result<String> {
+pub fn file_to_module_path_within_source_root(
+    source_root: &str,
+    file_path: &str,
+) -> Result<String> {
     let relative_file_path = relative_to(file_path, source_root)?;
     if relative_file_path
         .file_name()
