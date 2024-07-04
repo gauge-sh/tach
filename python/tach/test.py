@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import copy
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from tach import filesystem as fs
@@ -88,13 +89,19 @@ def get_affected_modules(
     return affected_modules
 
 
+@dataclass
+class AffectedTestsResult:
+    exit_code: int
+    tests_ran_to_completion: bool
+
+
 def run_affected_tests(
     project_root: Path,
     project_config: ProjectConfig,
     head: str,
     base: str,
     pytest_args: list[Any] | None = None,
-) -> int:
+) -> AffectedTestsResult:
     try:
         import pytest  # type: ignore  # noqa: F401
     except ImportError:
@@ -116,6 +123,7 @@ def run_affected_tests(
             self.all_affected_files = all_affected_files
             self.removed_test_paths: set[Path] = set()
             self.num_removed_items: int = 0
+            self.tests_ran_to_completion = False
 
         def pytest_collection_modifyitems(
             self,
@@ -177,6 +185,11 @@ def run_affected_tests(
                 ),
             ]
 
+        def pytest_terminal_summary(
+            self, terminalreporter: Any, exitstatus: int, config: pytest.Config
+        ):
+            self.tests_ran_to_completion = True
+
     absolute_source_root = project_root / project_config.source_root
 
     module_validation_result = fs.validate_project_modules(
@@ -207,7 +220,11 @@ def run_affected_tests(
         all_affected_files={changed_file.resolve() for changed_file in changed_files},
     )
 
-    return pytest.main(pytest_args, plugins=[pytest_plugin])
+    exit_code = pytest.main(pytest_args, plugins=[pytest_plugin])
+    return AffectedTestsResult(
+        exit_code=exit_code,
+        tests_ran_to_completion=pytest_plugin.tests_ran_to_completion,
+    )
 
 
 __all__ = ["run_affected_tests"]

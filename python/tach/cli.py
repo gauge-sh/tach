@@ -602,15 +602,16 @@ def tach_test(
     try:
         if disable_cache:
             # If cache disabled, just run affected tests and exit
-            exit_code = run_affected_tests(
+            results = run_affected_tests(
                 project_root=project_root,
                 project_config=project_config,
                 head=head,
                 base=base,
                 pytest_args=pytest_args[1:],  # Remove '--' pseudo-argument
             )
-            sys.exit(exit_code)
+            sys.exit(results.exit_code)
 
+        # Below this line caching is enabled
         cached_output = check_cache_for_action(
             project_root, project_config, f"tach-test,{head},{base},{pytest_args}"
         )
@@ -628,7 +629,7 @@ def tach_test(
         # Cache missed, capture terminal output while tests run so we can update the cache
 
         with Tee() as captured:
-            exit_code = run_affected_tests(
+            results = run_affected_tests(
                 project_root=project_root,
                 project_config=project_config,
                 head=head,
@@ -636,12 +637,13 @@ def tach_test(
                 pytest_args=pytest_args[1:],  # Remove '--' pseudo-argument
             )
 
-        update_computation_cache(
-            str(project_root),
-            cache_key=cached_output.key,
-            value=(captured.output_capture, exit_code),
-        )
-        sys.exit(exit_code)
+        if results.tests_ran_to_completion:
+            update_computation_cache(
+                str(project_root),
+                cache_key=cached_output.key,
+                value=(captured.output_capture, results.exit_code),
+            )
+        sys.exit(results.exit_code)
     except TachError as e:
         print(f"{BCOLORS.FAIL}Report failed: {e}{BCOLORS.ENDC}")
         sys.exit(1)
