@@ -80,7 +80,7 @@ trait AsProjectImports<'a> {
         &self,
         project_root: P,
         source_root: P,
-        file_mod_path: &str,
+        file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         is_package: bool,
         ignore_directives: &IgnoreDirectives,
@@ -92,7 +92,7 @@ impl<'a> AsProjectImports<'a> for StmtImport {
         &self,
         project_root: P,
         source_root: P,
-        _file_mod_path: &str,
+        _file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         _is_package: bool,
         ignore_directives: &IgnoreDirectives,
@@ -142,7 +142,7 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
         &self,
         project_root: P,
         source_root: P,
-        file_mod_path: &str,
+        file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         is_package: bool,
         ignore_directives: &IgnoreDirectives,
@@ -150,29 +150,37 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
         let mut imports = ProjectImports::new();
 
         let import_depth: usize = self.level.try_into().unwrap();
-        // For relative imports (level > 0), adjust the base module path
+
         let base_mod_path = if let Some(ref module) = self.module {
             if import_depth > 0 {
+                // For relative imports (level > 0), adjust the base module path
                 let num_paths_to_strip = if is_package {
                     import_depth - 1
                 } else {
                     import_depth
                 };
 
-                let base_path_parts: Vec<&str> = file_mod_path.split('.').collect();
-                let base_path_parts = if num_paths_to_strip > 0 {
-                    base_path_parts[..base_path_parts.len() - num_paths_to_strip].to_vec()
-                } else {
-                    base_path_parts
-                };
+                // If our current file mod path is None, we are not within the source root
+                // so we assume that relative imports are also not within the source root
+                match file_mod_path {
+                    None => return imports, // early return from the outer function
+                    Some(mod_path) => {
+                        let base_path_parts: Vec<&str> = mod_path.split('.').collect();
+                        let base_path_parts = if num_paths_to_strip > 0 {
+                            base_path_parts[..base_path_parts.len() - num_paths_to_strip].to_vec()
+                        } else {
+                            base_path_parts
+                        };
 
-                if base_path_parts.is_empty() {
-                    module.to_string()
-                } else {
-                    // base_mod_path is the current file's mod path
-                    // minus the paths_to_strip (due to level of import)
-                    // plus the module we are importing from
-                    format!("{}.{}", base_path_parts.join("."), module)
+                        if base_path_parts.is_empty() {
+                            module.to_string()
+                        } else {
+                            // base_mod_path is the current file's mod path
+                            // minus the paths_to_strip (due to level of import)
+                            // plus the module we are importing from
+                            format!("{}.{}", base_path_parts.join("."), module)
+                        }
+                    }
                 }
             } else {
                 module.to_string()
@@ -238,7 +246,7 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
 pub struct ImportVisitor<'a> {
     project_root: PathBuf,
     source_root: PathBuf,
-    file_mod_path: String,
+    file_mod_path: Option<String>,
     locator: Locator<'a>,
     is_package: bool,
     ignore_directives: IgnoreDirectives,
@@ -250,7 +258,7 @@ impl<'a> ImportVisitor<'a> {
     pub fn new(
         project_root: PathBuf,
         source_root: PathBuf,
-        file_mod_path: String,
+        file_mod_path: Option<String>,
         locator: Locator<'a>,
         is_package: bool,
         ignore_directives: IgnoreDirectives,
@@ -280,7 +288,7 @@ impl<'a> ImportVisitor<'a> {
         self.project_imports.extend(node.as_project_imports(
             &self.project_root,
             &self.source_root,
-            &self.file_mod_path,
+            self.file_mod_path.as_deref(),
             &mut self.locator,
             self.is_package,
             &self.ignore_directives,
@@ -291,7 +299,7 @@ impl<'a> ImportVisitor<'a> {
         self.project_imports.extend(node.as_project_imports(
             &self.project_root,
             &self.source_root,
-            &self.file_mod_path,
+            self.file_mod_path.as_deref(),
             &mut self.locator,
             self.is_package,
             &self.ignore_directives,
@@ -339,18 +347,11 @@ pub fn get_project_imports(
     let is_package = file_path.ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);
-    let file_mod_path = filesystem::file_to_module_path(
+    let file_mod_path: Option<String> = filesystem::file_to_module_path_within_source_root(
         absolute_source_root.to_str().unwrap(),
         file_path.to_str().unwrap(),
     )
-    .map_err(|err| ImportParseError {
-        err_type: ImportParseErrorType::FILESYSTEM,
-        message: format!(
-            "Failed to translate file to module path. File: {:?} Failure: {:?}",
-            file_path.to_str().unwrap(),
-            err
-        ),
-    })?;
+    .ok();
     let mut import_visitor = ImportVisitor::new(
         PathBuf::from(&project_root),
         absolute_source_root,

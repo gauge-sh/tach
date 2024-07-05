@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::colors::*;
 
 use crate::cli::create_clickable_link;
-use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
+use crate::filesystem::{file_to_module_path_within_source_root, walk_pyfiles, FileSystemError};
 use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
 
 struct Dependency {
@@ -170,7 +170,7 @@ pub fn create_dependency_report(
 ) -> Result<String> {
     let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(&path)?);
     let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
-    let module_path = file_to_module_path(
+    let module_path = file_to_module_path_within_source_root(
         absolute_source_root.to_str().unwrap(),
         absolute_path.to_str().unwrap(),
     )?;
