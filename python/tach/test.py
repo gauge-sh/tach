@@ -37,6 +37,7 @@ def get_changed_module_paths(
         )
         for changed_file in changed_files
         if source_root in changed_file.resolve().parents
+        and changed_file.suffix == ".py"
     ]
 
     return changed_module_paths
