@@ -35,7 +35,11 @@
   "navigation": [
     {
       "group": "Get Started",
-      "pages": ["introduction", "why-tach", "getting-started"]
+      "pages": [
+        "getting-started/introduction",
+        "getting-started/why-tach",
+        "getting-started/getting-started"
+      ]
     },
     {
       "group": "Usage",
