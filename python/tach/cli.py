@@ -123,9 +123,9 @@ def print_unused_dependencies(
         + constraint_messages
     )
     print(
-        f"{BCOLORS.WARNING}\nAdd the unused dependencies from tach.yml, "
-        f"or consider running 'tach sync --add' to update module configuration and "
-        f"add all unused dependencies.\n{BCOLORS.ENDC}"
+        f"{BCOLORS.WARNING}\nRemove the unused dependencies from tach.yml, "
+        f"or consider running 'tach sync' to update module configuration and "
+        f"remove all unused dependencies.\n{BCOLORS.ENDC}"
     )
 
 
