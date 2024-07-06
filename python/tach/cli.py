@@ -193,7 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument(
         "--add",
         action="store_true",
-        help="Add all existing constraints and re-sync dependencies.",
+        help="Add any missing dependencies, but do not remove unused dependencies.",
     )
     add_base_arguments(sync_parser)
     report_parser = subparsers.add_parser(
