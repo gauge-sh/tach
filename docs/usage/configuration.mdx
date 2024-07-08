@@ -33,11 +33,25 @@ exclude:
   - docs/
   - tach.egg-info/
   - tests/
+cache:
+  file_dependencies:
+    - python/tests/**
+    - src/*.rs
+  env_dependencies:
+    - DEBUG
 source_root: backend
 exact: true
 disable_logging: false
 ignore_type_checking_imports: true
 ```
+
+## Modules
+
+Each module listed under the `modules` key above can accept the following attributes:
+
+- `path`: the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
+- `depends_on`: a list of the other modules which the module is allowed to import from, using their 'paths' to identify them
+- `strict`: enables [strict mode](strict-mode.md) for the module
 
 ## Source Root
 
@@ -80,10 +94,10 @@ To indicate this structure to Tach, set `source_root: backend` in your `tach.yml
 
 In `tach.yml`, the `source_root` is always interpreted as a relative path from the project root.
 
-## Modules
+## Cache
 
-Each module listed under the `modules` key above can accept the following attributes:
+Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](usage/commands#tach-test).
 
-- `path`: the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
-- `depends_on`: a list of the other modules which the module is allowed to import from, using their 'paths' to identify them
-- `strict`: enables [strict mode](usage/strict-mode) for the module
+The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](usage/caching.md#determining-cache-hits). This should typically include files outside of your [source root](#source-root) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
+
+The `env_dependencies` key accepts a list of environment variable names whose values affect your project's behavior under test. This may include a `DEBUG` flag, or database connection parameters in the case of tests which use a configurable database.

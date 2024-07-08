@@ -15,6 +15,10 @@
       "to": "#9397ff"
     }
   },
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/gauge-sh/tach"
+  },
   "anchors": [
     {
       "name": "Github",
@@ -46,6 +50,7 @@
       "pages": [
         "usage/commands",
         "usage/configuration",
+        "usage/caching",
         "usage/strict-mode",
         "usage/tach-ignore",
         "usage/vscode",
