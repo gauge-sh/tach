@@ -8,6 +8,9 @@ from tach import filesystem as fs
 from tach.constants import ROOT_MODULE_SENTINEL_TAG
 from tach.core import ProjectConfig
 
+class CustomDumper(yaml.Dumper):
+    def increase_indent(self, flow=False, indentless=False):
+        return super().increase_indent(flow, False)
 
 def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # Using sort_keys=False here and depending on config.model_dump maintaining 'insertion order'
@@ -24,7 +27,14 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # show excluded paths.
     config.exclude = list(set(config.exclude)) if config.exclude else []
     config.exclude.sort()
-    return yaml.dump(config.model_dump(exclude_unset=True), sort_keys=False)
+    language_server_directive = "# yaml-language-server: $schema=docs/assets/tach-yml-schema.json\n"
+    return language_server_directive + yaml.dump(
+        config.model_dump(exclude_unset=True),
+        Dumper=CustomDumper,
+        sort_keys=False,
+        default_flow_style=False,
+        indent=2
+    )
 
 
 def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
