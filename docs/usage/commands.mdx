@@ -43,7 +43,7 @@ Sync constraints with actual dependencies in your project.
 
 options:
   -h, --help            show this help message and exit
-  --prune               Prune all existing constraints and re-sync dependencies.
+  --add               add all existing constraints and re-sync dependencies.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
@@ -53,8 +53,8 @@ When this command runs, Tach will analyze the imports in your Python project.
 Any undeclared dependencies will be automatically resolved by
 adding the corresponding dependencies to your `tach.yml` file.
 
-With `--prune`,
-any dependency constraints in your `tach.yml` which are not necessary will also be removed.
+With `--add`,
+any missing dependencies in your `tach.yml` will be added, but does not remove unused dependencies.
 
 ## tach check
 

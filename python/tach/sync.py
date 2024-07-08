@@ -69,7 +69,7 @@ def prune_dependency_constraints(
 def sync_project(
     project_root: Path,
     project_config: ProjectConfig,
-    prune: bool = False,
+    add: bool = False,
     exclude_paths: list[str] | None = None,
 ) -> None:
     tach_yml_path = get_project_config_path(project_root)
@@ -78,14 +78,14 @@ def sync_project(
             "Unexpected error. Could not find configuration file during 'sync'."
         )
 
-    if prune:
-        project_config = prune_dependency_constraints(
+    if add:
+        project_config = sync_dependency_constraints(
             project_root=project_root,
             project_config=project_config,
             exclude_paths=exclude_paths,
         )
     else:
-        project_config = sync_dependency_constraints(
+        project_config = prune_dependency_constraints(
             project_root=project_root,
             project_config=project_config,
             exclude_paths=exclude_paths,

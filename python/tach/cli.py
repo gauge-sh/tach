@@ -131,8 +131,8 @@ def print_unused_dependencies(
     )
     print(
         f"{BCOLORS.WARNING}\nRemove the unused dependencies from tach.yml, "
-        f"or consider running 'tach sync --prune' to update module configuration and "
-        f"eliminate all unused dependencies.\n{BCOLORS.ENDC}"
+        f"or consider running 'tach sync' to update module configuration and "
+        f"remove all unused dependencies.\n{BCOLORS.ENDC}"
     )
 
 
@@ -198,9 +198,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Sync constraints with actual dependencies in your project.",
     )
     sync_parser.add_argument(
-        "--prune",
+        "--add",
         action="store_true",
-        help="Prune all existing constraints and re-sync dependencies.",
+        help="Add any missing dependencies, but do not remove unused dependencies.",
     )
     add_base_arguments(sync_parser)
     report_parser = subparsers.add_parser(
@@ -441,14 +441,14 @@ def tach_mod(
 
 
 def tach_sync(
-    project_root: Path, prune: bool = False, exclude_paths: list[str] | None = None
+    project_root: Path, add: bool = False, exclude_paths: list[str] | None = None
 ):
     logger.info(
         "tach sync called",
         extra={
             "data": LogDataModel(
                 function="tach_sync",
-                parameters={"prune": prune},
+                parameters={"add": add},
             ),
         },
     )
@@ -466,7 +466,7 @@ def tach_sync(
         sync_project(
             project_root=project_root,
             project_config=project_config,
-            prune=prune,
+            add=add,
             exclude_paths=exclude_paths,
         )
     except Exception as e:
@@ -668,9 +668,7 @@ def main() -> None:
             project_root=project_root, depth=args.depth, exclude_paths=exclude_paths
         )
     elif args.command == "sync":
-        tach_sync(
-            project_root=project_root, prune=args.prune, exclude_paths=exclude_paths
-        )
+        tach_sync(project_root=project_root, add=args.add, exclude_paths=exclude_paths)
     elif args.command == "check":
         tach_check(
             project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
