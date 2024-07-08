@@ -74,13 +74,8 @@ type-check: ## Run type checking
 
 
 .PHONY: docs
-docs: ## Generate documentation
-	$(VENV_BIN)/mkdocs build -s
-
-
-.PHONY: docs-serve
-docs-serve: ## Serve documentation
-	$(VENV_BIN)/mkdocs serve
+docs: ## Develop on docs locally
+	cd docs && npx mintlify dev
 
 
 .PHONY: help

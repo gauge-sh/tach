@@ -1,4 +1,6 @@
-# Caching
+---
+title: Caching
+---
 
 Tach makes use of a 'computation cache' to speed up certain tasks, such as [testing](usage.md#tach-test).
 
@@ -30,12 +32,11 @@ Tach uses several pieces of information to determine cache hits. These include:
 
 When all of these pieces of information match a previous cache entry, the cached results are printed directly to the terminal.
 
-
 ## Cache storage
 
 The computation cache currently exists within the `.tach` directory in your project root. The directory is managed by Tach, which means that your cached results are stored on-disk on each machine where tasks are run.
 
-We are currently working on a *remote cache* backend, which will allow multiple developers and CI environments to share a centralized cache to maximize the hit rate. If you are interested in this functionality, tell us on [Discord](https://discord.gg/a58vW8dnmw), through a [GitHub issue](https://github.com/gauge-sh/tach/issues), or reach out via email: [evan@gauge.sh](mailto://evan@gauge.sh); [caelean@gauge.sh](mailto://caelean@gauge.sh)
+We are currently working on a _remote cache_ backend, which will allow multiple developers and CI environments to share a centralized cache to maximize the hit rate. If you are interested in this functionality, tell us on [Discord](https://discord.gg/a58vW8dnmw), through a [GitHub issue](https://github.com/gauge-sh/tach/issues), or reach out via email: [evan@gauge.sh](mailto://evan@gauge.sh); [caelean@gauge.sh](mailto://caelean@gauge.sh)
 
 ## Disabling the cache
 
