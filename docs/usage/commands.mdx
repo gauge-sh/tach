@@ -1,6 +1,9 @@
-# Usage
+---
+title: Commands
+---
 
 ## tach mod
+
 Tach comes bundled with a command to set up your initial boundaries - `tach mod`.
 
 ```bash
@@ -21,16 +24,16 @@ Running `tach mod` will open an editor in your terminal where you can mark your 
 You can navigate with the arrow keys, mark individual modules with `Enter`, and mark all siblings
 as modules with `Ctrl + a`.
 
-You can also mark your Python [source root](configuration.md#source-root) by pressing `s`.
+You can also mark your Python [source root](usage/configuration#source-root) by pressing `s`.
 This allows Tach to understand module paths and correctly identify first-party imports.
 
 To save your modules, use `Ctrl + s`. Otherwise, to exit without saving, use `Ctrl + c`.
 
-Any time you make changes with `tach mod`, run [`tach sync`](usage.md#tach-sync)
+Any time you make changes with `tach mod`, run [`tach sync`](usage/commands#tach-sync)
 to automatically configure dependency rules.
 
-
 ## tach sync
+
 Tach can automatically sync your project configuration (`tach.yml`) with your project's actual dependencies.
 
 ```bash
@@ -53,8 +56,8 @@ adding the corresponding dependencies to your `tach.yml` file.
 With `--add`,
 any missing dependencies in your `tach.yml` will be added, but does not remove unused dependencies.
 
-
 ## tach check
+
 Tach will flag any unwanted imports between modules. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
@@ -78,14 +81,16 @@ An error will indicate:
 If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.yml` that does not exist in the code.
 
 Example:
+
 ```bash
 > tach check
-❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'. 
+❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'.
 ```
 
 NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
 
 ## tach report
+
 Tach can generate a report showing all the dependencies and usages of a given module.
 
 ```bash
@@ -105,7 +110,9 @@ options:
 This will generate a textual report showing the file and line number of each relevant import.
 
 ## tach show
+
 Tach will generate a visual representation of your dependency graph!
+
 ```bash
 usage: tach show [-h]
 
@@ -117,19 +124,16 @@ options:
 
 ![tach show](assets/tach_show.png)
 
-
 ## tach test
+
 Tach also functions as an intelligent test runner.
 
 ```
 usage: tach test [-h] [--base [BASE]] [--head [HEAD]] [--disable-cache] ...
-
 Run tests on modules impacted by the current changes.
-
 positional arguments:
   pytest_args      Arguments forwarded to pytest. Use '--' to separate
                    these arguments. Ex: 'tach test -- -v'
-
 options:
   -h, --help       show this help message and exit
   --base [BASE]    The base commit to use when determining which modules
@@ -141,30 +145,29 @@ options:
 ```
 
 Using `pytest`, running `tach test` will perform [impact analysis](https://martinfowler.com/articles/rise-test-impact-analysis.html) on the changes between your current filesystem and your `main` branch to determine which test files need to be run.
-
 This can dramatically speed up your test suite in CI, particularly when you make a small change to a large codebase.
-
-This command also takes advantage of Tach's [computation cache](caching.md).
-
+This command also takes advantage of Tach's [computation cache](caching).
 
 ## tach install
+
 Tach can be installed into your development workflow automatically as a pre-commit hook.
 
-
 ### With pre-commit framework
+
 If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit), you can add the following to your `.pre-commit-hooks.yaml`:
 
 ```yaml
 repos:
--   repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.6.7  # change this to the latest tag!
+  - repo: https://github.com/gauge-sh/tach-pre-commit
+    rev: v0.6.8 # change this to the latest tag!
     hooks:
-    -   id: tach
+      - id: tach
 ```
 
 Note that you should specify the version you are using in the `rev` key.
 
 ### Standard install
+
 If you don't already have pre-commit hooks set up, you can run:
 
 ```bash
