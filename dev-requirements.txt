@@ -1,6 +1,6 @@
 # Core deps (pinned)
 pyyaml==6.0.1
-pydantic==2.7.1
+pydantic==2.8.2
 rich==13.7.1
 prompt-toolkit==3.0.43
 # Setup
