@@ -16,7 +16,7 @@ a Python tool to enforce dependencies, written in Rust. Inspired by modular mono
 [Discord](https://discord.gg/a58vW8dnmw)
 
 <div align="center">
-    <img src="docs/assets/logo_black_background.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
+    <img src="docs/assets/light_logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
 </div>
 
 Tach lets you define and enforce dependencies between Python modules within your project.
