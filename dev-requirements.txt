@@ -16,7 +16,5 @@ build==1.2.1
 pytest==8.1.1
 pytest-mock==3.14.0
 coverage==7.5.0
-# Docs
-mkdocs-material[imaging]==9.5.18
 # Rust
 maturin==1.5.1
