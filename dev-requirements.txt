@@ -13,7 +13,7 @@ setuptools==69.5.1
 twine==5.1.1
 build==1.2.1
 # Tests
-pytest==8.1.1
+pytest==8.2.2
 pytest-mock==3.14.0
 coverage==7.5.0
 # Rust
