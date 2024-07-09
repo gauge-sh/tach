@@ -21,7 +21,7 @@ these imports, you can add `ignore_type_checking_imports: true` to your `tach.ym
 
 ### Can you catch dynamic references?
 
-Since Tach uses the AST to find imports and public members, dynamic imports (e.g. using a string path) and dynamic names (e.g. using `setattr`, `locals`, `globals`) are not supported. If these usages cause Tach to report incorrect errors, the [ignore directive](usage/tach-ignore#tach-ignore) should be sufficient to reach a passing state.
+Since Tach uses the AST to find imports and public members, dynamic imports (e.g. using a string path) and dynamic names (e.g. using `setattr`, `locals`, `globals`) are not supported. If these usages cause Tach to report incorrect errors, the [ignore directive](tach-ignore) should be sufficient to reach a passing state.
 
 ### How can I make a feature request or file a bug?
 

@@ -11,7 +11,7 @@ This creates a decoupled, modular architecture, which makes maintenance and deve
 
 If a module tries to import from another module that is not listed as a dependency, Tach will report an error.
 
-When a module is in ['strict mode'](usage/strict-mode), if another module tries to import from it without using its public interface, Tach will report an error.
+When a module is in ['strict mode'](../usage/strict-mode), if another module tries to import from it without using its public interface, Tach will report an error.
 
 Tach is a CLI tool, and is ideal for pre-commit hooks and CI checks.
 
@@ -25,10 +25,10 @@ Tach is:
 
 ## Commands
 
-- [`tach mod`](usage/commands#tach-mod) - Interactively define module boundaries.
-- [`tach check`](usage/commands#tach-check) - Check that boundaries are respected.
-- [`tach sync`](usage/commands#tach-sync) - Sync constraints with the actual dependencies in your project.
-- [`tach show`](usage/commands#tach-show) - Visualize your project's dependency graph.
-- [`tach report`](usage/commands#tach-report) - Generate a dependency report for a file or module.
-- [`tach test`](usage/#tach-test) - Run only the tests impacted by your changes
-- [`tach install`](usage/commands#tach-install) - Install Tach into your development workflow (e.g. pre-commit)
+- [`tach mod`](../usage/commands#tach-mod) - Interactively define module boundaries.
+- [`tach check`](../usage/commands#tach-check) - Check that boundaries are respected.
+- [`tach sync`](../usage/commands#tach-sync) - Sync constraints with the actual dependencies in your project.
+- [`tach show`](../usage/commands#tach-show) - Visualize your project's dependency graph.
+- [`tach report`](../usage/commands#tach-report) - Generate a dependency report for a file or module.
+- [`tach test`](../usage/commands#tach-test) - Run only the tests impacted by your changes
+- [`tach install`](../usage/commands#tach-install) - Install Tach into your development workflow (e.g. pre-commit)

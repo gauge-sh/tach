@@ -11,12 +11,12 @@
 
 a Python tool to enforce dependencies, written in Rust. Inspired by modular monolithic architecture.
 
-[Docs](https://gauge-sh.github.io/tach/)
+[Docs](https://docs.gauge.sh)
 
 [Discord](https://discord.gg/a58vW8dnmw)
 
 <div align="center">
-    <img src="docs/assets/logo_black_background.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
+    <img src="docs/assets/light_logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
 </div>
 
 Tach lets you define and enforce dependencies between Python modules within your project.
@@ -51,7 +51,7 @@ You can do this interactively - run:
 ```
 Mark each module boundary with 'Enter'. You can mark all of your top-level Python source packages, or just a few which you want to isolate.
 
-If your Python code lives below your project root, mark your Python [source root](https://gauge-sh.github.io/tach/configuration#source-root) using the 's' key.
+If your Python code lives below your project root, mark your Python [source root](https://docs.gauge.sh/usage/configuration#source-root) using the 's' key.
 
 This will create the config file for your project, `tach.yml`.
 
@@ -66,7 +66,7 @@ Check out what Tach has found!
 cat tach.yml | less
 ```
 
-Note: Your [source root](https://gauge-sh.github.io/tach/configuration#source-root) directory will implicitly be treated as a module boundary, and can show up as `<root>`.
+Note: Your [source root](https://docs.gauge.sh/usage/configuration#source-root) directory will implicitly be treated as a module boundary, and can show up as `<root>`.
 
 ### Enforcement
 Tach comes with a cli command to enforce the boundaries that you just set up! From the root of your Python project, run:
@@ -89,7 +89,7 @@ Give both a try and run `tach check` again. This will generate an error:
 
 Each error indicates an import which violates your dependencies. If your terminal supports hyperlinks, click on the file path to go directly to the error.
 
-When an error is detected, `tach check` will exit with a non-zero code. It can be easily integrated with CI/CD, [Pre-commit hooks](https://gauge-sh.github.io/tach/usage/#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach), and more!
+When an error is detected, `tach check` will exit with a non-zero code. It can be easily integrated with CI/CD, [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach), and more!
 
 ### Extras
 
@@ -125,13 +125,13 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 
 Tach also supports:
 
-- [Manual file configuration](https://gauge-sh.github.io/tach/configuration/)
-- [Strict public interfaces for modules](https://gauge-sh.github.io/tach/strict-mode/)
-- [Inline exceptions](https://gauge-sh.github.io/tach/tach-ignore/)
-- [Pre-commit hooks](https://gauge-sh.github.io/tach/usage/#tach-install)
+- [Manual file configuration](https://docs.gauge.sh/usage/configuration)
+- [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
+- [Inline exceptions](https://docs.gauge.sh/usage/tach-ignore)
+- [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install)
 
 
-More info in the [docs](https://gauge-sh.github.io/tach/). Tach logs anonymized usage statistics which can be [opted out](https://gauge-sh.github.io/tach/faq/) of.
+More info in the [docs](https://docs.gauge.sh/). Tach logs anonymized usage statistics which can be [opted out](https://docs.gauge.sh/usage/faq/) of.
 If you have any feedback, we'd love to talk!
 
 If you have any questions or run into any issues, let us know by either reaching out on [Discord](https://discord.gg/a58vW8dnmw) or submitting a [Github Issue](https://github.com/gauge-sh/tach/issues)!

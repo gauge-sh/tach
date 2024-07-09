@@ -52,7 +52,7 @@ Each module listed under the `modules` key above can accept the following attrib
 
 - `path`: the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
 - `depends_on`: a list of the other modules which the module is allowed to import from, using their 'paths' to identify them
-- `strict`: enables [strict mode](strict-mode.md) for the module
+- `strict`: enables [strict mode](strict-mode) for the module
 
 ## Source Root
 
@@ -91,14 +91,14 @@ from module2.service import MyService
 
 Notice that these import paths (`module3`, `module2.service.MyService`) are rooted in the `backend/` folder, NOT the project root.
 
-To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](usage/commands#tach-mod) and mark the `backend` folder as the source root.
+To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the source root.
 
 In `tach.yml`, the `source_root` is always interpreted as a relative path from the project root.
 
 ## Cache
 
-Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](usage/commands#tach-test).
+Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](commands#tach-test).
 
-The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](usage/caching.md#determining-cache-hits). This should typically include files outside of your [source root](#source-root) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
+The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](caching#determining-cache-hits). This should typically include files outside of your [source root](#source-root) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
 
 The `env_dependencies` key accepts a list of environment variable names whose values affect your project's behavior under test. This may include a `DEBUG` flag, or database connection parameters in the case of tests which use a configurable database.
