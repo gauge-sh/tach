@@ -2,7 +2,7 @@
 title: Caching
 ---
 
-Tach makes use of a 'computation cache' to speed up certain tasks, such as [testing](usage.md#tach-test).
+Tach makes use of a 'computation cache' to speed up certain tasks, such as [testing](commands#tach-test).
 
 When Tach finds cached results for a given task, you will see the terminal output enclosed in:
 
@@ -25,10 +25,10 @@ This is done to enable 'replaying' cached tasks so that their output can be reus
 Tach uses several pieces of information to determine cache hits. These include:
 
 - Python interpreter version (`major.minor.micro`)
-- All Python file contents beneath the [source root](https://gauge-sh.github.io/tach/configuration#source-root)
+- All Python file contents beneath the [source root](configuration#source-root)
 - Declared versions of 3rd party dependencies in project requirements (`requirements.txt` or `pyproject.toml`)
-- File contents of explicitly configured [file dependencies](configuration.md#cache)
-- Explicitly configured [environment variable values](configuration.md#cache)
+- File contents of explicitly configured [file dependencies](configuration#cache)
+- Explicitly configured [environment variable values](configuration#cache)
 
 When all of these pieces of information match a previous cache entry, the cached results are printed directly to the terminal.
 
