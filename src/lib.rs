@@ -124,11 +124,11 @@ fn update_computation_cache(
 
 #[pymodule]
 fn extension(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(get_project_imports, m)?)?;
-    m.add_wrapped(wrap_pyfunction!(set_excluded_paths, m)?)?;
-    m.add_wrapped(wrap_pyfunction!(create_dependency_report, m)?)?;
-    m.add_wrapped(wrap_pyfunction!(create_computation_cache_key, m)?)?;
-    m.add_wrapped(wrap_pyfunction!(check_computation_cache, m)?)?;
-    m.add_wrapped(wrap_pyfunction!(update_computation_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(get_project_imports, m)?)?;
+    m.add_function(wrap_pyfunction!(set_excluded_paths, m)?)?;
+    m.add_function(wrap_pyfunction!(create_dependency_report, m)?)?;
+    m.add_function(wrap_pyfunction!(create_computation_cache_key, m)?)?;
+    m.add_function(wrap_pyfunction!(check_computation_cache, m)?)?;
+    m.add_function(wrap_pyfunction!(update_computation_cache, m)?)?;
     Ok(())
 }
