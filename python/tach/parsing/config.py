@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from tach import filesystem as fs
-from tach.constants import ROOT_MODULE_SENTINEL_TAG
+from tach.constants import ROOT_MODULE_SENTINEL_TAG, TACH_YML_SCHEMA_URL
 from tach.core import ProjectConfig
 
 class TachYamlDumper(yaml.Dumper):
@@ -27,14 +27,15 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     # show excluded paths.
     config.exclude = list(set(config.exclude)) if config.exclude else []
     config.exclude.sort()
-    language_server_directive = "# yaml-language-server: $schema=docs/assets/tach-yml-schema.json\n"
-    return language_server_directive + yaml.dump(
+    language_server_directive = f"# yaml-language-server: $schema={TACH_YML_SCHEMA_URL}\n"
+    yaml_content = yaml.dump(
         config.model_dump(exclude_unset=True),
         Dumper=TachYamlDumper,
         sort_keys=False,
         default_flow_style=False,
         indent=2
     )
+    return language_server_directive + yaml_content
 
 
 def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
