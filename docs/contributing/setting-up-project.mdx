@@ -1,0 +1,78 @@
+---
+title: Setting up the Project
+---
+Tach CLI is an open source 
+
+#### 1. Fork the repository
+
+#### 2. Clone the repository locally
+```bash 
+git clone https://github.com/github_username/tach.git
+cd tach
+```
+It is adviced to work on a branch of your own and then raise a PR
+```bash
+git checkout -b "your_feature_name" 
+```
+
+#### 3. Create a virtual environment
+```bash
+python3 -m venv env
+```
+Activate the environment 
+```bash
+source env/Scripts/activate
+```
+
+#### 4. Install Dependencies
+```bash
+pip install -r dev-requirements.txt
+```
+
+#### 5. Build
+
+This build will reflect changes that are currently existing locally
+
+To build the project - run:
+
+```bash
+ pip install .
+```
+Note: tach is a CI tool to enforce dependencies, using modular architecture. For testing your changes you'll need to set this project up within your own project
+
+#### 6. Test
+
+Tach uses `pytest` module for testing all the files within `python/tests/`
+```bash
+pytest relative_path_of_file_or_folder_to_test/ # To test everything just run `pytest`
+```
+
+#### 7. Setting up the docs
+Tach uses mintlify platform to create and maintain public facing documentation
+```bash 
+npm install -g mintlify
+cd docs
+mintlify dev # Build docs for a local preview
+```
+
+### 8. Things to check before committing
+Sync all your dependencies in the root folder
+```bash
+tach sync
+```
+Ruff checks (Automatic Linting)
+```bash 
+ruff check --fix
+ruff format --check 
+ruff format
+```
+
+That's it! You are now ready to push your new dev branch to your forked repo and then raise a PR with appropriate description
+
+Find Beginner Friendly issues here: 
+- [Good First Issues (For beginners)](https://github.com/gauge-sh/tach/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+- [Documentation Issues](https://github.com/gauge-sh/tach/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation)
+- [Issues](https://github.com/gauge-sh/tach/issues)
+- [Documentation](https://github.com/gauge-sh/tach/tree/main/docs)
+- For any queries, just drop a message on our discord channel : [Join our Discord Channel](https://discord.com/invite/a58vW8dnmw)
+
