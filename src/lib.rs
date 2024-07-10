@@ -123,7 +123,7 @@ fn update_computation_cache(
 }
 
 #[pymodule]
-fn extension(_py: Python, m: &PyModule) -> PyResult<()> {
+fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(set_excluded_paths, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_dependency_report, m)?)?;
