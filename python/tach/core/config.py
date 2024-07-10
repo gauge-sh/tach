@@ -79,6 +79,7 @@ class ProjectConfig(Config):
     exact: bool = False
     disable_logging: bool = False
     ignore_type_checking_imports: bool = True
+    forbid_circular_dependencies: bool = False
 
     @field_serializer("source_root")
     def serialize_source_root(self, source_root: Path, _) -> str:

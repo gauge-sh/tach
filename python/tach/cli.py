@@ -353,6 +353,7 @@ class Tee:
 def tach_check(
     project_root: Path,
     exact: bool = False,
+    forbid_circular_dependencies: bool = False,
     exclude_paths: list[str] | None = None,
 ):
     logger.info(
@@ -371,6 +372,7 @@ def tach_check(
             sys.exit(1)
 
         exact |= project_config.exact
+        forbid_circular_dependencies |= project_config.forbid_circular_dependencies
 
         check_result = check(
             project_root=project_root,
