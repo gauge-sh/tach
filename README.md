@@ -134,7 +134,7 @@ Tach also supports:
 More info in the [docs](https://docs.gauge.sh/). Tach logs anonymized usage statistics which can be [opted out](https://docs.gauge.sh/usage/faq/) of.
 If you have any feedback, we'd love to talk!
 
-If you have any questions or run into any issues, let us know by either reaching out on [Discord](https://discord.gg/a58vW8dnmw) or submitting a [Github Issue](https://github.com/gauge-sh/tach/issues)!
+If you have any questions or run into any issues, let us know by either reaching out on [Discord](https://discord.gg/Kz2TnszerR) or submitting a [Github Issue](https://github.com/gauge-sh/tach/issues)!
 
 ---
 
