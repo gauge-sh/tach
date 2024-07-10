@@ -13,7 +13,7 @@ a Python tool to enforce dependencies, written in Rust. Inspired by modular mono
 
 [Docs](https://docs.gauge.sh)
 
-[Discord](https://discord.gg/a58vW8dnmw)
+[Discord](https://discord.gg/Kz2TnszerR)
 
 <div align="center">
     <img src="docs/assets/light_logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
