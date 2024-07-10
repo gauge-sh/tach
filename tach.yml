@@ -130,3 +130,4 @@ exclude:
   - venv/
 source_root: python
 exact: true
+forbid_circular_dependencies: true

@@ -53,18 +53,20 @@ def find_modules_with_circular_dependencies(modules: List[ModuleConfig]) -> List
     return modules_with_cycles
 
 
-def build_module_tree(source_root: Path, modules: list[ModuleConfig]) -> ModuleTree:
+def build_module_tree(source_root: Path, modules: list[ModuleConfig], forbid_circular_dependencies: bool) -> ModuleTree:
     duplicate_modules = find_duplicate_modules(modules)
     if duplicate_modules:
         raise ValueError(
             f"Failed to build module tree. The following modules were defined more than once: {duplicate_modules}"
         )
-    modules_with_cycles = find_modules_with_circular_dependencies(modules)
-    if modules_with_cycles:
-        raise ValueError(
-            f"Failed to build module tree. The following modules have circular dependencies\n" + 
-            "\n".join(f"{cycle.split(': ')[0]}\t->\t{cycle.split(': ')[1]}" for cycle in modules_with_cycles)
-        )
+    if forbid_circular_dependencies:
+        print("hmm", forbid_circular_dependencies)
+        modules_with_cycles = find_modules_with_circular_dependencies(modules)
+        if modules_with_cycles:
+            raise ValueError(
+                f"Failed to build module tree. The following modules have circular dependencies\n" + 
+                "\n".join(f"{cycle.split(': ')[0]}\t->\t{cycle.split(': ')[1]}" for cycle in modules_with_cycles)
+            )
     tree = ModuleTree()
     for module in modules:
         tree.insert(
