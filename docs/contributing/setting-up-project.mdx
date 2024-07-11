@@ -1,0 +1,62 @@
+---
+title: Setup Guide
+---
+
+#### 1. Automated dependency installation
+Installing all the dependencies
+```bash
+ make deps
+```
+
+#### 2. Build
+To build and rebuild after changes to Rust files
+
+Note: Make sure you have rust compiler installed. This package requires Rust and Cargo to compile extensions.
+```bash
+ make install
+```
+
+#### 3. Test
+
+Tach internally uses `pytest` module for testing all the files within `python/tests/`
+```bash
+make test
+```
+
+#### 4. Setting up the docs
+Tach internally uses `mintlify` platform to create and maintain public facing documentation
+
+Note: contributors would need to install [Node](https://nodejs.org/en/download/prebuilt-installer) and [npm](https://www.npmjs.com/)
+```bash 
+make docs
+```
+
+### 8. Things to check before committing
+Check and sync your dependencies in the root folder
+```bash
+tach check
+tach sync
+```
+Type checking
+```bash 
+make type-check
+```
+Run linting checks for Rust and Python code
+```bash
+make lint
+```
+Format Rust and Python code
+```bash
+make fmt
+```
+
+That's it! You are now ready to push your new dev branch to your forked repo and then raise a PR with appropriate description
+
+Find Beginner Friendly issues here: 
+- [Good First Issues (For beginners)](https://github.com/gauge-sh/tach/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+- [Documentation Issues](https://github.com/gauge-sh/tach/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation)
+- [Issues](https://github.com/gauge-sh/tach/issues)
+- [Documentation](https://github.com/gauge-sh/tach/tree/main/docs)
+
+For any questions, just drop a message in [Discord](https://discord.com/invite/a58vW8dnmw)
+
