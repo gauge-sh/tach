@@ -1,70 +1,53 @@
 ---
-title: Setting up the Project for Contributors
+title: Setup Guide
 ---
-Tach CLI is an open source 
 
-#### 1. Fork the repository
+#### 1. Automated dependency installation
+Installing all the dependencies
+```bash
+ make deps
+```
 
-#### 2. Clone the repository locally
+#### 2. Build
+To build and rebuild after changes to Rust files
+
+Note: Make sure you have rust compiler installed. This package requires Rust and Cargo to compile extensions.
+```bash
+ make install
+```
+
+#### 3. Test
+
+Tach internally uses `pytest` module for testing all the files within `python/tests/`
+```bash
+make test
+```
+
+#### 4. Setting up the docs
+Tach internally uses `mintlify` platform to create and maintain public facing documentation
+
+Note: contributors would need to install [Node](https://nodejs.org/en/download/prebuilt-installer) and [npm](https://www.npmjs.com/)
 ```bash 
-git clone https://github.com/github_username/tach.git
-cd tach
-```
-It is adviced to work on a branch of your own and then raise a PR
-```bash
-git checkout -b "your_feature_name" 
-```
-
-#### 3. Create a virtual environment
-```bash
-python3 -m venv env
-```
-Activate the environment 
-```bash
-source env/Scripts/activate
-```
-
-#### 4. Install Dependencies
-```bash
-pip install -r dev-requirements.txt
-```
-
-#### 5. Build
-
-This build will reflect changes that are currently existing locally
-
-To build the project - run:
-
-```bash
- pip install .
-```
-Note: tach is a CI tool to enforce dependencies, using modular architecture. For testing your changes you'll need to set this project up within your own project
-
-#### 6. Test
-
-Tach uses `pytest` module for testing all the files within `python/tests/`
-```bash
-pytest relative_path_of_file_or_folder_to_test/ # To test everything just run `pytest`
-```
-
-#### 7. Setting up the docs
-Tach uses mintlify platform to create and maintain public facing documentation
-```bash 
-npm install -g mintlify
-cd docs
-mintlify dev # Build docs for a local preview
+make docs
 ```
 
 ### 8. Things to check before committing
-Sync all your dependencies in the root folder
+Check and sync your dependencies in the root folder
 ```bash
+tach check
 tach sync
 ```
-Ruff checks (Automatic Linting)
+Type checking
 ```bash 
-ruff check --fix
-ruff format --check 
-ruff format
+make type-check
+```
+Run linting checks for Rust and Python code
+```bash
+make lint
+```
+Format Rust and Python code
+```bash
+make fmt
 ```
 
 That's it! You are now ready to push your new dev branch to your forked repo and then raise a PR with appropriate description
