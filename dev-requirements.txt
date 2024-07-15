@@ -17,4 +17,4 @@ pytest==8.2.2
 pytest-mock==3.14.0
 coverage==7.5.0
 # Rust
-maturin==1.5.1
+maturin==1.7.0
