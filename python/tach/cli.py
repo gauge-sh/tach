@@ -240,7 +240,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--out",
         type=str,
         nargs="?",
-        default="tach_module_graph.dot",
+        default=None,
         help="Specify an output path for a locally generated module graph file.",
     )
     install_parser = subparsers.add_parser(
@@ -725,7 +725,11 @@ def main() -> None:
             pytest_args=args.pytest_args,
         )
     elif args.command == "show":
-        tach_show(project_root=project_root)
+        tach_show(
+            project_root=project_root,
+            output_filepath=Path(args.out) if args.out is not None else None,
+            is_web=args.web,
+        )
     else:
         print("Unrecognized command")
         parser.print_help()
