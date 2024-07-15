@@ -9,7 +9,7 @@ pip==24.0
 pyright==1.1.367
 ruff==0.5.2
 # Build/Release
-setuptools==69.5.1
+setuptools==70.3.0
 twine==5.1.1
 build==1.2.1
 # Tests
