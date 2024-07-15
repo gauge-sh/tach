@@ -212,11 +212,24 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument(
         "path", help="The path or directory path used to generate the report."
     )
-    subparsers.add_parser(
+    show_parser = subparsers.add_parser(
         "show",
         prog="tach show",
-        help="Visualize the dependency graph of your project on the web.",
-        description="Visualize the dependency graph of your project on the web.",
+        help="Visualize the dependency graph of your project.",
+        description="Visualize the dependency graph of your project.",
+    )
+    show_parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Open your dependency graph in a remote web viewer.",
+    )
+    show_parser.add_argument(
+        "-o",
+        "--out",
+        type=str,
+        nargs="?",
+        default="tach_module_graph.dot",
+        help="Specify an output path for a locally generated module graph file.",
     )
     install_parser = subparsers.add_parser(
         "install",
