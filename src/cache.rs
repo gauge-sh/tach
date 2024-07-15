@@ -40,7 +40,7 @@ impl FromIterator<u8> for CacheKey {
     }
 }
 
-static CACHE_DIR: &'static str = ".tach";
+static CACHE_DIR: &str = ".tach";
 
 pub type ComputationCacheValue = (Vec<(u8, String)>, u8);
 
@@ -142,9 +142,9 @@ pub fn create_computation_cache_key(
     env_dependencies: Vec<String>,
     _backend: String,
 ) -> String {
-    let absolute_source_root = Path::new(&project_root).join(&source_root);
+    let absolute_source_root = Path::new(&project_root).join(source_root);
     let source_pyfiles = walk_pyfiles(absolute_source_root.to_str().unwrap())
-        .flat_map(|path| fs::read(&absolute_source_root.join(path)).unwrap());
+        .flat_map(|path| fs::read(absolute_source_root.join(path)).unwrap());
     let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());
     let project_dependencies =
         parse_project_dependencies(&project_root).flat_map(|d| d.into_bytes());
@@ -154,8 +154,8 @@ pub fn create_computation_cache_key(
             .chain(env_dependencies)
             .chain(project_dependencies)
             .chain(file_dependencies)
-            .chain(action.into_bytes().into_iter())
-            .chain(py_interpreter_version.into_bytes().into_iter()),
+            .chain(action.into_bytes())
+            .chain(py_interpreter_version.into_bytes()),
     )
     .hash
 }
@@ -164,7 +164,7 @@ pub fn check_computation_cache(
     project_root: String,
     cache_key: String,
 ) -> Result<Option<ComputationCacheValue>> {
-    let cache = build_computation_cache(&project_root)?;
+    let cache = build_computation_cache(project_root)?;
 
     Ok(cache.cache_get(&cache_key)?)
 }
@@ -174,7 +174,7 @@ pub fn update_computation_cache(
     cache_key: String,
     value: ComputationCacheValue,
 ) -> Result<Option<ComputationCacheValue>> {
-    let cache = build_computation_cache(&project_root)?;
+    let cache = build_computation_cache(project_root)?;
 
     Ok(cache.cache_set(cache_key, value)?)
 }
