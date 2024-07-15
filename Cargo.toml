@@ -27,7 +27,3 @@ default = ["extension-module"]
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 pprof = { version = "0.13", features = ["flamegraph", "criterion"] }
-
-[[bench]]
-name = "get_project_imports"
-harness = false
