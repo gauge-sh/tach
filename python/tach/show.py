@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import json
 from json.decoder import JSONDecodeError
-from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib import error, request
 
+import networkx as nx
+
 if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pydot  # type: ignore
+
     from tach.core import ProjectConfig
 
 TACH_SHOW_URL = "https://show.gauge.sh"
@@ -35,7 +40,21 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
 
 def generate_module_graph_dot_file(
     project_config: ProjectConfig, output_filepath: Path
-) -> None: ...
+) -> None:
+    graph = nx.DiGraph()  # type: ignore
+    # Add nodes
+    for module in project_config.modules:
+        graph.add_node(module.path)  # type: ignore
+
+    # Add dependency edges
+    for module in project_config.modules:
+        for dependency in module.depends_on:
+            graph.add_edge(module.path, dependency)  # type: ignore
+
+    pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
+    dot_data: str = pydot_graph.to_string()  # type: ignore
+
+    output_filepath.write_text(dot_data)  # type: ignore
 
 
 __all__ = ["generate_show_url", "generate_module_graph_dot_file"]
