@@ -15,6 +15,6 @@ build==1.2.1
 # Tests
 pytest==8.2.2
 pytest-mock==3.14.0
-coverage==7.5.0
+coverage==7.6.0
 # Rust
 maturin==1.7.0
