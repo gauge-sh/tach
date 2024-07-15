@@ -22,7 +22,12 @@ def find_duplicate_modules(modules: list[ModuleConfig]) -> list[str]:
     return duplicate_module_paths
 
 
-def find_cycle(module: ModuleConfig, visited: set[str], path: list[str], modules: list[ModuleConfig]) -> list[str]:
+def find_cycle(
+    module: ModuleConfig,
+    visited: set[str],
+    path: list[str],
+    modules: list[ModuleConfig],
+) -> list[str]:
     if module.path in visited:
         cycle_start_index = path.index(module.path)
         return path[cycle_start_index:] + [module.path]
@@ -56,7 +61,9 @@ def build_module_tree(
         raise ValueError(
             f"Failed to build module tree. The following modules were defined more than once: {duplicate_modules}"
         )
-    if forbid_circular_dependencies and (modules_with_cycles := find_modules_with_circular_dependencies(modules)):
+    if forbid_circular_dependencies and (
+        modules_with_cycles := find_modules_with_circular_dependencies(modules)
+    ):
         raise ValueError(
             f"Failed to build module tree. The following modules have circular dependencies: {modules_with_cycles}"
         )
