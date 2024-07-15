@@ -38,11 +38,12 @@ def test_parse_valid_project_config(example_dir):
     assert result == ProjectConfig(
         modules=[
             ModuleConfig(path="domain_one", depends_on=["domain_two"]),
-            ModuleConfig(path="domain_two", depends_on=["domain_one"]),
+            ModuleConfig(path="domain_two", depends_on=["domain_three"]),
             ModuleConfig(path=ROOT_MODULE_SENTINEL_TAG, depends_on=["domain_one"]),
+            ModuleConfig(path="domain_three", depends_on=[]),
         ],
-        exclude=["domain_thr.*"],
         exact=True,
+        forbid_circular_dependencies=True,
     )
 
 

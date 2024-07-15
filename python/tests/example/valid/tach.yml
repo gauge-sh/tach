@@ -1,13 +1,14 @@
 modules:
-- path: domain_one
-  depends_on:
-  - domain_two
-- path: domain_two
-  depends_on:
-  - domain_one
-- path: <root>
-  depends_on:
-  - domain_one
-exclude:
-- domain_thr.*
+  - path: domain_one
+    depends_on:
+      - domain_two
+  - path: domain_two
+    depends_on:
+      - domain_three
+  - path: <root>
+    depends_on:
+      - domain_one
+  - path: domain_three
+    depends_on: []
 exact: true
+forbid_circular_dependencies: true
