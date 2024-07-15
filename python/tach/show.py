@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from json.decoder import JSONDecodeError
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib import error, request
 
@@ -32,4 +33,9 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
         return None
 
 
-__all__ = ["generate_show_url"]
+def generate_module_graph_dot_file(
+    project_config: ProjectConfig, output_filepath: Path
+) -> None: ...
+
+
+__all__ = ["generate_show_url", "generate_module_graph_dot_file"]

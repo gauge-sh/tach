@@ -26,7 +26,7 @@ from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
 from tach.report import report
-from tach.show import generate_show_url
+from tach.show import generate_module_graph_dot_file, generate_show_url
 from tach.sync import prune_dependency_constraints, sync_project
 from tach.test import run_affected_tests
 
@@ -140,6 +140,18 @@ def print_no_config_yml() -> None:
     print(
         f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found{BCOLORS.ENDC}",
         file=sys.stderr,
+    )
+
+
+def print_show_web_suggestion() -> None:
+    print(
+        f"{BCOLORS.OKCYAN}NOTE: You are generating a DOT file locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need a program like GraphViz: https://www.graphviz.org/download/\n{BCOLORS.ENDC}"
+    )
+
+
+def print_generated_module_graph_file(output_filepath: Path) -> None:
+    print(
+        f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
     )
 
 
@@ -558,13 +570,13 @@ def tach_report(project_root: Path, path: str, exclude_paths: list[str] | None =
         sys.exit(1)
 
 
-def tach_show(project_root: Path):
+def tach_show(
+    project_root: Path, is_web: bool = False, output_filepath: Path | None = None
+):
     logger.info(
         "tach show called",
         extra={
-            "data": LogDataModel(
-                function="tach_show",
-            ),
+            "data": LogDataModel(function="tach_show", parameters={"is_web": is_web}),
         },
     )
 
@@ -574,15 +586,22 @@ def tach_show(project_root: Path):
         sys.exit(1)
 
     try:
-        result = generate_show_url(project_config)
-        if result:
-            print("View your dependency graph here:")
-            print(result)
-            sys.exit(0)
+        if is_web:
+            result = generate_show_url(project_config)
+            if result:
+                print("View your dependency graph here:")
+                print(result)
+                sys.exit(0)
+            else:
+                sys.exit(1)
         else:
-            sys.exit(1)
+            print_show_web_suggestion()
+            output_filepath = output_filepath or Path("tach_module_graph.dot")
+            generate_module_graph_dot_file(project_config, output_filepath)
+            print_generated_module_graph_file(output_filepath)
+            sys.exit(0)
     except TachError as e:
-        print(f"Show failed: {e}")
+        print(f"Failed to show module graph: {e}")
         sys.exit(1)
 
 
