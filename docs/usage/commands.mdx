@@ -114,14 +114,19 @@ This will generate a textual report showing the file and line number of each rel
 Tach will generate a visual representation of your dependency graph!
 
 ```bash
-usage: tach show [-h]
+usage: tach show [-h] [--web] [-o [OUT]]
 
-Visualize the dependency graph of your project on the web.
+Visualize the dependency graph of your project.
 
 options:
-  -h, --help  show this help message and exit
+  -h, --help            show this help message and exit
+  --web                 Open your dependency graph in a remote web viewer.
+  -o [OUT], --out [OUT]
+                        Specify an output path for a locally generated module graph file.
 ```
 
+
+These are the results of `tach show --web` on the Tach codebase itself:
 ![tach show](assets/tach_show.png)
 
 ## tach test
@@ -159,7 +164,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
   - repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.6.9 # change this to the latest tag!
+    rev: v0.7.0 # change this to the latest tag!
     hooks:
       - id: tach
 ```
