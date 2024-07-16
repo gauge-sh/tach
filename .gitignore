@@ -166,3 +166,7 @@ cython_debug/
 .env.leave
 .DS_Store
 .pre-commit-config.yaml
+
+
+# Generated graph files
+*.dot
