@@ -27,6 +27,7 @@ deps: ## Install dependencies
 	source $(VENV_BIN)/activate
 
 	@unset CONDA_PREFIX && \
+	source $(VENV_BIN)/activate && \
 	maturin develop --profile release -E dev
 
 
