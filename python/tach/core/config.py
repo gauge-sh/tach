@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
+from typing import List, Optional
 
 from pydantic import AfterValidator, BaseModel, Field, field_serializer
 from typing_extensions import Annotated, Literal
@@ -22,7 +23,7 @@ class ModuleConfig(Config):
     """
 
     path: str
-    depends_on: list[str] = Field(default_factory=list)
+    depends_on: List[str] = Field(default_factory=list)
     strict: bool = False
 
     @property
@@ -48,7 +49,7 @@ class RootModuleConfig(ModuleConfig):
 @dataclass
 class UnusedDependencies:
     path: str
-    dependencies: list[str]
+    dependencies: List[str]
 
 
 class CacheConfig(Config):
@@ -59,8 +60,8 @@ class CacheConfig(Config):
     """
 
     backend: Literal["local"] = "local"
-    file_dependencies: list[str] = Field(default_factory=list)
-    env_dependencies: list[str] = Field(default_factory=list)
+    file_dependencies: List[str] = Field(default_factory=list)
+    env_dependencies: List[str] = Field(default_factory=list)
 
 
 class ProjectConfig(Config):
@@ -70,9 +71,9 @@ class ProjectConfig(Config):
     Controls which modules are defined, their dependencies, as well as global tool-related configuration.
     """
 
-    modules: list[ModuleConfig] = Field(default_factory=list)
+    modules: List[ModuleConfig] = Field(default_factory=list)
     cache: CacheConfig = Field(default_factory=CacheConfig)
-    exclude: list[str] | None = Field(
+    exclude: Optional[List[str]] = Field(
         default_factory=lambda: copy(DEFAULT_EXCLUDE_PATHS)
     )
     source_root: Path = Field(default_factory=lambda: Path("."))

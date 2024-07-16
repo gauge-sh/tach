@@ -4,7 +4,7 @@ import logging
 import multiprocessing
 import os
 import signal
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 class LogDataModel(BaseModel):
     function: str
-    parameters: dict[str, Any] = Field(default_factory=dict)
+    parameters: Dict[str, Any] = Field(default_factory=dict)
 
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:

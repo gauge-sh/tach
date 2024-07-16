@@ -40,7 +40,7 @@ class TerminalEnvironment(Enum):
     VSCODE = 3
 
 
-@lru_cache
+@lru_cache(maxsize=None)
 def detect_environment() -> TerminalEnvironment:
     if "jetbrains" in os.environ.get("TERMINAL_EMULATOR", "").lower():
         return TerminalEnvironment.JETBRAINS
