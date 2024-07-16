@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tach.core import ModuleTree
-from tach.parsing import parse_interface_members
 from tach.errors import TachCircularDependencyError
+from tach.parsing import parse_interface_members
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -28,7 +28,7 @@ def find_cycle(
     visited: set[str],
     path: list[str],
     modules: list[ModuleConfig],
-    all_cycles: set[tuple[str, ...]]
+    all_cycles: set[tuple[str, ...]],
 ) -> bool:
     if module.path in visited:
         cycle_start_index = path.index(module.path)
@@ -45,11 +45,14 @@ def find_cycle(
     path.pop()
     return False
 
-def find_modules_with_circular_dependencies(modules: list[ModuleConfig]) -> list[list[str]]:
-    all_cycles = set()
+
+def find_modules_with_circular_dependencies(
+    modules: list[ModuleConfig],
+) -> list[list[str]]:
+    all_cycles: set[tuple[str, ...]] = set()
     for module in modules:
-        visited = set()
-        path = []
+        visited: set[str] = set()
+        path: list[str] = list()
         find_cycle(module, visited, path, modules, all_cycles)
     return [list(cycle) for cycle in all_cycles]
 
