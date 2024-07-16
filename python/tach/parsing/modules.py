@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from tach.core import ModuleTree
 from tach.parsing import parse_interface_members
+from tach.errors import TachCircularDependencyError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -27,30 +28,30 @@ def find_cycle(
     visited: set[str],
     path: list[str],
     modules: list[ModuleConfig],
-) -> list[str]:
+    all_cycles: set[tuple[str, ...]]
+) -> bool:
     if module.path in visited:
         cycle_start_index = path.index(module.path)
-        return path[cycle_start_index:] + [module.path]
+        cycle = path[cycle_start_index:] + [module.path]
+        all_cycles.add(tuple(cycle))
+        return True
     visited.add(module.path)
     path.append(module.path)
     for dependency in module.depends_on:
         dep_module = next((mod for mod in modules if mod.path == dependency), None)
         if dep_module:
-            cycle = find_cycle(dep_module, visited, path, modules)
-            if cycle:
-                return cycle
+            find_cycle(dep_module, visited, path, modules, all_cycles)
     visited.remove(module.path)
     path.pop()
-    return []
+    return False
 
-
-def find_modules_with_circular_dependencies(modules: list[ModuleConfig]) -> list[str]:
-    modules_with_cycles: set[str] = set()
+def find_modules_with_circular_dependencies(modules: list[ModuleConfig]) -> list[list[str]]:
+    all_cycles = set()
     for module in modules:
-        cycle = find_cycle(module, set(), [], modules)
-        if cycle:
-            modules_with_cycles.update(cycle)
-    return list(modules_with_cycles)
+        visited = set()
+        path = []
+        find_cycle(module, visited, path, modules, all_cycles)
+    return [list(cycle) for cycle in all_cycles]
 
 
 def build_module_tree(
@@ -61,12 +62,9 @@ def build_module_tree(
         raise ValueError(
             f"Failed to build module tree. The following modules were defined more than once: {duplicate_modules}"
         )
-    if forbid_circular_dependencies and (
-        modules_with_cycles := find_modules_with_circular_dependencies(modules)
-    ):
-        raise ValueError(
-            f"Failed to build module tree. The following modules have circular dependencies: {modules_with_cycles}"
-        )
+    if forbid_circular_dependencies:
+        cycles = find_modules_with_circular_dependencies(modules)
+        raise TachCircularDependencyError(cycles)
     tree = ModuleTree()
     for module in modules:
         tree.insert(
