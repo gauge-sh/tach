@@ -67,7 +67,7 @@ def build_module_tree(
         )
     if forbid_circular_dependencies:
         cycles = find_modules_with_circular_dependencies(modules)
-        raise TachCircularDependencyError(cycles)
+        if cycles: raise TachCircularDependencyError(cycles)
     tree = ModuleTree()
     for module in modules:
         tree.insert(

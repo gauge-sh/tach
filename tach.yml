@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=docs/assets/tach-yml-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.6.9/public/tach-yml-schema.json
 modules:
   - path: tach
     depends_on: []
@@ -90,6 +90,7 @@ modules:
     depends_on:
       - tach.constants
       - tach.core
+      - tach.errors
       - tach.filesystem
     strict: true
   - path: tach.report
