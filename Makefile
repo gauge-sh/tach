@@ -28,6 +28,7 @@ deps: ## Install dependencies
 	uv pip install -r dev-requirements.txt
 
 	@unset CONDA_PREFIX && \
+	source $(VENV_BIN)/activate && \
 	maturin develop --profile release
 
 
