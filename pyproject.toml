@@ -38,6 +38,40 @@ dependencies = [
 keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
 
 
+[project.optional-dependencies]
+dev = [
+    # Core deps (pinned)
+    "pyyaml==6.0.1",
+    "pydantic==2.8.2; python_version > '3.7'",
+    "rich==13.7.1",
+    "prompt-toolkit==3.0.47",
+    # Setup
+    "pip==24.0",
+    # Code Quality
+    "pyright==1.1.371",
+    "ruff==0.5.2",
+    # Build/Release
+    "setuptools==69.5.1; python_version > '3.7'",
+    "twine==5.1.1; python_version > '3.7'",
+    "build==1.2.1; python_version > '3.7'",
+    # Tests
+    "pytest==8.2.2; python_version > '3.7'",
+    "pytest-mock==3.14.0; python_version > '3.7'",
+    "coverage==7.6.0; python_version > '3.7'",
+    # Rust
+    "maturin==1.7.0",
+
+    # python version 3.7 pinned dependencies
+    "pydantic==2.5.3; python_version == '3.7'",
+    "setuptools==47.1.0; python_version == '3.7'",
+    "twine==4.0.2; python_version == '3.7'",
+    "build==1.1.1; python_version == '3.7'",
+    "pytest==7.4.4; python_version == '3.7'",
+    "pytest-mock==3.11.1; python_version == '3.7'",
+    "coverage==7.2.7; python_version == '3.7'",
+]
+
+
 [project.urls]
 Homepage = "https://github.com/gauge-sh/tach"
 Issues = "https://github.com/gauge-sh/tach/issues"

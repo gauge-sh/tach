@@ -25,33 +25,24 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install uv
-        uv venv
-        source .venv/bin/activate
-        uv pip install pip
-        uv pip install -r dev-requirements.txt
+        pip install -e ".[dev]"
     - name: Build and install tach
       uses: PyO3/maturin-action@v1
       with:
         command: develop
     - name: Check ruff
       run: |
-        source .venv/bin/activate
         ruff check
         ruff format --check
     - name: Test with pytest and report coverage
       run: |
-        source .venv/bin/activate
         coverage run --branch --source=python -m pytest
         coverage report
     - name: Check types with pyright
       run: |
-        source .venv/bin/activate
         pyright --pythonversion ${{ matrix.python-version }}
     - name: Check tach
-      run: |
-        source .venv/bin/activate
-        tach check
+      run: tach check
     - name: Check Rust linting
       run: cargo clippy
     - name: Check Rust formatting
