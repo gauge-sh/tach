@@ -9,6 +9,7 @@ from tach.constants import ROOT_MODULE_SENTINEL_TAG
 from tach.core import ModuleConfig, ProjectConfig
 from tach.filesystem import file_to_module_path
 from tach.parsing import parse_project_config
+from tach.parsing import find_cycle
 
 
 @pytest.fixture
@@ -55,3 +56,15 @@ def test_invalid_project_config(example_dir):
 def test_empty_project_config(example_dir):
     with pytest.raises(ValueError):
         parse_project_config(example_dir / "invalid" / "empty")
+        
+def test_valid_circular_dependencies(example_dir):
+    project_config = parse_project_config(example_dir / "valid")
+    modules = project_config.modules
+    all_cycles: set[tuple[str, ...]] = set()
+    results: list[bool] = list()
+    for module in modules:
+        visited: set[str] = set()
+        path: list[str] = list()
+        results.append(find_cycle(module, visited, path, modules, all_cycles))
+    assert results == [False, False, False, False]
+
