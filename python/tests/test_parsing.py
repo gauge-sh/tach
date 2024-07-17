@@ -77,9 +77,8 @@ def test_cycles_circular_dependencies(example_dir):
         path: list[str] = list()
         find_cycle(module, visited, path, modules, all_cycles)
     assert all_cycles == {
-        ("domain_one", "domain_three", "domain_one")(
-            "domain_three", "domain_one", "domain_three"
-        ),
+        ("domain_one", "domain_three", "domain_one"),
+        ("domain_three", "domain_one", "domain_three"),
         ("domain_three", "domain_one", "domain_two", "domain_three"),
         ("domain_two", "domain_three", "domain_one", "domain_two"),
         ("domain_one", "domain_two", "domain_three", "domain_one"),
