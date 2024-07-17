@@ -24,7 +24,8 @@ deps: ## Install dependencies
 		echo "Virtual environment already exists at $(VENV)"; \
 	fi
 
-	source $(VENV_BIN)/activate
+	source $(VENV_BIN)/activate && \
+	uv pip install pip maturin
 
 	@unset CONDA_PREFIX && \
 	source $(VENV_BIN)/activate && \
