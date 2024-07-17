@@ -1,0 +1,16 @@
+modules:
+  - path: domain_one
+    depends_on:
+      - domain_two
+      - domain_three
+  - path: domain_two
+    depends_on:
+      - domain_three
+  - path: <root>
+    depends_on:
+      - domain_one
+  - path: domain_three
+    depends_on:
+      - domain_one
+exact: true
+forbid_circular_dependencies: true

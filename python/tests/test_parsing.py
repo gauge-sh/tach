@@ -61,10 +61,24 @@ def test_valid_circular_dependencies(example_dir):
     project_config = parse_project_config(example_dir / "valid")
     modules = project_config.modules
     all_cycles: set[tuple[str, ...]] = set()
-    results: list[bool] = list()
     for module in modules:
         visited: set[str] = set()
         path: list[str] = list()
-        results.append(find_cycle(module, visited, path, modules, all_cycles))
-    assert results == [False, False, False, False]
+        find_cycle(module, visited, path, modules, all_cycles)
+    assert all_cycles == set()
 
+def test_cycles_circular_dependencies(example_dir):
+    project_config = parse_project_config(example_dir / "cycles")
+    modules = project_config.modules
+    all_cycles: set[tuple[str, ...]] = set()
+    for module in modules:
+        visited: set[str] = set()
+        path: list[str] = list()
+        find_cycle(module, visited, path, modules, all_cycles)
+    assert all_cycles == {
+        ('domain_one', 'domain_three', 'domain_one')
+        ('domain_three', 'domain_one', 'domain_three'),
+        ('domain_three', 'domain_one', 'domain_two', 'domain_three'),
+        ('domain_two', 'domain_three', 'domain_one', 'domain_two'),
+        ('domain_one', 'domain_two', 'domain_three', 'domain_one'), 
+    }
