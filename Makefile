@@ -24,16 +24,16 @@ deps: ## Install dependencies
 		echo "Virtual environment already exists at $(VENV)"; \
 	fi
 
-	source $(VENV_BIN)/activate && \
-	uv pip install -r dev-requirements.txt
+	source $(VENV_BIN)/activate
 
 	@unset CONDA_PREFIX && \
-	maturin develop --profile release
+	source $(VENV_BIN)/activate && \
+	maturin develop --profile release -E dev
 
 
 .PHONY: install
 install: ##  Install the crate as module in the current virtualenv
-	maturin develop --release
+	maturin develop --release -E dev
 
 
 .PHONY: test

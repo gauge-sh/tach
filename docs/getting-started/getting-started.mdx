@@ -83,7 +83,9 @@ Tach will generate a graph of your dependencies. Here's what this looks like for
 
 ![tach show](../assets/tach_show.png)
 
-Note that this graph is generated remotely the contents of your `tach.yml`.
+Note that this graph is generated remotely with the contents of your `tach.yml` when running `tach show --web`.
+
+If you would like to use the [GraphViz DOT format](https://graphviz.org/about/) locally, simply running `tach show` will generate `tach_module_graph.dot` in your working directory.
 
 You can view the dependencies and usages for a given path:
 
