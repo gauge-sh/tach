@@ -218,6 +218,13 @@ def run_affected_tests(
     )
 
     exit_code = pytest.main(pytest_args, plugins=[pytest_plugin])
+
+    if exit_code == pytest.ExitCode.NO_TESTS_COLLECTED:
+        # Selective testing means running zero tests will happen regularly,
+        # so we do not want the default behavior of failing when no tests
+        # are collected.
+        exit_code = pytest.ExitCode.OK
+
     return AffectedTestsResult(
         exit_code=exit_code,
         tests_ran_to_completion=pytest_plugin.tests_ran_to_completion,
