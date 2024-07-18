@@ -89,7 +89,9 @@ def test_changed_files_new_branch(git_repo, setup_changes, expected_files):
 
     changed_files = get_changed_files(repo_path, base="main", head="new_branch")
 
-    assert set(changed_files) == set(Path(filepath) for filepath in expected_files)
+    assert set(
+        changed_file.relative_to(git_repo) for changed_file in changed_files
+    ) == set(Path(filepath) for filepath in expected_files)
 
 
 @pytest.mark.parametrize(
@@ -132,4 +134,6 @@ def test_changed_files_working_directory(git_repo, setup_changes, expected_files
 
     changed_files = get_changed_files(git_repo, base="main")
 
-    assert set(changed_files) == set(Path(filepath) for filepath in expected_files)
+    assert set(
+        changed_file.relative_to(git_repo) for changed_file in changed_files
+    ) == set(Path(filepath) for filepath in expected_files)

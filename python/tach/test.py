@@ -32,12 +32,9 @@ def get_changed_module_paths(
 ) -> list[str]:
     source_root = project_root / project_config.source_root
     changed_module_paths = [
-        fs.file_to_module_path(
-            source_root=source_root, file_path=changed_file.resolve()
-        )
+        fs.file_to_module_path(source_root=source_root, file_path=changed_file)
         for changed_file in changed_files
-        if source_root in changed_file.resolve().parents
-        and changed_file.suffix == ".py"
+        if source_root in changed_file.parents and changed_file.suffix == ".py"
     ]
 
     return changed_module_paths
@@ -205,7 +202,6 @@ def run_affected_tests(
         modules=module_validation_result.valid_modules,
     )
 
-    # These paths come from git output, which means they are relative to cwd
     changed_files = get_changed_files(project_root, head=head, base=base)
     affected_module_paths = get_affected_modules(
         project_root,
