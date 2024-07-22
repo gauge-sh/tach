@@ -35,7 +35,7 @@ dependencies = [
     "GitPython~=3.1",
     "networkx~=3.0; python_version > '3.7'",
     "networkx~=2.6; python_version == '3.7'",
-    "pydot~=2.0",
+    "pydot>=2,<4",
     "stdlib-list>=0.10.0; python_version < '3.10'",
     "eval-type-backport>=0.2.0; python_version < '3.10' and python_version > '3.7'"
 ]
