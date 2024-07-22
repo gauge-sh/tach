@@ -69,7 +69,7 @@ dev = [
     "pydantic==2.5.3; python_version == '3.7'",
     "setuptools==47.1.0; python_version == '3.7'",
     "twine==4.0.2; python_version == '3.7'",
-    "build==1.1.1; python_version == '3.7'",
+    "build==1.2.1; python_version == '3.7'",
     "pytest==7.4.4; python_version == '3.7'",
     "pytest-mock==3.11.1; python_version == '3.7'",
     "coverage==7.2.7; python_version == '3.7'",
