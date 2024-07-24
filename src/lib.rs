@@ -66,17 +66,25 @@ fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
 
 /// Create a report of dependencies and usages of a given path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_root, path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, source_root, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, ignore_type_checking_imports=false))]
 fn create_dependency_report(
     project_root: String,
     source_root: String,
     path: String,
+    include_dependency_modules: Option<Vec<String>>,
+    include_usage_modules: Option<Vec<String>>,
+    skip_dependencies: bool,
+    skip_usages: bool,
     ignore_type_checking_imports: bool,
 ) -> reports::Result<String> {
     reports::create_dependency_report(
         project_root,
         source_root,
         path,
+        include_dependency_modules,
+        include_usage_modules,
+        skip_dependencies,
+        skip_usages,
         ignore_type_checking_imports,
     )
 }

@@ -94,70 +94,73 @@ impl DependencyReport {
         )
     }
 
-    fn render_to_string(&mut self) -> String {
-        let title = format!("Dependency Report for {path}", path = self.path.as_str());
-        let subtitle = format!(
-            "The report below shows all instances of imports which cross the boundary of '{path}'",
-            path = self.path.as_str()
-        );
-        let external_deps_title = format!("Dependencies of '{path}'", path = self.path.as_str());
-        let external_usages_title = format!("Usages of '{path}'", path = self.path.as_str());
-
-        self.external_dependencies.sort_by(compare_dependencies);
-        self.external_usages.sort_by(compare_dependencies);
-
-        let deps_display: String = match self.external_dependencies.len() {
-            0 => "No dependencies found.".to_string(),
-            _ => self
-                .external_dependencies
-                .iter()
-                .map(|dep| self.render_dependency(dep))
-                .collect::<Vec<String>>()
-                .join("\n")
-                .to_string(),
-        };
-        let usages_display: String = match self.external_usages.len() {
-            0 => "No usages found.".to_string(),
-            _ => self
-                .external_usages
-                .iter()
-                .map(|dep| self.render_dependency(dep))
-                .collect::<Vec<String>>()
-                .join("\n")
-                .to_string(),
-        };
-
+    fn render_to_string(&mut self, skip_dependencies: bool, skip_usages: bool) -> String {
+        let title = format!("Dependency Report for '{path}'", path = self.path.as_str());
         let mut result = format!(
-            "[{title}]\n\
-            {subtitle}\n\
-            -------------------------------\n\
-            [{deps_title}]\n\
-            {cyan}{deps}{end_color}\n\
-            -------------------------------\n\
-            [{usages_title}]\n\
-            {cyan}{usages}{end_color}",
+            "[ {title} ]\n\
+            -------------------------------\n",
             title = title,
-            deps_title = external_deps_title,
-            usages_title = external_usages_title,
-            deps = deps_display,
-            usages = usages_display,
-            cyan = BColors::OKCYAN,
-            end_color = BColors::ENDC,
         );
-        if !self.warnings.is_empty() {
-            result.push_str(
-                format!(
-                    "\n\
-                    -------------------------------\n\
-                    [Warnings]\n\
-                    {warning_color}{warnings}{end_color}",
-                    warning_color = BColors::WARNING,
-                    end_color = BColors::ENDC,
-                    warnings = self.warnings.join("\n")
-                )
-                .as_str(),
-            );
+
+        if !skip_dependencies {
+            let external_deps_title =
+                format!("Dependencies of '{path}'", path = self.path.as_str());
+            self.external_dependencies.sort_by(compare_dependencies);
+            let deps_display: String = match self.external_dependencies.len() {
+                0 => "No dependencies found.".to_string(),
+                _ => self
+                    .external_dependencies
+                    .iter()
+                    .map(|dep| self.render_dependency(dep))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+                    .to_string(),
+            };
+            result.push_str(&format!(
+                "[ {deps_title} ]\n\
+                {cyan}{deps}{end_color}\n\
+                -------------------------------\n",
+                deps_title = external_deps_title,
+                deps = deps_display,
+                cyan = BColors::OKCYAN,
+                end_color = BColors::ENDC,
+            ));
         }
+
+        if !skip_usages {
+            let external_usages_title = format!("Usages of '{path}'", path = self.path.as_str());
+            self.external_usages.sort_by(compare_dependencies);
+            let usages_display: String = match self.external_usages.len() {
+                0 => "No usages found.".to_string(),
+                _ => self
+                    .external_usages
+                    .iter()
+                    .map(|dep| self.render_dependency(dep))
+                    .collect::<Vec<String>>()
+                    .join("\n")
+                    .to_string(),
+            };
+            result.push_str(&format!(
+                "[ {usages_title} ]\n\
+                {cyan}{usages}{end_color}\n\
+                -------------------------------\n",
+                usages_title = external_usages_title,
+                usages = usages_display,
+                cyan = BColors::OKCYAN,
+                end_color = BColors::ENDC,
+            ));
+        }
+
+        if !self.warnings.is_empty() {
+            result.push_str(&format!(
+                "[ Warnings ]\n\
+                {warning_color}{warnings}{end_color}",
+                warning_color = BColors::WARNING,
+                end_color = BColors::ENDC,
+                warnings = self.warnings.join("\n")
+            ));
+        }
+
         result
     }
 }
@@ -166,8 +169,18 @@ pub fn create_dependency_report(
     project_root: String,
     source_root: String,
     path: String,
+    include_dependency_modules: Option<Vec<String>>,
+    include_usage_modules: Option<Vec<String>>,
+    skip_dependencies: bool,
+    skip_usages: bool,
     ignore_type_checking_imports: bool,
 ) -> Result<String> {
+    if skip_dependencies && skip_usages {
+        return Err(ReportCreationError {
+            message: "Nothing to report when skipping dependencies and usages.".to_string(),
+        });
+    }
+
     let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(&path)?);
     let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
     let module_path = file_to_module_path_within_source_root(
@@ -186,24 +199,63 @@ pub fn create_dependency_report(
         ) {
             Ok(project_imports) => {
                 let pyfile_in_target_module = absolute_pyfile.starts_with(&absolute_path);
-                if pyfile_in_target_module {
+                if pyfile_in_target_module && !skip_dependencies {
                     // Any import from within the target module which points to an external mod_path
                     // is an external dependency
                     result.external_dependencies.extend(
                         project_imports
                             .into_iter()
-                            .filter(|import| !import.mod_path.starts_with(&module_path))
+                            .filter(|import| {
+                                if import.mod_path.starts_with(&module_path) {
+                                    // this is an internal import
+                                    return false;
+                                }
+
+                                // for external imports,
+                                // if there is a filter list of dependencies, verify that the import is included
+                                match include_dependency_modules {
+                                    None => true,
+                                    Some(ref included_modules) => {
+                                        for module_path in included_modules {
+                                            if import.mod_path.starts_with(module_path) {
+                                                return true;
+                                            }
+                                        }
+                                        false
+                                    }
+                                }
+                            })
                             .map(|import| Dependency {
                                 file_path: pyfile.clone(),
                                 absolute_path: absolute_pyfile.clone(),
                                 import,
                             }),
                     );
-                } else {
+                } else if !skip_usages {
                     // We are looking at imports from outside the target module,
                     // so any import which points to the target module is an external usage
                     for import in project_imports {
-                        if import.mod_path.starts_with(&module_path) {
+                        if !import.mod_path.starts_with(&module_path) {
+                            // this import doesn't point to the target module
+                            continue;
+                        }
+
+                        let pyfile_mod_path = file_to_module_path_within_source_root(
+                            absolute_source_root.to_str().unwrap(),
+                            absolute_pyfile.to_str().unwrap(),
+                        );
+                        if pyfile_mod_path.is_err() {
+                            // the current file doesn't belong to the source root
+                            continue;
+                        }
+
+                        if include_usage_modules.is_none()
+                            || include_usage_modules
+                                .as_ref()
+                                .is_some_and(|included_modules| {
+                                    included_modules.contains(&pyfile_mod_path.unwrap())
+                                })
+                        {
                             result.external_usages.push(Dependency {
                                 file_path: pyfile.clone(),
                                 absolute_path: absolute_pyfile.clone(),
@@ -219,5 +271,5 @@ pub fn create_dependency_report(
             }
         }
     }
-    Ok(result.render_to_string())
+    Ok(result.render_to_string(skip_dependencies, skip_usages))
 }
