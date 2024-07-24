@@ -5,7 +5,16 @@ def get_project_imports(
     ignore_type_checking_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def set_excluded_paths(exclude_paths: list[str]) -> None: ...
-def create_dependency_report(project_root: str, source_root: str, path: str) -> str: ...
+def create_dependency_report(
+    project_root: str,
+    source_root: str,
+    path: str,
+    include_dependency_modules: list[str] | None,
+    include_usage_modules: list[str] | None,
+    skip_dependencies: bool,
+    skip_usages: bool,
+    ignore_type_checking_imports: bool,
+) -> str: ...
 def create_computation_cache_key(
     project_root: str,
     source_root: str,

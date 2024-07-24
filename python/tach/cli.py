@@ -224,6 +224,31 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser.add_argument(
         "path", help="The path or directory path used to generate the report."
     )
+    report_parser.add_argument(
+        "-d",
+        "--dependencies",
+        required=False,
+        type=str,
+        metavar="module_path,...",
+        help="Comma separated module list of dependencies to include [includes everything by default]",
+    )
+    report_parser.add_argument(
+        "--no-deps",
+        action="store_true",
+        help="Do not include dependencies in the report.",
+    )
+    report_parser.add_argument(
+        "-u",
+        "--usages",
+        required=False,
+        type=str,
+        metavar="module_path,...",
+        help="Comma separated module list of usages to include [includes everything by default]",
+    )
+    report_parser.add_argument(
+        "--no-usages", action="store_true", help="Do not include usages in the report."
+    )
+    add_base_arguments(report_parser)
     show_parser = subparsers.add_parser(
         "show",
         prog="tach show",
@@ -254,7 +279,6 @@ def build_parser() -> argparse.ArgumentParser:
         choices=InstallTarget.choices(),
         help="What kind of installation to perform (e.g. pre-commit)",
     )
-    add_base_arguments(report_parser)
     test_parser = subparsers.add_parser(
         "test",
         prog="tach test",
@@ -540,7 +564,15 @@ def tach_install(project_root: Path, target: InstallTarget) -> None:
         sys.exit(1)
 
 
-def tach_report(project_root: Path, path: str, exclude_paths: list[str] | None = None):
+def tach_report(
+    project_root: Path,
+    path: str,
+    include_dependency_modules: list[str] | None = None,
+    include_usage_modules: list[str] | None = None,
+    skip_dependencies: bool = False,
+    skip_usages: bool = False,
+    exclude_paths: list[str] | None = None,
+):
     logger.info(
         "tach report called",
         extra={
@@ -561,6 +593,10 @@ def tach_report(project_root: Path, path: str, exclude_paths: list[str] | None =
                 project_root,
                 report_path,
                 project_config=project_config,
+                include_dependency_modules=include_dependency_modules,
+                include_usage_modules=include_usage_modules,
+                skip_dependencies=skip_dependencies,
+                skip_usages=skip_usages,
                 exclude_paths=exclude_paths,
             )
         )
@@ -713,8 +749,18 @@ def main() -> None:
             sys.exit(1)
         tach_install(project_root=project_root, target=install_target)
     elif args.command == "report":
+        include_dependency_modules = (
+            args.dependencies.split(",") if args.dependencies else None
+        )
+        include_usage_modules = args.usages.split(",") if args.usages else None
         tach_report(
-            project_root=project_root, path=args.path, exclude_paths=exclude_paths
+            project_root=project_root,
+            path=args.path,
+            include_dependency_modules=include_dependency_modules,
+            include_usage_modules=include_usage_modules,
+            skip_dependencies=args.no_deps,
+            skip_usages=args.no_usages,
+            exclude_paths=exclude_paths,
         )
     elif args.command == "test":
         tach_test(
