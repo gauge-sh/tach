@@ -68,8 +68,8 @@ def test_cycles_circular_dependencies(example_dir):
     project_config = parse_project_config(example_dir / "cycles")
     modules = project_config.modules
     all_cycles: list[list[str]] = find_cycles(modules)
-    print(all_cycles)
-    assert all_cycles == [
-        ["domain_one", "domain_two", "domain_three"],
-        ["domain_one", "domain_three"],
-    ]
+    tuple_cycles: list[tuple[str]] = [tuple(cycle) for cycle in all_cycles]
+    assert set(tuple_cycles) == {
+        ("domain_one", "domain_two", "domain_three"),
+        ("domain_one", "domain_three"),
+    }
