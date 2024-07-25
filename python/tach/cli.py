@@ -154,6 +154,11 @@ def print_generated_module_graph_file(output_filepath: Path) -> None:
         f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
     )
 
+def print_circular_dependency_error(cycles: list[list[str]]) -> None:
+    print(f"❌ {BCOLORS.FAIL}Circular dependencies detected!\n\n"
+    + "\n".join(f"{' -> '.join(cycle)}" for cycle in cycles)
+    + f"\n\n{BCOLORS.WARNING}Please resolve circular dependencies to continue.\n\nRemove 'forbid_circular_dependencies' from 'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}")
+        
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
@@ -449,6 +454,9 @@ def tach_check(
             if unused_dependencies:
                 print_unused_dependencies(unused_dependencies)
                 exit_code = 1
+    except TachCircularDependencyError as e:
+        print_circular_dependency_error(e.cycles)
+        sys.exit(1)
     except Exception as e:
         print(str(e))
         sys.exit(1)

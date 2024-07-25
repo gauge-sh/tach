@@ -47,8 +47,7 @@ modules:
       - tach.constants
     strict: true
   - path: tach.errors
-    depends_on:
-      - tach.colors
+    depends_on: []
     strict: true
   - path: tach.filesystem
     depends_on:
