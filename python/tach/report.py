@@ -15,6 +15,10 @@ def report(
     project_root: Path,
     path: Path,
     project_config: ProjectConfig,
+    include_dependency_modules: list[str] | None = None,
+    include_usage_modules: list[str] | None = None,
+    skip_dependencies: bool = False,
+    skip_usages: bool = False,
     exclude_paths: list[str] | None = None,
 ) -> str:
     if not project_root.is_dir():
@@ -37,6 +41,11 @@ def report(
         project_root=str(project_root),
         source_root=str(project_config.source_root),
         path=str(path),
+        include_dependency_modules=include_dependency_modules,
+        include_usage_modules=include_usage_modules,
+        skip_dependencies=skip_dependencies,
+        skip_usages=skip_usages,
+        ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
 
 

@@ -40,7 +40,8 @@ def get_changed_files(
         changed_files.update(untracked_files.splitlines())
 
     # return list of unique Paths
-    return list(map(Path, changed_files))
+    git_root: str = repo.git.rev_parse("--show-toplevel")
+    return [(Path(git_root) / filepath).resolve() for filepath in changed_files]
 
 
 __all__ = ["get_changed_files"]
