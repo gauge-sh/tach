@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import networkx as nx
+
 from tach.core import ModuleTree
 from tach.errors import TachCircularDependencyError
 from tach.parsing import parse_interface_members
@@ -23,38 +25,32 @@ def find_duplicate_modules(modules: list[ModuleConfig]) -> list[str]:
     return duplicate_module_paths
 
 
-def find_cycle(
-    module: ModuleConfig,
-    visited: set[str],
-    path: list[str],
-    modules: list[ModuleConfig],
-    all_cycles: set[tuple[str, ...]],
-) -> bool:
-    if module.path in visited:
-        cycle_start_index = path.index(module.path)
-        cycle = path[cycle_start_index:] + [module.path]
-        all_cycles.add(tuple(cycle))
-        return True
-    visited.add(module.path)
-    path.append(module.path)
-    for dependency in module.depends_on:
-        dep_module = next((mod for mod in modules if mod.path == dependency), None)
-        if dep_module:
-            find_cycle(dep_module, visited, path, modules, all_cycles)
-    visited.remove(module.path)
-    path.pop()
-    return False
+def canonical_form(cycle: list[str]) -> list[str]:
+    """Rotate cycle to start with the smallest element."""
+    min_index = cycle.index(min(cycle))
+    return cycle[min_index:] + cycle[:min_index]
 
 
-def find_modules_with_circular_dependencies(
+def find_cycles(
     modules: list[ModuleConfig],
 ) -> list[list[str]]:
-    all_cycles: set[tuple[str, ...]] = set()
+    graph = nx.DiGraph()  # type: ignore
+    # Add nodes
     for module in modules:
-        visited: set[str] = set()
-        path: list[str] = list()
-        find_cycle(module, visited, path, modules, all_cycles)
-    return [list(cycle) for cycle in all_cycles]
+        graph.add_node(module.path)  # type: ignore
+
+    # Add dependency edges
+    for module in modules:
+        for dependency in module.depends_on:
+            graph.add_edge(module.path, dependency)  # type: ignore
+
+    all_cycles: list[list[str]] = list(nx.simple_cycles(graph))  # type: ignore
+
+    canonical_cycles = {tuple(canonical_form(cycle)) for cycle in all_cycles}
+
+    unique_cycles = [list(cycle) for cycle in canonical_cycles]
+
+    return unique_cycles
 
 
 def build_module_tree(
@@ -66,7 +62,7 @@ def build_module_tree(
             f"Failed to build module tree. The following modules were defined more than once: {duplicate_modules}"
         )
     if forbid_circular_dependencies:
-        cycles = find_modules_with_circular_dependencies(modules)
+        cycles = find_cycles(modules)
         if cycles:
             raise TachCircularDependencyError(cycles)
     tree = ModuleTree()

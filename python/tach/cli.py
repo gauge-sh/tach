@@ -15,7 +15,7 @@ from tach.check import BoundaryError, check
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
-from tach.errors import TachError
+from tach.errors import TachCircularDependencyError, TachError
 from tach.extension import (
     check_computation_cache,
     create_computation_cache_key,
@@ -154,11 +154,14 @@ def print_generated_module_graph_file(output_filepath: Path) -> None:
         f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
     )
 
+
 def print_circular_dependency_error(cycles: list[list[str]]) -> None:
-    print(f"❌ {BCOLORS.FAIL}Circular dependencies detected!\n\n"
-    + "\n".join(f"{' -> '.join(cycle)}" for cycle in cycles)
-    + f"\n\n{BCOLORS.WARNING}Please resolve circular dependencies to continue.\n\nRemove 'forbid_circular_dependencies' from 'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}")
-        
+    print(
+        f"❌ {BCOLORS.FAIL}Circular dependencies detected!\n\n"
+        + "\n".join(f"{' -> '.join(cycle)}" for cycle in cycles)
+        + f"\n\n{BCOLORS.WARNING}Please resolve circular dependencies to continue.\n\nRemove or unset 'forbid_circular_dependencies' from 'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}"
+    )
+
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(

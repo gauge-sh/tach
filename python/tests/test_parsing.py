@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from tach.constants import ROOT_MODULE_SENTINEL_TAG
 from tach.core import ModuleConfig, ProjectConfig
 from tach.filesystem import file_to_module_path
-from tach.parsing import find_cycle, parse_project_config
+from tach.parsing import find_cycles, parse_project_config
 
 
 @pytest.fixture
@@ -60,26 +60,16 @@ def test_empty_project_config(example_dir):
 def test_valid_circular_dependencies(example_dir):
     project_config = parse_project_config(example_dir / "valid")
     modules = project_config.modules
-    all_cycles: set[tuple[str, ...]] = set()
-    for module in modules:
-        visited: set[str] = set()
-        path: list[str] = list()
-        find_cycle(module, visited, path, modules, all_cycles)
-    assert all_cycles == set()
+    all_cycles: list[list[str]] = find_cycles(modules)
+    assert all_cycles == []
 
 
 def test_cycles_circular_dependencies(example_dir):
     project_config = parse_project_config(example_dir / "cycles")
     modules = project_config.modules
-    all_cycles: set[tuple[str, ...]] = set()
-    for module in modules:
-        visited: set[str] = set()
-        path: list[str] = list()
-        find_cycle(module, visited, path, modules, all_cycles)
-    assert all_cycles == {
-        ("domain_one", "domain_three", "domain_one"),
-        ("domain_three", "domain_one", "domain_three"),
-        ("domain_three", "domain_one", "domain_two", "domain_three"),
-        ("domain_two", "domain_three", "domain_one", "domain_two"),
-        ("domain_one", "domain_two", "domain_three", "domain_one"),
-    }
+    all_cycles: list[list[str]] = find_cycles(modules)
+    print(all_cycles)
+    assert all_cycles == [
+        ["domain_one", "domain_two", "domain_three"],
+        ["domain_one", "domain_three"],
+    ]
