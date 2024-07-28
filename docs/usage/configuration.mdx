@@ -14,6 +14,8 @@ This is the project-level configuration file which should be in the root of your
 
 `ignore_type_checking_imports` is a boolean which, when enabled, silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block
 
+`forbid_circular_dependencies` is a boolean which, when enabled, causes `tach check` to fail if any circular dependencies are detected
+
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.3/public/tach-yml-schema.json
 modules:
@@ -44,6 +46,7 @@ source_root: backend
 exact: true
 disable_logging: false
 ignore_type_checking_imports: true
+forbid_circular_dependencies: true
 ```
 
 ## Modules

@@ -161,6 +161,7 @@ def check(
     module_tree = build_module_tree(
         source_root=source_root,
         modules=module_validation_result.valid_modules,
+        forbid_circular_dependencies=project_config.forbid_circular_dependencies,
     )
 
     found_at_least_one_project_import = False

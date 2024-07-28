@@ -10,4 +10,14 @@ class TachParseError(TachError): ...
 class TachSetupError(TachError): ...
 
 
-__all__ = ["TachError", "TachParseError", "TachSetupError"]
+class TachCircularDependencyError(TachError):
+    def __init__(self, cycles: list[list[str]]):
+        self.cycles = cycles
+
+
+__all__ = [
+    "TachError",
+    "TachParseError",
+    "TachSetupError",
+    "TachCircularDependencyError",
+]

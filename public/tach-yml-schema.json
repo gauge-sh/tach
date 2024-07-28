@@ -87,6 +87,11 @@
       "type": "boolean",
       "default": true,
       "description": "Ignore type-checking imports when checking module boundaries"
+    },
+    "forbid_circular_dependencies": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cause `tach check` to fail if any circular dependencies are detected"
     }
   },
   "required": [

@@ -15,7 +15,7 @@ from tach.check import BoundaryError, check
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
-from tach.errors import TachError
+from tach.errors import TachCircularDependencyError, TachError
 from tach.extension import (
     check_computation_cache,
     create_computation_cache_key,
@@ -152,6 +152,16 @@ def print_show_web_suggestion() -> None:
 def print_generated_module_graph_file(output_filepath: Path) -> None:
     print(
         f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
+    )
+
+
+def print_circular_dependency_error(cycles: list[list[str]]) -> None:
+    print(
+        f"❌ {BCOLORS.FAIL}Circular dependencies detected!\n"
+        + "\n".join(
+            f"{BCOLORS.ENDC}{' -> '.join(cycle)} -> {cycle[0]}" for cycle in cycles
+        )
+        + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\nRemove or unset 'forbid_circular_dependencies' from 'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}"
     )
 
 
@@ -450,7 +460,10 @@ def tach_check(
                 print_unused_dependencies(unused_dependencies)
                 exit_code = 1
     except Exception as e:
-        print(str(e))
+        if isinstance(e, TachCircularDependencyError):
+            print_circular_dependency_error(e.cycles)
+        else:
+            print(str(e))
         sys.exit(1)
 
     if exit_code == 0:
