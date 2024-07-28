@@ -83,19 +83,32 @@ def build_error_message(error: BoundaryError, source_root: Path) -> str:
         display_path=error.file_path,
         line=error.line_number,
     )
-    error_template = f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: {{message}} {BCOLORS.ENDC}"
+    error_template = (
+        f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
+        f"{{message}} {BCOLORS.ENDC}"
+    )
+    warning_template = (
+        f"‼️ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
+        f"{{message}} {BCOLORS.ENDC}"
+    )
     error_info = error.error_info
     if error_info.exception_message:
         return error_template.format(message=error_info.exception_message)
     elif not error_info.is_dependency_error:
         return error_template.format(message="Unexpected error")
 
-    message = (
+    error_message = (
         f"Cannot import '{error.import_mod_path}'. "
-        f"Tag '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
+        f"'{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
     )
 
-    return error_template.format(message=message)
+    warning_message = (
+        f"Import '{error.import_mod_path}' is deprecated. "
+        f"'{error_info.source_module}' should not depend on '{error_info.invalid_module}'."
+    )
+    if error_info.is_deprecated:
+        return warning_template.format(message=warning_message)
+    return error_template.format(message=error_message)
 
 
 def print_warnings(warning_list: list[str]) -> None:
@@ -439,6 +452,11 @@ def tach_check(
         if check_result.warnings:
             print_warnings(check_result.warnings)
 
+        if check_result.deprecated_warnings:
+            print_errors(
+                check_result.deprecated_warnings,
+                source_root=project_root / project_config.source_root,
+            )
         exit_code = 0
 
         if check_result.errors:
@@ -532,7 +550,6 @@ def tach_sync(
             exclude_paths=exclude_paths,
         )
     except Exception as e:
-        raise e
         print(str(e))
         sys.exit(1)
 
