@@ -125,10 +125,11 @@ def print_errors(error_list: list[BoundaryError], source_root: Path) -> None:
             build_error_message(error, source_root=source_root),
             file=sys.stderr,
         )
-    print(
-        f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
-        f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
-    )
+    if not all(error.error_info.is_deprecated for error in sorted_results):
+        print(
+            f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
+            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
+        )
 
 
 def print_unused_dependencies(
