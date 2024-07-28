@@ -158,7 +158,7 @@ def print_generated_module_graph_file(output_filepath: Path) -> None:
 def print_circular_dependency_error(cycles: list[list[str]]) -> None:
     print(
         f"❌ {BCOLORS.FAIL}Circular dependencies detected!\n\n"
-        + "\n".join(f"{' -> '.join(cycle)}" for cycle in cycles)
+        + "\n".join(f"{' -> '.join(cycle)} -> {cycle[0]}" for cycle in cycles)
         + f"\n\n{BCOLORS.WARNING}Please resolve circular dependencies to continue.\n\nRemove or unset 'forbid_circular_dependencies' from 'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}"
     )
 
