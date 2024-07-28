@@ -43,7 +43,7 @@ def module_tree() -> ModuleTree:
                     config=ModuleConfig(
                         path="domain_one",
                         depends_on=[
-                            Dependency(path="domain_one.subdomain"),
+                            Dependency(path="domain_one.subdomain", deprecated=True),
                             Dependency(path="domain_three"),
                         ],
                         strict=True,
@@ -128,7 +128,6 @@ def test_validate_project_modules_root_is_always_valid(tmp_path):
     "file_mod_path,import_mod_path,expected_result",
     [
         ("domain_one", "domain_one", True),
-        ("domain_one", "domain_one.subdomain", True),
         ("domain_one", "domain_one.core", True),
         ("domain_one", "domain_three", True),
         ("domain_two", "domain_one", True),
@@ -153,6 +152,16 @@ def test_check_import(module_tree, file_mod_path, import_mod_path, expected_resu
     )
     result = check_error is None
     assert result == expected_result
+
+
+def test_check_deprecated_import(module_tree):
+    check_error = check_import(
+        module_tree=module_tree,
+        file_mod_path="domain_one",
+        import_mod_path="domain_one.subdomain",
+    )
+    assert check_error is not None
+    assert check_error.is_deprecated
 
 
 def test_valid_example_dir(example_dir):
