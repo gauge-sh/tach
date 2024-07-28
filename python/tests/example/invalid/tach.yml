@@ -7,3 +7,4 @@ constraints:
   shared:
     depends_on: []
 unknown: 88
+forbid_circular_dependencies: true

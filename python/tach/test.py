@@ -200,6 +200,7 @@ def run_affected_tests(
     module_tree = build_module_tree(
         source_root=absolute_source_root,
         modules=module_validation_result.valid_modules,
+        forbid_circular_dependencies=project_config.forbid_circular_dependencies,
     )
 
     changed_files = get_changed_files(project_root, head=head, base=base)
