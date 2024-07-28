@@ -21,6 +21,7 @@ modules:
   - path: tach.cli
     depends_on:
       - path: tach
+        deprecated: true
       - path: tach.cache
       - path: tach.check
       - path: tach.colors

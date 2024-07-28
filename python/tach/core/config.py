@@ -157,15 +157,24 @@ class ProjectConfig(Config):
                     )
                 )
                 continue
-            own_module_dependencies = set(
-                self.dependencies_for_module(module=module_config.path)
+            own_module_dependency_paths = set(
+                dep.path
+                for dep in self.dependencies_for_module(module=module_config.path)
             )
-            extra_dependencies = set(module_config.depends_on) - own_module_dependencies
-            if extra_dependencies:
+            current_dependency_paths = set(dep.path for dep in module_config.depends_on)
+            extra_dependency_paths = (
+                current_dependency_paths - own_module_dependency_paths
+            )
+            if extra_dependency_paths:
+                extra_dependencies = [
+                    dep
+                    for dep in module_config.depends_on
+                    if dep.path in extra_dependency_paths
+                ]
                 all_unused_dependencies.append(
                     UnusedDependencies(
                         path=module_config.path,
-                        dependencies=list(extra_dependencies),
+                        dependencies=extra_dependencies,
                     )
                 )
 
