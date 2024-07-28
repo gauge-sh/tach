@@ -123,7 +123,7 @@ class ProjectConfig(Config):
             list(),  # type: ignore
         )
 
-    def add_dependency_to_module(self, module: str, dependency: str):
+    def add_dependency_to_module(self, module: str, dependency: Dependency):
         current_module_config = next(
             (
                 module_config
@@ -134,14 +134,10 @@ class ProjectConfig(Config):
         )
         if not current_module_config:
             # No configuration exists for tag, add default config with this dependency
-            self.modules.append(
-                ModuleConfig(path=module, depends_on=[Dependency(path=dependency)])
-            )
+            self.modules.append(ModuleConfig(path=module, depends_on=[dependency]))
         else:
             # Config already exists, set the union of existing dependencies and new ones
-            new_dependencies = set(current_module_config.depends_on) | {
-                Dependency(path=dependency)
-            }
+            new_dependencies = set(current_module_config.depends_on) | {dependency}
             current_module_config.depends_on = list(new_dependencies)
 
     def compare_dependencies(

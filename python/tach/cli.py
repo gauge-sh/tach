@@ -27,7 +27,10 @@ from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
 from tach.report import report
 from tach.show import generate_module_graph_dot_file, generate_show_url
-from tach.sync import prune_dependency_constraints, sync_project
+from tach.sync import (
+    sync_dependency_constraints,
+    sync_project,
+)
 from tach.test import run_affected_tests
 
 if TYPE_CHECKING:
@@ -469,7 +472,7 @@ def tach_check(
 
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
         if exact:
-            pruned_config = prune_dependency_constraints(
+            pruned_config = sync_dependency_constraints(
                 project_root=project_root,
                 project_config=project_config,
                 exclude_paths=exclude_paths,
@@ -551,7 +554,7 @@ def tach_sync(
             exclude_paths=exclude_paths,
         )
     except Exception as e:
-        print(str(e))
+        raise e
         sys.exit(1)
 
     print(f"✅ {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")

@@ -110,6 +110,7 @@ modules:
       - path: tach.errors
       - path: tach.filesystem
       - path: tach.parsing
+      - path: tach.core
     strict: true
   - path: tach.test
     depends_on:
