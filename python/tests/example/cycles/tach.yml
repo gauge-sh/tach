@@ -1,16 +1,22 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.2/public/tach-yml-schema.json
 modules:
   - path: domain_one
     depends_on:
       - domain_two
       - domain_three
+  - path: domain_three
+    depends_on:
+      - domain_one
   - path: domain_two
     depends_on:
       - domain_three
   - path: <root>
     depends_on:
       - domain_one
-  - path: domain_three
-    depends_on:
-      - domain_one
-exact: true
+exclude:
+  - .*__pycache__
+  - .*egg-info
+  - docs
+  - tests
+  - venv
 forbid_circular_dependencies: true
