@@ -25,7 +25,7 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
         key=lambda mod: (mod.path == ROOT_MODULE_SENTINEL_TAG, mod.path)
     )
     for mod in config.modules:
-        mod.depends_on.sort()
+        mod.depends_on.sort(key=lambda dep: dep.path)
     # NOTE: setting 'exclude' explicitly here also interacts with the 'exclude_unset' option
     # being passed to 'model_dump'. It ensures that even on a fresh config, we will explicitly
     # show excluded paths.
@@ -71,4 +71,5 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
         result = migrate_config(result)  # type: ignore
         config = ProjectConfig(**result)
         print("Updating config to latest syntax...")
+        dump_project_config_to_yaml(config)
     return config
