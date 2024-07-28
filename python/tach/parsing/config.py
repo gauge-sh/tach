@@ -71,5 +71,6 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
         result = migrate_config(result)  # type: ignore
         config = ProjectConfig(**result)
         print("Updating config to latest syntax...")
-        dump_project_config_to_yaml(config)
+        config_yml_content = dump_project_config_to_yaml(config)
+        fs.write_file(str(file_path), config_yml_content)
     return config

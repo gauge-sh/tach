@@ -9,6 +9,7 @@ import pytest
 from tach.check import check_import
 from tach.cli import tach_check
 from tach.core import (
+    Dependency,
     ModuleConfig,
     ModuleNode,
     ModuleTree,
@@ -41,7 +42,10 @@ def module_tree() -> ModuleTree:
                     full_path="domain_one",
                     config=ModuleConfig(
                         path="domain_one",
-                        depends_on=["domain_one.subdomain", "domain_three"],
+                        depends_on=[
+                            Dependency(path="domain_one.subdomain"),
+                            Dependency(path="domain_three"),
+                        ],
                         strict=True,
                     ),
                     interface_members=["public_fn"],
@@ -60,7 +64,9 @@ def module_tree() -> ModuleTree:
                     is_end_of_path=True,
                     full_path="domain_two",
                     config=ModuleConfig(
-                        path="domain_two", depends_on=["domain_one"], strict=False
+                        path="domain_two",
+                        depends_on=[Dependency(path="domain_one")],
+                        strict=False,
                     ),
                     children={
                         "subdomain": ModuleNode(
@@ -68,7 +74,7 @@ def module_tree() -> ModuleTree:
                             full_path="domain_two.subdomain",
                             config=ModuleConfig(
                                 path="domain_two",
-                                depends_on=["domain_one"],
+                                depends_on=[Dependency(path="domain_one")],
                                 strict=False,
                             ),
                             children={},

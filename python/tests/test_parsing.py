@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from tach.constants import ROOT_MODULE_SENTINEL_TAG
-from tach.core import ModuleConfig, ProjectConfig
+from tach.core import Dependency, ModuleConfig, ProjectConfig
 from tach.filesystem import file_to_module_path
 from tach.parsing import find_cycles, parse_project_config
 
@@ -37,10 +37,15 @@ def test_parse_valid_project_config(example_dir):
     result = parse_project_config(example_dir / "valid")
     assert result == ProjectConfig(
         modules=[
-            ModuleConfig(path="domain_one", depends_on=["domain_two"]),
-            ModuleConfig(path="domain_two", depends_on=["domain_three"]),
-            ModuleConfig(path=ROOT_MODULE_SENTINEL_TAG, depends_on=["domain_one"]),
+            ModuleConfig(path="domain_one", depends_on=[Dependency(path="domain_two")]),
             ModuleConfig(path="domain_three", depends_on=[]),
+            ModuleConfig(
+                path="domain_two", depends_on=[Dependency(path="domain_three")]
+            ),
+            ModuleConfig(
+                path=ROOT_MODULE_SENTINEL_TAG,
+                depends_on=[Dependency(path="domain_one")],
+            ),
         ],
         exact=True,
         forbid_circular_dependencies=True,

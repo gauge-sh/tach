@@ -37,8 +37,7 @@ class Dependency(Config):
     path: str
     deprecated: bool = False
 
-    class Config:
-        frozen = True
+    model_config = {"frozen": True}
 
 
 def validate_root_path(path: str) -> str:
