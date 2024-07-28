@@ -77,9 +77,14 @@ def create_clickable_link(
     return clickable_link
 
 
-def build_error_message(error: BoundaryError, source_root: Path) -> str:
+def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
+    absolute_error_path = next(
+        source_root / error.file_path
+        for source_root in source_roots
+        if (source_root / error.file_path).exists()
+    )
     error_location = create_clickable_link(
-        source_root / error.file_path,
+        absolute_error_path,
         display_path=error.file_path,
         line=error.line_number,
     )
@@ -103,13 +108,13 @@ def print_warnings(warning_list: list[str]) -> None:
         print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
 
 
-def print_errors(error_list: list[BoundaryError], source_root: Path) -> None:
+def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> None:
     if not error_list:
         return
     sorted_results = sorted(error_list, key=lambda e: e.file_path)
     for error in sorted_results:
         print(
-            build_error_message(error, source_root=source_root),
+            build_error_message(error, source_roots=source_roots),
             file=sys.stderr,
         )
     print(
@@ -354,7 +359,10 @@ def check_cache_for_action(
 ) -> CachedOutput:
     cache_key = create_computation_cache_key(
         project_root=str(project_root),
-        source_root=str(project_config.source_root),
+        source_roots=[
+            str(project_root / source_root)
+            for source_root in project_config.source_roots
+        ],
         action=action,
         py_interpreter_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         file_dependencies=project_config.cache.file_dependencies,
@@ -444,7 +452,10 @@ def tach_check(
         if check_result.errors:
             print_errors(
                 check_result.errors,
-                source_root=project_root / project_config.source_root,
+                source_roots=[
+                    project_root / source_root
+                    for source_root in project_config.source_roots
+                ],
             )
             exit_code = 1
 

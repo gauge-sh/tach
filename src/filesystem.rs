@@ -45,39 +45,45 @@ pub fn relative_to<P: AsRef<Path>>(path: P, root: P) -> Result<PathBuf> {
     Ok(diff_path.to_owned())
 }
 
-pub fn file_to_module_path_within_source_root(
-    source_root: &str,
-    file_path: &str,
-) -> Result<String> {
-    let relative_file_path = relative_to(file_path, source_root)?;
-    if relative_file_path
-        .file_name()
-        .is_some_and(|name| name == ".")
-    {
-        return Ok(String::new());
-    }
+pub fn file_to_module_path(source_roots: &Vec<PathBuf>, file_path: &PathBuf) -> Result<String> {
+    // Find the matching source root
+    let matching_root = source_roots
+        .iter()
+        .find(|&root| file_path.starts_with(root))
+        .ok_or(FileSystemError {
+            message: "Path not found in any source root.".to_string(),
+        })?;
 
-    let module_path = relative_file_path
-        .as_os_str()
-        .to_str()
-        .unwrap()
-        .replace(MAIN_SEPARATOR, ".");
+    // Get the relative path from the matching root
+    let relative_path = file_path.strip_prefix(matching_root)?;
 
-    let mut module_path = if module_path.ends_with(".py") {
-        module_path.trim_end_matches(".py").to_string()
+    // Convert the relative path to a module path
+    let module_path = relative_path
+        .parent()
+        .ok_or(FileSystemError {
+            message: "Failed to read parent of file path.".to_string(),
+        })?
+        .components()
+        .filter_map(|component| component.as_os_str().to_str())
+        .collect::<Vec<&str>>()
+        .join(".");
+
+    // Remove the file extension
+    let module_name = relative_path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .ok_or(FileSystemError {
+            message: "Encountered invalid filename.".to_string(),
+        })?;
+
+    // Combine the module path with the module name
+    let full_module_path = if module_path.is_empty() {
+        module_name.to_string()
     } else {
-        module_path
+        format!("{}.{}", module_path, module_name)
     };
 
-    if module_path.ends_with(".__init__") {
-        module_path.truncate(module_path.len() - 9);
-    }
-
-    if module_path == "__init__" {
-        return Ok(String::new());
-    }
-
-    Ok(module_path)
+    Ok(full_module_path)
 }
 
 #[derive(Debug)]
@@ -86,63 +92,105 @@ pub struct ResolvedModule {
     pub member_name: Option<String>,
 }
 
-pub fn module_to_file_path<P: AsRef<Path>>(root: P, mod_path: &str) -> Option<ResolvedModule> {
+pub fn module_to_file_path<P: AsRef<Path>>(
+    roots: &Vec<P>,
+    mod_path: &str,
+) -> Option<ResolvedModule> {
     let mod_as_file_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
-    let fs_path = root.as_ref().join(&mod_as_file_path);
-    let file_path = fs_path.display().to_string();
+    for root in roots {
+        let fs_path = root.as_ref().join(&mod_as_file_path);
+        let file_path = fs_path.display().to_string();
 
-    // mod_path may refer to a package
-    if fs_path.join("__init__.py").exists() {
-        return Some(ResolvedModule {
-            file_path: fs_path,
-            member_name: None,
-        });
-    }
+        // Check for package with .pyi file
+        let init_pyi_path = fs_path.join("__init__.pyi");
+        if init_pyi_path.exists() {
+            return Some(ResolvedModule {
+                file_path: init_pyi_path,
+                member_name: None,
+            });
+        }
 
-    // mod_path may refer to a file
-    let py_file_path = format!("{}.py", &file_path);
-    if Path::new(&py_file_path).exists() {
-        return Some(ResolvedModule {
-            file_path: PathBuf::from(py_file_path),
-            member_name: None,
-        });
-    }
+        // Check for package with .py file
+        let init_py_path = fs_path.join("__init__.py");
+        if init_py_path.exists() {
+            return Some(ResolvedModule {
+                file_path: init_py_path,
+                member_name: None,
+            });
+        }
 
-    // If the original file path does not contain a separator (e.g. 'os', 'ast')
-    // then we are done checking. Further checks work by removing the lowest portion
-    // to see if the import may refer to a member within a module.
-    // TODO: An improvement would be to also filter out StmtImport from the following checks,
-    // since 'import a.b.c' must not be referring to a member
-    if !mod_as_file_path.contains(MAIN_SEPARATOR) {
-        return None;
-    }
+        // Check for .pyi file
+        let pyi_file_path = format!("{}.pyi", &file_path);
+        if Path::new(&pyi_file_path).exists() {
+            return Some(ResolvedModule {
+                file_path: PathBuf::from(pyi_file_path),
+                member_name: None,
+            });
+        }
 
-    if let Some(last_sep_index) = file_path.rfind(MAIN_SEPARATOR) {
-        // mod_path may refer to a member within a file
-        let py_file_path = format!("{}.py", &file_path[..last_sep_index]);
+        // Check for .py file
+        let py_file_path = format!("{}.py", &file_path);
         if Path::new(&py_file_path).exists() {
-            let member_name = file_path[last_sep_index + 1..].to_string();
             return Some(ResolvedModule {
                 file_path: PathBuf::from(py_file_path),
-                member_name: Some(member_name),
+                member_name: None,
             });
         }
 
-        // mod_path may refer to a member within a package
-        let init_py_file_path = format!(
-            "{}{}__init__.py",
-            &file_path[..last_sep_index],
-            MAIN_SEPARATOR
-        );
-        if Path::new(&init_py_file_path).exists() {
+        // If the original file path does not contain a separator (e.g. 'os', 'ast')
+        // then we are done checking this root.
+        if !mod_as_file_path.contains(MAIN_SEPARATOR) {
+            continue;
+        }
+
+        if let Some(last_sep_index) = file_path.rfind(MAIN_SEPARATOR) {
             let member_name = file_path[last_sep_index + 1..].to_string();
-            return Some(ResolvedModule {
-                file_path: PathBuf::from(init_py_file_path),
-                member_name: Some(member_name),
-            });
+
+            // Check for member within package with .pyi file
+            let init_pyi_file_path = format!(
+                "{}{}__init__.pyi",
+                &file_path[..last_sep_index],
+                MAIN_SEPARATOR
+            );
+            if Path::new(&init_pyi_file_path).exists() {
+                return Some(ResolvedModule {
+                    file_path: PathBuf::from(init_pyi_file_path),
+                    member_name: Some(member_name.clone()),
+                });
+            }
+
+            // Check for member within package with .py file
+            let init_py_file_path = format!(
+                "{}{}__init__.py",
+                &file_path[..last_sep_index],
+                MAIN_SEPARATOR
+            );
+            if Path::new(&init_py_file_path).exists() {
+                return Some(ResolvedModule {
+                    file_path: PathBuf::from(init_py_file_path),
+                    member_name: Some(member_name),
+                });
+            }
+
+            // Check for member within .pyi file
+            let pyi_file_path = format!("{}.pyi", &file_path[..last_sep_index]);
+            if Path::new(&pyi_file_path).exists() {
+                return Some(ResolvedModule {
+                    file_path: PathBuf::from(pyi_file_path),
+                    member_name: Some(member_name.clone()),
+                });
+            }
+
+            // Check for member within .py file
+            let py_file_path = format!("{}.py", &file_path[..last_sep_index]);
+            if Path::new(&py_file_path).exists() {
+                return Some(ResolvedModule {
+                    file_path: PathBuf::from(py_file_path),
+                    member_name: Some(member_name.clone()),
+                });
+            }
         }
     }
-
     None
 }
 
@@ -158,12 +206,12 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-pub fn is_project_import<P: AsRef<Path>>(
+pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
     project_root: P,
-    source_root: P,
+    source_roots: &Vec<R>,
     mod_path: &str,
 ) -> Result<bool> {
-    let resolved_module = module_to_file_path(source_root, mod_path);
+    let resolved_module = module_to_file_path(source_roots, mod_path);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
         return match is_path_excluded(

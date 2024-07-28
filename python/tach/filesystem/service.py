@@ -210,33 +210,53 @@ def file_to_module_path(source_root: Path, file_path: Path) -> str:
 
 
 @lru_cache(maxsize=None)
-def module_to_file_path_no_members(source_root: Path, module_path: str) -> Path | None:
+def module_to_interface_path(
+    source_roots: tuple[Path, ...], module_path: str
+) -> Path | None:
     """
     This resolves a dotted Python module path ('a.b.c')
     into a Python file path or a Python package __init__.py
+    which could contain the public interface of the module.
+
+    The module path is assumed NOT to refer to a member within a Python module.
+
+    'source_roots' is assumed to be a list of absolute paths.
     """
     if module_path == ROOT_MODULE_SENTINEL_TAG:
-        root_path = Path("__init__.py")
-        if root_path.exists():
-            return root_path
         return None
 
     base_path = module_path.replace(".", os.sep)
-    pyfile_path = source_root / f"{base_path}.py"
-    init_py_path = source_root / base_path / "__init__.py"
-    if pyfile_path.exists():
-        return pyfile_path
-    elif init_py_path.exists():
-        return init_py_path
+    for source_root in source_roots:
+        init_pyi_path = source_root / base_path / "__init__.pyi"
+        init_py_path = source_root / base_path / "__init__.py"
+        pyinterface_path = source_root / f"{base_path}.pyi"
+        pyfile_path = source_root / f"{base_path}.py"
+
+        if init_pyi_path.exists():
+            return init_pyi_path
+        elif init_py_path.exists():
+            return init_py_path
+        elif pyinterface_path.exists():
+            return pyinterface_path
+        elif pyfile_path.exists():
+            return pyfile_path
 
     return None
 
 
 @lru_cache(maxsize=None)
-def module_to_pyfile_or_dir_path(source_root: Path, module_path: str) -> Path | None:
+def module_to_pyfile_or_dir_path(
+    source_roots: tuple[Path, ...], module_path: str
+) -> Path | None:
     """
     This resolves a dotted Python module path ('a.b.c')
-    into a Python file or a Python package directory
+    into a Python file or a Python package directory,
+    used in cases where __init__.py is not relevant such as the
+    interactive module tree.
+
+    The module path is assumed NOT to refer to a member within a Python module.
+
+    'source_roots' is assumed to be a list of absolute paths.
     """
     if not module_path:
         # Path("") turns into PosixPath("."), but we don't want to
@@ -244,12 +264,16 @@ def module_to_pyfile_or_dir_path(source_root: Path, module_path: str) -> Path | 
         return None
 
     base_path = module_path.replace(".", os.sep)
-    pyfile_path = source_root / f"{base_path}.py"
-    dir_path = source_root / base_path
-    if pyfile_path.exists():
-        return pyfile_path
-    elif dir_path.is_dir():
-        return dir_path
+    for source_root in source_roots:
+        dir_path = source_root / base_path
+        pyinterface_path = source_root / f"{base_path}.pyi"
+        pyfile_path = source_root / f"{base_path}.py"
+        if dir_path.is_dir():
+            return dir_path
+        elif pyinterface_path.exists():
+            return pyinterface_path
+        elif pyfile_path.exists():
+            return pyfile_path
 
     return None
 
@@ -261,13 +285,14 @@ class ProjectModuleValidationResult:
 
 
 def validate_project_modules(
-    source_root: Path,
+    source_roots: list[Path],
     modules: list[ModuleConfig],
 ) -> ProjectModuleValidationResult:
     result = ProjectModuleValidationResult()
     for module in modules:
+        # NOTE: should probably also (optionally?) validate that no source root contains __init__.py
         if module.path == ROOT_MODULE_SENTINEL_TAG or fs.module_to_pyfile_or_dir_path(
-            source_root=source_root, module_path=module.path
+            source_roots=tuple(source_roots), module_path=module.path
         ):
             result.valid_modules.append(module)
         else:

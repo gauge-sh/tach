@@ -76,10 +76,10 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
 }
 
 trait AsProjectImports<'a> {
-    fn as_project_imports<P: AsRef<Path>>(
+    fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
         &self,
         project_root: P,
-        source_root: P,
+        source_roots: &Vec<R>,
         file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         is_package: bool,
@@ -88,10 +88,10 @@ trait AsProjectImports<'a> {
 }
 
 impl<'a> AsProjectImports<'a> for StmtImport {
-    fn as_project_imports<P: AsRef<Path>>(
+    fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
         &self,
         project_root: P,
-        source_root: P,
+        source_roots: &Vec<R>,
         _file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         _is_package: bool,
@@ -118,7 +118,7 @@ impl<'a> AsProjectImports<'a> for StmtImport {
 
                 match filesystem::is_project_import(
                     project_root.as_ref(),
-                    source_root.as_ref(),
+                    source_roots,
                     alias.name.as_str(),
                 ) {
                     Ok(true) => Some(ProjectImport {
@@ -138,10 +138,10 @@ impl<'a> AsProjectImports<'a> for StmtImport {
 }
 
 impl<'a> AsProjectImports<'a> for StmtImportFrom {
-    fn as_project_imports<P: AsRef<Path>>(
+    fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
         &self,
         project_root: P,
-        source_root: P,
+        source_roots: &Vec<R>,
         file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         is_package: bool,
@@ -222,7 +222,7 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
 
             match filesystem::is_project_import(
                 project_root.as_ref(),
-                source_root.as_ref(),
+                source_roots,
                 &global_mod_path,
             ) {
                 Ok(true) => imports.push(ProjectImport {
@@ -245,7 +245,7 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
 
 pub struct ImportVisitor<'a> {
     project_root: PathBuf,
-    source_root: PathBuf,
+    source_roots: Vec<PathBuf>,
     file_mod_path: Option<String>,
     locator: Locator<'a>,
     is_package: bool,
@@ -257,7 +257,7 @@ pub struct ImportVisitor<'a> {
 impl<'a> ImportVisitor<'a> {
     pub fn new(
         project_root: PathBuf,
-        source_root: PathBuf,
+        source_roots: Vec<PathBuf>,
         file_mod_path: Option<String>,
         locator: Locator<'a>,
         is_package: bool,
@@ -266,7 +266,7 @@ impl<'a> ImportVisitor<'a> {
     ) -> Self {
         ImportVisitor {
             project_root,
-            source_root,
+            source_roots,
             file_mod_path,
             locator,
             is_package,
@@ -287,7 +287,7 @@ impl<'a> ImportVisitor<'a> {
     fn visit_stmt_import(&mut self, node: &StmtImport) {
         self.project_imports.extend(node.as_project_imports(
             &self.project_root,
-            &self.source_root,
+            &self.source_roots,
             self.file_mod_path.as_deref(),
             &mut self.locator,
             self.is_package,
@@ -298,7 +298,7 @@ impl<'a> ImportVisitor<'a> {
     fn visit_stmt_import_from(&mut self, node: &StmtImportFrom) {
         self.project_imports.extend(node.as_project_imports(
             &self.project_root,
-            &self.source_root,
+            &self.source_roots,
             self.file_mod_path.as_deref(),
             &mut self.locator,
             self.is_package,
@@ -323,15 +323,13 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
 }
 
 pub fn get_project_imports(
-    project_root: String,
-    source_root: String,
-    file_path: String,
+    project_root: &PathBuf,
+    source_roots: &Vec<PathBuf>,
+    file_path: &PathBuf,
     ignore_type_checking_imports: bool,
 ) -> Result<ProjectImports> {
-    let file_path = PathBuf::from(&file_path);
-    let absolute_source_root = PathBuf::from(&project_root).join(source_root);
     let file_contents =
-        filesystem::read_file_content(&file_path).map_err(|err| ImportParseError {
+        filesystem::read_file_content(file_path).map_err(|err| ImportParseError {
             err_type: ImportParseErrorType::FILESYSTEM,
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
@@ -347,14 +345,11 @@ pub fn get_project_imports(
     let is_package = file_path.ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);
-    let file_mod_path: Option<String> = filesystem::file_to_module_path_within_source_root(
-        absolute_source_root.to_str().unwrap(),
-        file_path.to_str().unwrap(),
-    )
-    .ok();
+    let file_mod_path: Option<String> =
+        filesystem::file_to_module_path(&source_roots, &file_path).ok();
     let mut import_visitor = ImportVisitor::new(
-        PathBuf::from(&project_root),
-        absolute_source_root,
+        project_root.clone(),
+        source_roots.clone(),
         file_mod_path,
         locator,
         is_package,

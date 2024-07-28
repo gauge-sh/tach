@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.2/public/tach-yml-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.3/public/tach-yml-schema.json
 modules:
   - path: tach
     depends_on: []
@@ -15,6 +15,7 @@ modules:
   - path: tach.check
     depends_on:
       - tach.errors
+      - tach.extension
       - tach.filesystem
       - tach.parsing
     strict: true
@@ -27,6 +28,7 @@ modules:
       - tach.constants
       - tach.core
       - tach.errors
+      - tach.extension
       - tach.filesystem
       - tach.logging
       - tach.mod
@@ -49,6 +51,8 @@ modules:
   - path: tach.errors
     depends_on: []
     strict: true
+  - path: tach.extension
+    depends_on: []
   - path: tach.filesystem
     depends_on:
       - tach.colors
@@ -95,6 +99,7 @@ modules:
   - path: tach.report
     depends_on:
       - tach.errors
+      - tach.extension
     strict: true
   - path: tach.show
     depends_on: []
@@ -113,6 +118,7 @@ modules:
   - path: tach.test
     depends_on:
       - tach.errors
+      - tach.extension
       - tach.filesystem
       - tach.filesystem.git_ops
       - tach.parsing
@@ -129,6 +135,7 @@ exclude:
   - python/tests/
   - tach.egg-info/
   - venv/
-source_root: python
+source_roots:
+  - python
 exact: true
 forbid_circular_dependencies: true

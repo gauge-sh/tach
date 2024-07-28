@@ -54,7 +54,9 @@ def find_cycles(
 
 
 def build_module_tree(
-    source_root: Path, modules: list[ModuleConfig], forbid_circular_dependencies: bool
+    source_roots: list[Path],
+    modules: list[ModuleConfig],
+    forbid_circular_dependencies: bool,
 ) -> ModuleTree:
     duplicate_modules = find_duplicate_modules(modules)
     if duplicate_modules:
@@ -71,7 +73,7 @@ def build_module_tree(
             config=module,
             path=module.mod_path,
             interface_members=parse_interface_members(
-                source_root=source_root, module_path=module.path
+                source_roots=source_roots, module_path=module.path
             ),
         )
     return tree

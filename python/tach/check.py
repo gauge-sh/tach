@@ -149,17 +149,19 @@ def check(
     else:
         exclude_paths = project_config.exclude
 
-    source_root = project_root / project_config.source_root
+    source_roots = [
+        project_root / source_root for source_root in project_config.source_roots
+    ]
 
     module_validation_result = fs.validate_project_modules(
-        source_root=source_root, modules=project_config.modules
+        source_roots=source_roots, modules=project_config.modules
     )
     warnings.extend(
         f"Module '{module.path}' not found. It will be ignored."
         for module in module_validation_result.invalid_modules
     )
     module_tree = build_module_tree(
-        source_root=source_root,
+        source_roots=source_roots,
         modules=module_validation_result.valid_modules,
         forbid_circular_dependencies=project_config.forbid_circular_dependencies,
     )
@@ -168,51 +170,52 @@ def check(
     # This informs the Rust extension ahead-of-time which paths are excluded.
     # The extension builds regexes and uses them during `get_project_imports`
     set_excluded_paths(exclude_paths=exclude_paths or [])
-    for file_path in fs.walk_pyfiles(source_root):
-        abs_file_path = source_root / file_path
-        rel_file_path = abs_file_path.relative_to(project_root)
-        if is_path_excluded(rel_file_path, exclude_paths=exclude_paths or []):
-            continue
-
-        mod_path = fs.file_to_module_path(
-            source_root=source_root, file_path=abs_file_path
-        )
-        nearest_module = module_tree.find_nearest(mod_path)
-        if nearest_module is None:
-            continue
-
-        try:
-            project_imports = get_project_imports(
-                project_root=str(project_root),
-                source_root=str(project_config.source_root),
-                file_path=str(abs_file_path),
-                ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-            )
-        except SyntaxError:
-            warnings.append(f"Skipping '{file_path}' due to a syntax error.")
-            continue
-        except OSError:
-            warnings.append(f"Skipping '{file_path}' due to a file system error.")
-            continue
-        for project_import in project_imports:
-            found_at_least_one_project_import = True
-            check_error = check_import(
-                module_tree=module_tree,
-                import_mod_path=project_import[0],
-                file_nearest_module=nearest_module,
-                file_mod_path=mod_path,
-            )
-            if check_error is None:
+    for source_root in source_roots:
+        for file_path in fs.walk_pyfiles(source_root):
+            abs_file_path = source_root / file_path
+            rel_file_path = abs_file_path.relative_to(project_root)
+            if is_path_excluded(rel_file_path, exclude_paths=exclude_paths or []):
                 continue
 
-            boundary_errors.append(
-                BoundaryError(
-                    file_path=file_path,
-                    import_mod_path=project_import[0],
-                    line_number=project_import[1],
-                    error_info=check_error,
-                )
+            mod_path = fs.file_to_module_path(
+                source_root=source_root, file_path=abs_file_path
             )
+            nearest_module = module_tree.find_nearest(mod_path)
+            if nearest_module is None:
+                continue
+
+            try:
+                project_imports = get_project_imports(
+                    project_root=str(project_root),
+                    source_roots=list(map(str, source_roots)),
+                    file_path=str(abs_file_path),
+                    ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+                )
+            except SyntaxError:
+                warnings.append(f"Skipping '{file_path}' due to a syntax error.")
+                continue
+            except OSError:
+                warnings.append(f"Skipping '{file_path}' due to a file system error.")
+                continue
+            for project_import in project_imports:
+                found_at_least_one_project_import = True
+                check_error = check_import(
+                    module_tree=module_tree,
+                    import_mod_path=project_import[0],
+                    file_nearest_module=nearest_module,
+                    file_mod_path=mod_path,
+                )
+                if check_error is None:
+                    continue
+
+                boundary_errors.append(
+                    BoundaryError(
+                        file_path=file_path,
+                        import_mod_path=project_import[0],
+                        line_number=project_import[1],
+                        error_info=check_error,
+                    )
+                )
 
     if not found_at_least_one_project_import:
         warnings.append(
