@@ -42,7 +42,7 @@ def find_cycles(
     # Add dependency edges
     for module in modules:
         for dependency in module.depends_on:
-            graph.add_edge(module.path, dependency)  # type: ignore
+            graph.add_edge(module.path, dependency.path)  # type: ignore
 
     all_cycles: list[list[str]] = list(nx.simple_cycles(graph))  # type: ignore
 

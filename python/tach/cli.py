@@ -122,7 +122,7 @@ def print_unused_dependencies(
     all_unused_dependencies: list[UnusedDependencies],
 ) -> None:
     constraint_messages = "\n".join(
-        f"\t{BCOLORS.WARNING}'{unused_dependencies.path}' does not depend on: {unused_dependencies.dependencies}{BCOLORS.ENDC}"
+        f"\t{BCOLORS.WARNING}'{unused_dependencies.path}' does not depend on: {[dependency.path for dependency in unused_dependencies.dependencies]}{BCOLORS.ENDC}"
         for unused_dependencies in all_unused_dependencies
     )
     print(
@@ -463,6 +463,7 @@ def tach_check(
         if isinstance(e, TachCircularDependencyError):
             print_circular_dependency_error(e.cycles)
         else:
+            raise e
             print(str(e))
         sys.exit(1)
 

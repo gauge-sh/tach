@@ -23,7 +23,7 @@ class ModuleConfig(Config):
     """
 
     path: str
-    depends_on: List[str] = Field(default_factory=list)
+    depends_on: List[Dependency] = Field(default_factory=list)
     strict: bool = False
 
     @property
@@ -31,6 +31,14 @@ class ModuleConfig(Config):
         if self.path == ROOT_MODULE_SENTINEL_TAG:
             return "."
         return self.path
+
+
+class Dependency(Config):
+    path: str
+    deprecated: bool = False
+
+    class Config:
+        frozen = True
 
 
 def validate_root_path(path: str) -> str:
@@ -49,7 +57,7 @@ class RootModuleConfig(ModuleConfig):
 @dataclass
 class UnusedDependencies:
     path: str
-    dependencies: List[str]
+    dependencies: List[Dependency]
 
 
 class CacheConfig(Config):
@@ -100,7 +108,9 @@ class ProjectConfig(Config):
             if new_module_path in original_modules_by_path:
                 original_module = original_modules_by_path[new_module_path]
                 original_module.depends_on = [
-                    dep for dep in original_module.depends_on if dep in new_module_paths
+                    dep
+                    for dep in original_module.depends_on
+                    if dep.path in new_module_paths
                 ]
                 new_modules.append(original_module)
             else:
@@ -108,10 +118,10 @@ class ProjectConfig(Config):
 
         self.modules = new_modules
 
-    def dependencies_for_module(self, module: str) -> list[str]:
+    def dependencies_for_module(self, module: str) -> list[Dependency]:
         return next(
             (mod.depends_on for mod in self.modules if mod.path == module),
-            [],  # type: ignore
+            list(),  # type: ignore
         )
 
     def add_dependency_to_module(self, module: str, dependency: str):
@@ -125,10 +135,14 @@ class ProjectConfig(Config):
         )
         if not current_module_config:
             # No configuration exists for tag, add default config with this dependency
-            self.modules.append(ModuleConfig(path=module, depends_on=[dependency]))
+            self.modules.append(
+                ModuleConfig(path=module, depends_on=[Dependency(path=dependency)])
+            )
         else:
             # Config already exists, set the union of existing dependencies and new ones
-            new_dependencies = set(current_module_config.depends_on) | {dependency}
+            new_dependencies = set(current_module_config.depends_on) | {
+                Dependency(path=dependency)
+            }
             current_module_config.depends_on = list(new_dependencies)
 
     def compare_dependencies(

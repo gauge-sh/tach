@@ -11,14 +11,14 @@ from tach.extension import get_project_imports, set_excluded_paths
 from tach.parsing import build_module_tree
 
 if TYPE_CHECKING:
-    from tach.core import ModuleNode, ModuleTree, ProjectConfig
+    from tach.core import Dependency, ModuleNode, ModuleTree, ProjectConfig
 
 
 @dataclass
 class ErrorInfo:
     source_module: str = ""
     invalid_module: str = ""
-    allowed_modules: list[str] = field(default_factory=list)
+    allowed_modules: list[Dependency] = field(default_factory=list)
     exception_message: str = ""
 
     @property
@@ -97,7 +97,7 @@ def check_import(
     # The import must be explicitly allowed
     dependency_tags = file_nearest_module.config.depends_on
     if any(
-        dependency_tag == import_nearest_module_path
+        dependency_tag.path == import_nearest_module_path
         for dependency_tag in dependency_tags
     ):
         # The import matches at least one expected dependency
