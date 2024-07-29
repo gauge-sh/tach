@@ -90,7 +90,7 @@ class ProjectConfig(Config):
     forbid_circular_dependencies: bool = False
 
     @field_serializer("source_roots")
-    def serialize_source_root(self, source_roots: list[Path], _) -> list[str]:
+    def serialize_source_roots(self, source_roots: list[Path], _) -> List[str]:
         return list(map(str, source_roots))
 
     @property
