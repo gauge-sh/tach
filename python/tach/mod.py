@@ -21,18 +21,22 @@ if TYPE_CHECKING:
 def update_modules(
     project_config: ProjectConfig,
     project_root: Path,
-    selected_source_root: Path,
+    selected_source_roots: list[Path],
     selected_modules: list[Path],
 ):
-    if project_config.source_root != selected_source_root:
+    if set(project_config.source_roots) != set(selected_source_roots):
         # Only assign to this field if it has changed,
         # since the project config writes any field that
         # has been touched out to YML.
-        project_config.source_root = selected_source_root.relative_to(project_root)
+        project_config.source_roots = [
+            source_root.relative_to(project_root)
+            for source_root in selected_source_roots
+        ]
 
     module_paths = [
         fs.file_to_module_path(
-            source_root=selected_source_root, file_path=selected_module_file_path
+            source_roots=tuple(selected_source_roots),
+            file_path=selected_module_file_path,
         )
         for selected_module_file_path in selected_modules
     ]
@@ -56,11 +60,14 @@ def validate_configuration(
     for module_path in configuration.module_paths:
         module_path = Path(module_path).resolve()
 
-        if configuration.source_root not in module_path.parents:
+        if not any(
+            source_root in module_path.parents
+            for source_root in configuration.source_roots
+        ):
             # This module exists outside of the source root
             # This is not allowed and should be reported as a configuration error
             errors.append(
-                f"Module '{module_path}' is not contained within source root: '{configuration.source_root}'"
+                f"Module '{module_path}' is not contained within any source root: {configuration.source_roots}"
             )
     return ValidationResult(ok=not errors, errors=errors)
 
@@ -86,7 +93,7 @@ def mod_edit_interactive(
         update_modules(
             project_config=project_config,
             project_root=project_root,
-            selected_source_root=interactive_module_configuration.source_root,
+            selected_source_roots=interactive_module_configuration.source_roots,
             selected_modules=interactive_module_configuration.module_paths,
         )
         return True, []

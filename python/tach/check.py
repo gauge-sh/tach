@@ -178,7 +178,7 @@ def check(
                 continue
 
             mod_path = fs.file_to_module_path(
-                source_root=source_root, file_path=abs_file_path
+                source_roots=tuple(source_roots), file_path=abs_file_path
             )
             nearest_module = module_tree.find_nearest(mod_path)
             if nearest_module is None:
