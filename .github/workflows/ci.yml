@@ -66,5 +66,6 @@ jobs:
     - name: Check Rust
       run: cargo check
     - name: Compile Maturin
-      run: maturin develop --release -E dev
-
+      run: maturin build
+    - name: Build Python
+      run: pip install .
