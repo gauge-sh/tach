@@ -15,7 +15,7 @@ modules:
   - path: parsing
     depends_on:
     - path: core
-      deprecated: trued
+      deprecated: true
   - path: core
     depends_on:
     - path: parsing
@@ -31,7 +31,7 @@ get_data()
 
 This import won't fail `tach check`, instead you'll see:
 ```shell
-‼️ parsing.py[L1]: Import 'core.get_date' is deprecated. 'parsing' should not depend on 'core'.
+‼️ parsing.py[L1]: Import 'core.get_data' is deprecated. 'parsing' should not depend on 'core'.
 ✅ All module dependencies validated!
 ```
 

@@ -13,9 +13,6 @@ from tach.core import (
 from tach.core.config import RootModuleConfig
 from tach.filesystem import validate_project_modules
 
-# from tests.conftest import *  # noqa
-# from tests.conftest import example_dir  # noqa
-
 
 @pytest.mark.parametrize(
     "valid_modules,invalid_modules",

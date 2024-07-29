@@ -108,7 +108,7 @@ def check_import(
 
     # The import must be explicitly allowed
     dependencies = file_nearest_module.config.depends_on
-    #
+
     allowed_dependencies = [dep for dep in dependencies if not dep.deprecated]
     deprecated_dependencies = [dep for dep in dependencies if dep.deprecated]
     if any(dep.path == import_nearest_module_path for dep in allowed_dependencies):

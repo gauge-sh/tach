@@ -576,7 +576,7 @@ def tach_sync(
             exclude_paths=exclude_paths,
         )
     except Exception as e:
-        raise e
+        print(str(e))
         sys.exit(1)
 
     print(f"✅ {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
