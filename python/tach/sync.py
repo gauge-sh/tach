@@ -23,10 +23,11 @@ def sync_dependency_constraints(
 ) -> ProjectConfig:
     """
     Update project configuration with auto-detected dependency constraints.
-    This is additive, meaning it will create dependencies to resolve existing errors,
+    If prune is set to False, it will create dependencies to resolve existing errors,
     but will not remove any constraints.
     """
     if prune:
+        # Create a blank config
         new_config = project_config.model_copy(
             update={
                 "modules": [
@@ -35,7 +36,19 @@ def sync_dependency_constraints(
                 ]
             }
         )
+        # Update deprecations first
+        check_result = check(
+            project_root=project_root,
+            project_config=project_config,
+            exclude_paths=exclude_paths,
+        )
+        for warning in check_result.deprecated_warnings:
+            new_config.add_dependency_to_module(
+                warning.error_info.source_module,
+                Dependency(path=warning.error_info.invalid_module, deprecated=True),
+            )
     else:
+        # Use the same config, existing deprecations will remain
         new_config = project_config
     check_result = check(
         project_root=project_root,
@@ -47,18 +60,6 @@ def sync_dependency_constraints(
         if error_info.is_dependency_error:
             new_config.add_dependency_to_module(
                 error_info.source_module, Dependency(path=error_info.invalid_module)
-            )
-    deprecated_check_result = check(
-        project_root=project_root,
-        project_config=project_config,
-        exclude_paths=exclude_paths,
-    )
-    for error in deprecated_check_result.errors:
-        error_info = error.error_info
-        if error_info.is_dependency_error and error_info.is_dependency_error:
-            new_config.add_dependency_to_module(
-                error_info.source_module,
-                Dependency(path=error_info.invalid_module, deprecated=True),
             )
 
     return new_config
