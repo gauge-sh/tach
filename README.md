@@ -74,7 +74,7 @@ Check out what Tach has found!
 cat tach.yml
 ```
 
-Note: Your [source roots](https://docs.gauge.sh/usage/configuration#source-root) will implicitly be treated as module boundaries, and can show up as `<root>`.
+Note: Your [source roots](https://docs.gauge.sh/usage/configuration#source-roots) will implicitly be treated as module boundaries, and can show up as `<root>`.
 
 ### Enforcement
 

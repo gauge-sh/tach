@@ -243,7 +243,7 @@ def check(
 
     if not found_at_least_one_project_import:
         warnings.append(
-            "WARNING: No first-party imports were found. You may need to use 'tach mod' to update your Python source root. Docs: https://docs.gauge.sh/usage/configuration#source-root"
+            "WARNING: No first-party imports were found. You may need to use 'tach mod' to update your Python source roots. Docs: https://docs.gauge.sh/usage/configuration#source-roots"
         )
     return CheckResult(
         errors=boundary_errors, deprecated_warnings=boundary_warnings, warnings=warnings
