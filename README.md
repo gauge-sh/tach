@@ -146,10 +146,10 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 
 Tach also supports:
 
-- [Manual file configuration](https://docs.gauge.sh/usage/configuration)
-- [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
 - [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
 - [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
+- [Manual file configuration](https://docs.gauge.sh/usage/configuration)
+- [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
 - [Inline exceptions](https://docs.gauge.sh/usage/tach-ignore)
 - [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install)
 

@@ -65,7 +65,46 @@ The `source_roots` key is required for Tach to understand the imports within you
 If it is not set explicitly, `source_roots` defaults to your project root path: `['.']`.
 This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists.
 
-Below is a typical case in which modifying `source_roots` is necessary.
+Below are typical cases in which modifying `source_roots` is necessary.
+
+### Example: Python below project root
+
+Suppose your repository contains a subfolder where all of your Python code lives. This could be a web server, a collection of serverless functions, or even utility scripts.
+In this example we will assume the Python code in our repo lives in the `backend/` folder.
+
+```
+my_repo/
+  tach.yml
+  backend/
+    module1.py
+    module2/
+      __init__.py
+      service.py
+    module3.py
+  docs/
+  tests/
+```
+
+In a Python module such as `backend/module1.py`, we can see imports from other modules.
+
+```python
+# In backend/module1.py
+
+import module3
+from module2.service import MyService
+```
+
+Notice that these import paths (`module3`, `module2.service.MyService`) are rooted in the `backend/` folder, NOT the project root.
+
+To indicate this structure to Tach, set:
+
+```
+source_roots:
+  - backend
+```
+
+in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the only source root.
+
 
 ### Example: Monorepo
 
