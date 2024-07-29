@@ -54,7 +54,7 @@ jobs:
       run: |
         coverage run --branch --source=python -m pytest
         coverage report
-        tach test
+        cd python && tach test
     - name: Check types with pyright
       run: |
         pyright --pythonversion ${{ matrix.python-version }}
