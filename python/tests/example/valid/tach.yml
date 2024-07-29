@@ -3,6 +3,7 @@ modules:
   - path: domain_one
     depends_on:
       - path: domain_two
+        deprecated: true
   - path: domain_three
     depends_on: []
   - path: domain_two
@@ -11,5 +12,11 @@ modules:
   - path: <root>
     depends_on:
       - path: domain_one
+exclude:
+  - .*__pycache__
+  - .*egg-info
+  - docs
+  - tests
+  - venv
 exact: true
 forbid_circular_dependencies: true
