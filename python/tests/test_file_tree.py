@@ -38,16 +38,15 @@ def test_visible_children_property(project_root):
 
 def test_set_modules(project_root):
     tree = FileTree.build_from_path(project_root)
-    tree.set_modules([project_root / "dir1" / "file1.py"])
+    tree.initialize_modules([project_root / "dir1" / "file1.py"])
     assert tree.nodes[str(project_root / "dir1" / "file1.py")].is_module
 
 
 def test_set_source_root(project_root):
     tree = FileTree.build_from_path(project_root)
     new_source_root = tree.nodes[str(project_root / "dir2")]
-    tree.set_source_root(new_source_root.full_path)
+    tree.initialize_source_roots([new_source_root.full_path])
     assert new_source_root.is_source_root
-    assert tree.source_root == new_source_root
 
 
 def test_siblings_method(project_root):

@@ -82,15 +82,25 @@ def create_clickable_link(
 
 def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
     absolute_error_path = next(
-        source_root / error.file_path
-        for source_root in source_roots
-        if (source_root / error.file_path).exists()
+        (
+            source_root / error.file_path
+            for source_root in source_roots
+            if (source_root / error.file_path).exists()
+        ),
+        None,
     )
-    error_location = create_clickable_link(
-        absolute_error_path,
-        display_path=error.file_path,
-        line=error.line_number,
-    )
+
+    if absolute_error_path is None:
+        # This is an unexpected case,
+        # all errors should have originated from within a source root
+        error_location = error.file_path
+    else:
+        error_location = create_clickable_link(
+            absolute_error_path,
+            display_path=error.file_path,
+            line=error.line_number,
+        )
+
     error_template = (
         f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
         f"{{message}} {BCOLORS.ENDC}"

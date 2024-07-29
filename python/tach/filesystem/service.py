@@ -192,6 +192,7 @@ def walk_pyfiles(root: Path, depth: int | None = None) -> Generator[Path, None, 
 
 @lru_cache(maxsize=None)
 def file_to_module_path(source_roots: tuple[Path, ...], file_path: Path) -> str:
+    # NOTE: source_roots are assumed to be absolute here
     matching_root: Path | None = None
     for root in source_roots:
         if root in file_path.parents:

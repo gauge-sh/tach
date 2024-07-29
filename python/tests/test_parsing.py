@@ -19,17 +19,17 @@ def example_dir() -> Path:
 
 
 def test_file_to_mod_path():
-    assert file_to_module_path(Path("."), Path("__init__.py")) == ""
+    assert file_to_module_path((Path("."),), Path("__init__.py")) == "."
     assert (
-        file_to_module_path(Path("."), Path("domain_one", "__init__.py"))
+        file_to_module_path((Path("."),), Path("domain_one", "__init__.py"))
         == "domain_one"
     )
     assert (
-        file_to_module_path(Path("."), Path("domain_one", "interface.py"))
+        file_to_module_path((Path("."),), Path("domain_one", "interface.py"))
         == "domain_one.interface"
     )
     assert (
-        file_to_module_path(Path("source", "root"), Path("source", "root", "domain"))
+        file_to_module_path((Path("source", "root"),), Path("source", "root", "domain"))
         == "domain"
     )
 
@@ -57,7 +57,7 @@ def test_parse_valid_project_config(example_dir):
         ],
         cache=CacheConfig(backend="local", file_dependencies=[], env_dependencies=[]),
         exclude=sorted(DEFAULT_EXCLUDE_PATHS),
-        source_root=PosixPath("."),
+        source_roots=[PosixPath(".")],
         exact=True,
         disable_logging=False,
         ignore_type_checking_imports=True,

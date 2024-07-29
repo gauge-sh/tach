@@ -15,5 +15,6 @@ exclude:
   - docs
   - tests
   - venv
-source_root: backend
+source_roots:
+  - backend
 exact: true
