@@ -135,7 +135,7 @@ fn read_env_dependencies(env_dependencies: Vec<String>) -> impl Iterator<Item = 
 
 pub fn create_computation_cache_key(
     project_root: &PathBuf,
-    source_roots: &Vec<PathBuf>,
+    source_roots: &[PathBuf],
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,

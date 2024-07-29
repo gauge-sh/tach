@@ -79,7 +79,7 @@ trait AsProjectImports<'a> {
     fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
         &self,
         project_root: P,
-        source_roots: &Vec<R>,
+        source_roots: &[R],
         file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         is_package: bool,
@@ -91,7 +91,7 @@ impl<'a> AsProjectImports<'a> for StmtImport {
     fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
         &self,
         project_root: P,
-        source_roots: &Vec<R>,
+        source_roots: &[R],
         _file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         _is_package: bool,
@@ -141,7 +141,7 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
     fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
         &self,
         project_root: P,
-        source_roots: &Vec<R>,
+        source_roots: &[R],
         file_mod_path: Option<&str>,
         locator: &mut Locator<'a>,
         is_package: bool,
@@ -323,8 +323,8 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
 }
 
 pub fn get_project_imports(
-    project_root: &PathBuf,
-    source_roots: &Vec<PathBuf>,
+    project_root: &Path,
+    source_roots: &[PathBuf],
     file_path: &PathBuf,
     ignore_type_checking_imports: bool,
 ) -> Result<ProjectImports> {
@@ -348,8 +348,8 @@ pub fn get_project_imports(
     let file_mod_path: Option<String> =
         filesystem::file_to_module_path(source_roots, file_path).ok();
     let mut import_visitor = ImportVisitor::new(
-        project_root.clone(),
-        source_roots.clone(),
+        project_root.to_path_buf(),
+        source_roots.to_owned(),
         file_mod_path,
         locator,
         is_package,

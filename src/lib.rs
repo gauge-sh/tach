@@ -50,7 +50,7 @@ fn get_project_imports(
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::ProjectImports> {
     let project_root = PathBuf::from(project_root);
-    let source_roots = source_roots.iter().map(PathBuf::from).collect();
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
     imports::get_project_imports(
         &project_root,
@@ -83,7 +83,7 @@ fn create_dependency_report(
     ignore_type_checking_imports: bool,
 ) -> reports::Result<String> {
     let project_root = PathBuf::from(project_root);
-    let source_roots = source_roots.iter().map(PathBuf::from).collect();
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(path);
     reports::create_dependency_report(
         &project_root,
@@ -109,7 +109,7 @@ fn create_computation_cache_key(
     backend: String,
 ) -> String {
     let project_root = PathBuf::from(project_root);
-    let source_roots = source_roots.iter().map(PathBuf::from).collect();
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     cache::create_computation_cache_key(
         &project_root,
         &source_roots,

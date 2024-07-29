@@ -45,7 +45,7 @@ pub fn relative_to<P: AsRef<Path>>(path: P, root: P) -> Result<PathBuf> {
     Ok(diff_path.to_owned())
 }
 
-pub fn file_to_module_path(source_roots: &Vec<PathBuf>, file_path: &PathBuf) -> Result<String> {
+pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Result<String> {
     // Find the matching source root
     let matching_root = source_roots
         .iter()
@@ -102,10 +102,7 @@ pub struct ResolvedModule {
     pub member_name: Option<String>,
 }
 
-pub fn module_to_file_path<P: AsRef<Path>>(
-    roots: &Vec<P>,
-    mod_path: &str,
-) -> Option<ResolvedModule> {
+pub fn module_to_file_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Option<ResolvedModule> {
     let mod_as_file_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
     for root in roots {
         let fs_path = root.as_ref().join(&mod_as_file_path);
@@ -218,7 +215,7 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
 
 pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
     project_root: P,
-    source_roots: &Vec<R>,
+    source_roots: &[R],
     mod_path: &str,
 ) -> Result<bool> {
     let resolved_module = module_to_file_path(source_roots, mod_path);

@@ -167,7 +167,7 @@ impl DependencyReport {
 
 pub fn create_dependency_report(
     project_root: &PathBuf,
-    source_roots: &Vec<PathBuf>,
+    source_roots: &[PathBuf],
     path: &PathBuf,
     include_dependency_modules: Option<Vec<String>>,
     include_usage_modules: Option<Vec<String>>,
@@ -180,7 +180,7 @@ pub fn create_dependency_report(
             message: "Nothing to report when skipping dependencies and usages.".to_string(),
         });
     }
-    let source_roots = source_roots.iter().map(PathBuf::from).collect();
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(path)?);
     let module_path = file_to_module_path(&source_roots, &absolute_path)?;
     let mut result = DependencyReport::new(path.to_string_lossy().to_string()); // TODO: clone shouldnt be necessary
