@@ -50,10 +50,11 @@ jobs:
       run: |
         ruff check
         ruff format --check
-    - name: Test with pytest and report coverage
+    - name: Test with tach/pytest and report coverage
       run: |
         coverage run --branch --source=python -m pytest
         coverage report
+        tach test
     - name: Check types with pyright
       run: |
         pyright --pythonversion ${{ matrix.python-version }}
