@@ -26,6 +26,7 @@ def sync_dependency_constraints(
     If prune is set to False, it will create dependencies to resolve existing errors,
     but will not remove any constraints.
     """
+    deprecation_map: dict[str, list[str]] = {}
     if prune:
         # Create a blank config
         new_config = project_config.model_copy(
@@ -36,17 +37,14 @@ def sync_dependency_constraints(
                 ]
             }
         )
-        # Update deprecations first
-        check_result = check(
-            project_root=project_root,
-            project_config=project_config,
-            exclude_paths=exclude_paths,
-        )
-        for warning in check_result.deprecated_warnings:
-            new_config.add_dependency_to_module(
-                warning.error_info.source_module,
-                Dependency(path=warning.error_info.invalid_module, deprecated=True),
-            )
+        # Find deprecations - only needed if pruning as otherwise they will not be removed
+        for module in project_config.modules:
+            for dependency in module.depends_on:
+                if dependency.deprecated:
+                    if module.path not in deprecation_map:
+                        deprecation_map[module.path] = [dependency.path]
+                    else:
+                        deprecation_map[module.path].append(dependency.path)
     else:
         # Use the same config, existing deprecations will remain
         new_config = project_config
@@ -58,10 +56,22 @@ def sync_dependency_constraints(
     for error in check_result.errors:
         error_info = error.error_info
         if error_info.is_dependency_error:
-            new_config.add_dependency_to_module(
-                error_info.source_module, Dependency(path=error_info.invalid_module)
+            source_path = error_info.source_module
+            dep_path = error_info.invalid_module
+            deprecated = (
+                source_path in deprecation_map
+                and dep_path in deprecation_map[error_info.source_module]
             )
+            if deprecated:
+                dependency = Dependency(
+                    path=error_info.invalid_module, deprecated=deprecated
+                )
+            else:
+                dependency = Dependency(path=error_info.invalid_module)
 
+            new_config.add_dependency_to_module(
+                module=source_path, dependency=dependency
+            )
     return new_config
 
 
