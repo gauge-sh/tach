@@ -65,4 +65,7 @@ jobs:
       run: cargo fmt --all --check
     - name: Check Rust
       run: cargo check
-
+    - name: Compile Maturin
+      run: maturin build
+    - name: Build Python
+      run: pip install .
