@@ -508,7 +508,7 @@ def test_get_changed_module_paths(
     tmp_path, changed_files, source_root, expected_mod_paths
 ):
     project_root = tmp_path
-    project_config = ProjectConfig(source_root=Path(source_root))
+    project_config = ProjectConfig(source_roots=[Path(source_root)])
     changed_files = [tmp_path / filepath for filepath in changed_files]
     assert set(expected_mod_paths) == set(
         get_changed_module_paths(project_root, project_config, changed_files)

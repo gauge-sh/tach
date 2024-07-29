@@ -7,6 +7,8 @@ pub mod imports;
 pub mod parsing;
 pub mod reports;
 
+use std::path::PathBuf;
+
 use cache::ComputationCacheValue;
 use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
@@ -40,17 +42,20 @@ impl From<cache::CacheError> for PyErr {
 
 /// Get first-party imports from file_path relative to project_root
 #[pyfunction]
-#[pyo3(signature = (project_root, source_root, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_project_imports(
     project_root: String,
-    source_root: String,
+    source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::ProjectImports> {
+    let project_root = PathBuf::from(project_root);
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    let file_path = PathBuf::from(file_path);
     imports::get_project_imports(
-        project_root,
-        source_root,
-        file_path,
+        &project_root,
+        &source_roots,
+        &file_path,
         ignore_type_checking_imports,
     )
 }
@@ -66,10 +71,10 @@ fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
 
 /// Create a report of dependencies and usages of a given path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_root, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, source_roots, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, ignore_type_checking_imports=false))]
 fn create_dependency_report(
     project_root: String,
-    source_root: String,
+    source_roots: Vec<String>,
     path: String,
     include_dependency_modules: Option<Vec<String>>,
     include_usage_modules: Option<Vec<String>>,
@@ -77,10 +82,13 @@ fn create_dependency_report(
     skip_usages: bool,
     ignore_type_checking_imports: bool,
 ) -> reports::Result<String> {
+    let project_root = PathBuf::from(project_root);
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    let file_path = PathBuf::from(path);
     reports::create_dependency_report(
-        project_root,
-        source_root,
-        path,
+        &project_root,
+        &source_roots,
+        &file_path,
         include_dependency_modules,
         include_usage_modules,
         skip_dependencies,
@@ -90,19 +98,21 @@ fn create_dependency_report(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, source_root, action, py_interpreter_version, file_dependencies, env_dependencies, backend))]
+#[pyo3(signature = (project_root, source_roots, action, py_interpreter_version, file_dependencies, env_dependencies, backend))]
 fn create_computation_cache_key(
     project_root: String,
-    source_root: String,
+    source_roots: Vec<String>,
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     backend: String,
 ) -> String {
+    let project_root = PathBuf::from(project_root);
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     cache::create_computation_cache_key(
-        project_root,
-        source_root,
+        &project_root,
+        &source_roots,
         action,
         py_interpreter_version,
         file_dependencies,

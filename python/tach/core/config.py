@@ -83,15 +83,15 @@ class ProjectConfig(Config):
     exclude: Optional[List[str]] = Field(
         default_factory=lambda: copy(DEFAULT_EXCLUDE_PATHS)
     )
-    source_root: Path = Field(default_factory=lambda: Path("."))
+    source_roots: List[Path] = Field(default_factory=lambda: [Path(".")])
     exact: bool = False
     disable_logging: bool = False
     ignore_type_checking_imports: bool = True
     forbid_circular_dependencies: bool = False
 
-    @field_serializer("source_root")
-    def serialize_source_root(self, source_root: Path, _) -> str:
-        return str(source_root)
+    @field_serializer("source_roots")
+    def serialize_source_roots(self, source_roots: list[Path], _) -> List[str]:
+        return list(map(str, source_roots))
 
     @property
     def module_paths(self) -> list[str]:

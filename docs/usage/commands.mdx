@@ -24,7 +24,7 @@ Running `tach mod` will open an editor in your terminal where you can mark your 
 You can navigate with the arrow keys, mark individual modules with `Enter`, and mark all siblings
 as modules with `Ctrl + a`.
 
-You can also mark your Python [source root](configuration#source-root) by pressing `s`.
+You can also mark your Python [source roots](configuration#source-roots) by pressing `s`.
 This allows Tach to understand module paths and correctly identify first-party imports.
 
 To save your modules, use `Ctrl + s`. Otherwise, to exit without saving, use `Ctrl + c`.
@@ -94,7 +94,7 @@ NOTE: If your terminal supports hyperlinks, you can click on the failing file pa
 Tach can generate a report showing all the dependencies and usages of a given module.
 
 ```bash
-usage: tach report [-h] [-e file_or_path,...] path
+usage: tach report [-h] [-d module_path,...] [--no-deps] [-u module_path,...] [--no-usages] [-e file_or_path,...] path
 
 Create a report of dependencies and usages of the given path or directory.
 
@@ -103,11 +103,21 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
+  -d module_path,..., --dependencies module_path,...
+                        Comma separated module list of dependencies to include [includes everything by default]
+  --no-deps             Do not include dependencies in the report.
+  -u module_path,..., --usages module_path,...
+                        Comma separated module list of usages to include [includes everything by default]
+  --no-usages           Do not include usages in the report.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
 This will generate a textual report showing the file and line number of each relevant import.
+By default, the report will include a section containing all external usages of a module,
+as well as all dependencies of the module. These can be toggled off with `--no-usages` and `--no-deps` respectively.
+
+To filter the output, the `-d` and `-u` options allow specifying which module paths to include in the dependency section and usage section respectively.
 
 ## tach show
 

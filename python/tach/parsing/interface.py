@@ -37,11 +37,11 @@ class InterfaceVisitor(EarlyExitNodeVisitor):
         self.generic_visit(node)
 
 
-def parse_interface_members(source_root: Path, module_path: str) -> list[str]:
+def parse_interface_members(source_roots: list[Path], module_path: str) -> list[str]:
     """
     Parse the members of __all__ in a given module
     """
-    file_path = fs.module_to_file_path_no_members(source_root, module_path)
+    file_path = fs.module_to_interface_path(tuple(source_roots), module_path)
     if file_path is None:
         return []
 

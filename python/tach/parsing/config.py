@@ -52,6 +52,9 @@ def migrate_config(result: dict[Any, Any]) -> dict[Any, Any]:
                 for index, path in enumerate(module["depends_on"]):
                     if isinstance(path, str):
                         module["depends_on"][index] = {"path": path}
+    if "source_root" in result and isinstance(result["source_root"], str):
+        result["source_roots"] = [result["source_root"]]
+        del result["source_root"]
     return result
 
 

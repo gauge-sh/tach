@@ -1,13 +1,13 @@
 def get_project_imports(
     project_root: str,
-    source_root: str,
+    source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def set_excluded_paths(exclude_paths: list[str]) -> None: ...
 def create_dependency_report(
     project_root: str,
-    source_root: str,
+    source_roots: list[str],
     path: str,
     include_dependency_modules: list[str] | None,
     include_usage_modules: list[str] | None,
@@ -17,7 +17,7 @@ def create_dependency_report(
 ) -> str: ...
 def create_computation_cache_key(
     project_root: str,
-    source_root: str,
+    source_roots: list[str],
     action: str,
     py_interpreter_version: str,
     file_dependencies: list[str],

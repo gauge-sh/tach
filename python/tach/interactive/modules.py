@@ -111,7 +111,6 @@ class FileNode:
 @dataclass
 class FileTree:
     root: FileNode
-    source_root: FileNode
     nodes: dict[str, FileNode] = field(default_factory=dict)
 
     @classmethod
@@ -124,8 +123,7 @@ class FileTree:
         root = FileNode.build_from_path(path)
         root.is_module = False
         root.expanded = True
-        root.is_source_root = True
-        tree = cls(root=root, source_root=root)
+        tree = cls(root=root)
         tree.nodes[str(path)] = root
         tree._build_subtree(
             root, depth=depth if depth is not None else 1, exclude_paths=exclude_paths
@@ -180,30 +178,32 @@ class FileTree:
                 # We simply bail if that happens, meaning it won't show up in the interactive viewer
                 return
 
-    def set_modules(self, module_paths: list[Path]):
+    def expand_all_parent_dirs(self, node: FileNode) -> None:
+        curr_node = node
+        while curr_node.parent is not None and curr_node.parent.is_dir:
+            curr_node.parent.expanded = True
+            curr_node = curr_node.parent
+
+    def initialize_modules(self, module_paths: list[Path]):
         # NOTE: module_paths here are filesystem paths; they may be files or dirs
         for module_path in module_paths:
             module_path = str(module_path)
             if module_path in self.nodes:
-                self.nodes[module_path].is_module = True
+                node = self.nodes[module_path]
+                node.is_module = True
+                self.expand_all_parent_dirs(node)
 
-    def set_source_root(self, path: Path):
-        path_key = str(path)
-        if path_key not in self.nodes:
-            return
-        node = self.nodes[path_key]
-        # A source root should not also be a module
-        node.is_module = False
-        if node is self.source_root:
-            # source_root already pointing at this node, no-op
-            return
-
-        # Unmark current source_root
-        self.source_root.is_source_root = False
-        # Mark node at 'path' as a source root
-        node.is_source_root = True
-        # Update source root to node at 'path'
-        self.source_root = node
+    def initialize_source_roots(self, source_roots: list[Path]):
+        # NOTE: assuming source_roots are absolute here
+        for source_root in source_roots:
+            if str(source_root) not in self.nodes:
+                continue
+            node = self.nodes[str(source_root)]
+            # A source root should not also be a module
+            node.is_module = False
+            node.is_source_root = True
+            node.expanded = True
+            self.expand_all_parent_dirs(node)
 
     def __iter__(self):
         return file_tree_iterator(self)
@@ -238,7 +238,7 @@ class ExitCode(Enum):
 
 @dataclass
 class InteractiveModuleConfiguration:
-    source_root: Path
+    source_roots: list[Path]
     module_paths: list[Path]
 
 
@@ -260,24 +260,25 @@ class InteractiveModuleTree:
             exclude_paths=self.exclude_paths,
         )
 
-        source_root = path / project_config.source_root
+        source_roots = [
+            path / source_root for source_root in project_config.source_roots
+        ]
         module_file_paths = list(
             filter(
                 None,
                 [
                     fs.module_to_pyfile_or_dir_path(
-                        source_root=source_root,
+                        source_roots=tuple(source_roots),
                         module_path=module_path,
                     )
                     for module_path in project_config.module_paths
                 ],
             ),
         )
-        self.file_tree.set_modules(module_paths=module_file_paths)
+        self.file_tree.initialize_modules(module_paths=module_file_paths)
         self.selected_node = self.file_tree.root
 
-        self.file_tree.set_source_root(path=source_root)
-        self.file_tree.source_root.expanded = True
+        self.file_tree.initialize_source_roots(source_roots=source_roots)
 
         # x location doesn't matter, only need to track hidden cursor for auto-scroll behavior
         # y location starts at 1 because the FileTree is rendered with a labeled header above the first branch
@@ -466,16 +467,19 @@ class InteractiveModuleTree:
                 # Root should not be explicitly selected
                 return
             self.selected_node.is_module = not self.selected_node.is_module
+
+            # A module cannot also be a source root
             if self.selected_node.is_module and self.selected_node.is_source_root:
-                # If we are marking the currently selected source root as a module,
-                # we should reset the source root to the root path.
-                # The source root cannot be a module.
-                self.file_tree.set_source_root(Path("."))
+                self.selected_node.is_source_root = False
             self._update_display()
 
         @self.key_bindings.add("s")
         def _(event: KeyPressEvent):
-            self.file_tree.set_source_root(self.selected_node.full_path)
+            self.selected_node.is_source_root = not self.selected_node.is_source_root
+
+            # A source root cannot also be a module
+            if self.selected_node.is_source_root and self.selected_node.is_module:
+                self.selected_node.is_module = False
             self._update_display()
 
         @self.key_bindings.add("c-a")
@@ -563,9 +567,16 @@ class InteractiveModuleTree:
     def run(self) -> InteractiveModuleConfiguration | None:
         self.app.run()
         if self.exit_code == ExitCode.QUIT_SAVE:
-            module_paths = [node.full_path for node in self.file_tree if node.is_module]
+            module_paths: list[Path] = []
+            source_roots: list[Path] = []
+            for node in self.file_tree:
+                if node.is_module:
+                    module_paths.append(node.full_path)
+                elif node.is_source_root:
+                    source_roots.append(node.full_path)
+
             return InteractiveModuleConfiguration(
-                source_root=self.file_tree.source_root.full_path,
+                source_roots=source_roots,
                 module_paths=module_paths,
             )
 

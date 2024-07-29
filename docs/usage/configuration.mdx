@@ -57,15 +57,17 @@ Each module listed under the `modules` key above can accept the following attrib
 - `depends_on`: a list of the other modules which the module is allowed to import from, using their 'paths' to identify them
 - `strict`: enables [strict mode](strict-mode) for the module
 
-## Source Root
+Tach also supports [deprecating individual dependencies](../usage/deprecate).
 
-The `source_root` key is required for Tach to understand the imports within your project.
-If it is not set explicitly, `source_root` defaults to `'.'`.
-This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists (the 'project root').
+## Source Roots
 
-Below is a typical case in which `source_root` is necessary.
+The `source_roots` key is required for Tach to understand the imports within your project.
+If it is not set explicitly, `source_roots` defaults to your project root path: `['.']`.
+This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists.
 
-### Example
+Below are typical cases in which modifying `source_roots` is necessary.
+
+### Example: Python below project root
 
 Suppose your repository contains a subfolder where all of your Python code lives. This could be a web server, a collection of serverless functions, or even utility scripts.
 In this example we will assume the Python code in our repo lives in the `backend/` folder.
@@ -94,16 +96,83 @@ from module2.service import MyService
 
 Notice that these import paths (`module3`, `module2.service.MyService`) are rooted in the `backend/` folder, NOT the project root.
 
-To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the source root.
+To indicate this structure to Tach, set:
 
-Tach also supports [deprecating individual dependencies](../usage/deprecate).
+```
+source_roots:
+  - backend
+```
 
-In `tach.yml`, the `source_root` is always interpreted as a relative path from the project root.
+in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the only source root.
+
+
+### Example: Monorepo
+
+Suppose you work on a 'monorepo', in which Python packages which import from each other are located in distinct project directories.
+You may package your utility libraries in a `utility`folder, while your core packages live in `core_one` and `core_two`.
+You may also use a [namespace package](https://peps.python.org/pep-0420/) to share a common top-level namespace. In this example we'll use `myorg` as the namespace package.
+
+The file tree in a case like this might look like:
+
+```
+my_repo/
+  tach.yml
+  utility/
+    pyproject.toml
+    myorg/
+      utils/
+        __init__.py
+  core_one/
+    pyproject.toml
+    myorg/
+      core_one/
+        __init__.py
+        module1.py
+        module2/
+          __init__.py
+          service.py
+        module3.py
+  core_two/
+    pyproject.toml
+    myorg/
+      core_two/
+        __init__.py
+        module1.py
+        module2/
+          __init__.py
+          service.py
+        module3.py
+  docs/
+  tests/
+```
+
+In a Python module such as `core_one/myorg/core_one/module1.py`, there may be imports from other packages:
+
+```python
+# In core_one/myorg/core_one/module1.py
+
+from myorg.utils import utility_fn
+```
+
+Notice that this import path (`myorg.utils.utility_fn`) is rooted in the `utility` folder, NOT the project root.
+
+To indicate the project structure to Tach, you would set:
+
+```
+source_roots:
+  - utility
+  - core_one
+  - core_two
+```
+
+in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the same folders as source root.
+
+In `tach.yml`, each entry in `source_roots` is interpreted as a relative path from the project root.
 
 ## Cache
 
 Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](commands#tach-test).
 
-The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](caching#determining-cache-hits). This should typically include files outside of your [source root](#source-root) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
+The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](caching#determining-cache-hits). This should typically include files outside of your [source roots](#source-roots) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
 
 The `env_dependencies` key accepts a list of environment variable names whose values affect your project's behavior under test. This may include a `DEBUG` flag, or database connection parameters in the case of tests which use a configurable database.

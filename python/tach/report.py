@@ -39,7 +39,10 @@ def report(
 
     return create_dependency_report(
         project_root=str(project_root),
-        source_root=str(project_config.source_root),
+        source_roots=[
+            str(project_root / source_root)
+            for source_root in project_config.source_roots
+        ],
         path=str(path),
         include_dependency_modules=include_dependency_modules,
         include_usage_modules=include_usage_modules,

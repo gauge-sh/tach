@@ -22,8 +22,7 @@ You can do this interactively - run:
 
 Mark each module boundary with 'Enter'. You can mark all of your top-level Python source packages, or just a few which you want to isolate.
 
-If your Python code lives below your project root, mark your Python [source root](../usage/configuration#source-root) using the 's' key.
-
+If your Python code lives below your project root, or if you are working in a monorepo with multiple Python packages, mark your Python [source roots](../usage/configuration#source-roots) using the 's' key.
 This will create the config file for your project, `tach.yml`.
 
 Once you've marked all the modules you want to enforce dependencies between, run:
@@ -112,8 +111,9 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 
 Tach also supports:
 
-- [Manual file configuration](../usage/configuration)
 - [Strict public interfaces for modules](../usage/strict-mode)
 - [Deprecating individual dependencies](../usage/deprecate)
+- [Manual file configuration](../usage/configuration)
+- [Monorepos and namespace packages](../usage/configuration#source-roots)
 - [Inline exceptions](../usage/tach-ignore)
 - [Pre-commit hooks](../usage/command#tach-install)

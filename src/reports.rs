@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::colors::*;
 
 use crate::cli::create_clickable_link;
-use crate::filesystem::{file_to_module_path_within_source_root, walk_pyfiles, FileSystemError};
+use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
 use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
 
 struct Dependency {
@@ -166,9 +166,9 @@ impl DependencyReport {
 }
 
 pub fn create_dependency_report(
-    project_root: String,
-    source_root: String,
-    path: String,
+    project_root: &PathBuf,
+    source_roots: &[PathBuf],
+    path: &PathBuf,
     include_dependency_modules: Option<Vec<String>>,
     include_usage_modules: Option<Vec<String>>,
     skip_dependencies: bool,
@@ -180,21 +180,17 @@ pub fn create_dependency_report(
             message: "Nothing to report when skipping dependencies and usages.".to_string(),
         });
     }
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(path)?);
+    let module_path = file_to_module_path(&source_roots, &absolute_path)?;
+    let mut result = DependencyReport::new(path.to_string_lossy().to_string()); // TODO: clone shouldnt be necessary
 
-    let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(&path)?);
-    let absolute_source_root = PathBuf::from(&project_root).join(&source_root);
-    let module_path = file_to_module_path_within_source_root(
-        absolute_source_root.to_str().unwrap(),
-        absolute_path.to_str().unwrap(),
-    )?;
-    let mut result = DependencyReport::new(path.clone()); // TODO: clone shouldnt be necessary
-
-    for pyfile in walk_pyfiles(&project_root) {
+    for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
         let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
         match get_project_imports(
-            project_root.clone(), // TODO: clones shouldn't be necessary, need to update the args
-            source_root.clone(),
-            absolute_pyfile.to_string_lossy().to_string(),
+            project_root,
+            &source_roots,
+            &absolute_pyfile,
             ignore_type_checking_imports,
         ) {
             Ok(project_imports) => {
@@ -240,10 +236,7 @@ pub fn create_dependency_report(
                             continue;
                         }
 
-                        let pyfile_mod_path = file_to_module_path_within_source_root(
-                            absolute_source_root.to_str().unwrap(),
-                            absolute_pyfile.to_str().unwrap(),
-                        );
+                        let pyfile_mod_path = file_to_module_path(&source_roots, &absolute_pyfile);
                         if pyfile_mod_path.is_err() {
                             // the current file doesn't belong to the source root
                             continue;

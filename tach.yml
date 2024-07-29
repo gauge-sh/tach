@@ -15,6 +15,7 @@ modules:
   - path: tach.check
     depends_on:
       - path: tach.errors
+      - path: tach.extension
       - path: tach.filesystem
       - path: tach.parsing
     strict: true
@@ -27,6 +28,7 @@ modules:
       - path: tach.constants
       - path: tach.core
       - path: tach.errors
+      - path: tach.extension
       - path: tach.filesystem
       - path: tach.logging
       - path: tach.mod
@@ -49,6 +51,8 @@ modules:
   - path: tach.errors
     depends_on: []
     strict: true
+  - path: tach.extension
+    depends_on: []
   - path: tach.filesystem
     depends_on:
       - path: tach.colors
@@ -95,6 +99,7 @@ modules:
   - path: tach.report
     depends_on:
       - path: tach.errors
+      - path: tach.extension
     strict: true
   - path: tach.show
     depends_on: []
@@ -106,14 +111,15 @@ modules:
   - path: tach.sync
     depends_on:
       - path: tach.check
+      - path: tach.core
       - path: tach.errors
       - path: tach.filesystem
       - path: tach.parsing
-      - path: tach.core
     strict: true
   - path: tach.test
     depends_on:
       - path: tach.errors
+      - path: tach.extension
       - path: tach.filesystem
       - path: tach.filesystem.git_ops
       - path: tach.parsing
@@ -130,6 +136,7 @@ exclude:
   - python/tests/
   - tach.egg-info/
   - venv/
-source_root: python
+source_roots:
+  - python
 exact: true
 forbid_circular_dependencies: true

@@ -2,7 +2,7 @@ use cached::stores::DiskCacheBuildError;
 use cached::{DiskCache, DiskCacheError, IOCached};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 use toml::Value;
 
@@ -134,21 +134,23 @@ fn read_env_dependencies(env_dependencies: Vec<String>) -> impl Iterator<Item = 
 }
 
 pub fn create_computation_cache_key(
-    project_root: String,
-    source_root: String,
+    project_root: &PathBuf,
+    source_roots: &[PathBuf],
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     _backend: String,
 ) -> String {
-    let absolute_source_root = Path::new(&project_root).join(source_root);
-    let source_pyfiles = walk_pyfiles(absolute_source_root.to_str().unwrap())
-        .flat_map(|path| fs::read(absolute_source_root.join(path)).unwrap());
+    let source_pyfiles = source_roots.iter().flat_map(|root| {
+        walk_pyfiles(root.to_str().unwrap())
+            .flat_map(move |path| fs::read(root.join(path)).unwrap())
+    });
     let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());
     let project_dependencies =
         parse_project_dependencies(&project_root).flat_map(|d| d.into_bytes());
-    let file_dependencies = read_file_dependencies(&project_root, file_dependencies);
+    let file_dependencies =
+        read_file_dependencies(project_root.to_str().unwrap(), file_dependencies);
     CacheKey::from_iter(
         source_pyfiles
             .chain(env_dependencies)
