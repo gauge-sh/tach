@@ -11,7 +11,12 @@ from tach.extension import get_project_imports, set_excluded_paths
 from tach.parsing import build_module_tree
 
 if TYPE_CHECKING:
-    from tach.core import Dependency, ModuleNode, ModuleTree, ProjectConfig
+    from tach.core import (
+        Dependency,  # noqa: TCH004
+        ModuleNode,
+        ModuleTree,
+        ProjectConfig,
+    )
 
 
 @dataclass
@@ -102,10 +107,10 @@ def check_import(
     import_nearest_module_path = import_nearest_module.config.path
 
     # The import must be explicitly allowed
-    dependency_tags = file_nearest_module.config.depends_on
+    dependencies = file_nearest_module.config.depends_on
     #
-    allowed_dependencies = [dep for dep in dependency_tags if not dep.deprecated]
-    deprecated_dependencies = [dep for dep in dependency_tags if dep.deprecated]
+    allowed_dependencies = [dep for dep in dependencies if not dep.deprecated]
+    deprecated_dependencies = [dep for dep in dependencies if dep.deprecated]
     if any(dep.path == import_nearest_module_path for dep in allowed_dependencies):
         # The import matches at least one expected dependency
         return None

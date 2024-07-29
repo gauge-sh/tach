@@ -137,7 +137,7 @@ class ProjectConfig(Config):
             self.modules.append(ModuleConfig(path=module, depends_on=[dependency]))
         else:
             # Config already exists, set the union of existing dependencies and new ones
-            new_dependencies = set(current_module_config.depends_on) | {dependency}
+            new_dependencies = set(current_module_config.depends_on) | {dependency}  # pyright: ignore[reportUnhashable]
             current_module_config.depends_on = list(new_dependencies)
 
     def compare_dependencies(
