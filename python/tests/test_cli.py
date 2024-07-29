@@ -7,7 +7,7 @@ import pytest
 
 from tach import cli
 from tach.check import BoundaryError, CheckResult, ErrorInfo
-from tach.core import ModuleConfig, ProjectConfig
+from tach.core import Dependency, ModuleConfig, ProjectConfig
 
 
 @pytest.fixture
@@ -21,7 +21,9 @@ def mock_check(mocker) -> Mock:
 def mock_project_config(mocker) -> None:
     def mock_project_config(root: str = "") -> ProjectConfig:
         return ProjectConfig(
-            modules=[ModuleConfig(path="mocked", depends_on=["mocked"])]
+            modules=[
+                ModuleConfig(path="mocked", depends_on=[Dependency(path="mocked")])
+            ]
         )
 
     mocker.patch("tach.cli.parse_project_config", mock_project_config)

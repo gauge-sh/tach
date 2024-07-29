@@ -52,6 +52,7 @@
         "usage/configuration",
         "usage/caching",
         "usage/strict-mode",
+        "usage/deprecate",
         "usage/tach-ignore",
         "usage/vscode",
         "usage/faq"

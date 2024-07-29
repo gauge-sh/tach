@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import pytest
 from pydantic import ValidationError
 
-from tach.constants import ROOT_MODULE_SENTINEL_TAG
-from tach.core import ModuleConfig, ProjectConfig
+from tach.constants import DEFAULT_EXCLUDE_PATHS, ROOT_MODULE_SENTINEL_TAG
+from tach.core import Dependency, ModuleConfig, ProjectConfig
+from tach.core.config import CacheConfig
 from tach.filesystem import file_to_module_path
 from tach.parsing import find_cycles, parse_project_config
 
@@ -37,12 +38,29 @@ def test_parse_valid_project_config(example_dir):
     result = parse_project_config(example_dir / "valid")
     assert result == ProjectConfig(
         modules=[
-            ModuleConfig(path="domain_one", depends_on=["domain_two"]),
-            ModuleConfig(path="domain_two", depends_on=["domain_three"]),
-            ModuleConfig(path=ROOT_MODULE_SENTINEL_TAG, depends_on=["domain_one"]),
-            ModuleConfig(path="domain_three", depends_on=[]),
+            ModuleConfig(
+                path="domain_one",
+                depends_on=[Dependency(path="domain_two", deprecated=True)],
+                strict=False,
+            ),
+            ModuleConfig(path="domain_three", depends_on=[], strict=False),
+            ModuleConfig(
+                path="domain_two",
+                depends_on=[Dependency(path="domain_three", deprecated=False)],
+                strict=False,
+            ),
+            ModuleConfig(
+                path=ROOT_MODULE_SENTINEL_TAG,
+                depends_on=[Dependency(path="domain_one", deprecated=False)],
+                strict=False,
+            ),
         ],
+        cache=CacheConfig(backend="local", file_dependencies=[], env_dependencies=[]),
+        exclude=sorted(DEFAULT_EXCLUDE_PATHS),
+        source_root=PosixPath("."),
         exact=True,
+        disable_logging=False,
+        ignore_type_checking_imports=True,
         forbid_circular_dependencies=True,
     )
 

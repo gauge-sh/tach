@@ -1,40 +1,40 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.2/public/tach-yml-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.3/public/tach-yml-schema.json
 modules:
   - path: tach
     depends_on: []
     strict: true
   - path: tach.__main__
     depends_on:
-      - tach.start
+      - path: tach.start
     strict: true
   - path: tach.cache
     depends_on:
-      - tach
-      - tach.filesystem
+      - path: tach
+      - path: tach.filesystem
     strict: true
   - path: tach.check
     depends_on:
-      - tach.errors
-      - tach.filesystem
-      - tach.parsing
+      - path: tach.errors
+      - path: tach.filesystem
+      - path: tach.parsing
     strict: true
   - path: tach.cli
     depends_on:
-      - tach
-      - tach.cache
-      - tach.check
-      - tach.colors
-      - tach.constants
-      - tach.core
-      - tach.errors
-      - tach.filesystem
-      - tach.logging
-      - tach.mod
-      - tach.parsing
-      - tach.report
-      - tach.show
-      - tach.sync
-      - tach.test
+      - path: tach
+      - path: tach.cache
+      - path: tach.check
+      - path: tach.colors
+      - path: tach.constants
+      - path: tach.core
+      - path: tach.errors
+      - path: tach.filesystem
+      - path: tach.logging
+      - path: tach.mod
+      - path: tach.parsing
+      - path: tach.report
+      - path: tach.show
+      - path: tach.sync
+      - path: tach.test
     strict: true
   - path: tach.colors
     depends_on: []
@@ -44,78 +44,79 @@ modules:
     strict: true
   - path: tach.core
     depends_on:
-      - tach.constants
+      - path: tach.constants
     strict: true
   - path: tach.errors
     depends_on: []
     strict: true
   - path: tach.filesystem
     depends_on:
-      - tach.colors
-      - tach.constants
-      - tach.core
-      - tach.errors
-      - tach.hooks
+      - path: tach.colors
+      - path: tach.constants
+      - path: tach.core
+      - path: tach.errors
+      - path: tach.hooks
     strict: true
   - path: tach.filesystem.git_ops
     depends_on:
-      - tach.errors
+      - path: tach.errors
     strict: true
   - path: tach.hooks
     depends_on:
-      - tach.constants
+      - path: tach.constants
     strict: true
   - path: tach.interactive
     depends_on:
-      - tach.errors
-      - tach.filesystem
+      - path: tach.errors
+      - path: tach.filesystem
     strict: true
   - path: tach.logging
     depends_on:
-      - tach
-      - tach.cache
-      - tach.parsing
+      - path: tach
+      - path: tach.cache
+      - path: tach.parsing
     strict: true
   - path: tach.mod
     depends_on:
-      - tach.colors
-      - tach.constants
-      - tach.errors
-      - tach.filesystem
-      - tach.interactive
-      - tach.parsing
+      - path: tach.colors
+      - path: tach.constants
+      - path: tach.errors
+      - path: tach.filesystem
+      - path: tach.interactive
+      - path: tach.parsing
     strict: true
   - path: tach.parsing
     depends_on:
-      - tach.constants
-      - tach.core
-      - tach.errors
-      - tach.filesystem
+      - path: tach.constants
+      - path: tach.core
+      - path: tach.errors
+      - path: tach.filesystem
     strict: true
   - path: tach.report
     depends_on:
-      - tach.errors
+      - path: tach.errors
     strict: true
   - path: tach.show
     depends_on: []
     strict: true
   - path: tach.start
     depends_on:
-      - tach.cli
+      - path: tach.cli
     strict: true
   - path: tach.sync
     depends_on:
-      - tach.check
-      - tach.errors
-      - tach.filesystem
-      - tach.parsing
+      - path: tach.check
+      - path: tach.errors
+      - path: tach.filesystem
+      - path: tach.parsing
+      - path: tach.core
     strict: true
   - path: tach.test
     depends_on:
-      - tach.errors
-      - tach.filesystem
-      - tach.filesystem.git_ops
-      - tach.parsing
+      - path: tach.errors
+      - path: tach.filesystem
+      - path: tach.filesystem.git_ops
+      - path: tach.parsing
     strict: true
 cache:
   file_dependencies:

@@ -85,7 +85,7 @@ src = ["python"]
 exclude = ["python/tests/example"]
 target-version = "py38"
 lint.extend-select = ["I", "TCH", "UP"]
-ignore = ["UP006", "UP007"]
+lint.ignore = ["UP006", "UP007"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]

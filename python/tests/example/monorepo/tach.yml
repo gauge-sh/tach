@@ -1,18 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.3/public/tach-yml-schema.json
 modules:
-- path: mod1
-  depends_on: []
-  strict: true
-- path: mod2
-  depends_on: []
-  strict: true
-- path: mod3
-  depends_on:
-  - mod2
+  - path: mod1
+    depends_on: []
+    strict: true
+  - path: mod2
+    depends_on: []
+    strict: true
+  - path: mod3
+    depends_on:
+      - path: mod2
 exclude:
-- .*__pycache__
-- .*egg-info
-- docs
-- tests
-- venv
+  - .*__pycache__
+  - .*egg-info
+  - docs
+  - tests
+  - venv
 source_root: backend
 exact: true

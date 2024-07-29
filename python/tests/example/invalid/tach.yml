@@ -1,9 +1,10 @@
 exclude: ["domain_three"]
 constraints:
   one:
-    depends_on: ["two"]
+    depends_on:
+    - path: "two"
   two:
-    depends_on: ["one"]
+    depends_on: [ path: "one"]
   shared:
     depends_on: []
 unknown: 88

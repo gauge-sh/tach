@@ -20,10 +20,10 @@ def build_module_consumer_map(modules: list[ModuleConfig]) -> dict[str, list[str
     consumer_map: dict[str, list[str]] = {}
     for module in modules:
         for dependency in module.depends_on:
-            if dependency in consumer_map:
-                consumer_map[dependency].append(module.mod_path)
+            if dependency.path in consumer_map:
+                consumer_map[dependency.path].append(module.mod_path)
             else:
-                consumer_map[dependency] = [module.mod_path]
+                consumer_map[dependency.path] = [module.mod_path]
     return consumer_map
 
 

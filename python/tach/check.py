@@ -11,19 +11,31 @@ from tach.extension import get_project_imports, set_excluded_paths
 from tach.parsing import build_module_tree
 
 if TYPE_CHECKING:
-    from tach.core import ModuleNode, ModuleTree, ProjectConfig
+    from tach.core import (
+        Dependency,  # noqa: TCH004
+        ModuleNode,
+        ModuleTree,
+        ProjectConfig,
+    )
 
 
 @dataclass
 class ErrorInfo:
     source_module: str = ""
     invalid_module: str = ""
-    allowed_modules: list[str] = field(default_factory=list)
+    allowed_dependencies: list[Dependency] = field(default_factory=list)
+    deprecated_dependencies: list[Dependency] = field(default_factory=list)
     exception_message: str = ""
 
     @property
     def is_dependency_error(self) -> bool:
         return all((self.source_module, self.invalid_module))
+
+    @property
+    def is_deprecated(self) -> bool:
+        return self.is_dependency_error and self.invalid_module in [
+            dep.path for dep in self.deprecated_dependencies
+        ]
 
 
 def is_top_level_module_import(mod_path: str, module: ModuleNode) -> bool:
@@ -95,18 +107,27 @@ def check_import(
     import_nearest_module_path = import_nearest_module.config.path
 
     # The import must be explicitly allowed
-    dependency_tags = file_nearest_module.config.depends_on
-    if any(
-        dependency_tag == import_nearest_module_path
-        for dependency_tag in dependency_tags
-    ):
+    dependencies = file_nearest_module.config.depends_on
+
+    allowed_dependencies = [dep for dep in dependencies if not dep.deprecated]
+    deprecated_dependencies = [dep for dep in dependencies if dep.deprecated]
+    if any(dep.path == import_nearest_module_path for dep in allowed_dependencies):
         # The import matches at least one expected dependency
         return None
+    if any(dep.path == import_nearest_module_path for dep in deprecated_dependencies):
+        # Dependency exists but is deprecated
+        return ErrorInfo(
+            source_module=file_nearest_module_path,
+            invalid_module=import_nearest_module_path,
+            allowed_dependencies=allowed_dependencies,
+            deprecated_dependencies=deprecated_dependencies,
+        )
     # This means the import is not declared as a dependency of the file
     return ErrorInfo(
         source_module=file_nearest_module_path,
         invalid_module=import_nearest_module_path,
-        allowed_modules=dependency_tags,
+        allowed_dependencies=allowed_dependencies,
+        deprecated_dependencies=deprecated_dependencies,
     )
 
 
@@ -121,6 +142,7 @@ class BoundaryError:
 @dataclass
 class CheckResult:
     errors: list[BoundaryError] = field(default_factory=list)
+    deprecated_warnings: list[BoundaryError] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -142,6 +164,7 @@ def check(
         )
 
     boundary_errors: list[BoundaryError] = []
+    boundary_warnings: list[BoundaryError] = []
     warnings: list[str] = []
 
     if exclude_paths is not None and project_config.exclude is not None:
@@ -196,29 +219,32 @@ def check(
             continue
         for project_import in project_imports:
             found_at_least_one_project_import = True
-            check_error = check_import(
+            error_info = check_import(
                 module_tree=module_tree,
                 import_mod_path=project_import[0],
                 file_nearest_module=nearest_module,
                 file_mod_path=mod_path,
             )
-            if check_error is None:
+            if error_info is None:
                 continue
-
-            boundary_errors.append(
-                BoundaryError(
-                    file_path=file_path,
-                    import_mod_path=project_import[0],
-                    line_number=project_import[1],
-                    error_info=check_error,
-                )
+            boundary_error = BoundaryError(
+                file_path=file_path,
+                import_mod_path=project_import[0],
+                line_number=project_import[1],
+                error_info=error_info,
             )
+            if error_info.is_deprecated:
+                boundary_warnings.append(boundary_error)
+            else:
+                boundary_errors.append(boundary_error)
 
     if not found_at_least_one_project_import:
         warnings.append(
             "WARNING: No first-party imports were found. You may need to use 'tach mod' to update your Python source root. Docs: https://docs.gauge.sh/usage/configuration#source-root"
         )
-    return CheckResult(errors=boundary_errors, warnings=warnings)
+    return CheckResult(
+        errors=boundary_errors, deprecated_warnings=boundary_warnings, warnings=warnings
+    )
 
 
 __all__ = ["BoundaryError", "check"]
