@@ -32,6 +32,12 @@ def test_file_to_mod_path():
         file_to_module_path((Path("source", "root"),), Path("source", "root", "domain"))
         == "domain"
     )
+    assert (
+        file_to_module_path(
+            (Path("src1"), Path("src2")), Path("src1", "core", "lib", "cat.py")
+        )
+        == "core.lib.cat"
+    )
 
 
 def test_parse_valid_project_config(example_dir):
