@@ -6,7 +6,7 @@ title: Why Tach
 
 Python allows you to import and use anything, anywhere. Over time, this results in modules that were intended to be separate getting tightly coupled together, and domain boundaries breaking down.
 
-We experienced this first-hand at a unicorn startup, where the entire engineering team paused development for over a year in an attempt to split up tightly coupled packages into independent micro-services. This ultimately failed, and resulted in the CTO getting fired.
+We experienced this first-hand at a unicorn startup, where the entire engineering team paused development for over a year in an attempt to split up tightly coupled packages into independent microservices. This ultimately failed, and resulted in the CTO getting fired.
 
 This problem occurs because:
 
@@ -25,4 +25,4 @@ With Tach, you can:
 3. Enforce those dependencies ([`tach check`](../usage/commands#tach-check))
 4. Visualize those dependencies ([`tach show`](../usage/commands#tach-show) and [`tach report`](../usage/commands#tach-report))
 
-You can also enforce a [strict interface](../usage/strict-mode) for each module. This means that only members that are listed in `__all__` can be imported by other modules.
+You can also enforce a [strict interface](../usage/strict-mode) for each module, and [deprecate dependencies](../usage/deprecate) over time. This means that only members that are listed in `__all__` can be imported by other modules.

@@ -8,7 +8,7 @@ Aside from running `tach mod` and `tach sync`, you can configure Tach by creatin
 
 This is the project-level configuration file which should be in the root of your project.
 
-`modules` defines the modules in your project, and accepts the keys described [below.](#modules)
+`modules` defines the modules in your project, and accepts the keys described [below](#modules).
 
 `exclude` accepts a list of directory patterns to exclude from checking. These are treated as regex patterns which match from the beginning of a given file path. For example: `project/.*tests` would match any path beginning with `project/` and ending with `tests`.
 
@@ -24,7 +24,7 @@ modules:
     strict: true
   - path: tach.cache
     depends_on:
-      - tach.filesystem
+      - path: tach.filesystem
     strict: true
   - path: tach.filesystem
     depends_on: []
@@ -95,6 +95,8 @@ from module2.service import MyService
 Notice that these import paths (`module3`, `module2.service.MyService`) are rooted in the `backend/` folder, NOT the project root.
 
 To indicate this structure to Tach, set `source_root: backend` in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the source root.
+
+Tach also supports [deprecating individual dependencies](../usage/deprecate).
 
 In `tach.yml`, the `source_root` is always interpreted as a relative path from the project root.
 
