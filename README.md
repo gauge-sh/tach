@@ -56,7 +56,7 @@ You can do this interactively - run:
 
 Mark each module boundary with 'Enter'. You can mark all of your top-level Python source packages, or just a few which you want to isolate.
 
-If your Python code lives below your project root, mark your Python [source root](https://docs.gauge.sh/usage/configuration#source-root) using the 's' key.
+If your Python code lives below your project root, or if you are working in a monorepo with multiple Python packages, mark your Python [source roots](https://docs.gauge.sh/usage/configuration#source-roots) using the 's' key.
 
 This will create the config file for your project, `tach.yml`.
 
@@ -74,7 +74,7 @@ Check out what Tach has found!
 cat tach.yml
 ```
 
-Note: Your [source root](https://docs.gauge.sh/usage/configuration#source-root) directory will implicitly be treated as a module boundary, and can show up as `<root>`.
+Note: Your [source roots](https://docs.gauge.sh/usage/configuration#source-root) will implicitly be treated as module boundaries, and can show up as `<root>`.
 
 ### Enforcement
 
@@ -147,6 +147,7 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 Tach also supports:
 
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
+- [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
 - [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
 - [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
 - [Inline exceptions](https://docs.gauge.sh/usage/tach-ignore)
