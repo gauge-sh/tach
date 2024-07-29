@@ -7,11 +7,13 @@ title: Overview
 Tach allows you to control dependencies between your Python modules.
 Modules can also define an explicit public interface to prevent deep coupling.
 
-This creates a decoupled, modular architecture, which makes maintenance and development easier.
+This creates a modular architecture, which makes development easier.
 
 If a module tries to import from another module that is not listed as a dependency, Tach will report an error.
 
-When a module is in ['strict mode'](../usage/strict-mode), if another module tries to import from it without using its public interface, Tach will report an error.
+When a module is marked ['strict'](../usage/strict-mode), if another module tries to import from it without using its public interface, Tach will report an error.
+
+Dependencies can be additionally marked as ['deprecated'](../usage/deprecate). Tach will not report an error but will surface usages of the deprecated dependency.
 
 Tach is a CLI tool, and is ideal for pre-commit hooks and CI checks.
 

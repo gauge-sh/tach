@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
+import pydantic
 import yaml
 
 from tach import filesystem as fs
@@ -23,7 +25,7 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
         key=lambda mod: (mod.path == ROOT_MODULE_SENTINEL_TAG, mod.path)
     )
     for mod in config.modules:
-        mod.depends_on.sort()
+        mod.depends_on.sort(key=lambda dep: dep.path)
     # NOTE: setting 'exclude' explicitly here also interacts with the 'exclude_unset' option
     # being passed to 'model_dump'. It ensures that even on a fresh config, we will explicitly
     # show excluded paths.
@@ -42,6 +44,17 @@ def dump_project_config_to_yaml(config: ProjectConfig) -> str:
     return language_server_directive + yaml_content
 
 
+# TODO remove after next major version upgrade
+def migrate_config(result: dict[Any, Any]) -> dict[Any, Any]:
+    if "modules" in result:
+        for module in result["modules"]:
+            if "depends_on" in module:
+                for index, path in enumerate(module["depends_on"]):
+                    if isinstance(path, str):
+                        module["depends_on"][index] = {"path": path}
+    return result
+
+
 def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
     root = root or Path.cwd()
     file_path = fs.get_project_config_path(root)
@@ -52,5 +65,12 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
         result = yaml.safe_load(f)
         if not result or not isinstance(result, dict):
             raise ValueError(f"Empty or invalid project config file: {file_path}")
-    config = ProjectConfig(**result)  # type: ignore
+    try:
+        config = ProjectConfig(**result)  # type: ignore
+    except pydantic.ValidationError:
+        result = migrate_config(result)  # type: ignore
+        config = ProjectConfig(**result)
+        print("Updating config to latest syntax...")
+        config_yml_content = dump_project_config_to_yaml(config)
+        fs.write_file(str(file_path), config_yml_content)
     return config

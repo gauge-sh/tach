@@ -346,7 +346,7 @@ pub fn get_project_imports(
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);
     let file_mod_path: Option<String> =
-        filesystem::file_to_module_path(&source_roots, &file_path).ok();
+        filesystem::file_to_module_path(source_roots, file_path).ok();
     let mut import_visitor = ImportVisitor::new(
         project_root.clone(),
         source_roots.clone(),

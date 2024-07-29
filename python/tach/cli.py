@@ -27,7 +27,10 @@ from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
 from tach.report import report
 from tach.show import generate_module_graph_dot_file, generate_show_url
-from tach.sync import prune_dependency_constraints, sync_project
+from tach.sync import (
+    sync_dependency_constraints,
+    sync_project,
+)
 from tach.test import run_affected_tests
 
 if TYPE_CHECKING:
@@ -88,19 +91,32 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         display_path=error.file_path,
         line=error.line_number,
     )
-    error_template = f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: {{message}} {BCOLORS.ENDC}"
+    error_template = (
+        f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
+        f"{{message}} {BCOLORS.ENDC}"
+    )
+    warning_template = (
+        f"‼️ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
+        f"{{message}} {BCOLORS.ENDC}"
+    )
     error_info = error.error_info
     if error_info.exception_message:
         return error_template.format(message=error_info.exception_message)
     elif not error_info.is_dependency_error:
         return error_template.format(message="Unexpected error")
 
-    message = (
+    error_message = (
         f"Cannot import '{error.import_mod_path}'. "
-        f"Tag '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
+        f"'{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
     )
 
-    return error_template.format(message=message)
+    warning_message = (
+        f"Import '{error.import_mod_path}' is deprecated. "
+        f"'{error_info.source_module}' should not depend on '{error_info.invalid_module}'."
+    )
+    if error_info.is_deprecated:
+        return warning_template.format(message=warning_message)
+    return error_template.format(message=error_message)
 
 
 def print_warnings(warning_list: list[str]) -> None:
@@ -117,17 +133,18 @@ def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> N
             build_error_message(error, source_roots=source_roots),
             file=sys.stderr,
         )
-    print(
-        f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
-        f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
-    )
+    if not all(error.error_info.is_deprecated for error in sorted_results):
+        print(
+            f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
+            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
+        )
 
 
 def print_unused_dependencies(
     all_unused_dependencies: list[UnusedDependencies],
 ) -> None:
     constraint_messages = "\n".join(
-        f"\t{BCOLORS.WARNING}'{unused_dependencies.path}' does not depend on: {unused_dependencies.dependencies}{BCOLORS.ENDC}"
+        f"\t{BCOLORS.WARNING}'{unused_dependencies.path}' does not depend on: {[dependency.path for dependency in unused_dependencies.dependencies]}{BCOLORS.ENDC}"
         for unused_dependencies in all_unused_dependencies
     )
     print(
@@ -447,21 +464,27 @@ def tach_check(
         if check_result.warnings:
             print_warnings(check_result.warnings)
 
+        source_roots = [
+            project_root / source_root for source_root in project_config.source_roots
+        ]
+
+        if check_result.deprecated_warnings:
+            print_errors(
+                check_result.deprecated_warnings,
+                source_roots=source_roots,
+            )
         exit_code = 0
 
         if check_result.errors:
             print_errors(
                 check_result.errors,
-                source_roots=[
-                    project_root / source_root
-                    for source_root in project_config.source_roots
-                ],
+                source_roots=source_roots,
             )
             exit_code = 1
 
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
         if exact:
-            pruned_config = prune_dependency_constraints(
+            pruned_config = sync_dependency_constraints(
                 project_root=project_root,
                 project_config=project_config,
                 exclude_paths=exclude_paths,
@@ -543,7 +566,7 @@ def tach_sync(
             exclude_paths=exclude_paths,
         )
     except Exception as e:
-        print(str(e))
+        raise e
         sys.exit(1)
 
     print(f"✅ {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")

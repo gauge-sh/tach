@@ -37,18 +37,23 @@ Tach is:
 ## Getting Started
 
 ### Installation
+
 ```bash
 pip install tach
 ```
+
 ### Setup
+
 Tach allows you to configure where you want to place module boundaries in your project.
 
 You can do this interactively - run:
+
 ```bash
  tach mod
 # Up/Down: Navigate  Enter: Mark/unmark module  Right: Expand  Left: Collapse  Ctrl + Up: Jump to parent
 # Ctrl + s: Exit and save  Ctrl + c: Exit without saving  Ctrl + a: Mark/unmark all
 ```
+
 Mark each module boundary with 'Enter'. You can mark all of your top-level Python source packages, or just a few which you want to isolate.
 
 If your Python code lives below your project root, mark your Python [source root](https://docs.gauge.sh/usage/configuration#source-root) using the 's' key.
@@ -56,35 +61,44 @@ If your Python code lives below your project root, mark your Python [source root
 This will create the config file for your project, `tach.yml`.
 
 Once you've marked all the modules you want to enforce dependencies between, run:
+
 ```bash
 tach sync
 ```
+
 Dependencies that exist between each module you've marked will be written to `tach.yml`.
 
-Check out what Tach has found! 
+Check out what Tach has found!
+
 ```
-cat tach.yml | less
+cat tach.yml
 ```
 
 Note: Your [source root](https://docs.gauge.sh/usage/configuration#source-root) directory will implicitly be treated as a module boundary, and can show up as `<root>`.
 
 ### Enforcement
+
 Tach comes with a cli command to enforce the boundaries that you just set up! From the root of your Python project, run:
+
 ```bash
 tach check
 ```
+
 You will see:
+
 ```bash
 ✅ All module dependencies validated!
 ```
 
 You can validate that Tach is working by either:
+
 1. Commenting out an item in a `depends_on` key in `tach.yml`
-2. By adding an import between modules that didn't previously import from each other. 
+2. By adding an import between modules that didn't previously import from each other.
 
 Give both a try and run `tach check` again. This will generate an error:
+
 ```bash
-❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'. 
+❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'.
 ```
 
 Each error indicates an import which violates your dependencies. If your terminal supports hyperlinks, click on the file path to go directly to the error.
@@ -94,22 +108,29 @@ When an error is detected, `tach check` will exit with a non-zero code. It can b
 ### Extras
 
 Visualize your dependency graph.
+
 ```bash
-tach show
+tach show [--web]
 ```
-Tach will generate a graph of your dependencies. Here's what this looks like for Tach itself:
+
+Tach will generate a graph of your dependencies. Here's what this looks like for Tach:
 
 ![tach show](docs/assets/tach_show.png)
 
-Note that this graph is generated remotely based on the contents of your `tach.yml`.
+Note that this graph is generated remotely with the contents of your `tach.yml` when running `tach show --web`.
+
+If you would like to use the [GraphViz DOT format](https://graphviz.org/about/) locally, simply running `tach show` will generate `tach_module_graph.dot` in your working directory.
 
 You can view the dependencies and usages for a given path:
+
 ```bash
 tach report my_package/
 # OR
 tach report my_module.py
 ```
+
 e.g.:
+
 ```bash
 > tach report python/tach/filesystem
 [Dependencies of 'python/tach/filesystem']
@@ -127,6 +148,7 @@ Tach also supports:
 
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
 - [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
+- [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
 - [Inline exceptions](https://docs.gauge.sh/usage/tach-ignore)
 - [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install)
 

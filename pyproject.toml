@@ -52,7 +52,7 @@ dev = [
     # Setup
     "pip==24.0",
     # Code Quality
-    "pyright==1.1.371",
+    "pyright==1.1.373",
     "ruff==0.5.2",
     # Build/Release
     "setuptools==69.5.1; python_version > '3.7'",
@@ -85,7 +85,7 @@ src = ["python"]
 exclude = ["python/tests/example"]
 target-version = "py38"
 lint.extend-select = ["I", "TCH", "UP"]
-ignore = ["UP006", "UP007"]
+lint.ignore = ["UP006", "UP007"]
 
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]

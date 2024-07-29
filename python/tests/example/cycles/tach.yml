@@ -1,18 +1,18 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.2/public/tach-yml-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.8.3/public/tach-yml-schema.json
 modules:
   - path: domain_one
     depends_on:
-      - domain_two
-      - domain_three
+      - path: domain_three
+      - path: domain_two
   - path: domain_three
     depends_on:
-      - domain_one
+      - path: domain_one
   - path: domain_two
     depends_on:
-      - domain_three
+      - path: domain_three
   - path: <root>
     depends_on:
-      - domain_one
+      - path: domain_one
 exclude:
   - .*__pycache__
   - .*egg-info

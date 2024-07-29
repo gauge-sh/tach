@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tach.core.config import ModuleConfig, ProjectConfig, RootModuleConfig
+from tach.core.config import Dependency, ModuleConfig, ProjectConfig, RootModuleConfig
 from tach.core.modules import ModuleNode, ModuleTree
 from tach.test import get_affected_modules, get_changed_module_paths
 
@@ -17,97 +17,137 @@ from tach.test import get_affected_modules, get_changed_module_paths
 def modules() -> list[ModuleConfig]:
     return [
         ModuleConfig(path="tach", depends_on=[], strict=True),
-        ModuleConfig(path="tach.__main__", depends_on=["tach.start"], strict=True),
         ModuleConfig(
-            path="tach.cache", depends_on=["tach", "tach.filesystem"], strict=True
+            path="tach.__main__",
+            depends_on=[Dependency(path="tach.start")],
+            strict=True,
+        ),
+        ModuleConfig(
+            path="tach.cache",
+            depends_on=[Dependency(path="tach"), Dependency(path="tach.filesystem")],
+            strict=True,
         ),
         ModuleConfig(
             path="tach.check",
-            depends_on=["tach.errors", "tach.filesystem", "tach.parsing"],
+            depends_on=[
+                Dependency(path="tach.errors"),
+                Dependency(path="tach.filesystem"),
+                Dependency(path="tach.parsing"),
+            ],
             strict=True,
         ),
         ModuleConfig(
             path="tach.cli",
             depends_on=[
-                "tach",
-                "tach.cache",
-                "tach.check",
-                "tach.colors",
-                "tach.constants",
-                "tach.core",
-                "tach.errors",
-                "tach.filesystem",
-                "tach.logging",
-                "tach.mod",
-                "tach.parsing",
-                "tach.report",
-                "tach.show",
-                "tach.sync",
-                "tach.test",
+                Dependency(path="tach"),
+                Dependency(path="tach.cache"),
+                Dependency(path="tach.check"),
+                Dependency(path="tach.colors"),
+                Dependency(path="tach.constants"),
+                Dependency(path="tach.core"),
+                Dependency(path="tach.errors"),
+                Dependency(path="tach.filesystem"),
+                Dependency(path="tach.logging"),
+                Dependency(path="tach.mod"),
+                Dependency(path="tach.parsing"),
+                Dependency(path="tach.report"),
+                Dependency(path="tach.show"),
+                Dependency(path="tach.sync"),
+                Dependency(path="tach.test"),
             ],
             strict=True,
         ),
         ModuleConfig(path="tach.colors", depends_on=[], strict=True),
         ModuleConfig(path="tach.constants", depends_on=[], strict=True),
-        ModuleConfig(path="tach.core", depends_on=["tach.constants"], strict=True),
+        ModuleConfig(
+            path="tach.core",
+            depends_on=[Dependency(path="tach.constants")],
+            strict=True,
+        ),
         ModuleConfig(path="tach.errors", depends_on=[], strict=True),
         ModuleConfig(
             path="tach.filesystem",
             depends_on=[
-                "tach.colors",
-                "tach.constants",
-                "tach.core",
-                "tach.errors",
-                "tach.hooks",
+                Dependency(path="tach.colors"),
+                Dependency(path="tach.constants"),
+                Dependency(path="tach.core"),
+                Dependency(path="tach.errors"),
+                Dependency(path="tach.hooks"),
             ],
             strict=True,
         ),
         ModuleConfig(
-            path="tach.filesystem.git_ops", depends_on=["tach.errors"], strict=True
+            path="tach.filesystem.git_ops",
+            depends_on=[Dependency(path="tach.errors")],
+            strict=True,
         ),
-        ModuleConfig(path="tach.hooks", depends_on=["tach.constants"], strict=True),
+        ModuleConfig(
+            path="tach.hooks",
+            depends_on=[Dependency(path="tach.constants")],
+            strict=True,
+        ),
         ModuleConfig(
             path="tach.interactive",
-            depends_on=["tach.errors", "tach.filesystem"],
+            depends_on=[
+                Dependency(path="tach.errors"),
+                Dependency(path="tach.filesystem"),
+            ],
             strict=True,
         ),
         ModuleConfig(
             path="tach.logging",
-            depends_on=["tach", "tach.cache", "tach.parsing"],
+            depends_on=[
+                Dependency(path="tach"),
+                Dependency(path="tach.cache"),
+                Dependency(path="tach.parsing"),
+            ],
             strict=True,
         ),
         ModuleConfig(
             path="tach.mod",
             depends_on=[
-                "tach.colors",
-                "tach.constants",
-                "tach.errors",
-                "tach.filesystem",
-                "tach.interactive",
-                "tach.parsing",
+                Dependency(path="tach.colors"),
+                Dependency(path="tach.constants"),
+                Dependency(path="tach.errors"),
+                Dependency(path="tach.filesystem"),
+                Dependency(path="tach.interactive"),
+                Dependency(path="tach.parsing"),
             ],
             strict=True,
         ),
         ModuleConfig(
             path="tach.parsing",
-            depends_on=["tach.constants", "tach.core", "tach.filesystem"],
+            depends_on=[
+                Dependency(path="tach.constants"),
+                Dependency(path="tach.core"),
+                Dependency(path="tach.filesystem"),
+            ],
             strict=True,
         ),
-        ModuleConfig(path="tach.report", depends_on=["tach.errors"], strict=True),
+        ModuleConfig(
+            path="tach.report", depends_on=[Dependency(path="tach.errors")], strict=True
+        ),
         ModuleConfig(path="tach.show", depends_on=[], strict=True),
-        ModuleConfig(path="tach.start", depends_on=["tach.cli"], strict=True),
+        ModuleConfig(
+            path="tach.start", depends_on=[Dependency(path="tach.cli")], strict=True
+        ),
         ModuleConfig(
             path="tach.sync",
-            depends_on=["tach.check", "tach.errors", "tach.filesystem", "tach.parsing"],
+            depends_on=[
+                Dependency(path="tach.check"),
+                Dependency(path="tach.errors"),
+                Dependency(path="tach.filesystem"),
+                Dependency(path="tach.parsing"),
+            ],
             strict=True,
         ),
         ModuleConfig(
             path="tach.test",
             depends_on=[
-                "tach.errors",
-                "tach.filesystem",
-                "tach.filesystem.git_ops",
-                "tach.parsing",
+                Dependency(path="tach.errors"),
+                Dependency(path="tach.filesystem"),
+                Dependency(path="tach.filesystem.git_ops"),
+                Dependency(path="tach.parsing"),
             ],
             strict=False,
         ),
@@ -134,7 +174,7 @@ def module_tree() -> ModuleTree:
                             full_path="tach.__main__",
                             config=ModuleConfig(
                                 path="tach.__main__",
-                                depends_on=["tach.start"],
+                                depends_on=[Dependency(path="tach.start")],
                                 strict=True,
                             ),
                             interface_members=[],
@@ -145,7 +185,10 @@ def module_tree() -> ModuleTree:
                             full_path="tach.cache",
                             config=ModuleConfig(
                                 path="tach.cache",
-                                depends_on=["tach", "tach.filesystem"],
+                                depends_on=[
+                                    Dependency(path="tach"),
+                                    Dependency(path="tach.filesystem"),
+                                ],
                                 strict=True,
                             ),
                             interface_members=[
@@ -161,9 +204,9 @@ def module_tree() -> ModuleTree:
                             config=ModuleConfig(
                                 path="tach.check",
                                 depends_on=[
-                                    "tach.errors",
-                                    "tach.filesystem",
-                                    "tach.parsing",
+                                    Dependency(path="tach.errors"),
+                                    Dependency(path="tach.filesystem"),
+                                    Dependency(path="tach.parsing"),
                                 ],
                                 strict=True,
                             ),
@@ -176,21 +219,21 @@ def module_tree() -> ModuleTree:
                             config=ModuleConfig(
                                 path="tach.cli",
                                 depends_on=[
-                                    "tach",
-                                    "tach.cache",
-                                    "tach.check",
-                                    "tach.colors",
-                                    "tach.constants",
-                                    "tach.core",
-                                    "tach.errors",
-                                    "tach.filesystem",
-                                    "tach.logging",
-                                    "tach.mod",
-                                    "tach.parsing",
-                                    "tach.report",
-                                    "tach.show",
-                                    "tach.sync",
-                                    "tach.test",
+                                    Dependency(path="tach"),
+                                    Dependency(path="tach.cache"),
+                                    Dependency(path="tach.check"),
+                                    Dependency(path="tach.colors"),
+                                    Dependency(path="tach.constants"),
+                                    Dependency(path="tach.core"),
+                                    Dependency(path="tach.errors"),
+                                    Dependency(path="tach.filesystem"),
+                                    Dependency(path="tach.logging"),
+                                    Dependency(path="tach.mod"),
+                                    Dependency(path="tach.parsing"),
+                                    Dependency(path="tach.report"),
+                                    Dependency(path="tach.show"),
+                                    Dependency(path="tach.sync"),
+                                    Dependency(path="tach.test"),
                                 ],
                                 strict=True,
                             ),
@@ -227,7 +270,7 @@ def module_tree() -> ModuleTree:
                             full_path="tach.core",
                             config=ModuleConfig(
                                 path="tach.core",
-                                depends_on=["tach.constants"],
+                                depends_on=[Dependency(path="tach.constants")],
                                 strict=True,
                             ),
                             interface_members=[
@@ -258,11 +301,11 @@ def module_tree() -> ModuleTree:
                             config=ModuleConfig(
                                 path="tach.filesystem",
                                 depends_on=[
-                                    "tach.colors",
-                                    "tach.constants",
-                                    "tach.core",
-                                    "tach.errors",
-                                    "tach.hooks",
+                                    Dependency(path="tach.colors"),
+                                    Dependency(path="tach.constants"),
+                                    Dependency(path="tach.core"),
+                                    Dependency(path="tach.errors"),
+                                    Dependency(path="tach.hooks"),
                                 ],
                                 strict=True,
                             ),
@@ -291,7 +334,7 @@ def module_tree() -> ModuleTree:
                                     full_path="tach.filesystem.git_ops",
                                     config=ModuleConfig(
                                         path="tach.filesystem.git_ops",
-                                        depends_on=["tach.errors"],
+                                        depends_on=[Dependency(path="tach.errors")],
                                         strict=True,
                                     ),
                                     interface_members=["get_changed_files"],
@@ -304,7 +347,7 @@ def module_tree() -> ModuleTree:
                             full_path="tach.hooks",
                             config=ModuleConfig(
                                 path="tach.hooks",
-                                depends_on=["tach.constants"],
+                                depends_on=[Dependency(path="tach.constants")],
                                 strict=True,
                             ),
                             interface_members=["build_pre_commit_hook_content"],
@@ -315,7 +358,10 @@ def module_tree() -> ModuleTree:
                             full_path="tach.interactive",
                             config=ModuleConfig(
                                 path="tach.interactive",
-                                depends_on=["tach.errors", "tach.filesystem"],
+                                depends_on=[
+                                    Dependency(path="tach.errors"),
+                                    Dependency(path="tach.filesystem"),
+                                ],
                                 strict=True,
                             ),
                             interface_members=[
@@ -329,7 +375,11 @@ def module_tree() -> ModuleTree:
                             full_path="tach.logging",
                             config=ModuleConfig(
                                 path="tach.logging",
-                                depends_on=["tach", "tach.cache", "tach.parsing"],
+                                depends_on=[
+                                    Dependency(path="tach"),
+                                    Dependency(path="tach.cache"),
+                                    Dependency(path="tach.parsing"),
+                                ],
                                 strict=True,
                             ),
                             interface_members=["logger", "LogDataModel"],
@@ -341,12 +391,12 @@ def module_tree() -> ModuleTree:
                             config=ModuleConfig(
                                 path="tach.mod",
                                 depends_on=[
-                                    "tach.colors",
-                                    "tach.constants",
-                                    "tach.errors",
-                                    "tach.filesystem",
-                                    "tach.interactive",
-                                    "tach.parsing",
+                                    Dependency(path="tach.colors"),
+                                    Dependency(path="tach.constants"),
+                                    Dependency(path="tach.errors"),
+                                    Dependency(path="tach.filesystem"),
+                                    Dependency(path="tach.interactive"),
+                                    Dependency(path="tach.parsing"),
                                 ],
                                 strict=True,
                             ),
@@ -359,9 +409,9 @@ def module_tree() -> ModuleTree:
                             config=ModuleConfig(
                                 path="tach.parsing",
                                 depends_on=[
-                                    "tach.constants",
-                                    "tach.core",
-                                    "tach.filesystem",
+                                    Dependency(path="tach.constants"),
+                                    Dependency(path="tach.core"),
+                                    Dependency(path="tach.filesystem"),
                                 ],
                                 strict=True,
                             ),
@@ -378,7 +428,7 @@ def module_tree() -> ModuleTree:
                             full_path="tach.report",
                             config=ModuleConfig(
                                 path="tach.report",
-                                depends_on=["tach.errors"],
+                                depends_on=[Dependency(path="tach.errors")],
                                 strict=True,
                             ),
                             interface_members=["report"],
@@ -397,7 +447,9 @@ def module_tree() -> ModuleTree:
                             is_end_of_path=True,
                             full_path="tach.start",
                             config=ModuleConfig(
-                                path="tach.start", depends_on=["tach.cli"], strict=True
+                                path="tach.start",
+                                depends_on=[Dependency(path="tach.cli")],
+                                strict=True,
                             ),
                             interface_members=["start"],
                             children={},
@@ -408,10 +460,10 @@ def module_tree() -> ModuleTree:
                             config=ModuleConfig(
                                 path="tach.sync",
                                 depends_on=[
-                                    "tach.check",
-                                    "tach.errors",
-                                    "tach.filesystem",
-                                    "tach.parsing",
+                                    Dependency(path="tach.check"),
+                                    Dependency(path="tach.errors"),
+                                    Dependency(path="tach.filesystem"),
+                                    Dependency(path="tach.parsing"),
                                 ],
                                 strict=True,
                             ),
@@ -427,10 +479,10 @@ def module_tree() -> ModuleTree:
                             config=ModuleConfig(
                                 path="tach.test",
                                 depends_on=[
-                                    "tach.errors",
-                                    "tach.filesystem",
-                                    "tach.filesystem.git_ops",
-                                    "tach.parsing",
+                                    Dependency(path="tach.errors"),
+                                    Dependency(path="tach.filesystem"),
+                                    Dependency(path="tach.filesystem.git_ops"),
+                                    Dependency(path="tach.parsing"),
                                 ],
                                 strict=False,
                             ),

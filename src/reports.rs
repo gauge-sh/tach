@@ -182,16 +182,16 @@ pub fn create_dependency_report(
     }
     let source_roots = source_roots
         .iter()
-        .map(|source_root| PathBuf::from(source_root))
+        .map(PathBuf::from)
         .collect();
-    let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(&path)?);
+    let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(path)?);
     let module_path = file_to_module_path(&source_roots, &absolute_path)?;
     let mut result = DependencyReport::new(path.to_string_lossy().to_string()); // TODO: clone shouldnt be necessary
 
-    for pyfile in walk_pyfiles(&project_root.to_str().unwrap()) {
+    for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
         let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
         match get_project_imports(
-            &project_root,
+            project_root,
             &source_roots,
             &absolute_pyfile,
             ignore_type_checking_imports,

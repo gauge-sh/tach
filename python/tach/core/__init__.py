@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from tach.core.config import (
+    Dependency,
     ModuleConfig,
     ProjectConfig,
     UnusedDependencies,
@@ -12,5 +13,6 @@ __all__ = [
     "ModuleConfig",
     "ModuleNode",
     "ModuleTree",
+    "Dependency",
     "UnusedDependencies",
 ]
