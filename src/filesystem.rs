@@ -51,39 +51,49 @@ pub fn file_to_module_path(source_roots: &Vec<PathBuf>, file_path: &PathBuf) -> 
         .iter()
         .find(|&root| file_path.starts_with(root))
         .ok_or(FileSystemError {
-            message: "Path not found in any source root.".to_string(),
+            message: format!(
+                "No matching source root found for filepath: {:?}",
+                file_path
+            ),
         })?;
 
     // Get the relative path from the matching root
     let relative_path = file_path.strip_prefix(matching_root)?;
 
     // Convert the relative path to a module path
-    let module_path = relative_path
+    let mut components: Vec<_> = relative_path
         .parent()
         .ok_or(FileSystemError {
-            message: "Failed to read parent of file path.".to_string(),
+            message: format!("Encountered invalid filepath: {:?}", relative_path),
         })?
         .components()
         .filter_map(|component| component.as_os_str().to_str())
-        .collect::<Vec<&str>>()
-        .join(".");
+        .collect();
 
-    // Remove the file extension
-    let module_name = relative_path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
+    // Get the file name
+    let file_name = relative_path
+        .file_name()
+        .and_then(|name| name.to_str())
         .ok_or(FileSystemError {
-            message: "Encountered invalid filename.".to_string(),
+            message: format!("Encountered invalid filepath: {:?}", relative_path),
         })?;
 
-    // Combine the module path with the module name
-    let full_module_path = if module_path.is_empty() {
-        module_name.to_string()
-    } else {
-        format!("{}.{}", module_path, module_name)
-    };
+    // If the file is not __init__.py, add its name (without extension) to the components
+    if file_name != "__init__.py" {
+        if let Some(stem) = Path::new(file_name).file_stem().and_then(|s| s.to_str()) {
+            components.push(stem);
+        }
+    }
 
-    Ok(full_module_path)
+    // Join the components with dots
+    let module_path = components.join(".");
+
+    // If the module_path is empty, return ".", otherwise return the module_path
+    Ok(if module_path.is_empty() {
+        ".".to_string()
+    } else {
+        module_path
+    })
 }
 
 #[derive(Debug)]
