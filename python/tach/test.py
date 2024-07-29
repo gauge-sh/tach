@@ -30,11 +30,14 @@ def build_module_consumer_map(modules: list[ModuleConfig]) -> dict[str, list[str
 def get_changed_module_paths(
     project_root: Path, project_config: ProjectConfig, changed_files: list[Path]
 ) -> list[str]:
-    source_root = project_root / project_config.source_root
+    source_roots = [
+        project_root / source_root for source_root in project_config.source_roots
+    ]
     changed_module_paths = [
-        fs.file_to_module_path(source_root=source_root, file_path=changed_file)
+        fs.file_to_module_path(source_roots=tuple(source_roots), file_path=changed_file)
         for changed_file in changed_files
-        if source_root in changed_file.parents and changed_file.suffix == ".py"
+        if any(source_root in changed_file.parents for source_root in source_roots)
+        and changed_file.suffix == ".py"
     ]
 
     return changed_module_paths
@@ -109,13 +112,13 @@ def run_affected_tests(
         def __init__(
             self,
             project_root: Path,
-            source_root: Path,
+            source_roots: list[Path],
             module_tree: ModuleTree,
             affected_modules: set[str],
             all_affected_files: set[Path],
         ):
             self.project_root = project_root
-            self.source_root = source_root
+            self.source_roots = source_roots
             self.module_tree = module_tree
             self.affected_modules = affected_modules
             self.all_affected_files = all_affected_files
@@ -148,7 +151,7 @@ def run_affected_tests(
 
                 project_imports = get_project_imports(
                     project_root=str(self.project_root),
-                    source_root=str(self.source_root),
+                    source_roots=list(map(str, self.source_roots)),
                     file_path=str(item.path.resolve()),
                     ignore_type_checking_imports=True,
                 )
@@ -188,17 +191,19 @@ def run_affected_tests(
         ):
             self.tests_ran_to_completion = True
 
-    absolute_source_root = project_root / project_config.source_root
+    source_roots = [
+        project_root / source_root for source_root in project_config.source_roots
+    ]
 
     module_validation_result = fs.validate_project_modules(
-        source_root=absolute_source_root, modules=project_config.modules
+        source_roots=source_roots, modules=project_config.modules
     )
     # TODO: log warning
     for module in module_validation_result.invalid_modules:
         print(f"Module '{module.path}' not found. It will be ignored.")
 
     module_tree = build_module_tree(
-        source_root=absolute_source_root,
+        source_roots=source_roots,
         modules=module_validation_result.valid_modules,
         forbid_circular_dependencies=project_config.forbid_circular_dependencies,
     )
@@ -212,7 +217,7 @@ def run_affected_tests(
     )
     pytest_plugin = TachPytestPlugin(
         project_root=project_root,
-        source_root=project_config.source_root,
+        source_roots=source_roots,
         module_tree=module_tree,
         affected_modules=affected_module_paths,
         all_affected_files={changed_file.resolve() for changed_file in changed_files},

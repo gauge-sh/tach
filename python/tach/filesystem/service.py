@@ -191,22 +191,24 @@ def walk_pyfiles(root: Path, depth: int | None = None) -> Generator[Path, None, 
 
 
 @lru_cache(maxsize=None)
-def file_to_module_path(source_root: Path, file_path: Path) -> str:
-    # Assuming that the file_path has been 'canonicalized' and does not traverse multiple directories
-    file_path = file_path.relative_to(source_root)
-    if file_path == Path("."):
-        return ""
+def file_to_module_path(source_roots: tuple[Path, ...], file_path: Path) -> str:
+    matching_root: Path | None = None
+    for root in source_roots:
+        if root in file_path.parents:
+            matching_root = root
+            break
 
-    module_path = str(file_path).replace(os.sep, ".")
+    if matching_root is None:
+        raise ValueError(f"File path: {file_path} not found in any source root.")
 
-    if module_path.endswith(".py"):
-        module_path = module_path[:-3]
-    if module_path.endswith(".__init__"):
-        module_path = module_path[:-9]
-    if module_path == "__init__":
-        return ""
+    relative_path = file_path.relative_to(matching_root)
+    components = list(relative_path.parent.parts)
 
-    return module_path
+    if relative_path.name != "__init__.py":
+        components.append(relative_path.stem)
+
+    module_path = ".".join(components)
+    return "." if not module_path else module_path
 
 
 @lru_cache(maxsize=None)
