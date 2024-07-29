@@ -67,7 +67,7 @@ def validate_configuration(
             # This module exists outside of the source root
             # This is not allowed and should be reported as a configuration error
             errors.append(
-                f"Module '{module_path}' is not contained within any source root: {configuration.source_roots}"
+                f"Module '{module_path}' is not contained within any source root: {[str(root) for root in configuration.source_roots]}"
             )
     return ValidationResult(ok=not errors, errors=errors)
 
