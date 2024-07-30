@@ -15,8 +15,19 @@
           "depends_on": {
             "type": "array",
             "items": {
-              "type": "string"
-            },
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the dependency"
+                },
+                "deprecated": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Flag usages of this dependency without failing tach check"
+                }
+              }
+        },
             "default": [],
             "description": "List of dependencies for the module"
           },
