@@ -27,7 +27,7 @@
                   "description": "Flag usages of this dependency without failing tach check"
                 }
               }
-        },
+            },
             "default": [],
             "description": "List of dependencies for the module"
           },
