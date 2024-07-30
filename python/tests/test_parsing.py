@@ -9,7 +9,7 @@ from tach.constants import DEFAULT_EXCLUDE_PATHS, ROOT_MODULE_SENTINEL_TAG
 from tach.core import Dependency, ModuleConfig, ProjectConfig
 from tach.core.config import CacheConfig
 from tach.filesystem import file_to_module_path
-from tach.parsing import find_cycles, parse_project_config
+from tach.parsing import find_modules_with_cycles, parse_project_config
 
 
 @pytest.fixture
@@ -83,15 +83,16 @@ def test_empty_project_config(example_dir):
 
 def test_valid_circular_dependencies(example_dir):
     project_config = parse_project_config(example_dir / "valid")
+    assert project_config
     modules = project_config.modules
-    all_cycles: list[list[str]] = find_cycles(modules)
-    assert all_cycles == []
+    modules_with_cycles = find_modules_with_cycles(modules)
+    assert modules_with_cycles == []
 
 
 def test_cycles_circular_dependencies(example_dir):
     project_config = parse_project_config(example_dir / "cycles")
     modules = project_config.modules
-    all_cycles: list[list[str]] = find_cycles(modules)
+    all_cycles: list[list[str]] = find_modules_with_cycles(modules)
     tuple_cycles: list[tuple[str]] = [tuple(cycle) for cycle in all_cycles]
     assert set(tuple_cycles) == {
         ("domain_one", "domain_two", "domain_three"),

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import networkx as nx
+from networkx import NetworkXNoCycle
 
 from tach.core import ModuleTree
 from tach.errors import TachCircularDependencyError
@@ -31,9 +32,9 @@ def canonical_form(cycle: list[str]) -> list[str]:
     return cycle[min_index:] + cycle[:min_index]
 
 
-def find_cycles(
+def find_modules_with_cycles(
     modules: list[ModuleConfig],
-) -> list[list[str]]:
+) -> list[str]:
     graph = nx.DiGraph()  # type: ignore
     # Add nodes
     for module in modules:
@@ -44,13 +45,15 @@ def find_cycles(
         for dependency in module.depends_on:
             graph.add_edge(module.path, dependency.path)  # type: ignore
 
-    all_cycles: list[list[str]] = list(nx.simple_cycles(graph))  # type: ignore
+    modules_with_cycles: list[str] = []
+    for module in modules:
+        try:
+            nx.find_cycle(graph, source=module.path)  # type: ignore
+            modules_with_cycles.append(module.path)
+        except NetworkXNoCycle:
+            pass
 
-    canonical_cycles = {tuple(canonical_form(cycle)) for cycle in all_cycles}
-
-    unique_cycles = [list(cycle) for cycle in canonical_cycles]
-
-    return unique_cycles
+    return modules_with_cycles
 
 
 def build_module_tree(
@@ -64,9 +67,9 @@ def build_module_tree(
             f"Failed to build module tree. The following modules were defined more than once: {duplicate_modules}"
         )
     if forbid_circular_dependencies:
-        cycles = find_cycles(modules)
-        if cycles:
-            raise TachCircularDependencyError(cycles)
+        module_paths = find_modules_with_cycles(modules)
+        if module_paths:
+            raise TachCircularDependencyError(module_paths)
     tree = ModuleTree()
     for module in modules:
         tree.insert(

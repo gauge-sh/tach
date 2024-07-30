@@ -187,13 +187,17 @@ def print_generated_module_graph_file(output_filepath: Path) -> None:
     )
 
 
-def print_circular_dependency_error(cycles: list[list[str]]) -> None:
+def print_circular_dependency_error(module_paths: list[str]) -> None:
     print(
-        f"❌ {BCOLORS.FAIL}Circular dependencies detected!\n"
-        + "\n".join(
-            f"{BCOLORS.ENDC}{' -> '.join(cycle)} -> {cycle[0]}" for cycle in cycles
+        "\n".join(
+            [
+                f"❌ {BCOLORS.FAIL}Circular dependency detected: {module_path}"
+                for module_path in module_paths
+            ]
         )
-        + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\nRemove or unset 'forbid_circular_dependencies' from 'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}"
+        + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\n"
+        f"Remove or unset 'forbid_circular_dependencies' from "
+        f"'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}"
     )
 
 
@@ -505,7 +509,7 @@ def tach_check(
                 exit_code = 1
     except Exception as e:
         if isinstance(e, TachCircularDependencyError):
-            print_circular_dependency_error(e.cycles)
+            print_circular_dependency_error(e.module_paths)
         else:
             print(str(e))
         sys.exit(1)
