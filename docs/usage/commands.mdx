@@ -84,7 +84,7 @@ Example:
 
 ```bash
 > tach check
-❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'.
+❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Module 'tach' cannot depend on 'tach.filesystem'.
 ```
 
 NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
@@ -174,7 +174,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
   - repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.9.1 # change this to the latest tag!
+    rev: v0.9.2 # change this to the latest tag!
     hooks:
       - id: tach
 ```
