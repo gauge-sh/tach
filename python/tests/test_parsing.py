@@ -91,10 +91,7 @@ def test_valid_circular_dependencies(example_dir):
 
 def test_cycles_circular_dependencies(example_dir):
     project_config = parse_project_config(example_dir / "cycles")
+    assert project_config
     modules = project_config.modules
-    all_cycles: list[list[str]] = find_modules_with_cycles(modules)
-    tuple_cycles: list[tuple[str]] = [tuple(cycle) for cycle in all_cycles]
-    assert set(tuple_cycles) == {
-        ("domain_one", "domain_two", "domain_three"),
-        ("domain_one", "domain_three"),
-    }
+    module_paths = find_modules_with_cycles(modules)
+    assert set(module_paths) == {"domain_one", "domain_two", "domain_three"}

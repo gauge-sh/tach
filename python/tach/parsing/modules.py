@@ -47,11 +47,17 @@ def find_modules_with_cycles(
 
     modules_with_cycles: list[str] = []
     for module in modules:
+        module_path = module.path
         try:
-            nx.find_cycle(graph, source=module.path)  # type: ignore
-            modules_with_cycles.append(module.path)
+            # Find *any* cycle, starting with module_path
+            cycle: list[tuple[str, str]] = nx.find_cycle(graph, source=module_path)  # type: ignore
+            for edge in cycle:  # type: ignore
+                # Confirm that the cycle includes module_path
+                if module_path in edge:
+                    modules_with_cycles.append(module.path)
+                    break
         except NetworkXNoCycle:
-            pass
+            return []
 
     return modules_with_cycles
 

@@ -117,12 +117,12 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
 
     error_message = (
         f"Cannot import '{error.import_mod_path}'. "
-        f"'{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
+        f"Module '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
     )
 
     warning_message = (
         f"Import '{error.import_mod_path}' is deprecated. "
-        f"'{error_info.source_module}' should not depend on '{error_info.invalid_module}'."
+        f"Module '{error_info.source_module}' should not depend on module '{error_info.invalid_module}'."
     )
     if error_info.is_deprecated:
         return warning_template.format(message=warning_message)
@@ -191,7 +191,7 @@ def print_circular_dependency_error(module_paths: list[str]) -> None:
     print(
         "\n".join(
             [
-                f"❌ {BCOLORS.FAIL}Circular dependency detected: {module_path}"
+                f"❌ {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
                 for module_path in module_paths
             ]
         )

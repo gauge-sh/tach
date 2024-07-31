@@ -2,7 +2,6 @@
 modules:
   - path: domain_one
     depends_on:
-      - path: domain_three
       - path: domain_two
   - path: domain_three
     depends_on:
@@ -10,7 +9,7 @@ modules:
   - path: domain_two
     depends_on:
       - path: domain_three
-  - path: <root>
+  - path: leftover
     depends_on:
       - path: domain_one
 exclude:
@@ -19,4 +18,6 @@ exclude:
   - docs
   - tests
   - venv
+source_roots:
+  - .
 forbid_circular_dependencies: true

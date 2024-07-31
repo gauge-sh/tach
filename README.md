@@ -98,7 +98,7 @@ You can validate that Tach is working by either:
 Give both a try and run `tach check` again. This will generate an error:
 
 ```bash
-❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Tag 'tach' cannot depend on 'tach.filesystem'.
+❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Module 'tach' cannot depend on 'tach.filesystem'.
 ```
 
 Each error indicates an import which violates your dependencies. If your terminal supports hyperlinks, click on the file path to go directly to the error.
