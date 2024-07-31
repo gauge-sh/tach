@@ -122,7 +122,7 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
 
     warning_message = (
         f"Import '{error.import_mod_path}' is deprecated. "
-        f"Module '{error_info.source_module}' should not depend on module '{error_info.invalid_module}'."
+        f"Module '{error_info.source_module}' should not depend on '{error_info.invalid_module}'."
     )
     if error_info.is_deprecated:
         return warning_template.format(message=warning_message)
