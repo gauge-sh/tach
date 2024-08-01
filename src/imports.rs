@@ -266,7 +266,7 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
     }
 }
 
-pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
+fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
     project_root: P,
     source_roots: &[R],
     mod_path: &str,
@@ -299,7 +299,7 @@ pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
     }
 }
 
-fn get_normalized_imports(
+pub fn get_normalized_imports(
     source_roots: &[PathBuf],
     file_path: &PathBuf,
     ignore_type_checking_imports: bool,

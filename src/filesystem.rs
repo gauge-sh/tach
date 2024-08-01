@@ -4,6 +4,7 @@ use std::io;
 use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
+use std::sync::Arc;
 
 use globset::Glob;
 use globset::GlobSetBuilder;
@@ -239,16 +240,31 @@ fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
 }
 
 pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
-    let walker = WalkDir::new(root).into_iter();
-    let prefix_root = String::from(root);
+    let prefix_root = Arc::new(root.to_string());
     let filter_root = prefix_root.clone();
-    walker
+    WalkDir::new(root)
+        .into_iter()
         .filter_entry(move |e| {
             !is_hidden(e) && !direntry_is_excluded(&filter_root, e) && is_pyfile_or_dir(e)
         })
-        .map(|res| res.unwrap().into_path())
-        .filter(|path: &PathBuf| path.is_file()) // filter_entry would skip dirs if they were excluded earlier
-        .map(move |path| path.strip_prefix(&prefix_root).unwrap().to_path_buf())
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
+        .map(move |entry| {
+            entry
+                .path()
+                .strip_prefix(prefix_root.as_str())
+                .unwrap()
+                .to_path_buf()
+        })
+}
+
+pub fn walk_pyprojects(root: &str) -> impl Iterator<Item = PathBuf> {
+    WalkDir::new(root)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file())
+        .filter(|entry| entry.file_name() == "pyproject.toml")
+        .map(|entry| entry.into_path())
 }
 
 pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<Item = PathBuf> {
