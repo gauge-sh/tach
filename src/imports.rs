@@ -26,6 +26,8 @@ pub struct ImportParseError {
     pub message: String,
 }
 
+impl std::error::Error for ImportParseError {}
+
 impl fmt::Display for ImportParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.message)
@@ -39,6 +41,15 @@ pub type Result<T> = std::result::Result<T, ImportParseError>;
 pub struct NormalizedImport {
     pub module_path: String,
     pub line_no: u32,
+}
+
+impl NormalizedImport {
+    pub fn package_name(&self) -> &str {
+        self.module_path
+            .split('.')
+            .next()
+            .expect("Normalized import module path is empty")
+    }
 }
 
 pub type NormalizedImports = Vec<NormalizedImport>;
@@ -266,7 +277,7 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
     }
 }
 
-fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
+pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
     project_root: P,
     source_roots: &[R],
     mod_path: &str,

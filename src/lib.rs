@@ -41,6 +41,16 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
+impl From<check::CheckError> for PyErr {
+    fn from(err: check::CheckError) -> Self {
+        match err {
+            check::CheckError::Parse(err) => PyOSError::new_err(err.to_string()),
+            check::CheckError::ImportParse(err) => err.into(),
+            check::CheckError::Io(err) => PyOSError::new_err(err.to_string()),
+        }
+    }
+}
+
 /// Get first-party imports from file_path relative to project_root
 #[pyfunction]
 #[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
@@ -71,12 +81,17 @@ fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
 }
 
 /// Validate external dependency imports against pyproject.toml dependencies
-// #[pyfunction]
-// #[pyo3(signature = (project_root))]
-// fn check_external_dependencies(project_root: String) {
-//     let project_root = PathBuf::from(project_root);
-//     check::check_external_dependencies(&project_root)
-// }
+#[pyfunction]
+#[pyo3(signature = (project_root, source_roots, ignore_type_checking_imports=false))]
+fn check_external_dependencies(
+    project_root: String,
+    source_roots: Vec<String>,
+    ignore_type_checking_imports: bool,
+) -> check::Result<check::ExternalCheckDiagnostics> {
+    let project_root = PathBuf::from(project_root);
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    check::check_external_dependencies(&project_root, &source_roots, ignore_type_checking_imports)
+}
 
 /// Create a report of dependencies and usages of a given path
 #[pyfunction]
@@ -153,6 +168,7 @@ fn update_computation_cache(
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(set_excluded_paths, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(check_external_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_dependency_report, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_computation_cache_key, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_computation_cache, m)?)?;

@@ -556,9 +556,11 @@ def tach_check_external(project_root: Path):
             print_no_config_yml()
             sys.exit(1)
 
-        check_external(
-            project_root=project_root,
-            project_config=project_config,
+        print(
+            check_external(
+                project_root=project_root,
+                project_config=project_config,
+            )
         )
     except Exception as e:
         print(str(e))

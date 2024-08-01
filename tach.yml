@@ -20,7 +20,8 @@ modules:
       - path: tach.parsing
     strict: true
   - path: tach.check_external
-    depends_on: []
+    depends_on:
+      - path: tach.extension
   - path: tach.cli
     depends_on:
       - path: tach

@@ -103,7 +103,7 @@ fn extract_deps_from_value(dependencies: &mut HashSet<String>, deps: &Value) {
 fn extract_package_name(dep_str: &str) -> String {
     // Split on common separators and take the first part
     dep_str
-        .split(|c| c == ' ' || c == '=' || c == '<' || c == '>' || c == ';')
+        .split(|c| c == ' ' || c == '=' || c == '<' || c == '>' || c == '~' || c == ';')
         .next()
         .unwrap_or(dep_str)
         .to_string()
@@ -132,6 +132,13 @@ pub fn extract_source_paths(toml_value: &Value, project_root: &Path) -> Vec<Path
                     source_paths.push(project_root.join(from).join(include));
                 }
             }
+        }
+    }
+
+    // Check for maturin configuration
+    if let Some(maturin) = toml_value.get("tool").and_then(|t| t.get("maturin")) {
+        if let Some(python_source) = maturin.get("python-source").and_then(|ps| ps.as_str()) {
+            source_paths.push(project_root.join(python_source));
         }
     }
 
