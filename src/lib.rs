@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod check;
 pub mod cli;
 pub mod colors;
 pub mod exclusion;
@@ -67,6 +68,14 @@ fn get_project_imports(
 #[pyo3(signature = (exclude_paths))]
 fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
     exclusion::set_excluded_paths(exclude_paths)
+}
+
+/// Validate external dependency imports against pyproject.toml dependencies
+#[pyfunction]
+#[pyo3(signature = (project_root))]
+fn check_external_dependencies(project_root: String) {
+    let project_root = PathBuf::from(project_root);
+    check::check_external_dependencies(&project_root)
 }
 
 /// Create a report of dependencies and usages of a given path

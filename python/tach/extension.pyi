@@ -5,6 +5,9 @@ def get_project_imports(
     ignore_type_checking_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def set_excluded_paths(exclude_paths: list[str]) -> None: ...
+def check_external_dependencies(
+    project_root: str,
+) -> tuple[list[str], list[str]]: ...
 def create_dependency_report(
     project_root: str,
     source_roots: list[str],
