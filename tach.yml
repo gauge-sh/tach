@@ -19,11 +19,14 @@ modules:
       - path: tach.filesystem
       - path: tach.parsing
     strict: true
+  - path: tach.check_external
+    depends_on: []
   - path: tach.cli
     depends_on:
       - path: tach
       - path: tach.cache
       - path: tach.check
+      - path: tach.check_external
       - path: tach.colors
       - path: tach.constants
       - path: tach.core

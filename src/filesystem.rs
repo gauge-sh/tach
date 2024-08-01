@@ -213,31 +213,6 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
-    project_root: P,
-    source_roots: &[R],
-    mod_path: &str,
-) -> Result<bool> {
-    let resolved_module = module_to_file_path(source_roots, mod_path);
-    if let Some(module) = resolved_module {
-        // This appears to be a project import, verify it is not excluded
-        return match is_path_excluded(
-            relative_to(module.file_path.as_path(), project_root.as_ref())?
-                .to_str()
-                .unwrap(),
-        ) {
-            Ok(true) => Ok(false),
-            Ok(false) => Ok(true),
-            Err(_) => Err(FileSystemError {
-                message: "Failed to check if path is excluded".to_string(),
-            }),
-        };
-    } else {
-        // This is not a project import
-        Ok(false)
-    }
-}
-
 fn is_hidden(entry: &DirEntry) -> bool {
     entry
         .file_name()

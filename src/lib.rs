@@ -1,5 +1,4 @@
 pub mod cache;
-pub mod check;
 pub mod cli;
 pub mod colors;
 pub mod exclusion;
@@ -49,7 +48,7 @@ fn get_project_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> imports::Result<imports::ProjectImports> {
+) -> imports::Result<imports::NormalizedImports> {
     let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
@@ -71,12 +70,12 @@ fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
 }
 
 /// Validate external dependency imports against pyproject.toml dependencies
-#[pyfunction]
-#[pyo3(signature = (project_root))]
-fn check_external_dependencies(project_root: String) {
-    let project_root = PathBuf::from(project_root);
-    check::check_external_dependencies(&project_root)
-}
+// #[pyfunction]
+// #[pyo3(signature = (project_root))]
+// fn check_external_dependencies(project_root: String) {
+//     let project_root = PathBuf::from(project_root);
+//     check::check_external_dependencies(&project_root)
+// }
 
 /// Create a report of dependencies and usages of a given path
 #[pyfunction]
