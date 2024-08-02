@@ -106,11 +106,13 @@ def check_external(
         ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
 
+    excluded_external_modules = set(project_config.external.exclude)
     errors: list[str] = []
     for filepath, undeclared_dependencies in diagnostics.items():
         filtered_undeclared_dependencies = set(
             filter(
-                lambda dependency: not is_stdlib_module(dependency),
+                lambda dependency: not is_stdlib_module(dependency)
+                and dependency not in excluded_external_modules,
                 undeclared_dependencies,
             )
         )

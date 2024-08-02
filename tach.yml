@@ -132,6 +132,9 @@ cache:
   file_dependencies:
     - python/tests/**
     - src/*.rs
+external:
+  exclude:
+    - pytest
 exclude:
   - .*__pycache__
   - build/
