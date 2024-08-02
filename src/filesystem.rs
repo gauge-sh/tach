@@ -4,7 +4,6 @@ use std::io;
 use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
-use std::sync::Arc;
 
 use globset::Glob;
 use globset::GlobSetBuilder;
@@ -222,11 +221,8 @@ fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-fn direntry_is_excluded(root: &str, entry: &DirEntry) -> bool {
-    let path = entry.path();
-    // TODO: too much unwrapping
-    let adjusted_path = relative_to(path.to_str().unwrap(), root).unwrap();
-    is_path_excluded(adjusted_path.to_str().unwrap()).unwrap_or(false)
+fn direntry_is_excluded(entry: &DirEntry) -> bool {
+    is_path_excluded(entry.path().to_str().unwrap()).unwrap_or(false)
 }
 
 fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
@@ -240,13 +236,10 @@ fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
 }
 
 pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
-    let prefix_root = Arc::new(root.to_string());
-    let filter_root = prefix_root.clone();
+    let prefix_root = root.to_string();
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(move |e| {
-            !is_hidden(e) && !direntry_is_excluded(&filter_root, e) && is_pyfile_or_dir(e)
-        })
+        .filter_entry(move |e| !is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
         .map(move |entry| {

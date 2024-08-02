@@ -35,7 +35,9 @@ def report(
         exclude_paths = project_config.exclude
 
     # This informs the Rust extension ahead-of-time which paths are excluded.
-    set_excluded_paths(exclude_paths=exclude_paths or [])
+    set_excluded_paths(
+        project_root=str(project_root), exclude_paths=exclude_paths or []
+    )
 
     return create_dependency_report(
         project_root=str(project_root),

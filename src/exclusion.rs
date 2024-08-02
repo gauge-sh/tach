@@ -1,6 +1,9 @@
 use once_cell::sync::Lazy;
 use regex::{Error, Regex};
-use std::sync::Mutex;
+use std::{
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 pub struct PathExclusionError {
     pub message: String,
@@ -24,10 +27,14 @@ pub struct PathExclusions {
 static PATH_EXCLUSIONS_SINGLETON: Lazy<Mutex<Option<PathExclusions>>> =
     Lazy::new(|| Mutex::new(None));
 
-pub fn set_excluded_paths(exclude_paths: Vec<String>) -> Result<()> {
+pub fn set_excluded_paths(project_root: &Path, exclude_paths: &[PathBuf]) -> Result<()> {
     match PATH_EXCLUSIONS_SINGLETON.lock() {
         Ok(mut exclusions) => {
-            let _ = exclusions.insert(PathExclusions::try_from(exclude_paths)?);
+            let absolute_excluded_paths: Vec<PathBuf> = exclude_paths
+                .iter()
+                .map(|path| project_root.join(path))
+                .collect();
+            let _ = exclusions.insert(PathExclusions::try_from(absolute_excluded_paths)?);
             Ok(())
         }
         Err(_) => Err(PathExclusionError {
@@ -47,12 +54,12 @@ impl PathExclusions {
     }
 }
 
-impl TryFrom<Vec<String>> for PathExclusions {
+impl TryFrom<Vec<PathBuf>> for PathExclusions {
     type Error = PathExclusionError;
-    fn try_from(value: Vec<String>) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: Vec<PathBuf>) -> std::result::Result<Self, Self::Error> {
         let mut regexes: Vec<Regex> = vec![];
         for pattern in value.iter() {
-            regexes.push(Regex::new(pattern.as_str())?);
+            regexes.push(Regex::new(pattern.to_str().unwrap())?);
         }
         Ok(Self { regexes })
     }

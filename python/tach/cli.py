@@ -556,12 +556,16 @@ def tach_check_external(project_root: Path):
             print_no_config_yml()
             sys.exit(1)
 
-        print(
-            check_external(
-                project_root=project_root,
-                project_config=project_config,
-            )
+        result = check_external(
+            project_root=project_root,
+            project_config=project_config,
         )
+
+        if result.errors:
+            for error in result.errors:
+                print(f"{BCOLORS.FAIL}{error}{BCOLORS.ENDC}")
+            sys.exit(1)
+
     except Exception as e:
         print(str(e))
         sys.exit(1)

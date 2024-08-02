@@ -75,9 +75,11 @@ fn get_project_imports(
 /// This is called separately in order to set up a singleton instance holding regexes,
 /// since they would be expensive to build for every call.
 #[pyfunction]
-#[pyo3(signature = (exclude_paths))]
-fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
-    exclusion::set_excluded_paths(exclude_paths)
+#[pyo3(signature = (project_root, exclude_paths))]
+fn set_excluded_paths(project_root: String, exclude_paths: Vec<String>) -> exclusion::Result<()> {
+    let project_root = PathBuf::from(project_root);
+    let exclude_paths: Vec<PathBuf> = exclude_paths.iter().map(PathBuf::from).collect();
+    exclusion::set_excluded_paths(&project_root, &exclude_paths)
 }
 
 /// Validate external dependency imports against pyproject.toml dependencies
