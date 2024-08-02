@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
+use crate::filesystem::relative_to;
 use crate::parsing::normalize_package_name;
 use crate::{filesystem, imports, parsing};
 
@@ -15,6 +16,8 @@ pub enum CheckError {
     ImportParse(#[from] imports::ImportParseError),
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
+    #[error("Filesystem error: {0}")]
+    Filesystem(#[from] filesystem::FileSystemError),
 }
 
 pub type Result<T> = std::result::Result<T, CheckError>;
@@ -33,9 +36,13 @@ pub fn check_external_dependencies(
         for source_root in &project_info.source_paths {
             let source_files = filesystem::walk_pyfiles(source_root.to_str().unwrap());
             for file_path in source_files {
+                let absolute_file_path = source_root.join(&file_path);
+                let display_file_path = relative_to(&absolute_file_path, project_root)?
+                    .to_string_lossy()
+                    .to_string();
                 if let Ok(imports) = imports::get_normalized_imports(
                     source_roots,
-                    &source_root.join(&file_path),
+                    &absolute_file_path,
                     ignore_type_checking_imports,
                 ) {
                     for import in imports {
@@ -55,9 +62,8 @@ pub fn check_external_dependencies(
                             .iter()
                             .all(|dist_name| !project_info.dependencies.contains(dist_name))
                         {
-                            let diagnostic = diagnostics
-                                .entry(file_path.to_string_lossy().to_string())
-                                .or_default();
+                            let diagnostic =
+                                diagnostics.entry(display_file_path.clone()).or_default();
                             diagnostic.push(import.top_level_module_name().to_string());
                         }
                     }

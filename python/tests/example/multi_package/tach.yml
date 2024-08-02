@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.9.2/public/tach-yml-schema.json
+modules:
+  - path: myorg.pack_a
+    depends_on: []
+  - path: myorg.pack_b
+    depends_on: []
+  - path: myorg.pack_c
+    depends_on: []
+  - path: myorg.pack_d
+    depends_on: []
+  - path: myorg.pack_e
+    depends_on: []
+  - path: myorg.pack_f
+    depends_on: []
+  - path: myorg.pack_g
+    depends_on: []
+exclude:
+  - .*__pycache__
+  - .*egg-info
+  - docs
+  - tests
+  - venv
+source_roots:
+  - src/pack-a/src
+  - src/pack-b/src
+  - src/pack-c/src
+  - src/pack-d/src
+  - src/pack-e/src
+  - src/pack-f/src
+  - src/pack-g/src
+disable_logging: true

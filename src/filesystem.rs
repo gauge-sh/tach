@@ -16,6 +16,8 @@ pub struct FileSystemError {
     pub message: String,
 }
 
+impl std::error::Error for FileSystemError {}
+
 impl fmt::Display for FileSystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.message)
@@ -40,7 +42,7 @@ impl From<StripPrefixError> for FileSystemError {
 
 pub type Result<T> = std::result::Result<T, FileSystemError>;
 
-pub fn relative_to<P: AsRef<Path>>(path: P, root: P) -> Result<PathBuf> {
+pub fn relative_to<P: AsRef<Path>, R: AsRef<Path>>(path: P, root: R) -> Result<PathBuf> {
     let diff_path = path.as_ref().strip_prefix(root)?;
     Ok(diff_path.to_owned())
 }
@@ -277,7 +279,7 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
         .filter(move |path| {
             path.is_file()
                 && glob_set.is_match(
-                    relative_to(path, &PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
+                    relative_to(path, PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
                 )
         })
 }

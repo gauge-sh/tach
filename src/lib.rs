@@ -48,6 +48,7 @@ impl From<check::CheckError> for PyErr {
             check::CheckError::Parse(err) => PyOSError::new_err(err.to_string()),
             check::CheckError::ImportParse(err) => err.into(),
             check::CheckError::Io(err) => PyOSError::new_err(err.to_string()),
+            check::CheckError::Filesystem(err) => PyOSError::new_err(err.to_string()),
         }
     }
 }

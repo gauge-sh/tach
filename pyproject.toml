@@ -111,6 +111,10 @@ executionEnvironments = [
 ]
 pythonVersion = "3.8"
 
+
+[tool.pytest.ini_options]
+norecursedirs = "python/tests/example"
+
 [build-system]
 requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
