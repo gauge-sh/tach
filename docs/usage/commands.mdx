@@ -177,6 +177,8 @@ Although your local environment may contain the dependencies for all your packag
 
 This means that, although tests may pass in your shared environment, an invalid import can still cause errors at runtime for your users.
 
+<Note>It is recommended to run Tach within a virtual environment containing all of your dependencies across all packages. This is because Tach uses the distribution metadata to map module names like 'git' to their distributions ('GitPython').</Note>
+
 ```bash
 usage: tach check-external [-h]
 
