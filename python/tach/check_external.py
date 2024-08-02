@@ -22,6 +22,7 @@ def is_stdlib_module(module: str) -> bool:
             return True
         if module in sys.stdlib_module_names:
             return True
+        return False
     else:
         from stdlib_list import in_stdlib  # type: ignore
 
