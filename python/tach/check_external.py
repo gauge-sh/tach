@@ -70,12 +70,12 @@ def get_module_mappings() -> dict[str, list[str]]:
     if sys.version_info >= (3, 10):
         from importlib.metadata import packages_distributions
 
-        return packages_distributions()
+        return packages_distributions()  # type: ignore
     else:
         if sys.version_info >= (3, 8):  # noqa: UP036
             from importlib.metadata import distributions
         else:
-            from importlib_metadata import distributions
+            from importlib_metadata import distributions  # type: ignore
 
         return {
             dist.metadata["Name"]: get_installed_modules(dist)
