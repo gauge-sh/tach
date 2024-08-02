@@ -202,6 +202,21 @@ def print_circular_dependency_error(module_paths: list[str]) -> None:
     )
 
 
+def print_undeclared_dependencies(
+    undeclared_dependencies: dict[str, list[str]],
+) -> None:
+    for file_path, dependencies in undeclared_dependencies.items():
+        print(
+            f"❌ {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
+        )
+        for dependency in dependencies:
+            print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
+    print(
+        f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
+        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in tach.yml.\n{BCOLORS.ENDC}"
+    )
+
+
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-e",
@@ -561,9 +576,8 @@ def tach_check_external(project_root: Path):
             project_config=project_config,
         )
 
-        if result.errors:
-            for error in result.errors:
-                print(f"{BCOLORS.FAIL}{error}{BCOLORS.ENDC}")
+        if result.undeclared_dependencies:
+            print_undeclared_dependencies(result.undeclared_dependencies)
             sys.exit(1)
 
     except Exception as e:

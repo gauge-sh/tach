@@ -85,7 +85,7 @@ def get_module_mappings() -> dict[str, list[str]]:
 
 @dataclass
 class ExternalCheckDiagnosticts:
-    errors: list[str]
+    undeclared_dependencies: dict[str, list[str]]
 
 
 def check_external(
@@ -107,7 +107,7 @@ def check_external(
     )
 
     excluded_external_modules = set(project_config.external.exclude)
-    errors: list[str] = []
+    all_undeclared_dependencies: dict[str, list[str]] = {}
     for filepath, undeclared_dependencies in diagnostics.items():
         filtered_undeclared_dependencies = set(
             filter(
@@ -117,8 +117,10 @@ def check_external(
             )
         )
         if filtered_undeclared_dependencies:
-            errors.append(
-                f"File '{filepath}' has undeclared dependencies: {', '.join(filtered_undeclared_dependencies)}"
+            all_undeclared_dependencies[filepath] = list(
+                filtered_undeclared_dependencies
             )
 
-    return ExternalCheckDiagnosticts(errors=errors)
+    return ExternalCheckDiagnosticts(
+        undeclared_dependencies=all_undeclared_dependencies
+    )
