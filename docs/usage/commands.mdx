@@ -163,6 +163,31 @@ Using `pytest`, running `tach test` will perform [impact analysis](https://marti
 This can dramatically speed up your test suite in CI, particularly when you make a small change to a large codebase.
 This command also takes advantage of Tach's [computation cache](caching).
 
+
+
+## tach check-external
+
+Tach can validate that the external imports in your Python packages match your declared package dependencies in `pyproject.toml`.
+
+For each `pyproject.toml` found from the project root, Tach will scan all imports in the associated Python source and compare them with the declared dependencies.
+Tach will report an error for any external import which is not satisfied by the declared dependencies - preventing your users from errors due to missing imports.
+
+This is typically useful if you are developing more than one Python package from a single virtual environment.
+Although your local environment may contain the dependencies for all your packages, when an end-user installs each package they will only install the dependencies listed in the `pyproject.toml`.
+
+This means that, although tests may pass in your shared environment, an invalid import can still cause errors at runtime for your users.
+
+```bash
+usage: tach check-external [-h]
+
+Perform checks related to third-party dependencies
+
+options:
+  -h, --help  show this help message and exit
+```
+
+
+
 ## tach install
 
 Tach can be installed into your development workflow automatically as a pre-commit hook.
