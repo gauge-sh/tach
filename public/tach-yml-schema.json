@@ -73,6 +73,18 @@
         }
       }
     },
+    "external": {
+      "type": "object",
+      "properties": {
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of paths to exclude while checking external dependencies"
+        }
+      }
+    },
     "exclude": {
       "type": "array",
       "items": {
