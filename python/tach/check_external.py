@@ -12,9 +12,14 @@ if TYPE_CHECKING:
     from tach.core.config import ProjectConfig
 
 
+KNOWN_MODULE_SPECIAL_CASES = {
+    "__future__",
+    "typing_extensions",
+}
+
+
 def is_stdlib_module(module: str) -> bool:
-    # Check for __future__
-    if module == "__future__":
+    if module in KNOWN_MODULE_SPECIAL_CASES:
         return True
 
     if sys.version_info >= (3, 10):
@@ -27,6 +32,16 @@ def is_stdlib_module(module: str) -> bool:
         from stdlib_list import in_stdlib  # type: ignore
 
         return in_stdlib(module)  # type: ignore
+
+
+def get_module_mappings() -> dict[str, list[str]]:
+    if sys.version_info >= (3, 10):
+        from importlib.metadata import packages_distributions
+
+        return packages_distributions()
+    else:
+        # TODO
+        return {}
 
 
 @dataclass
@@ -44,9 +59,11 @@ def check_external(
         set_excluded_paths(
             project_root=str(project_root), exclude_paths=project_config.exclude
         )
+
     diagnostics = check_external_dependencies(
         project_root=str(project_root),
         source_roots=serialized_source_roots,
+        module_mappings=get_module_mappings(),
         ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
 

@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
+use crate::parsing::normalize_package_name;
 use crate::{filesystem, imports, parsing};
 
 #[derive(Error, Debug)]
@@ -23,6 +24,7 @@ pub type ExternalCheckDiagnostics = HashMap<String, Vec<String>>;
 pub fn check_external_dependencies(
     project_root: &Path,
     source_roots: &[PathBuf],
+    module_mappings: &HashMap<String, Vec<String>>,
     ignore_type_checking_imports: bool,
 ) -> Result<ExternalCheckDiagnostics> {
     let mut diagnostics: ExternalCheckDiagnostics = HashMap::new();
@@ -37,16 +39,26 @@ pub fn check_external_dependencies(
                     ignore_type_checking_imports,
                 ) {
                     for import in imports {
+                        let top_level_module_name = import.top_level_module_name();
+                        let default_distribution_names = vec![top_level_module_name.to_string()];
+                        let distribution_names: Vec<String> = module_mappings
+                            .get(top_level_module_name)
+                            .unwrap_or(&default_distribution_names)
+                            .iter()
+                            .map(|dist_name| normalize_package_name(dist_name))
+                            .collect();
                         if !imports::is_project_import(
                             project_root,
                             source_roots,
                             &import.module_path,
-                        )? && !project_info.dependencies.contains(import.package_name())
+                        )? && distribution_names
+                            .iter()
+                            .all(|dist_name| !project_info.dependencies.contains(dist_name))
                         {
                             let diagnostic = diagnostics
                                 .entry(file_path.to_string_lossy().to_string())
                                 .or_default();
-                            diagnostic.push(import.package_name().to_string());
+                            diagnostic.push(import.top_level_module_name().to_string());
                         }
                     }
                 }

@@ -87,13 +87,13 @@ fn extract_deps_from_value(dependencies: &mut HashSet<String>, deps: &Value) {
         Value::Array(deps_array) => {
             for dep in deps_array {
                 if let Some(dep_str) = dep.as_str() {
-                    dependencies.insert(extract_package_name(dep_str));
+                    dependencies.insert(normalize_package_name(&extract_package_name(dep_str)));
                 }
             }
         }
         Value::Table(deps_table) => {
             for dep_name in deps_table.keys() {
-                dependencies.insert(dep_name.clone());
+                dependencies.insert(normalize_package_name(dep_name));
             }
         }
         _ => {}
@@ -107,6 +107,17 @@ fn extract_package_name(dep_str: &str) -> String {
         .next()
         .unwrap_or(dep_str)
         .to_string()
+}
+
+/// This normalizes a Python distribution name according to PyPI standards
+pub fn normalize_package_name(name: &str) -> String {
+    let lowercase = name.to_lowercase();
+    let normalized = lowercase
+        .split(|c: char| c.is_whitespace() || c == '-' || c == '_')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<&str>>()
+        .join("_");
+    normalized
 }
 
 pub fn extract_source_paths(toml_value: &Value, project_root: &Path) -> Vec<PathBuf> {

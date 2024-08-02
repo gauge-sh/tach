@@ -8,6 +8,7 @@ pub mod imports;
 pub mod parsing;
 pub mod reports;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use cache::ComputationCacheValue;
@@ -84,15 +85,21 @@ fn set_excluded_paths(project_root: String, exclude_paths: Vec<String>) -> exclu
 
 /// Validate external dependency imports against pyproject.toml dependencies
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, source_roots, module_mappings, ignore_type_checking_imports=false))]
 fn check_external_dependencies(
     project_root: String,
     source_roots: Vec<String>,
+    module_mappings: HashMap<String, Vec<String>>,
     ignore_type_checking_imports: bool,
 ) -> check::Result<check::ExternalCheckDiagnostics> {
     let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    check::check_external_dependencies(&project_root, &source_roots, ignore_type_checking_imports)
+    check::check_external_dependencies(
+        &project_root,
+        &source_roots,
+        &module_mappings,
+        ignore_type_checking_imports,
+    )
 }
 
 /// Create a report of dependencies and usages of a given path

@@ -8,6 +8,7 @@ def set_excluded_paths(project_root: str, exclude_paths: list[str]) -> None: ...
 def check_external_dependencies(
     project_root: str,
     source_roots: list[str],
+    module_mappings: dict[str, list[str]],
     ignore_type_checking_imports: bool,
 ) -> dict[str, list[str]]: ...
 def create_dependency_report(

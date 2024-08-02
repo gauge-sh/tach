@@ -44,7 +44,7 @@ pub struct NormalizedImport {
 }
 
 impl NormalizedImport {
-    pub fn package_name(&self) -> &str {
+    pub fn top_level_module_name(&self) -> &str {
         self.module_path
             .split('.')
             .next()
