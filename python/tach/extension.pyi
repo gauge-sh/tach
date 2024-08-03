@@ -4,6 +4,17 @@ def get_project_imports(
     file_path: str,
     ignore_type_checking_imports: bool,
 ) -> list[tuple[str, int]]: ...
+def get_external_imports(
+    project_root: str,
+    source_roots: list[str],
+    file_path: str,
+    ignore_type_checking_imports: bool,
+) -> list[tuple[str, int]]: ...
+def get_normalized_imports(
+    source_roots: list[str],
+    file_path: str,
+    ignore_type_checking_imports: bool,
+) -> list[tuple[str, int]]: ...
 def set_excluded_paths(project_root: str, exclude_paths: list[str]) -> None: ...
 def check_external_dependencies(
     project_root: str,

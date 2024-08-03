@@ -64,8 +64,8 @@ fn compare_dependencies(left: &Dependency, right: &Dependency) -> Ordering {
 
 struct DependencyReport {
     path: String,
-    pub external_dependencies: Vec<Dependency>,
-    pub external_usages: Vec<Dependency>,
+    pub dependencies: Vec<Dependency>,
+    pub usages: Vec<Dependency>,
     pub warnings: Vec<String>,
 }
 
@@ -73,8 +73,8 @@ impl DependencyReport {
     fn new(path: String) -> Self {
         DependencyReport {
             path,
-            external_dependencies: vec![],
-            external_usages: vec![],
+            dependencies: vec![],
+            usages: vec![],
             warnings: vec![],
         }
     }
@@ -103,13 +103,12 @@ impl DependencyReport {
         );
 
         if !skip_dependencies {
-            let external_deps_title =
-                format!("Dependencies of '{path}'", path = self.path.as_str());
-            self.external_dependencies.sort_by(compare_dependencies);
-            let deps_display: String = match self.external_dependencies.len() {
+            let deps_title = format!("Dependencies of '{path}'", path = self.path.as_str());
+            self.dependencies.sort_by(compare_dependencies);
+            let deps_display: String = match self.dependencies.len() {
                 0 => "No dependencies found.".to_string(),
                 _ => self
-                    .external_dependencies
+                    .dependencies
                     .iter()
                     .map(|dep| self.render_dependency(dep))
                     .collect::<Vec<String>>()
@@ -120,7 +119,7 @@ impl DependencyReport {
                 "[ {deps_title} ]\n\
                 {cyan}{deps}{end_color}\n\
                 -------------------------------\n",
-                deps_title = external_deps_title,
+                deps_title = deps_title,
                 deps = deps_display,
                 cyan = BColors::OKCYAN,
                 end_color = BColors::ENDC,
@@ -128,12 +127,12 @@ impl DependencyReport {
         }
 
         if !skip_usages {
-            let external_usages_title = format!("Usages of '{path}'", path = self.path.as_str());
-            self.external_usages.sort_by(compare_dependencies);
-            let usages_display: String = match self.external_usages.len() {
+            let usages_title = format!("Usages of '{path}'", path = self.path.as_str());
+            self.usages.sort_by(compare_dependencies);
+            let usages_display: String = match self.usages.len() {
                 0 => "No usages found.".to_string(),
                 _ => self
-                    .external_usages
+                    .usages
                     .iter()
                     .map(|dep| self.render_dependency(dep))
                     .collect::<Vec<String>>()
@@ -144,7 +143,7 @@ impl DependencyReport {
                 "[ {usages_title} ]\n\
                 {cyan}{usages}{end_color}\n\
                 -------------------------------\n",
-                usages_title = external_usages_title,
+                usages_title = usages_title,
                 usages = usages_display,
                 cyan = BColors::OKCYAN,
                 end_color = BColors::ENDC,
@@ -180,16 +179,15 @@ pub fn create_dependency_report(
             message: "Nothing to report when skipping dependencies and usages.".to_string(),
         });
     }
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    let absolute_path = PathBuf::from(&project_root).join(fs::canonicalize(path)?);
-    let module_path = file_to_module_path(&source_roots, &absolute_path)?;
-    let mut result = DependencyReport::new(path.to_string_lossy().to_string()); // TODO: clone shouldnt be necessary
+    let absolute_path = fs::canonicalize(path)?;
+    let module_path = file_to_module_path(source_roots, &absolute_path)?;
+    let mut report = DependencyReport::new(path.to_string_lossy().to_string());
 
     for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
         let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
         match get_project_imports(
             project_root,
-            &source_roots,
+            source_roots,
             &absolute_pyfile,
             ignore_type_checking_imports,
         ) {
@@ -198,7 +196,7 @@ pub fn create_dependency_report(
                 if pyfile_in_target_module && !skip_dependencies {
                     // Any import from within the target module which points to an external mod_path
                     // is an external dependency
-                    result.external_dependencies.extend(
+                    report.dependencies.extend(
                         project_imports
                             .into_iter()
                             .filter(|import| {
@@ -236,7 +234,7 @@ pub fn create_dependency_report(
                             continue;
                         }
 
-                        let pyfile_mod_path = file_to_module_path(&source_roots, &absolute_pyfile);
+                        let pyfile_mod_path = file_to_module_path(source_roots, &absolute_pyfile);
                         if pyfile_mod_path.is_err() {
                             // the current file doesn't belong to the source root
                             continue;
@@ -249,7 +247,7 @@ pub fn create_dependency_report(
                                     included_modules.contains(&pyfile_mod_path.unwrap())
                                 })
                         {
-                            result.external_usages.push(Dependency {
+                            report.usages.push(Dependency {
                                 file_path: pyfile.clone(),
                                 absolute_path: absolute_pyfile.clone(),
                                 import,
@@ -260,9 +258,9 @@ pub fn create_dependency_report(
             }
             Err(err) => {
                 // Failed to parse project imports
-                result.warnings.push(err.message);
+                report.warnings.push(err.message);
             }
         }
     }
-    Ok(result.render_to_string(skip_dependencies, skip_usages))
+    Ok(report.render_to_string(skip_dependencies, skip_usages))
 }

@@ -53,6 +53,18 @@ impl From<check::CheckError> for PyErr {
     }
 }
 
+#[pyfunction]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
+fn get_normalized_imports(
+    source_roots: Vec<String>,
+    file_path: String,
+    ignore_type_checking_imports: bool,
+) -> imports::Result<imports::NormalizedImports> {
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    let file_path = PathBuf::from(file_path);
+    imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)
+}
+
 /// Get first-party imports from file_path relative to project_root
 #[pyfunction]
 #[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
@@ -70,6 +82,35 @@ fn get_project_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
+    )
+}
+
+/// Get first-party imports from file_path relative to project_root
+#[pyfunction]
+#[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
+fn get_external_imports(
+    project_root: String,
+    source_roots: Vec<String>,
+    file_path: String,
+    ignore_type_checking_imports: bool,
+) -> imports::Result<imports::NormalizedImports> {
+    let project_root = PathBuf::from(project_root);
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    let file_path = PathBuf::from(file_path);
+    Ok(
+        imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)?
+            .into_iter()
+            .filter_map(|import| {
+                imports::is_project_import(&project_root, &source_roots, &import.module_path)
+                    .map_or(None, |is_project_import| {
+                        if is_project_import {
+                            None
+                        } else {
+                            Some(import)
+                        }
+                    })
+            })
+            .collect(),
     )
 }
 
@@ -177,6 +218,8 @@ fn update_computation_cache(
 #[pymodule]
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(get_normalized_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(set_excluded_paths, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_external_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_dependency_report, m)?)?;
