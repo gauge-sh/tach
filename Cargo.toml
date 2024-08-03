@@ -19,6 +19,7 @@ ruff_source_file = { git = "https://github.com/astral-sh/ruff.git", tag = "v0.4.
 cached = { version = "0.53.1", features = ["disk_store"] }
 globset = "0.4.14"
 toml = "0.8.16"
+thiserror = "1.0.63"
 
 [features]
 extension-module = ["pyo3/extension-module"]

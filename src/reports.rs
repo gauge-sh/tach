@@ -8,12 +8,12 @@ use crate::colors::*;
 
 use crate::cli::create_clickable_link;
 use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
-use crate::imports::{get_project_imports, ImportParseError, ProjectImport};
+use crate::imports::{get_project_imports, ImportParseError, NormalizedImport};
 
 struct Dependency {
     file_path: PathBuf,
     absolute_path: PathBuf,
-    import: ProjectImport,
+    import: NormalizedImport,
 }
 
 #[derive(Debug)]
@@ -90,7 +90,7 @@ impl DependencyReport {
             green = BColors::OKGREEN,
             clickable_link = clickable_link,
             end_color = BColors::ENDC,
-            import_mod_path = dependency.import.mod_path
+            import_mod_path = dependency.import.module_path
         )
     }
 
@@ -202,7 +202,7 @@ pub fn create_dependency_report(
                         project_imports
                             .into_iter()
                             .filter(|import| {
-                                if import.mod_path.starts_with(&module_path) {
+                                if import.module_path.starts_with(&module_path) {
                                     // this is an internal import
                                     return false;
                                 }
@@ -213,7 +213,7 @@ pub fn create_dependency_report(
                                     None => true,
                                     Some(ref included_modules) => {
                                         for module_path in included_modules {
-                                            if import.mod_path.starts_with(module_path) {
+                                            if import.module_path.starts_with(module_path) {
                                                 return true;
                                             }
                                         }
@@ -231,7 +231,7 @@ pub fn create_dependency_report(
                     // We are looking at imports from outside the target module,
                     // so any import which points to the target module is an external usage
                     for import in project_imports {
-                        if !import.mod_path.starts_with(&module_path) {
+                        if !import.module_path.starts_with(&module_path) {
                             // this import doesn't point to the target module
                             continue;
                         }

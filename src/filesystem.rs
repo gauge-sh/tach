@@ -16,6 +16,8 @@ pub struct FileSystemError {
     pub message: String,
 }
 
+impl std::error::Error for FileSystemError {}
+
 impl fmt::Display for FileSystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.message)
@@ -40,7 +42,7 @@ impl From<StripPrefixError> for FileSystemError {
 
 pub type Result<T> = std::result::Result<T, FileSystemError>;
 
-pub fn relative_to<P: AsRef<Path>>(path: P, root: P) -> Result<PathBuf> {
+pub fn relative_to<P: AsRef<Path>, R: AsRef<Path>>(path: P, root: R) -> Result<PathBuf> {
     let diff_path = path.as_ref().strip_prefix(root)?;
     Ok(diff_path.to_owned())
 }
@@ -213,31 +215,6 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
-    project_root: P,
-    source_roots: &[R],
-    mod_path: &str,
-) -> Result<bool> {
-    let resolved_module = module_to_file_path(source_roots, mod_path);
-    if let Some(module) = resolved_module {
-        // This appears to be a project import, verify it is not excluded
-        return match is_path_excluded(
-            relative_to(module.file_path.as_path(), project_root.as_ref())?
-                .to_str()
-                .unwrap(),
-        ) {
-            Ok(true) => Ok(false),
-            Ok(false) => Ok(true),
-            Err(_) => Err(FileSystemError {
-                message: "Failed to check if path is excluded".to_string(),
-            }),
-        };
-    } else {
-        // This is not a project import
-        Ok(false)
-    }
-}
-
 fn is_hidden(entry: &DirEntry) -> bool {
     entry
         .file_name()
@@ -246,11 +223,8 @@ fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-fn direntry_is_excluded(root: &str, entry: &DirEntry) -> bool {
-    let path = entry.path();
-    // TODO: too much unwrapping
-    let adjusted_path = relative_to(path.to_str().unwrap(), root).unwrap();
-    is_path_excluded(adjusted_path.to_str().unwrap()).unwrap_or(false)
+fn direntry_is_excluded(entry: &DirEntry) -> bool {
+    is_path_excluded(entry.path().to_str().unwrap()).unwrap_or(false)
 }
 
 fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
@@ -264,16 +238,28 @@ fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
 }
 
 pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
-    let walker = WalkDir::new(root).into_iter();
-    let prefix_root = String::from(root);
-    let filter_root = prefix_root.clone();
-    walker
-        .filter_entry(move |e| {
-            !is_hidden(e) && !direntry_is_excluded(&filter_root, e) && is_pyfile_or_dir(e)
+    let prefix_root = root.to_string();
+    WalkDir::new(root)
+        .into_iter()
+        .filter_entry(move |e| !is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e))
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
+        .map(move |entry| {
+            entry
+                .path()
+                .strip_prefix(prefix_root.as_str())
+                .unwrap()
+                .to_path_buf()
         })
-        .map(|res| res.unwrap().into_path())
-        .filter(|path: &PathBuf| path.is_file()) // filter_entry would skip dirs if they were excluded earlier
-        .map(move |path| path.strip_prefix(&prefix_root).unwrap().to_path_buf())
+}
+
+pub fn walk_pyprojects(root: &str) -> impl Iterator<Item = PathBuf> {
+    WalkDir::new(root)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().is_file())
+        .filter(|entry| entry.file_name() == "pyproject.toml")
+        .map(|entry| entry.into_path())
 }
 
 pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<Item = PathBuf> {
@@ -293,7 +279,7 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
         .filter(move |path| {
             path.is_file()
                 && glob_set.is_match(
-                    relative_to(path, &PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
+                    relative_to(path, PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
                 )
         })
 }

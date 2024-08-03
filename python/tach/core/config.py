@@ -71,6 +71,14 @@ class CacheConfig(Config):
     env_dependencies: List[str] = Field(default_factory=list)
 
 
+class ExternalDependencyConfig(Config):
+    """
+    Configuration affecting Tach's external dependency checking.
+    """
+
+    exclude: List[str] = Field(default_factory=list)
+
+
 class ProjectConfig(Config):
     """
     Central configuration object for a project using Tach.
@@ -80,6 +88,7 @@ class ProjectConfig(Config):
 
     modules: List[ModuleConfig] = Field(default_factory=list)
     cache: CacheConfig = Field(default_factory=CacheConfig)
+    external: ExternalDependencyConfig = Field(default_factory=ExternalDependencyConfig)
     exclude: Optional[List[str]] = Field(
         default_factory=lambda: copy(DEFAULT_EXCLUDE_PATHS)
     )

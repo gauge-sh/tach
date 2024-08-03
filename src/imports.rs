@@ -12,7 +12,7 @@ use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use ruff_source_file::Locator;
 
-use crate::{filesystem, parsing};
+use crate::{exclusion, filesystem, parsing};
 
 #[derive(Debug)]
 pub enum ImportParseErrorType {
@@ -26,6 +26,8 @@ pub struct ImportParseError {
     pub message: String,
 }
 
+impl std::error::Error for ImportParseError {}
+
 impl fmt::Display for ImportParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.message)
@@ -34,17 +36,27 @@ impl fmt::Display for ImportParseError {
 
 pub type Result<T> = std::result::Result<T, ImportParseError>;
 
+/// An import with a normalized module path and located line number
 #[derive(Debug)]
-pub struct ProjectImport {
-    pub mod_path: String,
+pub struct NormalizedImport {
+    pub module_path: String,
     pub line_no: u32,
 }
 
-pub type ProjectImports = Vec<ProjectImport>;
+impl NormalizedImport {
+    pub fn top_level_module_name(&self) -> &str {
+        self.module_path
+            .split('.')
+            .next()
+            .expect("Normalized import module path is empty")
+    }
+}
 
-impl IntoPy<PyObject> for ProjectImport {
+pub type NormalizedImports = Vec<NormalizedImport>;
+
+impl IntoPy<PyObject> for NormalizedImport {
     fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
-        (self.mod_path, self.line_no).into_py(py)
+        (self.module_path, self.line_no).into_py(py)
     }
 }
 
@@ -75,31 +87,40 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
     ignores
 }
 
-trait AsProjectImports<'a> {
-    fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
-        &self,
-        project_root: P,
-        source_roots: &[R],
-        file_mod_path: Option<&str>,
-        locator: &mut Locator<'a>,
-        is_package: bool,
-        ignore_directives: &IgnoreDirectives,
-    ) -> ProjectImports;
+pub struct ImportVisitor<'a> {
+    file_mod_path: Option<String>,
+    locator: Locator<'a>,
+    is_package: bool,
+    ignore_directives: IgnoreDirectives,
+    ignore_type_checking_imports: bool,
+    pub normalized_imports: NormalizedImports,
 }
 
-impl<'a> AsProjectImports<'a> for StmtImport {
-    fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
-        &self,
-        project_root: P,
-        source_roots: &[R],
-        _file_mod_path: Option<&str>,
-        locator: &mut Locator<'a>,
-        _is_package: bool,
-        ignore_directives: &IgnoreDirectives,
-    ) -> ProjectImports {
-        let line_no = locator.compute_line_index(self.range.start()).get();
+impl<'a> ImportVisitor<'a> {
+    pub fn new(
+        file_mod_path: Option<String>,
+        locator: Locator<'a>,
+        is_package: bool,
+        ignore_directives: IgnoreDirectives,
+        ignore_type_checking_imports: bool,
+    ) -> Self {
+        ImportVisitor {
+            file_mod_path,
+            locator,
+            is_package,
+            ignore_directives,
+            ignore_type_checking_imports,
+            normalized_imports: vec![],
+        }
+    }
+
+    fn normalize_absolute_import(&self, import_statement: &StmtImport) -> NormalizedImports {
+        let line_no = self
+            .locator
+            .compute_line_index(import_statement.range.start())
+            .get();
         let ignored_modules: Option<&Vec<String>> =
-            ignore_directives.get(&line_no.saturating_sub(1));
+            self.ignore_directives.get(&line_no.saturating_sub(1));
 
         if let Some(ignored) = ignored_modules {
             if ignored.is_empty() {
@@ -107,7 +128,8 @@ impl<'a> AsProjectImports<'a> for StmtImport {
                 return vec![];
             }
         }
-        self.names
+        import_statement
+            .names
             .iter()
             .filter_map(|alias| {
                 if let Some(ignored) = ignored_modules {
@@ -116,45 +138,28 @@ impl<'a> AsProjectImports<'a> for StmtImport {
                     }
                 }
 
-                match filesystem::is_project_import(
-                    project_root.as_ref(),
-                    source_roots,
-                    alias.name.as_str(),
-                ) {
-                    Ok(true) => Some(ProjectImport {
-                        mod_path: alias.name.to_string(),
-                        line_no: locator
-                            .compute_line_index(alias.range.start())
-                            .get()
-                            .try_into()
-                            .unwrap(),
-                    }),
-                    Ok(false) => None,
-                    Err(_) => None,
-                }
+                Some(NormalizedImport {
+                    module_path: alias.name.to_string(),
+                    line_no: self
+                        .locator
+                        .compute_line_index(alias.range.start())
+                        .get()
+                        .try_into()
+                        .unwrap(),
+                })
             })
             .collect()
     }
-}
 
-impl<'a> AsProjectImports<'a> for StmtImportFrom {
-    fn as_project_imports<P: AsRef<Path>, R: AsRef<Path>>(
-        &self,
-        project_root: P,
-        source_roots: &[R],
-        file_mod_path: Option<&str>,
-        locator: &mut Locator<'a>,
-        is_package: bool,
-        ignore_directives: &IgnoreDirectives,
-    ) -> ProjectImports {
-        let mut imports = ProjectImports::new();
+    fn normalize_import_from(&self, import_statement: &StmtImportFrom) -> NormalizedImports {
+        let mut imports = NormalizedImports::new();
 
-        let import_depth: usize = self.level.try_into().unwrap();
+        let import_depth: usize = import_statement.level.try_into().unwrap();
 
-        let base_mod_path = if let Some(ref module) = self.module {
+        let base_mod_path = if let Some(ref module) = import_statement.module {
             if import_depth > 0 {
                 // For relative imports (level > 0), adjust the base module path
-                let num_paths_to_strip = if is_package {
+                let num_paths_to_strip = if self.is_package {
                     import_depth - 1
                 } else {
                     import_depth
@@ -162,7 +167,7 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
 
                 // If our current file mod path is None, we are not within the source root
                 // so we assume that relative imports are also not within the source root
-                match file_mod_path {
+                match &self.file_mod_path {
                     None => return imports, // early return from the outer function
                     Some(mod_path) => {
                         let base_path_parts: Vec<&str> = mod_path.split('.').collect();
@@ -190,9 +195,12 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
             String::new()
         };
 
-        let line_no = locator.compute_line_index(self.range.start()).get();
+        let line_no = self
+            .locator
+            .compute_line_index(import_statement.range.start())
+            .get();
         let ignored_modules: Option<&Vec<String>> =
-            ignore_directives.get(&line_no.saturating_sub(1));
+            self.ignore_directives.get(&line_no.saturating_sub(1));
 
         if let Some(ignored) = ignored_modules {
             if ignored.is_empty() {
@@ -202,11 +210,11 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
             }
         }
 
-        for name in &self.names {
+        for name in &import_statement.names {
             let local_mod_path = format!(
                 "{}{}.{}",
                 ".".repeat(import_depth),
-                self.module.as_deref().unwrap_or(""),
+                import_statement.module.as_deref().unwrap_or(""),
                 name.asname.as_deref().unwrap_or(name.name.as_ref())
             );
             if let Some(ignored) = ignored_modules {
@@ -215,65 +223,24 @@ impl<'a> AsProjectImports<'a> for StmtImportFrom {
                 }
             }
 
-            let global_mod_path = match self.module {
+            let global_mod_path = match import_statement.module {
                 Some(_) => format!("{}.{}", base_mod_path, name.name.as_str()),
                 None => name.name.to_string(),
             };
 
-            match filesystem::is_project_import(
-                project_root.as_ref(),
-                source_roots,
-                &global_mod_path,
-            ) {
-                Ok(true) => imports.push(ProjectImport {
-                    mod_path: global_mod_path,
-                    line_no: locator
-                        .compute_line_index(name.range.start())
-                        .get()
-                        .try_into()
-                        .unwrap(),
-                }),
-                Ok(false) => (),
-                Err(_) => (),
-            }
+            imports.push(NormalizedImport {
+                module_path: global_mod_path,
+                line_no: self
+                    .locator
+                    .compute_line_index(name.range.start())
+                    .get()
+                    .try_into()
+                    .unwrap(),
+            })
         }
 
         // Return all project imports found
         imports
-    }
-}
-
-pub struct ImportVisitor<'a> {
-    project_root: PathBuf,
-    source_roots: Vec<PathBuf>,
-    file_mod_path: Option<String>,
-    locator: Locator<'a>,
-    is_package: bool,
-    ignore_directives: IgnoreDirectives,
-    ignore_type_checking_imports: bool,
-    pub project_imports: ProjectImports,
-}
-
-impl<'a> ImportVisitor<'a> {
-    pub fn new(
-        project_root: PathBuf,
-        source_roots: Vec<PathBuf>,
-        file_mod_path: Option<String>,
-        locator: Locator<'a>,
-        is_package: bool,
-        ignore_directives: IgnoreDirectives,
-        ignore_type_checking_imports: bool,
-    ) -> Self {
-        ImportVisitor {
-            project_root,
-            source_roots,
-            file_mod_path,
-            locator,
-            is_package,
-            ignore_directives,
-            ignore_type_checking_imports,
-            project_imports: vec![],
-        }
     }
 
     fn should_ignore_if_statement(&mut self, node: &StmtIf) -> bool {
@@ -285,25 +252,13 @@ impl<'a> ImportVisitor<'a> {
     }
 
     fn visit_stmt_import(&mut self, node: &StmtImport) {
-        self.project_imports.extend(node.as_project_imports(
-            &self.project_root,
-            &self.source_roots,
-            self.file_mod_path.as_deref(),
-            &mut self.locator,
-            self.is_package,
-            &self.ignore_directives,
-        ))
+        self.normalized_imports
+            .extend(self.normalize_absolute_import(node))
     }
 
     fn visit_stmt_import_from(&mut self, node: &StmtImportFrom) {
-        self.project_imports.extend(node.as_project_imports(
-            &self.project_root,
-            &self.source_roots,
-            self.file_mod_path.as_deref(),
-            &mut self.locator,
-            self.is_package,
-            &self.ignore_directives,
-        ))
+        self.normalized_imports
+            .extend(self.normalize_import_from(node))
     }
 }
 
@@ -322,12 +277,44 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
     }
 }
 
-pub fn get_project_imports(
-    project_root: &Path,
+pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
+    project_root: P,
+    source_roots: &[R],
+    mod_path: &str,
+) -> Result<bool> {
+    let resolved_module = filesystem::module_to_file_path(source_roots, mod_path);
+    if let Some(module) = resolved_module {
+        // This appears to be a project import, verify it is not excluded
+        return match exclusion::is_path_excluded(
+            filesystem::relative_to(module.file_path.as_path(), project_root.as_ref())
+                .map_err(|err| ImportParseError {
+                    err_type: ImportParseErrorType::FILESYSTEM,
+                    message: format!(
+                        "Encountered module path outside of project root unexpectedly. Failure: {}",
+                        err.message
+                    ),
+                })?
+                .to_str()
+                .unwrap(),
+        ) {
+            Ok(true) => Ok(false),
+            Ok(false) => Ok(true),
+            Err(_) => Err(ImportParseError {
+                err_type: ImportParseErrorType::FILESYSTEM,
+                message: "Failed to check if path is excluded".to_string(),
+            }),
+        };
+    } else {
+        // This is not a project import
+        Ok(false)
+    }
+}
+
+pub fn get_normalized_imports(
     source_roots: &[PathBuf],
     file_path: &PathBuf,
     ignore_type_checking_imports: bool,
-) -> Result<ProjectImports> {
+) -> Result<NormalizedImports> {
     let file_contents =
         filesystem::read_file_content(file_path).map_err(|err| ImportParseError {
             err_type: ImportParseErrorType::FILESYSTEM,
@@ -348,8 +335,6 @@ pub fn get_project_imports(
     let file_mod_path: Option<String> =
         filesystem::file_to_module_path(source_roots, file_path).ok();
     let mut import_visitor = ImportVisitor::new(
-        project_root.to_path_buf(),
-        source_roots.to_owned(),
         file_mod_path,
         locator,
         is_package,
@@ -360,5 +345,24 @@ pub fn get_project_imports(
         Mod::Module(ref module) => import_visitor.visit_body(&module.body),
         Mod::Expression(_) => (), // should error
     };
-    Ok(import_visitor.project_imports)
+    Ok(import_visitor.normalized_imports)
+}
+
+pub fn get_project_imports(
+    project_root: &Path,
+    source_roots: &[PathBuf],
+    file_path: &PathBuf,
+    ignore_type_checking_imports: bool,
+) -> Result<NormalizedImports> {
+    Ok(
+        get_normalized_imports(source_roots, file_path, ignore_type_checking_imports)?
+            .into_iter()
+            .filter_map(|normalized_import| {
+                is_project_import(project_root, source_roots, &normalized_import.module_path)
+                    .map_or(None, |is_project_import| {
+                        is_project_import.then_some(normalized_import)
+                    })
+            })
+            .collect(),
+    )
 }

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "myorg-pack-g"
+version = "0.0.0"
+license.file = "LICENSE"
+readme = "README.md"
+description = "My organization's G package."
+authors = [
+    { name = "Janice Developer", email = "janice@my.org" },
+]
+dynamic = ["dependencies"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include=["myorg.*"]
+namespaces = true
+exclude = ["test*."]

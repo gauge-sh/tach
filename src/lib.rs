@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod check;
 pub mod cli;
 pub mod colors;
 pub mod exclusion;
@@ -7,6 +8,7 @@ pub mod imports;
 pub mod parsing;
 pub mod reports;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use cache::ComputationCacheValue;
@@ -40,6 +42,17 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
+impl From<check::CheckError> for PyErr {
+    fn from(err: check::CheckError) -> Self {
+        match err {
+            check::CheckError::Parse(err) => PyOSError::new_err(err.to_string()),
+            check::CheckError::ImportParse(err) => err.into(),
+            check::CheckError::Io(err) => PyOSError::new_err(err.to_string()),
+            check::CheckError::Filesystem(err) => PyOSError::new_err(err.to_string()),
+        }
+    }
+}
+
 /// Get first-party imports from file_path relative to project_root
 #[pyfunction]
 #[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
@@ -48,7 +61,7 @@ fn get_project_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> imports::Result<imports::ProjectImports> {
+) -> imports::Result<imports::NormalizedImports> {
     let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
@@ -64,9 +77,30 @@ fn get_project_imports(
 /// This is called separately in order to set up a singleton instance holding regexes,
 /// since they would be expensive to build for every call.
 #[pyfunction]
-#[pyo3(signature = (exclude_paths))]
-fn set_excluded_paths(exclude_paths: Vec<String>) -> exclusion::Result<()> {
-    exclusion::set_excluded_paths(exclude_paths)
+#[pyo3(signature = (project_root, exclude_paths))]
+fn set_excluded_paths(project_root: String, exclude_paths: Vec<String>) -> exclusion::Result<()> {
+    let project_root = PathBuf::from(project_root);
+    let exclude_paths: Vec<PathBuf> = exclude_paths.iter().map(PathBuf::from).collect();
+    exclusion::set_excluded_paths(&project_root, &exclude_paths)
+}
+
+/// Validate external dependency imports against pyproject.toml dependencies
+#[pyfunction]
+#[pyo3(signature = (project_root, source_roots, module_mappings, ignore_type_checking_imports=false))]
+fn check_external_dependencies(
+    project_root: String,
+    source_roots: Vec<String>,
+    module_mappings: HashMap<String, Vec<String>>,
+    ignore_type_checking_imports: bool,
+) -> check::Result<check::ExternalCheckDiagnostics> {
+    let project_root = PathBuf::from(project_root);
+    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    check::check_external_dependencies(
+        &project_root,
+        &source_roots,
+        &module_mappings,
+        ignore_type_checking_imports,
+    )
 }
 
 /// Create a report of dependencies and usages of a given path
@@ -144,6 +178,7 @@ fn update_computation_cache(
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(set_excluded_paths, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(check_external_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_dependency_report, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_computation_cache_key, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_computation_cache, m)?)?;

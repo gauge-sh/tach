@@ -12,6 +12,7 @@ from typing import IO, TYPE_CHECKING, Any
 from tach import __version__, cache
 from tach import filesystem as fs
 from tach.check import BoundaryError, check
+from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
@@ -201,6 +202,21 @@ def print_circular_dependency_error(module_paths: list[str]) -> None:
     )
 
 
+def print_undeclared_dependencies(
+    undeclared_dependencies: dict[str, list[str]],
+) -> None:
+    for file_path, dependencies in undeclared_dependencies.items():
+        print(
+            f"❌ {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
+        )
+        for dependency in dependencies:
+            print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
+    print(
+        f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
+        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in tach.yml.\n{BCOLORS.ENDC}"
+    )
+
+
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-e",
@@ -222,6 +238,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"tach {__version__}")
 
     subparsers = parser.add_subparsers(title="commands", dest="command")
+
+    ## tach mod
     mod_parser = subparsers.add_parser(
         "mod",
         prog="tach mod",
@@ -237,6 +255,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="The number of child directories to expand from the root",
     )
     add_base_arguments(mod_parser)
+
+    ## tach check
     check_parser = subparsers.add_parser(
         "check",
         prog="tach check",
@@ -249,6 +269,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Raise errors if any dependency constraints are unused.",
     )
     add_base_arguments(check_parser)
+
+    ## tach check-external
+    subparsers.add_parser(
+        "check-external",
+        prog="tach check-external",
+        help="Perform checks related to third-party dependencies",
+        description="Perform checks related to third-party dependencies",
+    )
+
+    ## tach sync
     sync_parser = subparsers.add_parser(
         "sync",
         prog="tach sync",
@@ -261,6 +291,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Add any missing dependencies, but do not remove unused dependencies.",
     )
     add_base_arguments(sync_parser)
+
+    ## tach report
     report_parser = subparsers.add_parser(
         "report",
         prog="tach report",
@@ -295,6 +327,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-usages", action="store_true", help="Do not include usages in the report."
     )
     add_base_arguments(report_parser)
+
+    ## tach show
     show_parser = subparsers.add_parser(
         "show",
         prog="tach show",
@@ -314,6 +348,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Specify an output path for a locally generated module graph file.",
     )
+
+    ## tach install
     install_parser = subparsers.add_parser(
         "install",
         prog="tach install",
@@ -325,6 +361,8 @@ def build_parser() -> argparse.ArgumentParser:
         choices=InstallTarget.choices(),
         help="What kind of installation to perform (e.g. pre-commit)",
     )
+
+    ## tach test
     test_parser = subparsers.add_parser(
         "test",
         prog="tach test",
@@ -338,7 +376,6 @@ def build_parser() -> argparse.ArgumentParser:
         default="main",
         help="The base commit to use when determining which modules are impacted by changes. [default: 'main']",
     )
-
     test_parser.add_argument(
         "--head",
         type=str,
@@ -517,6 +554,38 @@ def tach_check(
     if exit_code == 0:
         print(f"✅ {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}")
     sys.exit(exit_code)
+
+
+def tach_check_external(project_root: Path):
+    logger.info(
+        "tach check-external called",
+        extra={
+            "data": LogDataModel(
+                function="tach_check_external",
+            ),
+        },
+    )
+    try:
+        project_config = parse_project_config(project_root)
+        if project_config is None:
+            print_no_config_yml()
+            sys.exit(1)
+
+        result = check_external(
+            project_root=project_root,
+            project_config=project_config,
+        )
+
+        if result.undeclared_dependencies:
+            print_undeclared_dependencies(result.undeclared_dependencies)
+            sys.exit(1)
+
+    except Exception as e:
+        print(str(e))
+        sys.exit(1)
+
+    print(f"✅ {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}")
+    sys.exit(0)
 
 
 def tach_mod(
@@ -802,6 +871,8 @@ def main() -> None:
         tach_check(
             project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
         )
+    elif args.command == "check-external":
+        tach_check_external(project_root=project_root)
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)
