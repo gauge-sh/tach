@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -14,6 +13,11 @@ from tach.extension import (
 )
 from tach.filesystem import walk_pyfiles
 from tach.utils.display import create_clickable_link
+from tach.utils.external import (
+    get_package_name,
+    is_stdlib_module,
+    normalize_package_name,
+)
 
 if TYPE_CHECKING:
     from tach.core import ProjectConfig
@@ -87,8 +91,11 @@ def render_external_dependency(
 def render_external_dependency_report(
     path: Path, dependencies: list[ExternalDependency], raw: bool = False
 ) -> str:
+    if not dependencies:
+        return f"{BCOLORS.OKCYAN}No external dependencies found in {BCOLORS.ENDC}{BCOLORS.OKGREEN}'{path}'.{BCOLORS.ENDC}"
+
     if raw:
-        return "\n".join(dependency.package_name for dependency in dependencies)
+        return "\n".join({dependency.package_name for dependency in dependencies})
 
     title = f"[ External Dependencies in '{path}' ]"
     divider = "-" * len(title)
@@ -100,18 +107,13 @@ def render_external_dependency_report(
 
     for dependency in dependencies:
         lines.append(
-            render_external_dependency(dependency=dependency, display_path=path)
+            render_external_dependency(
+                dependency=dependency,
+                display_path=dependency.absolute_file_path.relative_to(Path.cwd()),
+            )
         )
 
     return "\n".join(lines)
-
-
-PYPI_PACKAGE_REGEX = re.compile(r"[-_.]+")
-
-
-def normalize_package_name(import_module_path: str) -> str:
-    package_name = import_module_path.split(".")[0]
-    return PYPI_PACKAGE_REGEX.sub("-", package_name).lower()
 
 
 def get_external_dependencies(
@@ -119,6 +121,7 @@ def get_external_dependencies(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
+    excluded_modules: set[str] | None = None,
 ) -> list[ExternalDependency]:
     external_imports = get_external_imports(
         project_root=project_root,
@@ -126,15 +129,26 @@ def get_external_dependencies(
         file_path=file_path,
         ignore_type_checking_imports=ignore_type_checking_imports,
     )
-    return [
-        ExternalDependency(
-            absolute_file_path=Path(file_path),
-            import_module_path=external_import[0],
-            import_line_number=external_import[1],
-            package_name=normalize_package_name(external_import[0]),
+
+    excluded_modules = excluded_modules or set()
+    external_dependencies: list[ExternalDependency] = []
+    for external_import in external_imports:
+        external_package = get_package_name(external_import[0])
+        if external_package in excluded_modules:
+            continue
+
+        if is_stdlib_module(external_package):
+            continue
+
+        external_dependencies.append(
+            ExternalDependency(
+                absolute_file_path=Path(file_path),
+                import_module_path=external_import[0],
+                import_line_number=external_import[1],
+                package_name=normalize_package_name(external_import[0]),
+            )
         )
-        for external_import in external_imports
-    ]
+    return external_dependencies
 
 
 def external_dependency_report(
@@ -170,6 +184,7 @@ def external_dependency_report(
             project_root=str(project_root),
             source_roots=source_roots,
             file_path=str(path.resolve()),
+            excluded_modules=set(project_config.external.exclude),
             ignore_type_checking_imports=project_config.ignore_type_checking_imports,
         )
         return render_external_dependency_report(path, external_dependencies, raw=raw)
@@ -180,7 +195,8 @@ def external_dependency_report(
             get_external_dependencies(
                 project_root=str(project_root),
                 source_roots=source_roots,
-                file_path=str(path / pyfile),
+                file_path=str(path.resolve() / pyfile),
+                excluded_modules=set(project_config.external.exclude),
                 ignore_type_checking_imports=project_config.ignore_type_checking_imports,
             )
         )

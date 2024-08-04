@@ -65,7 +65,7 @@ fn get_normalized_imports(
     imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)
 }
 
-/// Get first-party imports from file_path relative to project_root
+/// Get first-party imports from file_path
 #[pyfunction]
 #[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_project_imports(
@@ -85,7 +85,7 @@ fn get_project_imports(
     )
 }
 
-/// Get first-party imports from file_path relative to project_root
+/// Get third-party imports from file_path
 #[pyfunction]
 #[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_external_imports(
