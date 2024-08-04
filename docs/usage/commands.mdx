@@ -168,6 +168,14 @@ This command also takes advantage of Tach's [computation cache](caching).
 ## tach check-external
 
 Tach can validate that the external imports in your Python packages match your declared package dependencies in `pyproject.toml`.
+```bash
+usage: tach check-external [-h]
+
+Perform checks related to third-party dependencies
+
+options:
+  -h, --help  show this help message and exit
+```
 
 For each `pyproject.toml` found from the project root, Tach will scan all imports in the associated Python source and compare them with the declared dependencies.
 Tach will report an error for any external import which is not satisfied by the declared dependencies - preventing your users from errors due to missing imports.
@@ -181,14 +189,42 @@ In case you would like to explicitly allow a certain external module, this can b
 
 <Note>It is recommended to run Tach within a virtual environment containing all of your dependencies across all packages. This is because Tach uses the distribution metadata to map module names like 'git' to their distributions ('GitPython').</Note>
 
-```bash
-usage: tach check-external [-h]
 
-Perform checks related to third-party dependencies
+
+## tach report-external
+
+Tach can determine what external packages are used in a given path in your project.
+```bash
+usage: tach report-external [-h] [--raw] path
+
+Create a report of third-party dependencies.
+
+positional arguments:
+  path        The path or directory path used to generate the report.
 
 options:
   -h, --help  show this help message and exit
+  --raw       Print machine-readable raw output. Each line will contain a PEP 508 dependency string.
 ```
+
+This is typically useful for 'tree-shaking' during a build process.
+For example, if you are building a deployable image with only a subset of your code, you would run:
+
+```bash
+> tach report-external --raw [source_path]
+pyyaml
+pydantic
+stdlib-list
+importlib-metadata
+gitpython
+prompt-toolkit
+networkx
+rich
+```
+
+to generate a minimal set of external dependencies for that source code.
+
+<Note>It is recommended to run Tach within a virtual environment containing all of your dependencies across all packages. This is because Tach uses the distribution metadata to map module names like 'git' to their distributions ('GitPython').</Note>
 
 
 
