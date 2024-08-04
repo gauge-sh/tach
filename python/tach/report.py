@@ -92,6 +92,8 @@ def render_external_dependency_report(
     path: Path, dependencies: list[ExternalDependency], raw: bool = False
 ) -> str:
     if not dependencies:
+        if raw:
+            return ""
         return f"{BCOLORS.OKCYAN}No external dependencies found in {BCOLORS.ENDC}{BCOLORS.OKGREEN}'{path}'.{BCOLORS.ENDC}"
 
     if raw:
