@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import lru_cache
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
 
@@ -26,59 +24,17 @@ from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
-from tach.report import report
+from tach.report import external_dependency_report, report
 from tach.show import generate_module_graph_dot_file, generate_show_url
 from tach.sync import (
     sync_dependency_constraints,
     sync_project,
 )
 from tach.test import run_affected_tests
+from tach.utils.display import create_clickable_link
 
 if TYPE_CHECKING:
     from tach.core import UnusedDependencies
-
-
-class TerminalEnvironment(Enum):
-    UNKNOWN = 1
-    JETBRAINS = 2
-    VSCODE = 3
-
-
-@lru_cache(maxsize=None)
-def detect_environment() -> TerminalEnvironment:
-    if "jetbrains" in os.environ.get("TERMINAL_EMULATOR", "").lower():
-        return TerminalEnvironment.JETBRAINS
-    elif "vscode" in os.environ.get("TERM_PROGRAM", "").lower():
-        return TerminalEnvironment.VSCODE
-    return TerminalEnvironment.UNKNOWN
-
-
-def create_clickable_link(
-    file_path: Path, display_path: Path | None = None, line: int | None = None
-) -> str:
-    terminal_env = detect_environment()
-    abs_path = file_path.resolve()
-
-    if terminal_env == TerminalEnvironment.JETBRAINS:
-        link = f"file://{abs_path}:{line}" if line is not None else f"file://{abs_path}"
-    elif terminal_env == TerminalEnvironment.VSCODE:
-        link = (
-            f"vscode://file/{abs_path}:{line}"
-            if line is not None
-            else f"vscode://file/{abs_path}"
-        )
-    else:
-        # For generic terminals, use a standard file link
-        link = f"file://{abs_path}"
-
-    # ANSI escape codes for clickable link
-    if line:
-        # Show the line number if we have it
-        display_file_path = f"{display_path or file_path}[L{line}]"
-    else:
-        display_file_path = str(display_path) if display_path else str(file_path)
-    clickable_link = f"\033]8;;{link}\033\\{display_file_path}\033]8;;\033\\"
-    return clickable_link
 
 
 def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
@@ -327,6 +283,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-usages", action="store_true", help="Do not include usages in the report."
     )
     add_base_arguments(report_parser)
+
+    ## tach report-external
+    report_external_parser = subparsers.add_parser(
+        "report-external",
+        prog="tach report-external",
+        help="Create a report of third-party dependencies.",
+        description="Create a report of third-party dependencies.",
+    )
+    report_external_parser.add_argument(
+        "path", help="The path or directory path used to generate the report."
+    )
+    report_external_parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="Print machine-readable raw output. Each line will contain a PEP 508 dependency string.",
+    )
 
     ## tach show
     show_parser = subparsers.add_parser(
@@ -736,6 +708,39 @@ def tach_report(
         sys.exit(1)
 
 
+def tach_report_external(
+    project_root: Path, path: str, raw: bool, exclude_paths: list[str] | None = None
+):
+    logger.info(
+        "tach report-external called",
+        extra={
+            "data": LogDataModel(
+                function="tach_report_external",
+            ),
+        },
+    )
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_yml()
+        sys.exit(1)
+
+    report_path = Path(path)
+    try:
+        print(
+            external_dependency_report(
+                project_root,
+                report_path,
+                raw=raw,
+                project_config=project_config,
+                exclude_paths=exclude_paths,
+            )
+        )
+        sys.exit(0)
+    except TachError as e:
+        print(f"Report failed: {e}")
+        sys.exit(1)
+
+
 def tach_show(
     project_root: Path, is_web: bool = False, output_filepath: Path | None = None
 ):
@@ -893,6 +898,12 @@ def main() -> None:
             skip_dependencies=args.no_deps,
             skip_usages=args.no_usages,
             exclude_paths=exclude_paths,
+        )
+    elif args.command == "report-external":
+        tach_report_external(
+            project_root=project_root,
+            path=args.path,
+            raw=args.raw,
         )
     elif args.command == "test":
         tach_test(
