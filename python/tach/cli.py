@@ -867,7 +867,6 @@ def main() -> None:
             f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
         )
 
-    # TODO: rename throughout to 'exclude_patterns' to indicate that these are regex patterns
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
 
     if args.command == "mod":

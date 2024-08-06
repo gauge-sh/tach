@@ -134,7 +134,7 @@ fn get_external_imports(
 }
 
 /// Set excluded paths globally.
-/// This is called separately in order to set up a singleton instance holding regexes,
+/// This is called separately in order to set up a singleton instance holding glob patterns,
 /// since they would be expensive to build for every call.
 #[pyfunction]
 #[pyo3(signature = (project_root, exclude_paths))]
