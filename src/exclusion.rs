@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use regex::{Error, Regex};
+use glob::{Pattern, PatternError};
 use std::{
     path::{Path, PathBuf},
     sync::Mutex,
@@ -11,17 +11,17 @@ pub struct PathExclusionError {
 
 pub type Result<T> = std::result::Result<T, PathExclusionError>;
 
-impl From<Error> for PathExclusionError {
-    fn from(_value: Error) -> Self {
+impl From<PatternError> for PathExclusionError {
+    fn from(_value: PatternError) -> Self {
         Self {
-            message: "Failed to build regex patterns for excluded paths".to_string(),
+            message: "Failed to build glob patterns for excluded paths".to_string(),
         }
     }
 }
 
 #[derive(Default)]
 pub struct PathExclusions {
-    regexes: Vec<Regex>,
+    patterns: Vec<Pattern>,
 }
 
 static PATH_EXCLUSIONS_SINGLETON: Lazy<Mutex<Option<PathExclusions>>> =
@@ -43,8 +43,8 @@ pub fn set_excluded_paths(project_root: &Path, exclude_paths: &[PathBuf]) -> Res
 
 impl PathExclusions {
     fn is_path_excluded(&self, path: &str) -> bool {
-        for re in &self.regexes {
-            if re.is_match(path) {
+        for pattern in &self.patterns {
+            if pattern.matches(path) {
                 return true;
             }
         }
@@ -55,11 +55,11 @@ impl PathExclusions {
 impl TryFrom<Vec<PathBuf>> for PathExclusions {
     type Error = PathExclusionError;
     fn try_from(value: Vec<PathBuf>) -> std::result::Result<Self, Self::Error> {
-        let mut regexes: Vec<Regex> = vec![];
+        let mut patterns: Vec<Pattern> = vec![];
         for pattern in value.iter() {
-            regexes.push(Regex::new(pattern.to_str().unwrap())?);
+            patterns.push(Pattern::new(pattern.to_str().unwrap())?);
         }
-        Ok(Self { regexes })
+        Ok(Self { patterns })
     }
 }
 
