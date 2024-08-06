@@ -1,38 +1,16 @@
 use std::collections::HashSet;
 use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
-use thiserror::Error;
 use toml::Value;
 
-use ruff_python_ast::Mod;
-use ruff_python_parser::{parse, Mode, ParseError};
-
-#[derive(Error, Debug)]
-pub enum ParsingError {
-    #[error("Python parsing error: {0}")]
-    PythonParse(#[from] ParseError),
-    #[error("IO error: {0}")]
-    Io(#[from] io::Error),
-    #[error("TOML parsing error: {0}")]
-    TomlParse(#[from] toml::de::Error),
-    #[error("Missing field in TOML: {0}")]
-    MissingField(String),
-}
-
-pub type Result<T> = std::result::Result<T, ParsingError>;
-
-/// Use the ruff-python-parser crate to parse a Python source file into an AST
-pub fn parse_python_source(python_source: &str) -> Result<Mod> {
-    Ok(parse(python_source, Mode::Module)?)
-}
+use super::error;
 
 pub struct ProjectInfo {
     pub dependencies: HashSet<String>,
     pub source_paths: Vec<PathBuf>,
 }
 
-pub fn parse_pyproject_toml(pyproject_path: &Path) -> Result<ProjectInfo> {
+pub fn parse_pyproject_toml(pyproject_path: &Path) -> error::Result<ProjectInfo> {
     let content = fs::read_to_string(pyproject_path)?;
     let toml_value: Value = toml::from_str(&content)?;
     let dependencies = extract_dependencies(&toml_value);
