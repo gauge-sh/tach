@@ -3,12 +3,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pydantic
 import yaml
 
 from tach import filesystem as fs
 from tach.constants import ROOT_MODULE_SENTINEL_TAG, TACH_YML_SCHEMA_URL
-from tach.core import ProjectConfig
+from tach.core import (
+    CacheConfig,
+    Dependency,
+    ExternalDependencyConfig,
+    ModuleConfig,
+    ProjectConfig,
+)
+from tach.extension import parse_project_config as ext_parse_project_config
 
 
 class TachYamlDumper(yaml.Dumper):
@@ -64,16 +70,31 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
     if not file_path:
         return None
 
-    with open(file_path) as f:
-        result = yaml.safe_load(f)
-        if not result or not isinstance(result, dict):
-            raise ValueError(f"Empty or invalid project config file: {file_path}")
-    try:
-        config = ProjectConfig(**result)  # type: ignore
-    except pydantic.ValidationError:
-        result = migrate_config(result)  # type: ignore
-        config = ProjectConfig(**result)
-        print("Updating config to latest syntax...")
-        config_yml_content = dump_project_config_to_yaml(config)
-        fs.write_file(str(file_path), config_yml_content)
-    return config
+    ext_project_config = ext_parse_project_config(str(file_path))
+
+    return ProjectConfig(
+        modules=[
+            ModuleConfig(
+                path=module.path,
+                depends_on=[
+                    Dependency(path=dep.path, deprecated=dep.deprecated)
+                    for dep in module.depends_on
+                ],
+                strict=module.strict,
+            )
+            for module in ext_project_config.modules
+        ],
+        cache=CacheConfig(
+            file_dependencies=ext_project_config.cache.file_dependencies,
+            env_dependencies=ext_project_config.cache.env_dependencies,
+        ),
+        external=ExternalDependencyConfig(
+            exclude=ext_project_config.external.exclude,
+        ),
+        exclude=ext_project_config.exclude,
+        source_roots=[Path(root) for root in ext_project_config.source_roots],
+        exact=ext_project_config.exact,
+        disable_logging=ext_project_config.disable_logging,
+        ignore_type_checking_imports=ext_project_config.ignore_type_checking_imports,
+        forbid_circular_dependencies=ext_project_config.forbid_circular_dependencies,
+    )

@@ -1,0 +1,221 @@
+exclude = [
+    ".*__pycache__",
+    "build/",
+    "dist/",
+    "docs/",
+    "python/tests/",
+    "tach.egg-info/",
+    "venv/"
+]
+
+source_roots = ["python"]
+exact = true
+forbid_circular_dependencies = true
+ignore_type_checking_imports = true
+
+[[modules]]
+path = "tach"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "tach.__main__"
+depends_on = [
+    { path = "tach.start" }
+]
+strict = true
+
+[[modules]]
+path = "tach.cache"
+depends_on = [
+    { path = "tach" },
+    { path = "tach.filesystem" }
+]
+strict = true
+
+[[modules]]
+path = "tach.check"
+depends_on = [
+    { path = "tach.errors" },
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.parsing" }
+]
+strict = true
+
+[[modules]]
+path = "tach.check_external"
+depends_on = [
+    { path = "tach.extension" },
+    { path = "tach.utils" }
+]
+
+[[modules]]
+path = "tach.cli"
+depends_on = [
+    { path = "tach" },
+    { path = "tach.cache" },
+    { path = "tach.check" },
+    { path = "tach.check_external" },
+    { path = "tach.colors" },
+    { path = "tach.constants" },
+    { path = "tach.core" },
+    { path = "tach.errors" },
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.logging" },
+    { path = "tach.mod" },
+    { path = "tach.parsing" },
+    { path = "tach.report" },
+    { path = "tach.show" },
+    { path = "tach.sync" },
+    { path = "tach.test" },
+    { path = "tach.utils" }
+]
+strict = true
+
+[[modules]]
+path = "tach.colors"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "tach.constants"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "tach.core"
+depends_on = [
+    { path = "tach.constants" }
+]
+strict = true
+
+[[modules]]
+path = "tach.errors"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "tach.extension"
+depends_on = []
+
+[[modules]]
+path = "tach.filesystem"
+depends_on = [
+    { path = "tach.colors" },
+    { path = "tach.constants" },
+    { path = "tach.core" },
+    { path = "tach.errors" },
+    { path = "tach.hooks" }
+]
+strict = true
+
+[[modules]]
+path = "tach.filesystem.git_ops"
+depends_on = [
+    { path = "tach.errors" }
+]
+strict = true
+
+[[modules]]
+path = "tach.hooks"
+depends_on = [
+    { path = "tach.constants" }
+]
+strict = true
+
+[[modules]]
+path = "tach.interactive"
+depends_on = [
+    { path = "tach.errors" },
+    { path = "tach.filesystem" }
+]
+strict = true
+
+[[modules]]
+path = "tach.logging"
+depends_on = [
+    { path = "tach" },
+    { path = "tach.cache" },
+    { path = "tach.parsing" }
+]
+strict = true
+
+[[modules]]
+path = "tach.mod"
+depends_on = [
+    { path = "tach.colors" },
+    { path = "tach.constants" },
+    { path = "tach.errors" },
+    { path = "tach.filesystem" },
+    { path = "tach.interactive" },
+    { path = "tach.parsing" }
+]
+strict = true
+
+[[modules]]
+path = "tach.parsing"
+depends_on = [
+    { path = "tach.constants" },
+    { path = "tach.core" },
+    { path = "tach.errors" },
+    { path = "tach.extension" },
+    { path = "tach.filesystem" }
+]
+strict = true
+
+[[modules]]
+path = "tach.report"
+depends_on = [
+    { path = "tach.colors" },
+    { path = "tach.errors" },
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.utils" }
+]
+strict = true
+
+[[modules]]
+path = "tach.show"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "tach.start"
+depends_on = [
+    { path = "tach.cli" }
+]
+strict = true
+
+[[modules]]
+path = "tach.sync"
+depends_on = [
+    { path = "tach.check" },
+    { path = "tach.core" },
+    { path = "tach.errors" },
+    { path = "tach.filesystem" },
+    { path = "tach.parsing" }
+]
+strict = true
+
+[[modules]]
+path = "tach.test"
+depends_on = [
+    { path = "tach.errors" },
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.filesystem.git_ops" },
+    { path = "tach.parsing" }
+]
+strict = true
+
+[[modules]]
+path = "tach.utils"
+depends_on = []
+
+[cache]
+file_dependencies = ["python/tests/**", "src/*.rs"]
+
+[external]
+exclude = ["pytest"]

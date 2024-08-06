@@ -5,10 +5,16 @@ use std::path::{Path, PathBuf};
 use super::error;
 use crate::filesystem;
 
+// for serde
+fn default_false() -> bool {
+    false
+}
+
 #[derive(Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct DependencyConfig {
     pub path: String,
+    #[serde(default = "default_false")]
     pub deprecated: bool,
 }
 
@@ -16,15 +22,20 @@ pub struct DependencyConfig {
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ModuleConfig {
     pub path: String,
+    #[serde(default)]
     pub depends_on: Vec<DependencyConfig>,
+    #[serde(default = "default_false")]
     pub strict: bool,
 }
 
 #[derive(Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum CacheBackend {
+    #[default]
     Disk,
 }
+
 
 impl IntoPy<PyObject> for CacheBackend {
     fn into_py(self, py: Python) -> PyObject {
@@ -37,28 +48,43 @@ impl IntoPy<PyObject> for CacheBackend {
 #[derive(Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct CacheConfig {
+    #[serde(default)]
     pub backend: CacheBackend,
+    #[serde(default)]
     pub file_dependencies: Vec<String>,
+    #[serde(default)]
     pub env_dependencies: Vec<String>,
 }
 
 #[derive(Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ExternalDependencyConfig {
+    #[serde(default)]
     pub exclude: Vec<String>,
+}
+
+fn default_source_roots() -> Vec<PathBuf> {
+    vec![PathBuf::from(".")]
 }
 
 #[derive(Deserialize)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
+    #[serde(default)]
     pub modules: Vec<ModuleConfig>,
     pub cache: CacheConfig,
     pub external: ExternalDependencyConfig,
+    #[serde(default)]
     pub exclude: Vec<String>,
+    #[serde(default = "default_source_roots")]
     pub source_roots: Vec<PathBuf>,
+    #[serde(default = "default_false")]
     pub exact: bool,
+    #[serde(default = "default_false")]
     pub disable_logging: bool,
+    #[serde(default)]
     pub ignore_type_checking_imports: bool,
+    #[serde(default = "default_false")]
     pub forbid_circular_dependencies: bool,
 }
 

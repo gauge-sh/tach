@@ -7,10 +7,7 @@ from tach.constants import CONFIG_FILE_NAME
 
 def get_project_config_path(root: Path | None = None) -> Path | None:
     root = root or Path.cwd()
-    file_path = root / f"{CONFIG_FILE_NAME}.yml"
-    if file_path.exists():
-        return file_path
-    file_path = root / f"{CONFIG_FILE_NAME}.yaml"
+    file_path = root / f"{CONFIG_FILE_NAME}.toml"
     if file_path.exists():
         return file_path
     return None
