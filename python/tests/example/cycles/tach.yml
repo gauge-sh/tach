@@ -12,12 +12,6 @@ modules:
   - path: leftover
     depends_on:
       - path: domain_one
-exclude:
-  - .*__pycache__
-  - .*egg-info
-  - docs
-  - tests
-  - venv
 source_roots:
   - .
 forbid_circular_dependencies: true

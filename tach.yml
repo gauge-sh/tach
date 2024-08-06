@@ -143,13 +143,10 @@ external:
   exclude:
     - pytest
 exclude:
-  - .*__pycache__
-  - build/
-  - dist/
-  - docs/
-  - python/tests/
-  - tach.egg-info/
-  - venv/
+  - "**/tests/**"
+  - "build/**"
+  - "dist/**"
+  - "docs/**"
 source_roots:
   - python
 exact: true

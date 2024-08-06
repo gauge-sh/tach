@@ -62,7 +62,7 @@ def test_parse_valid_project_config(example_dir):
             ),
         ],
         cache=CacheConfig(backend="local", file_dependencies=[], env_dependencies=[]),
-        exclude=sorted(DEFAULT_EXCLUDE_PATHS),
+        exclude=DEFAULT_EXCLUDE_PATHS,
         source_roots=[PosixPath(".")],
         exact=True,
         disable_logging=False,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import re
+import fnmatch
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -147,9 +147,8 @@ class CheckResult:
 
 
 def is_path_excluded(path: Path, exclude_paths: list[str]) -> bool:
-    dirpath_for_matching = f"{path}/"
     return any(
-        re.match(exclude_path, dirpath_for_matching) for exclude_path in exclude_paths
+        fnmatch.fnmatch(str(path), exclude_path) for exclude_path in exclude_paths
     )
 
 
@@ -191,7 +190,7 @@ def check(
 
     found_at_least_one_project_import = False
     # This informs the Rust extension ahead-of-time which paths are excluded.
-    # The extension builds regexes and uses them during `get_project_imports`
+    # The extension builds glob patterns and uses them during `get_project_imports`
     set_excluded_paths(
         project_root=str(project_root), exclude_paths=exclude_paths or []
     )
