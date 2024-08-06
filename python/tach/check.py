@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import re
+import fnmatch
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -147,9 +147,8 @@ class CheckResult:
 
 
 def is_path_excluded(path: Path, exclude_paths: list[str]) -> bool:
-    dirpath_for_matching = f"{path}/"
     return any(
-        re.match(exclude_path, dirpath_for_matching) for exclude_path in exclude_paths
+        fnmatch.fnmatch(str(path), exclude_path) for exclude_path in exclude_paths
     )
 
 

@@ -7,13 +7,6 @@ modules = [
     { path = "myorg.pack_f", depends_on = [] },
     { path = "myorg.pack_g", depends_on = [] },
 ]
-exclude = [
-    ".*__pycache__",
-    ".*egg-info",
-    "docs",
-    "tests",
-    "venv",
-]
 source_roots = [
     "src/pack-a/src",
     "src/pack-b/src",

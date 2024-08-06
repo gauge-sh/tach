@@ -21,6 +21,7 @@ globset = "0.4.14"
 toml = "0.8.19"
 thiserror = "1.0.63"
 serde = { version = "1.0.208", features = ["derive"] }
+glob = "0.3.1"
 
 [features]
 extension-module = ["pyo3/extension-module"]

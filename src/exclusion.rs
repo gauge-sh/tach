@@ -1,5 +1,5 @@
-use once_cell::sync::Lazy;
 use glob::{Pattern, PatternError};
+use once_cell::sync::Lazy;
 use std::{
     path::{Path, PathBuf},
     sync::Mutex,
