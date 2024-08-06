@@ -190,7 +190,7 @@ def check(
 
     found_at_least_one_project_import = False
     # This informs the Rust extension ahead-of-time which paths are excluded.
-    # The extension builds regexes and uses them during `get_project_imports`
+    # The extension builds glob patterns and uses them during `get_project_imports`
     set_excluded_paths(
         project_root=str(project_root), exclude_paths=exclude_paths or []
     )
