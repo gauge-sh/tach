@@ -14,12 +14,6 @@ modules:
       - path: myorg.utilpkg
   - path: myorg.utilpkg
     depends_on: []
-exclude:
-  - .*__pycache__
-  - .*egg-info
-  - docs
-  - tests
-  - venv
 source_roots:
   - backend
   - utils
