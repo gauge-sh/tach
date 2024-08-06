@@ -167,7 +167,7 @@ def check(
     boundary_warnings: list[BoundaryError] = []
     warnings: list[str] = []
 
-    if exclude_paths is not None and project_config.exclude is not None:
+    if exclude_paths is not None:
         exclude_paths.extend(project_config.exclude)
     else:
         exclude_paths = project_config.exclude

@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import yaml
+import tomli_w
 
 from tach import filesystem as fs
-from tach.constants import ROOT_MODULE_SENTINEL_TAG, TACH_YML_SCHEMA_URL
+from tach.constants import ROOT_MODULE_SENTINEL_TAG
 from tach.core import (
     CacheConfig,
     Dependency,
@@ -17,37 +17,19 @@ from tach.core import (
 from tach.extension import parse_project_config as ext_parse_project_config
 
 
-class TachYamlDumper(yaml.Dumper):
-    def increase_indent(self, flow: bool = False, indentless: bool = False):
-        return super().increase_indent(flow, False)
-
-
-def dump_project_config_to_yaml(config: ProjectConfig) -> str:
-    # Using sort_keys=False here and depending on config.model_dump maintaining 'insertion order'
-    # so that 'tag' appears before 'depends_on'
-    # Instead, should provide custom yaml.Dumper & yaml.Representer or just write our own
-    # Sort only constraints and dependencies alphabetically for now
+def dump_project_config_to_toml(config: ProjectConfig) -> str:
     config.modules.sort(
         key=lambda mod: (mod.path == ROOT_MODULE_SENTINEL_TAG, mod.path)
     )
     for mod in config.modules:
         mod.depends_on.sort(key=lambda dep: dep.path)
-    # NOTE: setting 'exclude' explicitly here also interacts with the 'exclude_unset' option
-    # being passed to 'model_dump'. It ensures that even on a fresh config, we will explicitly
-    # show excluded paths.
-    config.exclude = list(set(config.exclude)) if config.exclude else []
+
     config.exclude.sort()
-    language_server_directive = (
-        f"# yaml-language-server: $schema={TACH_YML_SCHEMA_URL}\n"
+
+    # TODO: replicate UNSET behavior with explicit include/exclude
+    return tomli_w.dumps(
+        config.model_dump(),
     )
-    yaml_content = yaml.dump(
-        config.model_dump(exclude_unset=True),
-        Dumper=TachYamlDumper,
-        sort_keys=False,
-        default_flow_style=False,
-        indent=2,
-    )
-    return language_server_directive + yaml_content
 
 
 # TODO remove after next major version upgrade

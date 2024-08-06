@@ -12,7 +12,7 @@ from tach.interactive import (
     InteractiveModuleConfiguration,
     get_selected_modules_interactive,
 )
-from tach.parsing import dump_project_config_to_yaml
+from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
     from tach.core import ProjectConfig
@@ -43,7 +43,7 @@ def update_modules(
     project_config.set_modules(module_paths=module_paths)
 
     project_config_path = project_root / f"{CONFIG_FILE_NAME}.yml"
-    config_yml_content = dump_project_config_to_yaml(project_config)
+    config_yml_content = dump_project_config_to_toml(project_config)
     fs.write_file(str(project_config_path), config_yml_content)
 
 

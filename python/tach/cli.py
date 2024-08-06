@@ -609,7 +609,7 @@ def tach_sync(
             print_no_config_yml()
             sys.exit(1)
 
-        if exclude_paths is not None and project_config.exclude is not None:
+        if exclude_paths is not None:
             exclude_paths.extend(project_config.exclude)
         else:
             exclude_paths = project_config.exclude

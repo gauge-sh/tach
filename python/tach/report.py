@@ -41,7 +41,7 @@ def report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
-    if exclude_paths is not None and project_config.exclude is not None:
+    if exclude_paths is not None:
         exclude_paths.extend(project_config.exclude)
     else:
         exclude_paths = project_config.exclude
@@ -168,7 +168,7 @@ def external_dependency_report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
-    if exclude_paths is not None and project_config.exclude is not None:
+    if exclude_paths is not None:
         exclude_paths.extend(project_config.exclude)
     else:
         exclude_paths = project_config.exclude

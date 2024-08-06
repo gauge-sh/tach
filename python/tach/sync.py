@@ -7,7 +7,7 @@ from tach import filesystem as fs
 from tach.check import check
 from tach.core import Dependency
 from tach.filesystem import get_project_config_path
-from tach.parsing import dump_project_config_to_yaml
+from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -93,7 +93,7 @@ def sync_project(
         exclude_paths=exclude_paths,
         prune=not add,
     )
-    tach_yml_content = dump_project_config_to_yaml(project_config)
+    tach_yml_content = dump_project_config_to_toml(project_config)
     fs.write_file(str(tach_yml_path), tach_yml_content)
 
 

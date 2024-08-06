@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from pydantic import AfterValidator, BaseModel, Field, field_serializer
 from typing_extensions import Annotated, Literal
@@ -89,9 +89,7 @@ class ProjectConfig(Config):
     modules: List[ModuleConfig] = Field(default_factory=list)
     cache: CacheConfig = Field(default_factory=CacheConfig)
     external: ExternalDependencyConfig = Field(default_factory=ExternalDependencyConfig)
-    exclude: Optional[List[str]] = Field(
-        default_factory=lambda: copy(DEFAULT_EXCLUDE_PATHS)
-    )
+    exclude: List[str] = Field(default_factory=lambda: copy(DEFAULT_EXCLUDE_PATHS))
     source_roots: List[Path] = Field(default_factory=lambda: [Path(".")])
     exact: bool = False
     disable_logging: bool = False
