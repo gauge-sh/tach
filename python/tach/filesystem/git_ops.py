@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from git import GitCommandError, InvalidGitRepositoryError, NoSuchPathError, Repo
-
 from tach.errors import TachError, TachSetupError
 
 
 def get_changed_files(
     project_root: Path, head: str = "", base: str = "main"
 ) -> list[Path]:
+    # Local import because git-python takes ~80ms to load
+    from git import GitCommandError, InvalidGitRepositoryError, NoSuchPathError, Repo
+
     try:
         repo = Repo(project_root, search_parent_directories=True)
     except (InvalidGitRepositoryError, NoSuchPathError):

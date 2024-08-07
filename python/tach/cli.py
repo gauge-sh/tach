@@ -22,7 +22,6 @@ from tach.extension import (
 )
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
-from tach.mod import mod_edit_interactive
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import generate_module_graph_dot_file, generate_show_url
@@ -575,6 +574,9 @@ def tach_mod(
             ),
         },
     )
+    # Local import because prompt_toolkit takes about ~80ms to load
+    from tach.mod import mod_edit_interactive
+
     try:
         project_config = parse_project_config(root=project_root) or ProjectConfig()
         saved_changes, warnings = mod_edit_interactive(

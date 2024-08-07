@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import networkx as nx
-from networkx import NetworkXNoCycle
-
 from tach.core import ModuleTree
 from tach.errors import TachCircularDependencyError
 from tach.parsing import parse_interface_members
@@ -35,6 +32,10 @@ def canonical_form(cycle: list[str]) -> list[str]:
 def find_modules_with_cycles(
     modules: list[ModuleConfig],
 ) -> list[str]:
+    # Local import because networkx takes about ~100ms to load
+    import networkx as nx
+    from networkx import NetworkXNoCycle
+
     graph = nx.DiGraph()  # type: ignore
     # Add nodes
     for module in modules:
