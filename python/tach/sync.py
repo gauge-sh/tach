@@ -90,12 +90,16 @@ def sync_project(
     if not add:
         existing_modules: list[ModuleConfig] = []
         for module in project_config.modules:
-            module_path = fs.module_to_pyfile_or_dir_path(tuple(project_config.source_roots), module.path)
+            module_path = fs.module_to_pyfile_or_dir_path(
+                tuple(project_config.source_roots), module.path
+            )
             if module_path is not None:
                 existing_modules.append(module)
             else:
                 print(f"Removing non-existent module: {module.path}")
-        project_config = ProjectConfig(**project_config.model_dump(exclude={"modules"}), modules=existing_modules)
+        project_config = ProjectConfig(
+            **project_config.model_dump(exclude={"modules"}), modules=existing_modules
+        )
 
     new_config = sync_dependency_constraints(
         project_root=project_root,

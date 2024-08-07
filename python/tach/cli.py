@@ -627,7 +627,9 @@ def tach_sync(
     if add:
         print(f"✅ {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
     else:
-        print(f"✅ {BCOLORS.OKGREEN}Synced dependencies and removed unresolved modules.{BCOLORS.ENDC}")
+        print(
+            f"✅ {BCOLORS.OKGREEN}Synced dependencies and removed unresolved modules.{BCOLORS.ENDC}"
+        )
     sys.exit(0)
 
 
