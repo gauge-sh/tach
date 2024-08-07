@@ -41,7 +41,7 @@ def sync_dependency_constraints(
                         deprecation_map[module.path] = [dependency.path]
                     else:
                         deprecation_map[module.path].append(dependency.path)
-                        
+
         # Create a blank config
         new_config = project_config.model_copy(
             update={
