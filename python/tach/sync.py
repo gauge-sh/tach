@@ -31,7 +31,11 @@ def sync_dependency_constraints(
         existing_modules: list[ModuleConfig] = []
         for module in project_config.modules:
             module_path = fs.module_to_pyfile_or_dir_path(
-                tuple(project_config.source_roots), module.path
+                tuple(
+                    project_root / source_root
+                    for source_root in project_config.source_roots
+                ),
+                module.path,
             )
             if module_path is not None:
                 existing_modules.append(module)
