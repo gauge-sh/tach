@@ -5,8 +5,6 @@ from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
 
-import networkx as nx
-
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -41,6 +39,9 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
 def generate_module_graph_dot_file(
     project_config: ProjectConfig, output_filepath: Path
 ) -> None:
+    # Local import because networkx takes about ~100ms to load
+    import networkx as nx
+
     graph = nx.DiGraph()  # type: ignore
     # Add nodes
     for module in project_config.modules:
