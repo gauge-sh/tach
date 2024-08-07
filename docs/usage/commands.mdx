@@ -37,13 +37,13 @@ to automatically configure dependency rules.
 Tach can automatically sync your project configuration (`tach.toml`) with your project's actual dependencies.
 
 ```bash
-usage: tach sync [-h] [--prune] [-e file_or_path,...]
+usage: tach sync [-h] [--add] [-e file_or_path,...]
 
 Sync constraints with actual dependencies in your project.
 
 options:
   -h, --help            show this help message and exit
-  --add               add all existing constraints and re-sync dependencies.
+  --add                 add all existing constraints and re-sync dependencies.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
@@ -55,6 +55,8 @@ adding the corresponding dependencies to your `tach.toml` file.
 
 With `--add`,
 any missing dependencies in your `tach.toml` will be added, but does not remove unused dependencies.
+
+When run without the `--add` flag, `tach sync` will remove modules from the `tach.yml` file that do not exist in the project's source roots.
 
 ## tach check
 

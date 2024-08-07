@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
-from tach.core import Dependency
+from tach.core import Dependency, ProjectConfig
 from tach.filesystem import get_project_config_path
 from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tach.core import ProjectConfig
+    from tach.core import ModuleConfig
 
 
 def sync_dependency_constraints(
@@ -27,23 +27,35 @@ def sync_dependency_constraints(
     """
     deprecation_map: dict[str, list[str]] = {}
     if prune:
-        # Create a blank config
-        new_config = project_config.model_copy(
-            update={
-                "modules": [
-                    module.model_copy(update={"depends_on": []})
-                    for module in project_config.modules
-                ]
-            }
-        )
-        # Find deprecations - only needed if pruning as otherwise they will not be removed
+        existing_modules: list[ModuleConfig] = []
         for module in project_config.modules:
+            # Filter out modules that are not found in the source roots
+            module_path = fs.module_to_pyfile_or_dir_path(
+                tuple(
+                    project_root / source_root
+                    for source_root in project_config.source_roots
+                ),
+                module.path,
+            )
+            if module_path is not None:
+                existing_modules.append(module)
+            # Track deprecations so they can be restored while creating the new project config
             for dependency in module.depends_on:
                 if dependency.deprecated:
                     if module.path not in deprecation_map:
                         deprecation_map[module.path] = [dependency.path]
                     else:
                         deprecation_map[module.path].append(dependency.path)
+
+        # Create a blank config
+        new_config = project_config.model_copy(
+            update={
+                "modules": [
+                    module.model_copy(update={"depends_on": []})
+                    for module in existing_modules
+                ]
+            }
+        )
     else:
         # Use the same config, existing deprecations will remain
         new_config = project_config
@@ -89,6 +101,7 @@ def sync_project(
         project_config=project_config,
         prune=not add,
     )
+
     config_toml_content = dump_project_config_to_toml(project_config)
     fs.write_file(str(config_path), config_toml_content)
 
