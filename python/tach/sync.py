@@ -27,23 +27,30 @@ def sync_dependency_constraints(
     """
     deprecation_map: dict[str, list[str]] = {}
     if prune:
-        # Create a blank config
-        new_config = project_config.model_copy(
-            update={
-                "modules": [
-                    module.model_copy(update={"depends_on": []})
-                    for module in project_config.modules
-                ]
-            }
-        )
         # Find deprecations - only needed if pruning as otherwise they will not be removed
+        existing_modules: list[ModuleConfig] = []
         for module in project_config.modules:
+            module_path = fs.module_to_pyfile_or_dir_path(
+                tuple(project_config.source_roots), module.path
+            )
+            if module_path is not None:
+                existing_modules.append(module)
             for dependency in module.depends_on:
                 if dependency.deprecated:
                     if module.path not in deprecation_map:
                         deprecation_map[module.path] = [dependency.path]
                     else:
                         deprecation_map[module.path].append(dependency.path)
+                        
+        # Create a blank config
+        new_config = project_config.model_copy(
+            update={
+                "modules": [
+                    module.model_copy(update={"depends_on": []})
+                    for module in existing_modules
+                ]
+            }
+        )
     else:
         # Use the same config, existing deprecations will remain
         new_config = project_config
@@ -84,21 +91,7 @@ def sync_project(
             "Unexpected error. Could not find configuration file during 'sync'."
         )
 
-    if not add:
-        existing_modules: list[ModuleConfig] = []
-        for module in project_config.modules:
-            module_path = fs.module_to_pyfile_or_dir_path(
-                tuple(project_config.source_roots), module.path
-            )
-            if module_path is not None:
-                existing_modules.append(module)
-            else:
-                print(f"Removing non-existent module: {module.path}")
-        project_config = ProjectConfig(
-            **project_config.model_dump(exclude={"modules"}), modules=existing_modules
-        )
-
-    new_config = sync_dependency_constraints(
+    project_config = sync_dependency_constraints(
         project_root=project_root,
         project_config=project_config,
         prune=not add,
