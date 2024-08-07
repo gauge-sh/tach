@@ -58,7 +58,7 @@ Mark each module boundary with 'Enter'. You can mark all of your top-level Pytho
 
 If your Python code lives below your project root, or if you are working in a monorepo with multiple Python packages, mark your Python [source roots](https://docs.gauge.sh/usage/configuration#source-roots) using the 's' key.
 
-This will create the config file for your project, `tach.yml`.
+This will create the config file for your project, `tach.toml`.
 
 Once you've marked all the modules you want to enforce dependencies between, run:
 
@@ -66,12 +66,12 @@ Once you've marked all the modules you want to enforce dependencies between, run
 tach sync
 ```
 
-Dependencies that exist between each module you've marked will be written to `tach.yml`.
+Dependencies that exist between each module you've marked will be written to `tach.toml`.
 
 Check out what Tach has found!
 
 ```
-cat tach.yml
+cat tach.toml
 ```
 
 Note: Your [source roots](https://docs.gauge.sh/usage/configuration#source-roots) will implicitly be treated as module boundaries, and can show up as `<root>`.
@@ -92,7 +92,7 @@ You will see:
 
 You can validate that Tach is working by either:
 
-1. Commenting out an item in a `depends_on` key in `tach.yml`
+1. Commenting out an item in a `depends_on` key in `tach.toml`
 2. By adding an import between modules that didn't previously import from each other.
 
 Give both a try and run `tach check` again. This will generate an error:
@@ -117,7 +117,7 @@ Tach will generate a graph of your dependencies. Here's what this looks like for
 
 ![tach show](docs/assets/tach_show.png)
 
-Note that this graph is generated remotely with the contents of your `tach.yml` when running `tach show --web`.
+Note that this graph is generated remotely with the contents of your `tach.toml` when running `tach show --web`.
 
 If you would like to use the [GraphViz DOT format](https://graphviz.org/about/) locally, simply running `tach show` will generate `tach_module_graph.dot` in your working directory.
 

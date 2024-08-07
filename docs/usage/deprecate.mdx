@@ -9,16 +9,17 @@ A dependency can be marked as `deprecated` - this means that the intention is to
 
 Given modules called 'core' and 'parsing':
 
-```yaml
-# tach.yml
-modules:
-  - path: parsing
-    depends_on:
-    - path: core
-      deprecated: true
-  - path: core
-    depends_on:
-    - path: parsing
+```toml
+# tach.toml
+[[modules]]
+path = "parsing"
+depends_on = [
+    { path = "core", deprecated = true }
+]
+
+[[modules]]
+path = "core"
+depends_on = []
 ```
 
 Then, in `parsing.py`:

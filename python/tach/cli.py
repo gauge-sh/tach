@@ -119,15 +119,15 @@ def print_unused_dependencies(
         + constraint_messages
     )
     print(
-        f"{BCOLORS.WARNING}\nRemove the unused dependencies from tach.yml, "
-        f"or consider running 'tach sync' to update module configuration and "
+        f"{BCOLORS.WARNING}\nRemove the unused dependencies from {CONFIG_FILE_NAME}.toml, "
+        f"or consider running '{TOOL_NAME} sync' to update module configuration and "
         f"remove all unused dependencies.\n{BCOLORS.ENDC}"
     )
 
 
-def print_no_config_yml() -> None:
+def print_no_config_found() -> None:
     print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.(yml|yaml) not found{BCOLORS.ENDC}",
+        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.toml not found{BCOLORS.ENDC}",
         file=sys.stderr,
     )
 
@@ -154,7 +154,7 @@ def print_circular_dependency_error(module_paths: list[str]) -> None:
         )
         + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\n"
         f"Remove or unset 'forbid_circular_dependencies' from "
-        f"'tach.yml' to allow circular dependencies.{BCOLORS.ENDC}"
+        f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}"
     )
 
 
@@ -169,7 +169,7 @@ def print_undeclared_dependencies(
             print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
     print(
         f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in tach.yml.\n{BCOLORS.ENDC}"
+        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}"
     )
 
 
@@ -186,19 +186,19 @@ def add_base_arguments(parser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="tach",
+        prog=TOOL_NAME,
         add_help=True,
-        epilog="Make sure tach is run from the root of your Python project,"
-        " and `tach.yml` is present",
     )
-    parser.add_argument("--version", action="version", version=f"tach {__version__}")
+    parser.add_argument(
+        "--version", action="version", version=f"{TOOL_NAME} {__version__}"
+    )
 
     subparsers = parser.add_subparsers(title="commands", dest="command")
 
     ## tach mod
     mod_parser = subparsers.add_parser(
         "mod",
-        prog="tach mod",
+        prog=f"{TOOL_NAME} mod",
         help="Configure module boundaries interactively",
         description="Configure module boundaries interactively",
     )
@@ -215,7 +215,7 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach check
     check_parser = subparsers.add_parser(
         "check",
-        prog="tach check",
+        prog=f"{TOOL_NAME} check",
         help="Check existing boundaries against your dependencies and module interfaces",
         description="Check existing boundaries against your dependencies and module interfaces",
     )
@@ -229,7 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach check-external
     subparsers.add_parser(
         "check-external",
-        prog="tach check-external",
+        prog=f"{TOOL_NAME} check-external",
         help="Perform checks related to third-party dependencies",
         description="Perform checks related to third-party dependencies",
     )
@@ -237,7 +237,7 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach sync
     sync_parser = subparsers.add_parser(
         "sync",
-        prog="tach sync",
+        prog=f"{TOOL_NAME} sync",
         help="Sync constraints with actual dependencies in your project.",
         description="Sync constraints with actual dependencies in your project.",
     )
@@ -251,7 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach report
     report_parser = subparsers.add_parser(
         "report",
-        prog="tach report",
+        prog=f"{TOOL_NAME} report",
         help="Create a report of dependencies and usages of the given path or directory.",
         description="Create a report of dependencies and usages of the given path or directory.",
     )
@@ -287,7 +287,7 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach report-external
     report_external_parser = subparsers.add_parser(
         "report-external",
-        prog="tach report-external",
+        prog=f"{TOOL_NAME} report-external",
         help="Create a report of third-party dependencies.",
         description="Create a report of third-party dependencies.",
     )
@@ -303,7 +303,7 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach show
     show_parser = subparsers.add_parser(
         "show",
-        prog="tach show",
+        prog=f"{TOOL_NAME} show",
         help="Visualize the dependency graph of your project.",
         description="Visualize the dependency graph of your project.",
     )
@@ -324,9 +324,9 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach install
     install_parser = subparsers.add_parser(
         "install",
-        prog="tach install",
-        help="Install tach into your workflow (e.g. as a pre-commit hook)",
-        description="Install tach into your workflow (e.g. as a pre-commit hook)",
+        prog=f"{TOOL_NAME} install",
+        help=f"Install {TOOL_NAME} into your workflow (e.g. as a pre-commit hook)",
+        description=f"Install {TOOL_NAME} into your workflow (e.g. as a pre-commit hook)",
     )
     install_parser.add_argument(
         "target",
@@ -337,7 +337,7 @@ def build_parser() -> argparse.ArgumentParser:
     ## tach test
     test_parser = subparsers.add_parser(
         "test",
-        prog="tach test",
+        prog=f"{TOOL_NAME} test",
         help="Run tests on modules impacted by the current changes.",
         description="Run tests on modules impacted by the current changes.",
     )
@@ -363,7 +363,7 @@ def build_parser() -> argparse.ArgumentParser:
     test_parser.add_argument(
         "pytest_args",
         nargs=argparse.REMAINDER,
-        help="Arguments forwarded to pytest. Use '--' to separate these arguments. Ex: 'tach test -- -v'",
+        help=f"Arguments forwarded to pytest. Use '--' to separate these arguments. Ex: '{TOOL_NAME} test -- -v'",
     )
     return parser
 
@@ -474,7 +474,7 @@ def tach_check(
     try:
         project_config = parse_project_config(project_root)
         if project_config is None:
-            print_no_config_yml()
+            print_no_config_found()
             sys.exit(1)
 
         exact |= project_config.exact
@@ -543,7 +543,7 @@ def tach_check_external(project_root: Path):
     try:
         project_config = parse_project_config(project_root)
         if project_config is None:
-            print_no_config_yml()
+            print_no_config_found()
             sys.exit(1)
 
         result = check_external(
@@ -609,7 +609,7 @@ def tach_sync(
     try:
         project_config = parse_project_config(root=project_root)
         if project_config is None:
-            print_no_config_yml()
+            print_no_config_found()
             sys.exit(1)
 
         if exclude_paths is not None:
@@ -692,7 +692,7 @@ def tach_report(
     )
     project_config = parse_project_config(root=project_root)
     if project_config is None:
-        print_no_config_yml()
+        print_no_config_found()
         sys.exit(1)
 
     report_path = Path(path)
@@ -728,7 +728,7 @@ def tach_report_external(
     )
     project_config = parse_project_config(root=project_root)
     if project_config is None:
-        print_no_config_yml()
+        print_no_config_found()
         sys.exit(1)
 
     report_path = Path(path)
@@ -760,7 +760,7 @@ def tach_show(
 
     project_config = parse_project_config(root=project_root)
     if project_config is None:
-        print_no_config_yml()
+        print_no_config_found()
         sys.exit(1)
 
     try:
@@ -774,7 +774,7 @@ def tach_show(
                 sys.exit(1)
         else:
             print_show_web_suggestion()
-            output_filepath = output_filepath or Path("tach_module_graph.dot")
+            output_filepath = output_filepath or Path(f"{TOOL_NAME}_module_graph.dot")
             generate_module_graph_dot_file(project_config, output_filepath)
             print_generated_module_graph_file(output_filepath)
             sys.exit(0)
@@ -800,12 +800,12 @@ def tach_test(
     )
     project_config = parse_project_config(root=project_root)
     if project_config is None:
-        print_no_config_yml()
+        print_no_config_found()
         sys.exit(1)
 
     if pytest_args and pytest_args[0] != "--":
         print(
-            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: 'tach test -- -v'{BCOLORS.ENDC}"
+            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: '{TOOL_NAME} test -- -v'{BCOLORS.ENDC}"
         )
         sys.exit(1)
 
@@ -866,7 +866,7 @@ def main() -> None:
     latest_version = cache.get_latest_version()
     if latest_version and latest_version != __version__:
         print(
-            f"{BCOLORS.WARNING}WARNING: there is a new tach version available"
+            f"{BCOLORS.WARNING}WARNING: there is a new {TOOL_NAME} version available"
             f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
         )
 
