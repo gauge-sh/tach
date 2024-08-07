@@ -29,7 +29,7 @@ def mock_project_config(mocker) -> None:
     mocker.patch("tach.cli.parse_project_config", mock_project_config)
 
 
-def test_execute_with_tach_yml(capfd, mock_check, mock_project_config):
+def test_execute_with_config(capfd, mock_check, mock_project_config):
     # Test with a valid path as mocked
     args, _ = cli.parse_arguments(["check"])
     assert args.command == "check"

@@ -78,8 +78,8 @@ def sync_project(
     project_config: ProjectConfig,
     add: bool = False,
 ) -> None:
-    tach_yml_path = get_project_config_path(project_root)
-    if tach_yml_path is None:
+    config_path = get_project_config_path(project_root)
+    if config_path is None:
         raise errors.TachError(
             "Unexpected error. Could not find configuration file during 'sync'."
         )
@@ -89,8 +89,8 @@ def sync_project(
         project_config=project_config,
         prune=not add,
     )
-    tach_yml_content = dump_project_config_to_toml(project_config)
-    fs.write_file(str(tach_yml_path), tach_yml_content)
+    config_toml_content = dump_project_config_to_toml(project_config)
+    fs.write_file(str(config_path), config_toml_content)
 
 
 __all__ = ["sync_project", "sync_dependency_constraints"]

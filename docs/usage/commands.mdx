@@ -34,7 +34,7 @@ to automatically configure dependency rules.
 
 ## tach sync
 
-Tach can automatically sync your project configuration (`tach.yml`) with your project's actual dependencies.
+Tach can automatically sync your project configuration (`tach.toml`) with your project's actual dependencies.
 
 ```bash
 usage: tach sync [-h] [--prune] [-e file_or_path,...]
@@ -51,10 +51,10 @@ options:
 When this command runs, Tach will analyze the imports in your Python project.
 
 Any undeclared dependencies will be automatically resolved by
-adding the corresponding dependencies to your `tach.yml` file.
+adding the corresponding dependencies to your `tach.toml` file.
 
 With `--add`,
-any missing dependencies in your `tach.yml` will be added, but does not remove unused dependencies.
+any missing dependencies in your `tach.toml` will be added, but does not remove unused dependencies.
 
 ## tach check
 
@@ -78,7 +78,7 @@ An error will indicate:
 - the path associated with that file
 - the path associated with the attempted import
 
-If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.yml` that does not exist in the code.
+If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.toml` that does not exist in the code.
 
 Example:
 
@@ -185,7 +185,7 @@ Although your local environment may contain the dependencies for all your packag
 
 This means that, although tests may pass in your shared environment, an invalid import can still cause errors at runtime for your users.
 
-In case you would like to explicitly allow a certain external module, this can be configured in your [`tach.yml`](configuration#external-checks)
+In case you would like to explicitly allow a certain external module, this can be configured in your [`tach.toml`](configuration#external-checks)
 
 <Note>It is recommended to run Tach within a virtual environment containing all of your dependencies across all packages. This is because Tach uses the distribution metadata to map module names like 'git' to their distributions ('GitPython').</Note>
 
@@ -239,7 +239,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
   - repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.9.3 # change this to the latest tag!
+    rev: v0.10.0 # change this to the latest tag!
     hooks:
       - id: tach
 ```
