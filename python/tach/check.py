@@ -156,7 +156,6 @@ def is_path_excluded(path: Path, exclude_paths: list[str]) -> bool:
 def check(
     project_root: Path,
     project_config: ProjectConfig,
-    exclude_paths: list[str] | None = None,
 ) -> CheckResult:
     if not project_root.is_dir():
         raise errors.TachSetupError(
@@ -166,11 +165,6 @@ def check(
     boundary_errors: list[BoundaryError] = []
     boundary_warnings: list[BoundaryError] = []
     warnings: list[str] = []
-
-    if exclude_paths is not None and project_config.exclude is not None:
-        exclude_paths.extend(project_config.exclude)
-    else:
-        exclude_paths = project_config.exclude
 
     source_roots = [
         project_root / source_root for source_root in project_config.source_roots
@@ -193,13 +187,13 @@ def check(
     # This informs the Rust extension ahead-of-time which paths are excluded.
     # The extension builds regexes and uses them during `get_project_imports`
     set_excluded_paths(
-        project_root=str(project_root), exclude_paths=exclude_paths or []
+        project_root=str(project_root), exclude_paths=project_config.exclude
     )
     for source_root in source_roots:
         for file_path in fs.walk_pyfiles(source_root):
             abs_file_path = source_root / file_path
             rel_file_path = abs_file_path.relative_to(project_root)
-            if is_path_excluded(rel_file_path, exclude_paths=exclude_paths or []):
+            if is_path_excluded(rel_file_path, exclude_paths=project_config.exclude):
                 continue
 
             mod_path = fs.file_to_module_path(

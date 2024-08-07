@@ -53,6 +53,25 @@ impl From<check::CheckError> for PyErr {
     }
 }
 
+impl From<parsing::ParsingError> for PyErr {
+    fn from(err: parsing::ParsingError) -> Self {
+        match err {
+            parsing::ParsingError::PythonParse(err) => PySyntaxError::new_err(err.to_string()),
+            parsing::ParsingError::Io(err) => PyOSError::new_err(err.to_string()),
+            parsing::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
+            parsing::ParsingError::TomlParse(err) => PyValueError::new_err(err.to_string()),
+            parsing::ParsingError::MissingField(err) => PyValueError::new_err(err),
+        }
+    }
+}
+
+/// Parse project config
+#[pyfunction]
+#[pyo3(signature = (filepath))]
+fn parse_project_config(filepath: String) -> parsing::Result<parsing::config::ProjectConfig> {
+    parsing::config::parse_project_config(filepath)
+}
+
 #[pyfunction]
 #[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_normalized_imports(
@@ -217,6 +236,8 @@ fn update_computation_cache(
 
 #[pymodule]
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<parsing::config::ProjectConfig>()?;
+    m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_normalized_imports, m)?)?;

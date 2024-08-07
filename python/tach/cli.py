@@ -479,10 +479,14 @@ def tach_check(
 
         exact |= project_config.exact
 
+        if exclude_paths is not None:
+            exclude_paths.extend(project_config.exclude)
+        else:
+            exclude_paths = project_config.exclude
+
         check_result = check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=exclude_paths,
         )
         if check_result.warnings:
             print_warnings(check_result.warnings)
@@ -510,7 +514,6 @@ def tach_check(
             pruned_config = sync_dependency_constraints(
                 project_root=project_root,
                 project_config=project_config,
-                exclude_paths=exclude_paths,
             )
             unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:
@@ -609,7 +612,7 @@ def tach_sync(
             print_no_config_yml()
             sys.exit(1)
 
-        if exclude_paths is not None and project_config.exclude is not None:
+        if exclude_paths is not None:
             exclude_paths.extend(project_config.exclude)
         else:
             exclude_paths = project_config.exclude
@@ -618,7 +621,6 @@ def tach_sync(
             project_root=project_root,
             project_config=project_config,
             add=add,
-            exclude_paths=exclude_paths,
         )
     except Exception as e:
         print(str(e))

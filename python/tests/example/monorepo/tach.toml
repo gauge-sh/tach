@@ -1,0 +1,38 @@
+exclude = [
+    ".*__pycache__",
+    ".*egg-info",
+    "docs",
+    "tests",
+    "venv",
+]
+source_roots = [
+    "backend",
+    "utils",
+]
+exact = true
+
+[[modules]]
+path = "mod1"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "mod2"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "mod3"
+depends_on = [
+    { path = "mod2" },
+]
+
+[[modules]]
+path = "myorg.corepkg"
+depends_on = [
+    { path = "myorg.utilpkg" },
+]
+
+[[modules]]
+path = "myorg.utilpkg"
+depends_on = []

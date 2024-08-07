@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.colors import BCOLORS
-from tach.constants import CONFIG_FILE_NAME
+from tach.filesystem import get_project_config_path
 from tach.interactive import (
     InteractiveModuleConfiguration,
     get_selected_modules_interactive,
 )
-from tach.parsing import dump_project_config_to_yaml
+from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
     from tach.core import ProjectConfig
@@ -27,7 +27,7 @@ def update_modules(
     if set(project_config.source_roots) != set(selected_source_roots):
         # Only assign to this field if it has changed,
         # since the project config writes any field that
-        # has been touched out to YML.
+        # has been touched out to TOML.
         project_config.source_roots = [
             source_root.relative_to(project_root)
             for source_root in selected_source_roots
@@ -42,9 +42,9 @@ def update_modules(
     ]
     project_config.set_modules(module_paths=module_paths)
 
-    project_config_path = project_root / f"{CONFIG_FILE_NAME}.yml"
-    config_yml_content = dump_project_config_to_yaml(project_config)
-    fs.write_file(str(project_config_path), config_yml_content)
+    project_config_path = get_project_config_path(project_root)
+    config_toml_content = dump_project_config_to_toml(project_config)
+    fs.write_file(str(project_config_path), config_toml_content)
 
 
 @dataclass

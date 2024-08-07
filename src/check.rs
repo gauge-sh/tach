@@ -5,13 +5,13 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::filesystem::relative_to;
-use crate::parsing::normalize_package_name;
+use crate::parsing::external::{normalize_package_name, parse_pyproject_toml};
 use crate::{filesystem, imports, parsing};
 
 #[derive(Error, Debug)]
 pub enum CheckError {
     #[error("Parsing error: {0}")]
-    Parse(#[from] parsing::ParsingError),
+    Parse(#[from] parsing::error::ParsingError),
     #[error("Import parsing error: {0}")]
     ImportParse(#[from] imports::ImportParseError),
     #[error("IO error: {0}")]
@@ -32,7 +32,7 @@ pub fn check_external_dependencies(
 ) -> Result<ExternalCheckDiagnostics> {
     let mut diagnostics: ExternalCheckDiagnostics = HashMap::new();
     for pyproject in filesystem::walk_pyprojects(project_root.to_str().unwrap()) {
-        let project_info = parsing::parse_pyproject_toml(&pyproject)?;
+        let project_info = parse_pyproject_toml(&pyproject)?;
         for source_root in &project_info.source_paths {
             let source_files = filesystem::walk_pyfiles(source_root.to_str().unwrap());
             for file_path in source_files {
