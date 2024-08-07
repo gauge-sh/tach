@@ -12,7 +12,8 @@ use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use ruff_source_file::Locator;
 
-use crate::{exclusion, filesystem, parsing};
+use crate::parsing::py_ast::parse_python_source;
+use crate::{exclusion, filesystem};
 
 #[derive(Debug)]
 pub enum ImportParseErrorType {
@@ -320,15 +321,14 @@ pub fn get_normalized_imports(
             err_type: ImportParseErrorType::FILESYSTEM,
             message: format!("Failed to parse project imports. Failure: {}", err.message),
         })?;
-    let file_ast =
-        parsing::parse_python_source(&file_contents).map_err(|err| ImportParseError {
-            err_type: ImportParseErrorType::PARSING,
-            message: format!(
-                "Failed to parse project imports. File: {:?} Failure: {:?}",
-                file_path.to_str().unwrap(),
-                err
-            ),
-        })?;
+    let file_ast = parse_python_source(&file_contents).map_err(|err| ImportParseError {
+        err_type: ImportParseErrorType::PARSING,
+        message: format!(
+            "Failed to parse project imports. File: {:?} Failure: {:?}",
+            file_path.to_str().unwrap(),
+            err
+        ),
+    })?;
     let is_package = file_path.ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);

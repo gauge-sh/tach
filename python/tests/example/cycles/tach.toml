@@ -1,0 +1,32 @@
+exclude = [
+    ".*__pycache__",
+    ".*egg-info",
+    "docs",
+    "tests",
+    "venv",
+]
+forbid_circular_dependencies = true
+
+[[modules]]
+path = "domain_one"
+depends_on = [
+    { path = "domain_two" },
+]
+
+[[modules]]
+path = "domain_three"
+depends_on = [
+    { path = "domain_one" },
+]
+
+[[modules]]
+path = "domain_two"
+depends_on = [
+    { path = "domain_three" },
+]
+
+[[modules]]
+path = "leftover"
+depends_on = [
+    { path = "domain_one" },
+]
