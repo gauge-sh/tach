@@ -36,7 +36,6 @@ pub enum CacheBackend {
     Disk,
 }
 
-
 impl IntoPy<PyObject> for CacheBackend {
     fn into_py(self, py: Python) -> PyObject {
         match self {

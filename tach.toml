@@ -23,57 +23,57 @@ strict = true
 [[modules]]
 path = "tach.__main__"
 depends_on = [
-    { path = "tach.start" },
+    { path = "tach.start", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.cache"
 depends_on = [
-    { path = "tach" },
-    { path = "tach.filesystem" },
+    { path = "tach", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.check"
 depends_on = [
-    { path = "tach.errors" },
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.parsing" },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.extension", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
+    { path = "tach.parsing", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.check_external"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.utils" },
+    { path = "tach.extension", deprecated = false },
+    { path = "tach.utils", deprecated = false },
 ]
 strict = false
 
 [[modules]]
 path = "tach.cli"
 depends_on = [
-    { path = "tach" },
-    { path = "tach.cache" },
-    { path = "tach.check" },
-    { path = "tach.check_external" },
-    { path = "tach.colors" },
-    { path = "tach.constants" },
-    { path = "tach.core" },
-    { path = "tach.errors" },
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.logging" },
-    { path = "tach.mod" },
-    { path = "tach.parsing" },
-    { path = "tach.report" },
-    { path = "tach.show" },
-    { path = "tach.sync" },
-    { path = "tach.test" },
-    { path = "tach.utils" },
+    { path = "tach", deprecated = false },
+    { path = "tach.cache", deprecated = false },
+    { path = "tach.check", deprecated = false },
+    { path = "tach.check_external", deprecated = false },
+    { path = "tach.colors", deprecated = false },
+    { path = "tach.constants", deprecated = false },
+    { path = "tach.core", deprecated = false },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.extension", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
+    { path = "tach.logging", deprecated = false },
+    { path = "tach.mod", deprecated = false },
+    { path = "tach.parsing", deprecated = false },
+    { path = "tach.report", deprecated = false },
+    { path = "tach.show", deprecated = false },
+    { path = "tach.sync", deprecated = false },
+    { path = "tach.test", deprecated = false },
+    { path = "tach.utils", deprecated = false },
 ]
 strict = true
 
@@ -90,7 +90,7 @@ strict = true
 [[modules]]
 path = "tach.core"
 depends_on = [
-    { path = "tach.constants" },
+    { path = "tach.constants", deprecated = false },
 ]
 strict = true
 
@@ -107,76 +107,76 @@ strict = false
 [[modules]]
 path = "tach.filesystem"
 depends_on = [
-    { path = "tach.colors" },
-    { path = "tach.constants" },
-    { path = "tach.core" },
-    { path = "tach.errors" },
-    { path = "tach.hooks" },
+    { path = "tach.colors", deprecated = false },
+    { path = "tach.constants", deprecated = false },
+    { path = "tach.core", deprecated = false },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.hooks", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.filesystem.git_ops"
 depends_on = [
-    { path = "tach.errors" },
+    { path = "tach.errors", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.hooks"
 depends_on = [
-    { path = "tach.constants" },
+    { path = "tach.constants", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.interactive"
 depends_on = [
-    { path = "tach.errors" },
-    { path = "tach.filesystem" },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.logging"
 depends_on = [
-    { path = "tach" },
-    { path = "tach.cache" },
-    { path = "tach.parsing" },
+    { path = "tach", deprecated = false },
+    { path = "tach.cache", deprecated = false },
+    { path = "tach.parsing", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.mod"
 depends_on = [
-    { path = "tach.colors" },
-    { path = "tach.constants" },
-    { path = "tach.errors" },
-    { path = "tach.filesystem" },
-    { path = "tach.interactive" },
-    { path = "tach.parsing" },
+    { path = "tach.colors", deprecated = false },
+    { path = "tach.constants", deprecated = false },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
+    { path = "tach.interactive", deprecated = false },
+    { path = "tach.parsing", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.parsing"
 depends_on = [
-    { path = "tach.constants" },
-    { path = "tach.core" },
-    { path = "tach.errors" },
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
+    { path = "tach.constants", deprecated = false },
+    { path = "tach.core", deprecated = false },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.extension", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.report"
 depends_on = [
-    { path = "tach.colors" },
-    { path = "tach.errors" },
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.utils" },
+    { path = "tach.colors", deprecated = false },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.extension", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
+    { path = "tach.utils", deprecated = false },
 ]
 strict = true
 
@@ -188,29 +188,29 @@ strict = true
 [[modules]]
 path = "tach.start"
 depends_on = [
-    { path = "tach.cli" },
+    { path = "tach.cli", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.sync"
 depends_on = [
-    { path = "tach.check" },
-    { path = "tach.core" },
-    { path = "tach.errors" },
-    { path = "tach.filesystem" },
-    { path = "tach.parsing" },
+    { path = "tach.check", deprecated = false },
+    { path = "tach.core", deprecated = false },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
+    { path = "tach.parsing", deprecated = false },
 ]
 strict = true
 
 [[modules]]
 path = "tach.test"
 depends_on = [
-    { path = "tach.errors" },
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.filesystem.git_ops" },
-    { path = "tach.parsing" },
+    { path = "tach.errors", deprecated = false },
+    { path = "tach.extension", deprecated = false },
+    { path = "tach.filesystem", deprecated = false },
+    { path = "tach.filesystem.git_ops", deprecated = false },
+    { path = "tach.parsing", deprecated = false },
 ]
 strict = true
 
@@ -220,6 +220,7 @@ depends_on = []
 strict = false
 
 [cache]
+backend = "disk"
 file_dependencies = [
     "python/tests/**",
     "src/*.rs",

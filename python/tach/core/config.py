@@ -66,7 +66,7 @@ class CacheConfig(Config):
     Responsible for configuring the cache backend, and adjusting the dependencies which should affect cache retrieval.
     """
 
-    backend: Literal["local"] = "local"
+    backend: Literal["disk"] = "disk"
     file_dependencies: List[str] = Field(default_factory=list)
     env_dependencies: List[str] = Field(default_factory=list)
 

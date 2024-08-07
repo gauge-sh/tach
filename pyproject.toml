@@ -28,6 +28,7 @@ classifiers = [
     "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = [
+    "pyyaml~=6.0",
     "tomli-w~=1.0",
     "pydantic~=2.0",
     "rich~=13.0",

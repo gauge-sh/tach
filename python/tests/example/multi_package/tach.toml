@@ -1,0 +1,37 @@
+modules = [
+    { path = "myorg.pack_a", depends_on = [], strict = false },
+    { path = "myorg.pack_b", depends_on = [], strict = false },
+    { path = "myorg.pack_c", depends_on = [], strict = false },
+    { path = "myorg.pack_d", depends_on = [], strict = false },
+    { path = "myorg.pack_e", depends_on = [], strict = false },
+    { path = "myorg.pack_f", depends_on = [], strict = false },
+    { path = "myorg.pack_g", depends_on = [], strict = false },
+]
+exclude = [
+    ".*__pycache__",
+    ".*egg-info",
+    "docs",
+    "tests",
+    "venv",
+]
+source_roots = [
+    "src/pack-a/src",
+    "src/pack-b/src",
+    "src/pack-c/src",
+    "src/pack-d/src",
+    "src/pack-e/src",
+    "src/pack-f/src",
+    "src/pack-g/src",
+]
+exact = false
+disable_logging = true
+ignore_type_checking_imports = true
+forbid_circular_dependencies = false
+
+[cache]
+backend = "disk"
+file_dependencies = []
+env_dependencies = []
+
+[external]
+exclude = []

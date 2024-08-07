@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import tomli_w
 
@@ -25,6 +24,7 @@ def dump_project_config_to_toml(config: ProjectConfig) -> str:
         mod.depends_on.sort(key=lambda dep: dep.path)
 
     config.exclude.sort()
+    config.source_roots.sort()
 
     # TODO: replicate UNSET behavior with explicit include/exclude
     return tomli_w.dumps(
@@ -32,27 +32,54 @@ def dump_project_config_to_toml(config: ProjectConfig) -> str:
     )
 
 
-# TODO remove after next major version upgrade
-def migrate_config(result: dict[Any, Any]) -> dict[Any, Any]:
-    if "modules" in result:
-        for module in result["modules"]:
-            if "depends_on" in module:
-                for index, path in enumerate(module["depends_on"]):
-                    if isinstance(path, str):
-                        module["depends_on"][index] = {"path": path}
-    if "source_root" in result and isinstance(result["source_root"], str):
-        result["source_roots"] = [result["source_root"]]
-        del result["source_root"]
-    return result
+def migrate_deprecated_config(filepath: Path) -> ProjectConfig:
+    import yaml
+
+    content = filepath.read_text()
+    data = yaml.safe_load(content)
+
+    try:
+        if "cache" in data:
+            if "backend" in data["cache"]:
+                # Force cache backend to 'disk' (original value was 'local')
+                data["cache"]["backend"] = "disk"
+        # Old migrations
+        if "modules" in data:
+            for module in data["modules"]:
+                if "depends_on" in module:
+                    for index, path in enumerate(module["depends_on"]):
+                        if isinstance(path, str):
+                            module["depends_on"][index] = {"path": path}
+        if "source_root" in data and isinstance(data["source_root"], str):
+            data["source_roots"] = [data["source_root"]]
+            del data["source_root"]
+        project_config = ProjectConfig(**data)  # type: ignore
+    except TypeError as e:
+        raise ValueError(f"Failed to parse deprecated YAML config: {e}")
+
+    print("Auto-migrating deprecated YAML config to TOML...")
+    filepath.with_suffix(".toml").write_text(
+        dump_project_config_to_toml(project_config)
+    )
+    print("Deleting deprecated YAML config...")
+    filepath.unlink()
+    return project_config
 
 
 def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
     root = root or Path.cwd()
     file_path = fs.get_project_config_path(root)
-    if not file_path:
-        return None
 
-    ext_project_config = ext_parse_project_config(str(file_path))
+    if file_path:
+        # Standard TOML config found
+        project_config = ext_parse_project_config(str(file_path))
+    else:
+        # No TOML found, check for deprecated (YAML) config as a fallback
+        file_path = fs.get_deprecated_project_config_path(root)
+        if not file_path:
+            return None
+        # Return right away, this is a final ProjectConfig
+        return migrate_deprecated_config(file_path)
 
     return ProjectConfig(
         modules=[
@@ -64,19 +91,19 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
                 ],
                 strict=module.strict,
             )
-            for module in ext_project_config.modules
+            for module in project_config.modules
         ],
         cache=CacheConfig(
-            file_dependencies=ext_project_config.cache.file_dependencies,
-            env_dependencies=ext_project_config.cache.env_dependencies,
+            file_dependencies=project_config.cache.file_dependencies,
+            env_dependencies=project_config.cache.env_dependencies,
         ),
         external=ExternalDependencyConfig(
-            exclude=ext_project_config.external.exclude,
+            exclude=project_config.external.exclude,
         ),
-        exclude=ext_project_config.exclude,
-        source_roots=[Path(root) for root in ext_project_config.source_roots],
-        exact=ext_project_config.exact,
-        disable_logging=ext_project_config.disable_logging,
-        ignore_type_checking_imports=ext_project_config.ignore_type_checking_imports,
-        forbid_circular_dependencies=ext_project_config.forbid_circular_dependencies,
+        exclude=project_config.exclude,
+        source_roots=[Path(root) for root in project_config.source_roots],
+        exact=project_config.exact,
+        disable_logging=project_config.disable_logging,
+        ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+        forbid_circular_dependencies=project_config.forbid_circular_dependencies,
     )

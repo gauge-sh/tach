@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 def sync_dependency_constraints(
     project_root: Path,
     project_config: ProjectConfig,
-    exclude_paths: list[str] | None = None,
     prune: bool = True,
 ) -> ProjectConfig:
     """
@@ -51,7 +50,6 @@ def sync_dependency_constraints(
     check_result = check(
         project_root=project_root,
         project_config=new_config,
-        exclude_paths=exclude_paths,
     )
     for error in check_result.errors:
         error_info = error.error_info
@@ -79,7 +77,6 @@ def sync_project(
     project_root: Path,
     project_config: ProjectConfig,
     add: bool = False,
-    exclude_paths: list[str] | None = None,
 ) -> None:
     tach_yml_path = get_project_config_path(project_root)
     if tach_yml_path is None:
@@ -90,7 +87,6 @@ def sync_project(
     project_config = sync_dependency_constraints(
         project_root=project_root,
         project_config=project_config,
-        exclude_paths=exclude_paths,
         prune=not add,
     )
     tach_yml_content = dump_project_config_to_toml(project_config)
