@@ -2,7 +2,7 @@
 title: Strict Mode
 ---
 
-A module can enable 'strict mode' by setting `strict: true` in its configuration within [`tach.yml`](configuration#tachyml).
+A module can enable 'strict mode' by setting `strict: true` in its configuration within [`tach.toml`](configuration#tachtoml).
 
 ## How does it work?
 
@@ -12,18 +12,21 @@ This creates an explicit public interface for the module which prevents coupling
 
 ## Example
 
-Given modules called 'core' and 'parsing', we may have `tach.yml` contents like this:
+Given modules called 'core' and 'parsing', we may have `tach.toml` contents like this:
 
-```yaml
-# tach.yml
-modules:
-  - path: parsing
-    depends_on:
-      - core
-    strict: true
-  - path: core
-    depends_on: []
-    strict: true
+```toml
+# tach.toml
+[[modules]]
+path = "parsing"
+depends_on = [
+    { path = "core" }
+]
+strict = true
+
+[[modules]]
+path = "core"
+depends_on = []
+strict = true
 ```
 
 Then, in `parsing.py`, we may have:

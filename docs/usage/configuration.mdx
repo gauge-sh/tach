@@ -4,7 +4,7 @@ title: Configuration
 
 Aside from running `tach mod` and `tach sync`, you can configure Tach by creating or modifying the configuration file as described below.
 
-## `tach.yml`
+## `tach.toml`
 
 This is the project-level configuration file which should be in the root of your project.
 
@@ -14,42 +14,57 @@ This is the project-level configuration file which should be in the root of your
 
 `ignore_type_checking_imports` is a boolean which, when enabled, silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block
 
+`exact` is a boolean which causes `tach check` to fail if any declared dependencies are found to be unused
+
 `forbid_circular_dependencies` is a boolean which, when enabled, causes `tach check` to fail if any circular dependencies are detected
 
-```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/gauge-sh/tach/v0.9.0/public/tach-yml-schema.json
-modules:
-  - path: tach
-    depends_on: []
-    strict: true
-  - path: tach.cache
-    depends_on:
-      - path: tach.filesystem
-    strict: true
-  - path: tach.filesystem
-    depends_on: []
-    strict: true
-exclude:
-  - .*__pycache__/
-  - build/
-  - dist/
-  - docs/
-  - tach.egg-info/
-  - tests/
-cache:
-  file_dependencies:
-    - python/tests/**
-    - src/*.rs
-  env_dependencies:
-    - DEBUG
-external:
-  exclude:
-    - pytest
-source_root: backend
-exact: true
-disable_logging: false
-ignore_type_checking_imports: true
-forbid_circular_dependencies: true
+```toml
+exclude = [
+    ".*__pycache__",
+    "build/",
+    "dist/",
+    "docs/",
+    "python/tests/",
+    "tach.egg-info/",
+    "venv/",
+]
+source_roots = ["python"]
+exact = true
+ignore_type_checking_imports = true
+forbid_circular_dependencies = true
+
+[[modules]]
+path = "tach"
+depends_on = []
+strict = true
+
+[[modules]]
+path = "tach.__main__"
+depends_on = [{ path = "tach.start" }]
+strict = true
+
+[[modules]]
+path = "tach.cache"
+depends_on = [{ path = "tach" }, { path = "tach.filesystem" }]
+strict = true
+
+[[modules]]
+path = "tach.check"
+depends_on = [
+    { path = "tach.errors" },
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.parsing" },
+]
+strict = true
+
+...
+
+[cache]
+file_dependencies = ["python/tests/**", "src/*.rs"]
+
+[external]
+exclude = ["pytest"]
 ```
 
 ## Modules
@@ -66,7 +81,7 @@ Tach also supports [deprecating individual dependencies](../usage/deprecate).
 
 The `source_roots` key is required for Tach to understand the imports within your project.
 If it is not set explicitly, `source_roots` defaults to your project root path: `['.']`.
-This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.yml` exists.
+This means Tach will expect that your Python imports are resolved relative to the directory in which `tach.toml` exists.
 
 Below are typical cases in which modifying `source_roots` is necessary.
 
@@ -77,7 +92,7 @@ In this example we will assume the Python code in our repo lives in the `backend
 
 ```
 my_repo/
-  tach.yml
+  tach.toml
   backend/
     module1.py
     module2/
@@ -101,12 +116,11 @@ Notice that these import paths (`module3`, `module2.service.MyService`) are root
 
 To indicate this structure to Tach, set:
 
-```
-source_roots:
-  - backend
+```toml
+source_roots = ["backend"]
 ```
 
-in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the only source root.
+in your `tach.toml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the only source root.
 
 
 ### Example: Monorepo
@@ -119,7 +133,7 @@ The file tree in a case like this might look like:
 
 ```
 my_repo/
-  tach.yml
+  tach.toml
   utility/
     pyproject.toml
     myorg/
@@ -161,16 +175,17 @@ Notice that this import path (`myorg.utils.utility_fn`) is rooted in the `utilit
 
 To indicate the project structure to Tach, you would set:
 
-```
-source_roots:
-  - utility
-  - core_one
-  - core_two
+```toml
+source_roots = [
+  "utility",
+  "core_one",
+  "core_two"
+]
 ```
 
-in your `tach.yml`, or use [`tach mod`](commands#tach-mod) and mark the same folders as source root.
+in your `tach.toml`, or use [`tach mod`](commands#tach-mod) and mark the same folders as source root.
 
-In `tach.yml`, each entry in `source_roots` is interpreted as a relative path from the project root.
+In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
 
 ## Cache
 
