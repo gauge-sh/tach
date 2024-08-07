@@ -27,9 +27,9 @@ def sync_dependency_constraints(
     """
     deprecation_map: dict[str, list[str]] = {}
     if prune:
-        # Find deprecations - only needed if pruning as otherwise they will not be removed
         existing_modules: list[ModuleConfig] = []
         for module in project_config.modules:
+            # Filter out modules that are not found in the source roots
             module_path = fs.module_to_pyfile_or_dir_path(
                 tuple(
                     project_root / source_root
@@ -39,6 +39,7 @@ def sync_dependency_constraints(
             )
             if module_path is not None:
                 existing_modules.append(module)
+            # Track deprecations so they can be restored while creating the new project config
             for dependency in module.depends_on:
                 if dependency.deprecated:
                     if module.path not in deprecation_map:
