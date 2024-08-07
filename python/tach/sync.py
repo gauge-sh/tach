@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
-from tach.core import Dependency
+from tach.core import Dependency, ProjectConfig
 from tach.filesystem import get_project_config_path
 from tach.parsing import dump_project_config_to_yaml
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tach.core import ProjectConfig
+    from tach.core import ModuleConfig
 
 
 def sync_dependency_constraints(
@@ -87,13 +87,23 @@ def sync_project(
             "Unexpected error. Could not find configuration file during 'sync'."
         )
 
-    project_config = sync_dependency_constraints(
+    if not add:
+        existing_modules: list[ModuleConfig] = []
+        for module in project_config.modules:
+            module_path = fs.module_to_pyfile_or_dir_path(tuple(project_config.source_roots), module.path)
+            if module_path is not None:
+                existing_modules.append(module)
+            else:
+                print(f"Removing non-existent module: {module.path}")
+        project_config = ProjectConfig(**project_config.model_dump(exclude={"modules"}), modules=existing_modules)
+
+    new_config = sync_dependency_constraints(
         project_root=project_root,
         project_config=project_config,
         exclude_paths=exclude_paths,
         prune=not add,
     )
-    tach_yml_content = dump_project_config_to_yaml(project_config)
+    tach_yml_content = dump_project_config_to_yaml(new_config)
     fs.write_file(str(tach_yml_path), tach_yml_content)
 
 
