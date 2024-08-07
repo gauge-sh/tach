@@ -1,9 +1,9 @@
 [project]
 name = "tach"
-version = "0.9.3"
+version = "0.10.0"
 authors = [
-  { name="Caelean Barnes", email="caeleanb@gmail.com" },
-  { name="Evan Doyle", email="evanmdoyle@gmail.com" },
+    { name = "Caelean Barnes", email = "caeleanb@gmail.com" },
+    { name = "Evan Doyle", email = "evanmdoyle@gmail.com" },
 ]
 description = "A Python tool to maintain a modular package architecture."
 readme = "README.md"
@@ -39,9 +39,19 @@ dependencies = [
     "pydot~=2.0",
     "stdlib-list>=0.10.0; python_version < '3.10'",
     "eval-type-backport>=0.2.0; python_version < '3.10' and python_version > '3.7'",
-    "importlib_metadata>=6.5; python_version == '3.7'"
+    "importlib_metadata>=6.5; python_version == '3.7'",
 ]
-keywords = ['python', 'module', 'package', 'guard', 'enforcement', 'boundary', 'enforcer', 'domain', 'architecture']
+keywords = [
+    'python',
+    'module',
+    'package',
+    'guard',
+    'enforcement',
+    'boundary',
+    'enforcer',
+    'domain',
+    'architecture',
+]
 
 
 [project.optional-dependencies]
@@ -92,10 +102,7 @@ lint.ignore = ["UP006", "UP007"]
 required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.flake8-type-checking]
-runtime-evaluated-base-classes = [
-    "pydantic.BaseModel",
-    "pydantic.RootModel",
-]
+runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic.RootModel"]
 runtime-evaluated-decorators = [
     "pydantic.dataclasses.dataclass",
     "dataclasses.dataclass",
@@ -106,9 +113,7 @@ exempt-modules = ["typing", "typing_extensions"]
 include = ["python/tach"]
 exclude = ["**/__pycache__", ".venv"]
 strict = ["python/tach"]
-executionEnvironments = [
-  { root = "python" }
-]
+executionEnvironments = [{ root = "python" }]
 pythonVersion = "3.8"
 
 
