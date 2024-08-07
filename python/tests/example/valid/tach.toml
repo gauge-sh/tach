@@ -5,12 +5,7 @@ exclude = [
     "tests",
     "venv",
 ]
-source_roots = [
-    ".",
-]
 exact = true
-disable_logging = false
-ignore_type_checking_imports = true
 forbid_circular_dependencies = true
 
 [[modules]]
@@ -18,31 +13,19 @@ path = "domain_one"
 depends_on = [
     { path = "domain_two", deprecated = true },
 ]
-strict = false
 
 [[modules]]
 path = "domain_three"
 depends_on = []
-strict = false
 
 [[modules]]
 path = "domain_two"
 depends_on = [
-    { path = "domain_three", deprecated = false },
+    { path = "domain_three" },
 ]
-strict = false
 
 [[modules]]
 path = "<root>"
 depends_on = [
-    { path = "domain_one", deprecated = false },
+    { path = "domain_one" },
 ]
-strict = false
-
-[cache]
-backend = "disk"
-file_dependencies = []
-env_dependencies = []
-
-[external]
-exclude = []

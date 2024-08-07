@@ -3,16 +3,42 @@ from __future__ import annotations
 from copy import copy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING, Any, ClassVar, List, Set
 
 from pydantic import AfterValidator, BaseModel, Field, field_serializer
-from typing_extensions import Annotated, Literal
+from typing_extensions import Annotated, Literal, Self
 
 from tach.constants import DEFAULT_EXCLUDE_PATHS, ROOT_MODULE_SENTINEL_TAG
 
+if TYPE_CHECKING:
+    from pydantic.fields import FieldInfo
+
 
 class Config(BaseModel):
+    ALWAYS_DUMP_FIELDS: ClassVar[Set[str]] = set()
     model_config = {"extra": "forbid"}
+
+    @classmethod
+    def with_derived_unset_fields(cls, data: dict[str, Any]) -> Self:
+        # Build an instance of the class from Rust's parsed data
+        # but tell Pydantic which fields should be treated as 'unset'
+        fields_to_include = cls.ALWAYS_DUMP_FIELDS.copy()
+        for field_name, field_info in cls.model_fields.items():
+            if field_name not in data:
+                continue
+            value = data[field_name]
+            default = cls._get_field_default(field_info)
+
+            if value != default or field_name in cls.ALWAYS_DUMP_FIELDS:
+                fields_to_include.add(field_name)
+
+        return cls.model_construct(_fields_set=fields_to_include, **data)
+
+    @classmethod
+    def _get_field_default(cls, field_info: FieldInfo) -> Any:
+        if field_info.default_factory:
+            return field_info.default_factory()
+        return field_info.default
 
 
 class ModuleConfig(Config):
@@ -21,6 +47,8 @@ class ModuleConfig(Config):
 
     Primarily responsible for declaring dependencies.
     """
+
+    ALWAYS_DUMP_FIELDS: ClassVar[Set[str]] = {"path", "depends_on"}
 
     path: str
     depends_on: List[Dependency] = Field(default_factory=list)
@@ -34,6 +62,8 @@ class ModuleConfig(Config):
 
 
 class Dependency(Config):
+    ALWAYS_DUMP_FIELDS: ClassVar[Set[str]] = {"path"}
+
     path: str
     deprecated: bool = False
 
@@ -85,6 +115,8 @@ class ProjectConfig(Config):
 
     Controls which modules are defined, their dependencies, as well as global tool-related configuration.
     """
+
+    ALWAYS_DUMP_FIELDS: ClassVar[Set[str]] = {"modules", "exclude"}
 
     modules: List[ModuleConfig] = Field(default_factory=list)
     cache: CacheConfig = Field(default_factory=CacheConfig)

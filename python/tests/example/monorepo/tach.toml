@@ -10,9 +10,6 @@ source_roots = [
     "utils",
 ]
 exact = true
-disable_logging = false
-ignore_type_checking_imports = true
-forbid_circular_dependencies = false
 
 [[modules]]
 path = "mod1"
@@ -27,26 +24,15 @@ strict = true
 [[modules]]
 path = "mod3"
 depends_on = [
-    { path = "mod2", deprecated = false },
+    { path = "mod2" },
 ]
-strict = false
 
 [[modules]]
 path = "myorg.corepkg"
 depends_on = [
-    { path = "myorg.utilpkg", deprecated = false },
+    { path = "myorg.utilpkg" },
 ]
-strict = false
 
 [[modules]]
 path = "myorg.utilpkg"
 depends_on = []
-strict = false
-
-[cache]
-backend = "disk"
-file_dependencies = []
-env_dependencies = []
-
-[external]
-exclude = []

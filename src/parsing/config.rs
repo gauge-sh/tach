@@ -6,15 +6,15 @@ use super::error;
 use crate::filesystem;
 
 // for serde
-fn default_false() -> bool {
-    false
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct DependencyConfig {
     pub path: String,
-    #[serde(default = "default_false")]
+    #[serde(default)]
     pub deprecated: bool,
 }
 
@@ -24,7 +24,7 @@ pub struct ModuleConfig {
     pub path: String,
     #[serde(default)]
     pub depends_on: Vec<DependencyConfig>,
-    #[serde(default = "default_false")]
+    #[serde(default)]
     pub strict: bool,
 }
 
@@ -44,7 +44,7 @@ impl IntoPy<PyObject> for CacheBackend {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Default, Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct CacheConfig {
     #[serde(default)]
@@ -55,7 +55,7 @@ pub struct CacheConfig {
     pub env_dependencies: Vec<String>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Default, Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ExternalDependencyConfig {
     #[serde(default)]
@@ -71,19 +71,21 @@ fn default_source_roots() -> Vec<PathBuf> {
 pub struct ProjectConfig {
     #[serde(default)]
     pub modules: Vec<ModuleConfig>,
+    #[serde(default)]
     pub cache: CacheConfig,
+    #[serde(default)]
     pub external: ExternalDependencyConfig,
     #[serde(default)]
     pub exclude: Vec<String>,
     #[serde(default = "default_source_roots")]
     pub source_roots: Vec<PathBuf>,
-    #[serde(default = "default_false")]
-    pub exact: bool,
-    #[serde(default = "default_false")]
-    pub disable_logging: bool,
     #[serde(default)]
+    pub exact: bool,
+    #[serde(default)]
+    pub disable_logging: bool,
+    #[serde(default = "default_true")]
     pub ignore_type_checking_imports: bool,
-    #[serde(default = "default_false")]
+    #[serde(default)]
     pub forbid_circular_dependencies: bool,
 }
 
