@@ -146,7 +146,6 @@ strict = true
 path = "tach.mod"
 depends_on = [
     { path = "tach.colors" },
-    { path = "tach.constants" },
     { path = "tach.errors" },
     { path = "tach.filesystem" },
     { path = "tach.interactive" },
