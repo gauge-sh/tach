@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.colors import BCOLORS
-from tach.filesystem import get_project_config_path
+from tach.filesystem import build_project_config_path
 from tach.interactive import (
     InteractiveModuleConfiguration,
     get_selected_modules_interactive,
@@ -42,7 +42,7 @@ def update_modules(
     ]
     project_config.set_modules(module_paths=module_paths)
 
-    project_config_path = get_project_config_path(project_root)
+    project_config_path = build_project_config_path(project_root)
     config_toml_content = dump_project_config_to_toml(project_config)
     fs.write_file(str(project_config_path), config_toml_content)
 
