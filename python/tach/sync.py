@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
-from tach.core import Dependency, ProjectConfig
+from tach.core import Dependency
 from tach.filesystem import get_project_config_path
 from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tach.core import ModuleConfig
+    from tach.core import ModuleConfig, ProjectConfig
 
 
 def sync_dependency_constraints(
