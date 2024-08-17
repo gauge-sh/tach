@@ -50,7 +50,7 @@ def generate_module_graph_dot_file(
     # Add dependency edges
     for module in project_config.modules:
         for dependency in module.depends_on:
-            graph.add_edge(module.path, dependency)  # type: ignore
+            graph.add_edge(module.path, dependency.path)  # type: ignore
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
     dot_data: str = pydot_graph.to_string()  # type: ignore
