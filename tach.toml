@@ -1,8 +1,11 @@
 exclude = [
-    "**/tests/**",
-    "build/**",
-    "dist/**",
-    "docs/**",
+    "**/__pycache__",
+     "build",
+     "dist",
+     "docs",
+     "python/tests",
+     "tach.egg-info",
+     "venv",
 ]
 source_roots = ["python"]
 exact = true
