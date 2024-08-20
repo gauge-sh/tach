@@ -160,7 +160,7 @@ class FileTree:
                     # Exclude patterns are relative to project root, and may include a trailing slash
                     if exclude_paths is not None and use_regex_matching is None:
                         raise errors.TachError(
-                            f"Must specify whether to use regex matching when providing exclude paths."
+                            "Must specify whether to use regex matching when providing exclude paths."
                         )
 
                     entry_path_for_glob = str(entry.relative_to(self.root.full_path))
