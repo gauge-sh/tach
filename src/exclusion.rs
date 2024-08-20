@@ -28,19 +28,17 @@ static PATH_EXCLUSIONS_SINGLETON: Lazy<Mutex<Option<PathExclusions>>> =
     Lazy::new(|| Mutex::new(None));
 
 pub fn set_excluded_paths(project_root: &Path, exclude_paths: &[PathBuf]) -> Result<()> {
-    match PATH_EXCLUSIONS_SINGLETON.lock() {
-        Ok(mut exclusions) => {
-            let absolute_excluded_paths: Vec<PathBuf> = exclude_paths
-                .iter()
-                .map(|path| project_root.join(path))
-                .collect();
-            let _ = exclusions.insert(PathExclusions::try_from(absolute_excluded_paths)?);
-            Ok(())
-        }
-        Err(_) => Err(PathExclusionError {
+    let mut exclusions = PATH_EXCLUSIONS_SINGLETON
+        .lock()
+        .map_err(|_| PathExclusionError {
             message: "A concurrency error occurred when setting excluded paths.".to_string(),
-        }),
-    }
+        })?;
+    let absolute_excluded_paths: Vec<PathBuf> = exclude_paths
+        .iter()
+        .map(|path| project_root.join(path))
+        .collect();
+    *exclusions = Some(PathExclusions::try_from(absolute_excluded_paths)?);
+    Ok(())
 }
 
 impl PathExclusions {
@@ -66,19 +64,14 @@ impl TryFrom<Vec<PathBuf>> for PathExclusions {
 }
 
 pub fn is_path_excluded(path: &str) -> Result<bool> {
-    match PATH_EXCLUSIONS_SINGLETON.lock() {
-        Ok(exclusions) => {
-            if exclusions
+    PATH_EXCLUSIONS_SINGLETON
+        .lock()
+        .map(|exclusions| {
+            exclusions
                 .as_ref()
                 .is_some_and(|path_exclusions| path_exclusions.is_path_excluded(path))
-            {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        }
-        Err(_) => Err(PathExclusionError {
+        })
+        .map_err(|_| PathExclusionError {
             message: "A concurrency error occurred when setting excluded paths.".to_string(),
-        }),
-    }
+        })
 }
