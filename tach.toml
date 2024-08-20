@@ -1,12 +1,11 @@
 exclude = [
-    "**/__pycache__",
-     "build",
-     "dist",
-     "docs",
-     "python/tests",
-     "tach.egg-info",
-     "venv",
-     "local"
+    "**/__pycache__/**",
+     "build/**",
+     "dist/**",
+     "docs/**",
+     "**/tests/**",
+     "tach.egg-info/**",
+     "venv/**",
 ]
 
 use_regex_matching = false

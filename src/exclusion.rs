@@ -11,7 +11,6 @@ pub struct PathExclusionError {
 
 pub type Result<T> = std::result::Result<T, PathExclusionError>;
 
-#[derive(Default)]
 pub struct PathExclusions {
     patterns: Vec<PatternMatcher>,
 }
