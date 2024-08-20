@@ -19,7 +19,11 @@ pub struct PathExclusions {
 static PATH_EXCLUSIONS_SINGLETON: Lazy<Mutex<Option<PathExclusions>>> =
     Lazy::new(|| Mutex::new(None));
 
-pub fn set_excluded_paths(project_root: &Path, exclude_paths: &[PathBuf]) -> Result<()> {
+pub fn set_excluded_paths(
+    project_root: &Path,
+    exclude_paths: &[PathBuf],
+    use_regex_matching: bool,
+) -> Result<()> {
     let mut exclusions = PATH_EXCLUSIONS_SINGLETON
         .lock()
         .map_err(|_| PathExclusionError {
@@ -29,7 +33,10 @@ pub fn set_excluded_paths(project_root: &Path, exclude_paths: &[PathBuf]) -> Res
         .iter()
         .map(|path| project_root.join(path))
         .collect();
-    *exclusions = Some(PathExclusions::try_from(absolute_excluded_paths)?);
+    *exclusions = Some(PathExclusions::try_from_with_mode(
+        absolute_excluded_paths,
+        use_regex_matching,
+    )?);
     Ok(())
 }
 
@@ -42,14 +49,19 @@ impl PathExclusions {
         }
         false
     }
-}
 
-impl TryFrom<Vec<PathBuf>> for PathExclusions {
-    type Error = PathExclusionError;
-    fn try_from(value: Vec<PathBuf>) -> std::result::Result<Self, Self::Error> {
+    fn try_from_with_mode(
+        from: Vec<PathBuf>,
+        use_regex_matching: bool,
+    ) -> std::result::Result<Self, PathExclusionError> {
         let mut patterns: Vec<PatternMatcher> = vec![];
-        for pattern in value.iter() {
-            patterns.push(PatternMatcher::from_glob(pattern.to_str().unwrap())?);
+        for pattern in from.iter() {
+            let pattern_str = pattern.to_str().unwrap();
+            patterns.push(if use_regex_matching {
+                PatternMatcher::from_regex(pattern_str)?
+            } else {
+                PatternMatcher::from_glob(pattern_str)?
+            });
         }
         Ok(Self { patterns })
     }

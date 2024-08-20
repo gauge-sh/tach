@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fnmatch
+import re
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -119,6 +120,7 @@ class FileTree:
         path: Path,
         depth: int | None = 1,
         exclude_paths: list[str] | None = None,
+        use_regex_matching: bool | None = None,
     ) -> FileTree:
         root = FileNode.build_from_path(path)
         root.is_module = False
@@ -126,7 +128,10 @@ class FileTree:
         tree = cls(root=root)
         tree.nodes[str(path)] = root
         tree._build_subtree(
-            root, depth=depth if depth is not None else 1, exclude_paths=exclude_paths
+            root,
+            depth=depth if depth is not None else 1,
+            exclude_paths=exclude_paths,
+            use_regex_matching=use_regex_matching,
         )
         return tree
 
@@ -135,6 +140,7 @@ class FileTree:
         root: FileNode,
         depth: int = 1,
         exclude_paths: list[str] | None = None,
+        use_regex_matching: bool | None = None,
     ):
         if root.is_dir:
             try:
@@ -152,9 +158,18 @@ class FileTree:
                         continue
 
                     # Exclude patterns are relative to project root, and may include a trailing slash
+                    if exclude_paths is not None and use_regex_matching is None:
+                        raise errors.TachError(
+                            f"Must specify whether to use regex matching when providing exclude paths."
+                        )
+
+                    entry_path_for_glob = str(entry.relative_to(self.root.full_path))
+                    entry_path_for_regex = f"{entry_path_for_glob}/"
                     if exclude_paths is not None and any(
-                        fnmatch.fnmatch(
-                            str(entry.relative_to(self.root.full_path)), exclude_path
+                        (
+                            re.match(exclude_path, entry_path_for_regex)
+                            if use_regex_matching
+                            else fnmatch.fnmatch(entry_path_for_glob, exclude_path)
                         )
                         for exclude_path in exclude_paths
                     ):
@@ -171,6 +186,7 @@ class FileTree:
                             child_node,
                             depth=max(depth - 1, 0),
                             exclude_paths=exclude_paths,
+                            use_regex_matching=use_regex_matching,
                         )
             except PermissionError:
                 # This is expected to occur during iterdir when the directory cannot be accessed
@@ -257,6 +273,7 @@ class InteractiveModuleTree:
             path=path,
             depth=depth,
             exclude_paths=self.exclude_paths,
+            use_regex_matching=project_config.use_regex_matching,
         )
 
         source_roots = [

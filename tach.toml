@@ -6,7 +6,10 @@ exclude = [
      "python/tests",
      "tach.egg-info",
      "venv",
+     "local"
 ]
+
+use_regex_matching = false
 source_roots = ["python"]
 exact = true
 ignore_type_checking_imports = true

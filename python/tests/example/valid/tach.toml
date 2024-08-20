@@ -5,6 +5,8 @@ exclude = [
     "**/__pycache__/**",
     "**/*egg-info/**",
 ]
+
+use_regex_matching = false
 exact = true
 forbid_circular_dependencies = true
 

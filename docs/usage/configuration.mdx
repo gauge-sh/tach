@@ -10,13 +10,15 @@ This is the project-level configuration file which should be in the root of your
 
 `modules` defines the modules in your project, and accepts the keys described [below](#modules).
 
-`exclude` accepts a list of directory patterns to exclude from checking. These are treated as glob paths which match from the beginning of a given file path. For example: `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
+`exclude` accepts a list of directory patterns to exclude from checking. These are treated as regex/glob paths (depending on `use_regex_matching`) which match from the beginning of a given file path. For example: when using glob matching `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
 
 `ignore_type_checking_imports` is a boolean which, when enabled, silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block
 
 `exact` is a boolean which causes `tach check` to fail if any declared dependencies are found to be unused
 
 `forbid_circular_dependencies` is a boolean which, when enabled, causes `tach check` to fail if any circular dependencies are detected
+
+`use_regex_matching` is a boolean which, when enabled, uses regex (default) matching to exclude patterns else uses globs matching
 
 ```toml
 exclude = [

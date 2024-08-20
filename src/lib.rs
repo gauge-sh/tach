@@ -135,14 +135,18 @@ fn get_external_imports(
 }
 
 /// Set excluded paths globally.
-/// This is called separately in order to set up a singleton instance holding glob patterns,
+/// This is called separately in order to set up a singleton instance holding regex/glob patterns,
 /// since they would be expensive to build for every call.
 #[pyfunction]
-#[pyo3(signature = (project_root, exclude_paths))]
-fn set_excluded_paths(project_root: String, exclude_paths: Vec<String>) -> exclusion::Result<()> {
+#[pyo3(signature = (project_root, exclude_paths, use_regex_matching))]
+fn set_excluded_paths(
+    project_root: String,
+    exclude_paths: Vec<String>,
+    use_regex_matching: bool,
+) -> exclusion::Result<()> {
     let project_root = PathBuf::from(project_root);
     let exclude_paths: Vec<PathBuf> = exclude_paths.iter().map(PathBuf::from).collect();
-    exclusion::set_excluded_paths(&project_root, &exclude_paths)
+    exclusion::set_excluded_paths(&project_root, &exclude_paths, use_regex_matching)
 }
 
 /// Validate external dependency imports against pyproject.toml dependencies

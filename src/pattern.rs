@@ -16,7 +16,6 @@ impl PatternMatcher {
         }
     }
 
-    #[deprecated(since = "0.10.0", note = "Use from_glob instead")]
     pub fn from_regex(pattern: &str) -> Result<Self, PathExclusionError> {
         Ok(PatternMatcher::Regex(regex::Regex::new(pattern)?))
     }
