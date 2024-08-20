@@ -6,6 +6,7 @@ pub mod exclusion;
 pub mod filesystem;
 pub mod imports;
 pub mod parsing;
+pub mod pattern;
 pub mod reports;
 
 use std::collections::HashMap;

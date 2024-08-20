@@ -1,27 +1,19 @@
-use glob::{Pattern, PatternError};
 use once_cell::sync::Lazy;
 use std::{
     path::{Path, PathBuf},
     sync::Mutex,
 };
 
+use crate::pattern::PatternMatcher;
 pub struct PathExclusionError {
     pub message: String,
 }
 
 pub type Result<T> = std::result::Result<T, PathExclusionError>;
 
-impl From<PatternError> for PathExclusionError {
-    fn from(_value: PatternError) -> Self {
-        Self {
-            message: "Failed to build glob patterns for excluded paths".to_string(),
-        }
-    }
-}
-
 #[derive(Default)]
 pub struct PathExclusions {
-    patterns: Vec<Pattern>,
+    patterns: Vec<PatternMatcher>,
 }
 
 static PATH_EXCLUSIONS_SINGLETON: Lazy<Mutex<Option<PathExclusions>>> =
@@ -55,9 +47,9 @@ impl PathExclusions {
 impl TryFrom<Vec<PathBuf>> for PathExclusions {
     type Error = PathExclusionError;
     fn try_from(value: Vec<PathBuf>) -> std::result::Result<Self, Self::Error> {
-        let mut patterns: Vec<Pattern> = vec![];
+        let mut patterns: Vec<PatternMatcher> = vec![];
         for pattern in value.iter() {
-            patterns.push(Pattern::new(pattern.to_str().unwrap())?);
+            patterns.push(PatternMatcher::from_glob(pattern.to_str().unwrap())?);
         }
         Ok(Self { patterns })
     }
