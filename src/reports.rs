@@ -207,17 +207,14 @@ pub fn create_dependency_report(
 
                                 // for external imports,
                                 // if there is a filter list of dependencies, verify that the import is included
-                                match include_dependency_modules {
-                                    None => true,
-                                    Some(ref included_modules) => {
-                                        for module_path in included_modules {
-                                            if import.module_path.starts_with(module_path) {
-                                                return true;
-                                            }
-                                        }
-                                        false
-                                    }
-                                }
+                                include_dependency_modules.as_ref().map_or(
+                                    true,
+                                    |included_modules| {
+                                        included_modules.iter().any(|module_path| {
+                                            import.module_path.starts_with(module_path)
+                                        })
+                                    },
+                                )
                             })
                             .map(|import| Dependency {
                                 file_path: pyfile.clone(),
