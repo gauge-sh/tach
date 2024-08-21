@@ -1,12 +1,5 @@
-exclude = [
-    "**/tests/**",
-    "**/docs/**",
-    "**/venv/**",
-    "**/__pycache__/**",
-    "**/*egg-info/**",
-]
+exclude = ['tests', 'docs', 'venv', '.*__pycache__', '.*egg-info']
 
-use_regex_matching = false
 exact = true
 forbid_circular_dependencies = true
 
