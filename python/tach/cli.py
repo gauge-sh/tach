@@ -479,9 +479,7 @@ def tach_check(
         exact |= project_config.exact
 
         if exclude_paths is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
+            project_config.exclude.extend(exclude_paths)
 
         check_result = check(
             project_root=project_root,
@@ -579,6 +577,8 @@ def tach_mod(
 
     try:
         project_config = parse_project_config(root=project_root) or ProjectConfig()
+        if exclude_paths is not None:
+            project_config.exclude.extend(exclude_paths)
         saved_changes, warnings = mod_edit_interactive(
             project_root=project_root, project_config=project_config, depth=depth
         )
@@ -615,9 +615,7 @@ def tach_sync(
             sys.exit(1)
 
         if exclude_paths is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
+            project_config.exclude.extend(exclude_paths)
 
         sync_project(
             project_root=project_root,

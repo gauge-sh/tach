@@ -68,7 +68,7 @@ def test_parse_valid_project_config(example_dir):
         disable_logging=False,
         ignore_type_checking_imports=True,
         forbid_circular_dependencies=True,
-        use_regex_matching=False,
+        use_regex_matching=True,
     )
 
 
