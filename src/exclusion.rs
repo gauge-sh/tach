@@ -41,12 +41,7 @@ pub fn set_excluded_paths(
 
 impl PathExclusions {
     fn is_path_excluded(&self, path: &str) -> bool {
-        for pattern in &self.patterns {
-            if pattern.matches(path) {
-                return true;
-            }
-        }
-        false
+        self.patterns.iter().any(|p| p.matches(path))
     }
 
     fn try_from_with_mode(

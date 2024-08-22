@@ -163,6 +163,7 @@ def is_path_excluded(
 def check(
     project_root: Path,
     project_config: ProjectConfig,
+    exclude_paths: list[str],
 ) -> CheckResult:
     if not project_root.is_dir():
         raise errors.TachSetupError(
@@ -195,7 +196,7 @@ def check(
     # The extension builds regex/glob patterns and uses them during `get_project_imports`
     set_excluded_paths(
         project_root=str(project_root),
-        exclude_paths=project_config.exclude,
+        exclude_paths=exclude_paths,
         use_regex_matching=project_config.use_regex_matching,
     )
     for source_root in source_roots:
@@ -204,7 +205,7 @@ def check(
             rel_file_path = abs_file_path.relative_to(project_root)
             if is_path_excluded(
                 rel_file_path,
-                exclude_paths=project_config.exclude,
+                exclude_paths=exclude_paths,
                 use_regex_matching=project_config.use_regex_matching,
             ):
                 continue

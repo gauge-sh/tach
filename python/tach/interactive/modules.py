@@ -264,15 +264,15 @@ class InteractiveModuleTree:
         self,
         path: Path,
         project_config: ProjectConfig,
+        exclude_paths: list[str],
         depth: int | None = 1,
     ):
         # By default, don't save if we exit for any reason
         self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
-        self.exclude_paths = project_config.exclude
         self.file_tree = FileTree.build_from_path(
             path=path,
             depth=depth,
-            exclude_paths=self.exclude_paths,
+            exclude_paths=exclude_paths,
             use_regex_matching=project_config.use_regex_matching,
         )
 
@@ -600,11 +600,13 @@ class InteractiveModuleTree:
 def get_selected_modules_interactive(
     path: Path,
     project_config: ProjectConfig,
+    exclude_paths: list[str],
     depth: int | None = 1,
 ) -> InteractiveModuleConfiguration | None:
     ipt = InteractiveModuleTree(
         path=path,
         project_config=project_config,
+        exclude_paths=exclude_paths,
         depth=depth,
     )
     return ipt.run()
