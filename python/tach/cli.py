@@ -227,12 +227,13 @@ def build_parser() -> argparse.ArgumentParser:
     add_base_arguments(check_parser)
 
     ## tach check-external
-    subparsers.add_parser(
+    check_parser_external = subparsers.add_parser(
         "check-external",
         prog=f"{TOOL_NAME} check-external",
         help="Perform checks related to third-party dependencies",
         description="Perform checks related to third-party dependencies",
     )
+    add_base_arguments(check_parser_external)
 
     ## tach sync
     sync_parser = subparsers.add_parser(
@@ -555,7 +556,7 @@ def tach_check(
     sys.exit(exit_code)
 
 
-def tach_check_external(project_root: Path):
+def tach_check_external(project_root: Path, exclude_paths: list[str] | None = None):
     logger.info(
         "tach check-external called",
         extra={
@@ -570,9 +571,14 @@ def tach_check_external(project_root: Path):
             print_no_config_found()
             sys.exit(1)
 
+        exclude_paths = extend_and_validate(
+            exclude_paths, project_config.exclude, project_config.use_regex_matching
+        )
+
         result = check_external(
             project_root=project_root,
             project_config=project_config,
+            exclude_paths=exclude_paths,
         )
 
         if result.undeclared_dependencies:
@@ -919,7 +925,7 @@ def main() -> None:
             project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
         )
     elif args.command == "check-external":
-        tach_check_external(project_root=project_root)
+        tach_check_external(project_root=project_root, exclude_paths=exclude_paths)
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)

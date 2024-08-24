@@ -171,12 +171,14 @@ This command also takes advantage of Tach's [computation cache](caching).
 
 Tach can validate that the external imports in your Python packages match your declared package dependencies in `pyproject.toml`.
 ```bash
-usage: tach check-external [-h]
+usage: tach check-external [-h] [-e file_or_path,...]
 
 Perform checks related to third-party dependencies
 
 options:
   -h, --help  show this help message and exit
+  -e file_or_path,..., --exclude file_or_path,...
+                        Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
 For each `pyproject.toml` found from the project root, Tach will scan all imports in the associated Python source and compare them with the declared dependencies.
