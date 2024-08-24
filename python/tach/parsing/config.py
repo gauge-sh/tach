@@ -117,5 +117,6 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
             "disable_logging": project_config.disable_logging,
             "ignore_type_checking_imports": project_config.ignore_type_checking_imports,
             "forbid_circular_dependencies": project_config.forbid_circular_dependencies,
+            "use_regex_matching": project_config.use_regex_matching,
         }
     )

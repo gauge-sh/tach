@@ -25,7 +25,9 @@ def check_external(
     ]
     if project_config.exclude:
         set_excluded_paths(
-            project_root=str(project_root), exclude_paths=project_config.exclude
+            project_root=str(project_root),
+            exclude_paths=project_config.exclude,
+            use_regex_matching=project_config.use_regex_matching,
         )
 
     diagnostics = check_external_dependencies(

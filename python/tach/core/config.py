@@ -127,6 +127,7 @@ class ProjectConfig(Config):
     disable_logging: bool = False
     ignore_type_checking_imports: bool = True
     forbid_circular_dependencies: bool = False
+    use_regex_matching: bool = True
 
     @field_serializer("source_roots")
     def serialize_source_roots(self, source_roots: list[Path], _) -> List[str]:

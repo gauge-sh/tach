@@ -33,7 +33,9 @@ def test_valid_path(mock_project_config, mock_cwd):
     mock_path = mock_cwd / "test.py"
     mock_path.touch()
     result = report(
-        project_root=mock_cwd, path=Path("test.py"), project_config=mock_project_config
+        project_root=mock_cwd,
+        path=Path("test.py"),
+        project_config=mock_project_config,
     )
     assert result
 
@@ -42,7 +44,9 @@ def test_valid_dir(mock_project_config, mock_cwd):
     mock_path = mock_cwd / "test"
     mock_path.mkdir()
     result = report(
-        project_root=mock_cwd, path=Path("test"), project_config=mock_project_config
+        project_root=mock_cwd,
+        path=Path("test"),
+        project_config=mock_project_config,
     )
     assert result
 

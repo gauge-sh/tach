@@ -28,9 +28,8 @@ pub struct ModuleConfig {
     pub strict: bool,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Default, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
-#[derive(Default)]
 pub enum CacheBackend {
     #[default]
     Disk,
@@ -39,7 +38,7 @@ pub enum CacheBackend {
 impl IntoPy<PyObject> for CacheBackend {
     fn into_py(self, py: Python) -> PyObject {
         match self {
-            CacheBackend::Disk => "disk".to_object(py),
+            Self::Disk => "disk".to_object(py),
         }
     }
 }
@@ -87,6 +86,8 @@ pub struct ProjectConfig {
     pub ignore_type_checking_imports: bool,
     #[serde(default)]
     pub forbid_circular_dependencies: bool,
+    #[serde(default = "default_true")]
+    pub use_regex_matching: bool,
 }
 
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> error::Result<ProjectConfig> {

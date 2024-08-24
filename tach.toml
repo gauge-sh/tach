@@ -1,12 +1,14 @@
 exclude = [
-    ".*__pycache__",
-    "build/",
-    "dist/",
-    "docs/",
-    "python/tests/",
-    "tach.egg-info/",
-    "venv/",
+    "**/__pycache__/**",
+     "build/**",
+     "dist/**",
+     "docs/**",
+     "**/tests/**",
+     "tach.egg-info/**",
+     "venv/**",
 ]
+
+use_regex_matching = false
 source_roots = ["python"]
 exact = true
 ignore_type_checking_imports = true

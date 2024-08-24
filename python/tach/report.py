@@ -41,14 +41,11 @@ def report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
-    if exclude_paths is not None:
-        exclude_paths.extend(project_config.exclude)
-    else:
-        exclude_paths = project_config.exclude
-
     # This informs the Rust extension ahead-of-time which paths are excluded.
     set_excluded_paths(
-        project_root=str(project_root), exclude_paths=exclude_paths or []
+        project_root=str(project_root),
+        exclude_paths=exclude_paths or [],
+        use_regex_matching=project_config.use_regex_matching,
     )
 
     return create_dependency_report(
@@ -168,14 +165,11 @@ def external_dependency_report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
-    if exclude_paths is not None:
-        exclude_paths.extend(project_config.exclude)
-    else:
-        exclude_paths = project_config.exclude
-
     # This informs the Rust extension ahead-of-time which paths are excluded.
     set_excluded_paths(
-        project_root=str(project_root), exclude_paths=exclude_paths or []
+        project_root=str(project_root),
+        exclude_paths=exclude_paths or [],
+        use_regex_matching=project_config.use_regex_matching,
     )
     source_roots = [
         str(project_root / source_root) for source_root in project_config.source_roots
