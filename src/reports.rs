@@ -185,12 +185,7 @@ pub fn create_dependency_report(
 
     for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
         let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
-        match get_project_imports(
-            project_root,
-            source_roots,
-            &absolute_pyfile,
-            ignore_type_checking_imports,
-        ) {
+        match get_project_imports(source_roots, &absolute_pyfile, ignore_type_checking_imports) {
             Ok(project_imports) => {
                 let pyfile_in_target_module = absolute_pyfile.starts_with(&absolute_path);
                 if pyfile_in_target_module && !skip_dependencies {

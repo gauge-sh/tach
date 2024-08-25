@@ -116,14 +116,12 @@ def render_external_dependency_report(
 
 
 def get_external_dependencies(
-    project_root: str,
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
     excluded_modules: set[str] | None = None,
 ) -> list[ExternalDependency]:
     external_imports = get_external_imports(
-        project_root=project_root,
         source_roots=source_roots,
         file_path=file_path,
         ignore_type_checking_imports=ignore_type_checking_imports,
@@ -177,7 +175,6 @@ def external_dependency_report(
 
     if path.is_file():
         external_dependencies = get_external_dependencies(
-            project_root=str(project_root),
             source_roots=source_roots,
             file_path=str(path.resolve()),
             excluded_modules=set(project_config.external.exclude),
@@ -189,7 +186,6 @@ def external_dependency_report(
     for pyfile in walk_pyfiles(path):
         all_external_dependencies.extend(
             get_external_dependencies(
-                project_root=str(project_root),
                 source_roots=source_roots,
                 file_path=str(path.resolve() / pyfile),
                 excluded_modules=set(project_config.external.exclude),

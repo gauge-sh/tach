@@ -1,13 +1,11 @@
 from typing import Literal
 
 def get_project_imports(
-    project_root: str,
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def get_external_imports(
-    project_root: str,
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,

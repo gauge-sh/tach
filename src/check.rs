@@ -54,13 +54,10 @@ pub fn check_external_dependencies(
                             .iter()
                             .map(|dist_name| normalize_package_name(dist_name))
                             .collect();
-                        if !imports::is_project_import(
-                            project_root,
-                            source_roots,
-                            &import.module_path,
-                        )? && distribution_names
-                            .iter()
-                            .all(|dist_name| !project_info.dependencies.contains(dist_name))
+                        if !imports::is_project_import(source_roots, &import.module_path)?
+                            && distribution_names
+                                .iter()
+                                .all(|dist_name| !project_info.dependencies.contains(dist_name))
                         {
                             let diagnostic =
                                 diagnostics.entry(display_file_path.clone()).or_default();
