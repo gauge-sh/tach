@@ -219,7 +219,6 @@ def check(
 
             try:
                 project_imports = get_project_imports(
-                    project_root=str(project_root),
                     source_roots=list(map(str, source_roots)),
                     file_path=str(abs_file_path),
                     ignore_type_checking_imports=project_config.ignore_type_checking_imports,

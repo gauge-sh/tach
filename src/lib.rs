@@ -87,48 +87,41 @@ fn get_normalized_imports(
 
 /// Get first-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_project_imports(
-    project_root: String,
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::NormalizedImports> {
-    let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    imports::get_project_imports(
-        &project_root,
-        &source_roots,
-        &file_path,
-        ignore_type_checking_imports,
-    )
+    imports::get_project_imports(&source_roots, &file_path, ignore_type_checking_imports)
 }
 
 /// Get third-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_external_imports(
-    project_root: String,
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::NormalizedImports> {
-    let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
     Ok(
         imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)?
             .into_iter()
             .filter_map(|import| {
-                imports::is_project_import(&project_root, &source_roots, &import.module_path)
-                    .map_or(None, |is_project_import| {
+                imports::is_project_import(&source_roots, &import.module_path).map_or(
+                    None,
+                    |is_project_import| {
                         if is_project_import {
                             None
                         } else {
                             Some(import)
                         }
-                    })
+                    },
+                )
             })
             .collect(),
     )

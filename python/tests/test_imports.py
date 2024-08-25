@@ -57,7 +57,6 @@ import file3
 
 def test_regular_imports(temp_project):
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "file1.py"),
         ignore_type_checking_imports=True,
@@ -68,7 +67,6 @@ def test_regular_imports(temp_project):
 
 def test_relative_imports(temp_project):
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "local/file2.py"),
         ignore_type_checking_imports=True,
@@ -79,7 +77,6 @@ def test_relative_imports(temp_project):
 
 def test_ignore_type_checking_imports(temp_project):
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "file3.py"),
         ignore_type_checking_imports=True,
@@ -90,7 +87,6 @@ def test_ignore_type_checking_imports(temp_project):
 
 def test_include_type_checking_imports(temp_project):
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "file3.py"),
         ignore_type_checking_imports=False,
@@ -108,7 +104,6 @@ from ..file1 import x
 """
     create_temp_file(temp_project, "local/file4.py", mixed_content)
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "local/file4.py"),
         ignore_type_checking_imports=True,
@@ -117,7 +112,6 @@ from ..file1 import x
     assert result == expected
 
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "local/file4.py"),
         ignore_type_checking_imports=False,
@@ -133,7 +127,6 @@ from external_module import something
 """
     create_temp_file(temp_project, "file5.py", external_content)
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "file5.py"),
         ignore_type_checking_imports=True,
@@ -150,7 +143,6 @@ from external_module import something
 """
     create_temp_file(temp_project, "file6.py", mixed_content)
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "file6.py"),
         ignore_type_checking_imports=True,
@@ -163,7 +155,6 @@ from external_module import something
 
 def test_ignored_imports(temp_project):
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(temp_project / "file4.py"),
         ignore_type_checking_imports=True,
@@ -183,7 +174,6 @@ from external_module import something
     path_outside_source_root.write_text(mixed_content)
 
     result = get_project_imports(
-        str(temp_project),
         [str(temp_project)],
         str(path_outside_source_root),
         ignore_type_checking_imports=True,

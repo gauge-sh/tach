@@ -278,26 +278,12 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
     }
 }
 
-pub fn is_project_import<P: AsRef<Path>, R: AsRef<Path>>(
-    project_root: P,
-    source_roots: &[R],
-    mod_path: &str,
-) -> Result<bool> {
+// Source Roots here are assumed to be absolute paths
+pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> Result<bool> {
     let resolved_module = filesystem::module_to_file_path(source_roots, mod_path);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
-        return match exclusion::is_path_excluded(
-            filesystem::relative_to(module.file_path.as_path(), project_root.as_ref())
-                .map_err(|err| ImportParseError {
-                    err_type: ImportParseErrorType::FILESYSTEM,
-                    message: format!(
-                        "Encountered module path outside of project root unexpectedly. Failure: {}",
-                        err.message
-                    ),
-                })?
-                .to_str()
-                .unwrap(),
-        ) {
+        return match exclusion::is_path_excluded(module.file_path.as_path().to_str().unwrap()) {
             Ok(true) => Ok(false),
             Ok(false) => Ok(true),
             Err(_) => Err(ImportParseError {
@@ -349,7 +335,6 @@ pub fn get_normalized_imports(
 }
 
 pub fn get_project_imports(
-    project_root: &Path,
     source_roots: &[PathBuf],
     file_path: &PathBuf,
     ignore_type_checking_imports: bool,
@@ -358,7 +343,7 @@ pub fn get_project_imports(
         get_normalized_imports(source_roots, file_path, ignore_type_checking_imports)?
             .into_iter()
             .filter_map(|normalized_import| {
-                is_project_import(project_root, source_roots, &normalized_import.module_path)
+                is_project_import(source_roots, &normalized_import.module_path)
                     .map_or(None, |is_project_import| {
                         is_project_import.then_some(normalized_import)
                     })
