@@ -5,7 +5,7 @@ TOOL_NAME = "tach"
 CONFIG_FILE_NAME = TOOL_NAME
 PACKAGE_FILE_NAME = "package"
 ROOT_MODULE_SENTINEL_TAG = "<root>"
-TACH_YML_SCHEMA_URL = "https://raw.githubusercontent.com/gauge-sh/tach/v0.10.0/public/tach-yml-schema.json"
+TACH_YML_SCHEMA_URL = "https://raw.githubusercontent.com/gauge-sh/tach/v0.10.1/public/tach-yml-schema.json"
 
 DEFAULT_EXCLUDE_PATHS = ["tests", "docs", "venv", ".*__pycache__", ".*egg-info"]
 
