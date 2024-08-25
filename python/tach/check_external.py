@@ -18,17 +18,18 @@ class ExternalCheckDiagnosticts:
 
 
 def check_external(
-    project_root: Path, project_config: ProjectConfig
+    project_root: Path,
+    project_config: ProjectConfig,
+    exclude_paths: list[str],
 ) -> ExternalCheckDiagnosticts:
     serialized_source_roots = [
         str(project_root / source_root) for source_root in project_config.source_roots
     ]
-    if project_config.exclude:
-        set_excluded_paths(
-            project_root=str(project_root),
-            exclude_paths=project_config.exclude,
-            use_regex_matching=project_config.use_regex_matching,
-        )
+    set_excluded_paths(
+        project_root=str(project_root),
+        exclude_paths=exclude_paths,
+        use_regex_matching=project_config.use_regex_matching,
+    )
 
     diagnostics = check_external_dependencies(
         project_root=str(project_root),
