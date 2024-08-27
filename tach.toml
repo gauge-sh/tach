@@ -58,6 +58,7 @@ depends_on = [
     { path = "tach.mod" },
     { path = "tach.parsing" },
     { path = "tach.report" },
+    { path = "tach.sarif" },
     { path = "tach.show" },
     { path = "tach.sync" },
     { path = "tach.test" },
@@ -191,7 +192,17 @@ strict = true
 
 [[modules]]
 path = "tach.utils"
-depends_on = []
+depends_on = [
+    { path = "tach.constants" },
+    { path = "tach.colors" },
+]
+
+[[modules]]
+path = "tach.sarif"
+depends_on = [
+    { path = "tach.utils" },
+]
+strict = true
 
 [cache]
 file_dependencies = ["python/tests/**", "src/*.rs"]

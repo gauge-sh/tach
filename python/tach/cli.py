@@ -5,14 +5,14 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any
+from typing import IO, Any
 
 from tach import __version__, cache
 from tach import filesystem as fs
-from tach.check import BoundaryError, check
+from tach.check import check
 from tach.check_external import check_external
 from tach.colors import BCOLORS
-from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
+from tach.constants import TOOL_NAME
 from tach.core import ProjectConfig
 from tach.errors import TachCircularDependencyError, TachError
 from tach.extension import (
@@ -24,152 +24,26 @@ from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
+from tach.sarif import (
+    build_sarif_errors,
+    create_results,
+    write_sarif_file,
+)
 from tach.show import generate_module_graph_dot_file, generate_show_url
 from tach.sync import (
     sync_dependency_constraints,
     sync_project,
 )
 from tach.test import run_affected_tests
-from tach.utils.display import create_clickable_link
-
-if TYPE_CHECKING:
-    from tach.core import UnusedDependencies
-
-
-def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
-    absolute_error_path = next(
-        (
-            source_root / error.file_path
-            for source_root in source_roots
-            if (source_root / error.file_path).exists()
-        ),
-        None,
-    )
-
-    if absolute_error_path is None:
-        # This is an unexpected case,
-        # all errors should have originated from within a source root
-        error_location = error.file_path
-    else:
-        error_location = create_clickable_link(
-            absolute_error_path,
-            display_path=error.file_path,
-            line=error.line_number,
-        )
-
-    error_template = (
-        f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
-        f"{{message}} {BCOLORS.ENDC}"
-    )
-    warning_template = (
-        f"‼️ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
-        f"{{message}} {BCOLORS.ENDC}"
-    )
-    error_info = error.error_info
-    if error_info.exception_message:
-        return error_template.format(message=error_info.exception_message)
-    elif not error_info.is_dependency_error:
-        return error_template.format(message="Unexpected error")
-
-    error_message = (
-        f"Cannot import '{error.import_mod_path}'. "
-        f"Module '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
-    )
-
-    warning_message = (
-        f"Import '{error.import_mod_path}' is deprecated. "
-        f"Module '{error_info.source_module}' should not depend on '{error_info.invalid_module}'."
-    )
-    if error_info.is_deprecated:
-        return warning_template.format(message=warning_message)
-    return error_template.format(message=error_message)
-
-
-def print_warnings(warning_list: list[str]) -> None:
-    for warning in warning_list:
-        print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
-
-
-def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> None:
-    if not error_list:
-        return
-    sorted_results = sorted(error_list, key=lambda e: e.file_path)
-    for error in sorted_results:
-        print(
-            build_error_message(error, source_roots=source_roots),
-            file=sys.stderr,
-        )
-    if not all(error.error_info.is_deprecated for error in sorted_results):
-        print(
-            f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
-            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
-        )
-
-
-def print_unused_dependencies(
-    all_unused_dependencies: list[UnusedDependencies],
-) -> None:
-    constraint_messages = "\n".join(
-        f"\t{BCOLORS.WARNING}'{unused_dependencies.path}' does not depend on: {[dependency.path for dependency in unused_dependencies.dependencies]}{BCOLORS.ENDC}"
-        for unused_dependencies in all_unused_dependencies
-    )
-    print(
-        f"❌ {BCOLORS.FAIL}Found unused dependencies: {BCOLORS.ENDC}\n"
-        + constraint_messages
-    )
-    print(
-        f"{BCOLORS.WARNING}\nRemove the unused dependencies from {CONFIG_FILE_NAME}.toml, "
-        f"or consider running '{TOOL_NAME} sync' to update module configuration and "
-        f"remove all unused dependencies.\n{BCOLORS.ENDC}"
-    )
-
-
-def print_no_config_found() -> None:
-    print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.toml not found{BCOLORS.ENDC}",
-        file=sys.stderr,
-    )
-
-
-def print_show_web_suggestion() -> None:
-    print(
-        f"{BCOLORS.OKCYAN}NOTE: You are generating a DOT file locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need a program like GraphViz: https://www.graphviz.org/download/\n{BCOLORS.ENDC}"
-    )
-
-
-def print_generated_module_graph_file(output_filepath: Path) -> None:
-    print(
-        f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
-    )
-
-
-def print_circular_dependency_error(module_paths: list[str]) -> None:
-    print(
-        "\n".join(
-            [
-                f"❌ {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
-                for module_path in module_paths
-            ]
-        )
-        + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\n"
-        f"Remove or unset 'forbid_circular_dependencies' from "
-        f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}"
-    )
-
-
-def print_undeclared_dependencies(
-    undeclared_dependencies: dict[str, list[str]],
-) -> None:
-    for file_path, dependencies in undeclared_dependencies.items():
-        print(
-            f"❌ {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
-        )
-        for dependency in dependencies:
-            print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
-    print(
-        f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}"
-    )
+from tach.utils.display import (
+    print_circular_dependency_error,
+    print_errors,
+    print_generated_module_graph_file,
+    print_no_config_found,
+    print_show_web_suggestion,
+    print_unused_dependencies,
+    print_warnings,
+)
 
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
@@ -222,6 +96,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--exact",
         action="store_true",
         help="Raise errors if any dependency constraints are unused.",
+    )
+    check_parser.add_argument(
+        "--sarif",
+        action="store_true",
+        help="Additionally output the result to tach-check-result.sarif.",
     )
     add_base_arguments(check_parser)
 
@@ -459,6 +338,7 @@ class Tee:
 def tach_check(
     project_root: Path,
     exact: bool = False,
+    sarif: bool = False,
     exclude_paths: list[str] | None = None,
 ):
     logger.info(
@@ -470,6 +350,9 @@ def tach_check(
             ),
         },
     )
+    sarif_results = None
+    if sarif:
+        sarif_results = create_results()
     try:
         project_config = parse_project_config(project_root)
         if project_config is None:
@@ -499,6 +382,10 @@ def tach_check(
                 check_result.deprecated_warnings,
                 source_roots=source_roots,
             )
+            if sarif_results is not None:
+                sarif_results["runs"][0]["results"] += build_sarif_errors(
+                    errors=check_result.errors, source_roots=source_roots
+                )
         exit_code = 0
 
         if check_result.errors:
@@ -506,6 +393,10 @@ def tach_check(
                 check_result.errors,
                 source_roots=source_roots,
             )
+            if sarif_results is not None:
+                sarif_results["runs"][0]["results"] += build_sarif_errors(
+                    errors=check_result.errors, source_roots=source_roots
+                )
             exit_code = 1
 
         # If we're checking in strict mode, we want to verify that pruning constraints has no effect
@@ -527,6 +418,8 @@ def tach_check(
 
     if exit_code == 0:
         print(f"✅ {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}")
+    if sarif_results is not None:
+        write_sarif_file(sarif_results)
     sys.exit(exit_code)
 
 
@@ -878,7 +771,10 @@ def main() -> None:
         tach_sync(project_root=project_root, add=args.add, exclude_paths=exclude_paths)
     elif args.command == "check":
         tach_check(
-            project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
+            project_root=project_root,
+            exact=args.exact,
+            exclude_paths=exclude_paths,
+            sarif=args.sarif,
         )
     elif args.command == "check-external":
         tach_check_external(project_root=project_root)

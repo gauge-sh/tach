@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from tach import __version__
 from tach.utils.display import build_absolute_error_path, build_error_message
 
 if TYPE_CHECKING:
@@ -13,13 +14,14 @@ if TYPE_CHECKING:
 def create_results() -> dict[str, str | list[Any] | dict[str, Any]]:
     return {  # pyright: ignore [reportUnknownVariableType]
         "version": "2.1.0",
-        "$schema": "http://json.schemastore.org/sarif-2.1.0-rtm.4",
+        "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
         "runs": [
             {
                 "tool": {
                     "driver": {
                         "name": "Tach",
                         "informationUri": "https://github.com/gauge-sh/tach",
+                        "version": __version__,
                         # "rules": [
                         # {
                         #   "id": "no-unused-vars",
@@ -71,13 +73,19 @@ def build_sarif_errors(
     return [
         {
             "level": "warning" if error.error_info.is_deprecated else "error",
-            "message": build_error_message(error=error, source_roots=source_roots),
+            "ruleId": "tach",
+            # "ruleIndex": 0,
+            "message": {
+                "text": build_error_message(error=error, source_roots=source_roots)
+            },
             "locations": [
                 {
                     "physicalLocation": {
                         "artifactLocation": {
-                            "uri": build_absolute_error_path(
-                                file_path=error.file_path, source_roots=source_roots
+                            "uri": str(
+                                build_absolute_error_path(
+                                    file_path=error.file_path, source_roots=source_roots
+                                )
                             ),
                             "index": 0,
                         },
@@ -94,10 +102,11 @@ def write_sarif_file(
     sarif_results: dict[str, str | list[Any] | dict[str, Any]],
 ) -> None:
     with open(Path.cwd() / "tach-check-results.sarif", "w") as f:
-        f.write(json.dumps(sarif_results))
+        f.write(json.dumps(sarif_results, indent=2))
 
 
 __all__ = [
     "build_sarif_errors",
     "create_results",
+    "write_sarif_file",
 ]
