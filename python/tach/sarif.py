@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from tach import __version__
 from tach.utils.display import build_absolute_error_path, build_error_message
@@ -11,7 +11,46 @@ if TYPE_CHECKING:
     from tach.check import BoundaryError
 
 
-def create_results() -> dict[str, str | list[Any] | dict[str, Any]]:
+class ArtifactLocation(TypedDict):
+    uri: str
+
+
+class Region(TypedDict):
+    startLine: int
+    startColumn: int
+
+
+class PhysicalLocation(TypedDict):
+    artifactLocation: ArtifactLocation
+    region: Region
+
+
+class Location(TypedDict):
+    physicalLocation: PhysicalLocation
+
+
+class Message(TypedDict):
+    text: str
+
+
+class SarifError(TypedDict):
+    level: str
+    ruleId: str
+    message: Message
+    locations: list[Location]
+
+
+class SarifRun(TypedDict):
+    tool: dict[str, dict[str, str]]
+    results: list[SarifError]
+
+
+class SarifResults(TypedDict):
+    version: str
+    runs: list[SarifRun]
+
+
+def create_results() -> SarifResults:
     return {
         "version": "2.1.0",
         "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
@@ -32,8 +71,8 @@ def create_results() -> dict[str, str | list[Any] | dict[str, Any]]:
 
 def build_sarif_errors(
     errors: list[BoundaryError], source_roots: list[Path], project_root: Path
-) -> list[dict[str, Any]]:
-    sarif_errors: list[dict[str, Any]] = []
+) -> list[SarifError]:
+    sarif_errors: list[SarifError] = []
     for error in errors:
         absolute_path = build_absolute_error_path(
             file_path=error.file_path, source_roots=source_roots

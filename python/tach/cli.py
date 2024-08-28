@@ -409,7 +409,7 @@ def tach_check(
                 source_roots=source_roots,
             )
             if sarif_results is not None:
-                sarif_results["runs"][0]["results"] += build_sarif_errors(  # pyright: ignore [reportOperatorIssue]
+                sarif_results["runs"][0]["results"] += build_sarif_errors(
                     errors=check_result.errors,
                     source_roots=source_roots,
                     project_root=project_root,
@@ -422,7 +422,7 @@ def tach_check(
                 source_roots=source_roots,
             )
             if sarif_results is not None:
-                sarif_results["runs"][0]["results"] += build_sarif_errors(  # pyright: ignore [reportOperatorIssue]
+                sarif_results["runs"][0]["results"] += build_sarif_errors(
                     errors=check_result.errors,
                     source_roots=source_roots,
                     project_root=project_root,
