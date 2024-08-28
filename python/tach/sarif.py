@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def create_results() -> dict[str, str | list[Any] | dict[str, Any]]:
-    return {  # pyright: ignore [reportUnknownVariableType]
+    return {
         "version": "2.1.0",
         "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
         "runs": [
@@ -33,7 +33,7 @@ def create_results() -> dict[str, str | list[Any] | dict[str, Any]]:
 def build_sarif_errors(
     errors: list[BoundaryError], source_roots: list[Path], project_root: Path
 ) -> list[dict[str, Any]]:
-    sarif_errors = []
+    sarif_errors: list[dict[str, Any]] = []
     for error in errors:
         absolute_path = build_absolute_error_path(
             file_path=error.file_path, source_roots=source_roots
