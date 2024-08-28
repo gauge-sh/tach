@@ -42,6 +42,7 @@ from tach.utils.display import (
     print_generated_module_graph_file,
     print_no_config_found,
     print_show_web_suggestion,
+    print_undeclared_dependencies,
     print_unused_dependencies,
     print_warnings,
 )
