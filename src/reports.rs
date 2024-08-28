@@ -217,7 +217,7 @@ pub fn create_dependency_report(
                                 import,
                             }),
                     );
-                } else if !skip_usages {
+                } else if !pyfile_in_target_module && !skip_usages {
                     // We are looking at imports from outside the target module,
                     // so any import which points to the target module is an external usage
                     for import in project_imports {

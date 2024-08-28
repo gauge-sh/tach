@@ -48,19 +48,22 @@ def report(
         use_regex_matching=project_config.use_regex_matching,
     )
 
-    return create_dependency_report(
-        project_root=str(project_root),
-        source_roots=[
-            str(project_root / source_root)
-            for source_root in project_config.source_roots
-        ],
-        path=str(path),
-        include_dependency_modules=include_dependency_modules,
-        include_usage_modules=include_usage_modules,
-        skip_dependencies=skip_dependencies,
-        skip_usages=skip_usages,
-        ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-    )
+    try:
+        return create_dependency_report(
+            project_root=str(project_root),
+            source_roots=[
+                str(project_root / source_root)
+                for source_root in project_config.source_roots
+            ],
+            path=str(path),
+            include_dependency_modules=include_dependency_modules,
+            include_usage_modules=include_usage_modules,
+            skip_dependencies=skip_dependencies,
+            skip_usages=skip_usages,
+            ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+        )
+    except ValueError as e:
+        raise errors.TachError(str(e))
 
 
 @dataclass
