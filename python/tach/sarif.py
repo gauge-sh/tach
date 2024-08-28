@@ -22,46 +22,9 @@ def create_results() -> dict[str, str | list[Any] | dict[str, Any]]:
                         "name": "Tach",
                         "informationUri": "https://github.com/gauge-sh/tach",
                         "version": __version__,
-                        # "rules": [
-                        # {
-                        #   "id": "no-unused-vars",
-                        #   "shortDescription": {
-                        #     "text": "disallow unused variables"
-                        #   },
-                        #   "helpUri": "https://eslint.org/docs/rules/no-unused-vars",
-                        #   "properties": {
-                        #     "category": "Variables"
-                        #   }
-                        # }
-                        # ],
                     }
                 },
-                # "artifacts": [
-                #     {
-                #         "location": {
-                #             "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/simple-example.js"
-                #         }
-                #     }
-                # ],
-                "results": [
-                    # {
-                    #     "level": "error",
-                    #     "message": {"text": "'x' is assigned a value but never used."},
-                    #     "locations": [
-                    #         {
-                    #             "physicalLocation": {
-                    #                 "artifactLocation": {
-                    #                     "uri": "file:///C:/dev/sarif/sarif-tutorials/samples/Introduction/simple-example.js",
-                    #                     "index": 0,
-                    #                 },
-                    #                 "region": {"startLine": 1, "startColumn": 5},
-                    #             }
-                    #         }
-                    #     ],
-                    #     "ruleId": "no-unused-vars",
-                    #     "ruleIndex": 0,
-                    # }
-                ],
+                "results": [],
             }
         ],
     }
