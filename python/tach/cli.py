@@ -384,7 +384,9 @@ def tach_check(
             )
             if sarif_results is not None:
                 sarif_results["runs"][0]["results"] += build_sarif_errors(
-                    errors=check_result.errors, source_roots=source_roots
+                    errors=check_result.errors,
+                    source_roots=source_roots,
+                    project_root=project_root,
                 )
         exit_code = 0
 
@@ -395,7 +397,9 @@ def tach_check(
             )
             if sarif_results is not None:
                 sarif_results["runs"][0]["results"] += build_sarif_errors(
-                    errors=check_result.errors, source_roots=source_roots
+                    errors=check_result.errors,
+                    source_roots=source_roots,
+                    project_root=project_root,
                 )
             exit_code = 1
 

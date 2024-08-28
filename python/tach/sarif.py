@@ -68,34 +68,37 @@ def create_results() -> dict[str, str | list[Any] | dict[str, Any]]:
 
 
 def build_sarif_errors(
-    errors: list[BoundaryError], source_roots: list[Path]
+    errors: list[BoundaryError], source_roots: list[Path], project_root: Path
 ) -> list[dict[str, Any]]:
-    return [
-        {
-            "level": "warning" if error.error_info.is_deprecated else "error",
-            "ruleId": "tach",
-            # "ruleIndex": 0,
-            "message": {
-                "text": build_error_message(error=error, source_roots=source_roots)
-            },
-            "locations": [
-                {
-                    "physicalLocation": {
-                        "artifactLocation": {
-                            "uri": str(
-                                build_absolute_error_path(
-                                    file_path=error.file_path, source_roots=source_roots
-                                )
-                            ),
-                            "index": 0,
-                        },
-                        "region": {"startLine": 1, "startColumn": error.line_number},
+    sarif_errors = []
+    for error in errors:
+        absolute_path = build_absolute_error_path(
+            file_path=error.file_path, source_roots=source_roots
+        )
+        relative_path = absolute_path.relative_to(project_root)
+        sarif_errors.append(
+            {
+                "level": "warning" if error.error_info.is_deprecated else "error",
+                "ruleId": "tach",
+                "message": {
+                    "text": build_error_message(error=error, source_roots=source_roots)
+                },
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {
+                                "uri": str(relative_path),
+                            },
+                            "region": {
+                                "startLine": 1,
+                                "startColumn": error.line_number,
+                            },
+                        }
                     }
-                }
-            ],
-        }
-        for error in errors
-    ]
+                ],
+            }
+        )
+    return sarif_errors
 
 
 def write_sarif_file(
