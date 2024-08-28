@@ -63,13 +63,14 @@ When run without the `--add` flag, `tach sync` will remove modules from the `tac
 Tach will flag any unwanted imports between modules. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
-usage: tach check [-h] [--exact] [-e file_or_path,...]
+usage: tach check [-h] [--exact] [--sarif] [-e file_or_path,...]
 
 Check existing boundaries against your dependencies and module interfaces
 
 options:
   -h, --help            show this help message and exit
   --exact               Raise errors if any dependency constraints are unused.
+  --sarif               Additionally output the result to tach-check-result.sarif.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
