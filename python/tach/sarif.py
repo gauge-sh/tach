@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, TypedDict
+from typing import TYPE_CHECKING, List
+
+from typing_extensions import TypedDict
 
 from tach import __version__
 from tach.utils.display import build_absolute_error_path, build_error_message
