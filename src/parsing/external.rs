@@ -75,7 +75,7 @@ fn extract_deps_from_value(dependencies: &mut HashSet<String>, deps: &Value) {
 fn extract_package_name(dep_str: &str) -> String {
     // Split on common separators and take the first part
     dep_str
-        .split(&[' ', '=', '<', '>', '~', ';'][..])
+        .split(&[' ', '=', '<', '>', '~', ';', '['][..])
         .next()
         .unwrap_or(dep_str)
         .to_string()
