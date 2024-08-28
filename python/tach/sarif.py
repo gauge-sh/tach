@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, List, TypedDict
 
 from tach import __version__
 from tach.utils.display import build_absolute_error_path, build_error_message
@@ -45,9 +45,15 @@ class SarifRun(TypedDict):
     results: list[SarifError]
 
 
-class SarifResults(TypedDict):
-    version: str
-    runs: list[SarifRun]
+SarifResults = TypedDict(
+    "SarifResults",
+    {
+        "version": str,
+        "runs": List[SarifRun],
+        # need this format for the $ to be accepted
+        "$schema": str,
+    },
+)
 
 
 def create_results() -> SarifResults:
@@ -104,7 +110,7 @@ def build_sarif_errors(
 
 
 def write_sarif_file(
-    sarif_results: dict[str, str | list[Any] | dict[str, Any]],
+    sarif_results: SarifResults,
 ) -> None:
     with open(Path.cwd() / "tach-check-results.sarif", "w") as f:
         f.write(json.dumps(sarif_results, indent=2))
