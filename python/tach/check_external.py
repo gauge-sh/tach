@@ -56,3 +56,6 @@ def check_external(
     return ExternalCheckDiagnosticts(
         undeclared_dependencies=all_undeclared_dependencies
     )
+
+
+__all__ = ["check_external"]
