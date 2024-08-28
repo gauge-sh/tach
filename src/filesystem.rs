@@ -62,6 +62,14 @@ pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Res
     // Get the relative path from the matching root
     let relative_path = file_path.strip_prefix(matching_root)?;
 
+    // If the relative path is empty, return an error
+    // indicating that the path cannot be a source root itself
+    if relative_path.as_os_str().is_empty() {
+        return Err(FileSystemError {
+            message: "Filepath cannot be a source root.".to_string(),
+        });
+    }
+
     // Convert the relative path to a module path
     let mut components: Vec<_> = relative_path
         .parent()
