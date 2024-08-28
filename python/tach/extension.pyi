@@ -1,13 +1,11 @@
 from typing import Literal
 
 def get_project_imports(
-    project_root: str,
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def get_external_imports(
-    project_root: str,
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
@@ -17,7 +15,9 @@ def get_normalized_imports(
     file_path: str,
     ignore_type_checking_imports: bool,
 ) -> list[tuple[str, int]]: ...
-def set_excluded_paths(project_root: str, exclude_paths: list[str]) -> None: ...
+def set_excluded_paths(
+    project_root: str, exclude_paths: list[str], use_regex_matching: bool
+) -> None: ...
 def check_external_dependencies(
     project_root: str,
     source_roots: list[str],
@@ -80,3 +80,4 @@ class ProjectConfig:
     disable_logging: bool
     ignore_type_checking_imports: bool
     forbid_circular_dependencies: bool
+    use_regex_matching: bool

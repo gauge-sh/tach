@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.10.0"
+version = "0.10.3"
 authors = [
     { name = "Caelean Barnes", email = "caeleanb@gmail.com" },
     { name = "Evan Doyle", email = "evanmdoyle@gmail.com" },
@@ -63,8 +63,8 @@ dev = [
     # Setup
     "pip==24.0",
     # Code Quality
-    "pyright==1.1.373",
-    "ruff==0.5.7",
+    "pyright==1.1.377",
+    "ruff==0.6.2",
     # Build/Release
     "setuptools==69.5.1; python_version > '3.7'",
     "twine==5.1.1; python_version > '3.7'",
@@ -74,7 +74,7 @@ dev = [
     "pytest-mock==3.14.0; python_version > '3.7'",
     "coverage==7.6.0; python_version > '3.7'",
     # Rust
-    "maturin==1.7.0",
+    "maturin==1.7.1",
 
     # python version 3.7 pinned dependencies
     "pydantic==2.5.3; python_version == '3.7'",

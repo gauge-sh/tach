@@ -73,7 +73,10 @@ def validate_configuration(
 
 
 def mod_edit_interactive(
-    project_root: Path, project_config: ProjectConfig, depth: int | None = 1
+    project_root: Path,
+    project_config: ProjectConfig,
+    exclude_paths: list[str],
+    depth: int | None = 1,
 ) -> tuple[bool, list[str]]:
     if not Path(project_root).is_dir():
         raise errors.TachSetupError(f"The path {project_root} is not a directory.")
@@ -82,6 +85,7 @@ def mod_edit_interactive(
         path=project_root,
         project_config=project_config,
         depth=depth,
+        exclude_paths=exclude_paths,
     )
     if interactive_module_configuration is not None:
         validation_result = validate_configuration(interactive_module_configuration)

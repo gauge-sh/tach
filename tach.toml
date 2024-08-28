@@ -1,16 +1,17 @@
 exclude = [
-    ".*__pycache__",
-    "build/",
-    "dist/",
-    "docs/",
-    "python/tests/",
-    "tach.egg-info/",
-    "venv/",
+    "**/__pycache__/**",
+     "build/**",
+     "dist/**",
+     "docs/**",
+     "**/tests/**",
+     "tach.egg-info/**",
+     "venv/**",
 ]
-source_roots = [
-    "python",
-]
+
+use_regex_matching = false
+source_roots = ["python"]
 exact = true
+ignore_type_checking_imports = true
 forbid_circular_dependencies = true
 
 [[modules]]
@@ -20,17 +21,12 @@ strict = true
 
 [[modules]]
 path = "tach.__main__"
-depends_on = [
-    { path = "tach.start" },
-]
+depends_on = [{ path = "tach.start" }]
 strict = true
 
 [[modules]]
 path = "tach.cache"
-depends_on = [
-    { path = "tach" },
-    { path = "tach.filesystem" },
-]
+depends_on = [{ path = "tach" }, { path = "tach.filesystem" }]
 strict = true
 
 [[modules]]
@@ -45,10 +41,7 @@ strict = true
 
 [[modules]]
 path = "tach.check_external"
-depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.utils" },
-]
+depends_on = [{ path = "tach.extension" }, { path = "tach.utils" }]
 
 [[modules]]
 path = "tach.cli"
@@ -67,7 +60,6 @@ depends_on = [
     { path = "tach.mod" },
     { path = "tach.parsing" },
     { path = "tach.report" },
-    { path = "tach.sarif" },
     { path = "tach.show" },
     { path = "tach.sync" },
     { path = "tach.test" },
@@ -87,9 +79,7 @@ strict = true
 
 [[modules]]
 path = "tach.core"
-depends_on = [
-    { path = "tach.constants" },
-]
+depends_on = [{ path = "tach.constants" }]
 strict = true
 
 [[modules]]
@@ -114,24 +104,17 @@ strict = true
 
 [[modules]]
 path = "tach.filesystem.git_ops"
-depends_on = [
-    { path = "tach.errors" },
-]
+depends_on = [{ path = "tach.errors" }]
 strict = true
 
 [[modules]]
 path = "tach.hooks"
-depends_on = [
-    { path = "tach.constants" },
-]
+depends_on = [{ path = "tach.constants" }]
 strict = true
 
 [[modules]]
 path = "tach.interactive"
-depends_on = [
-    { path = "tach.errors" },
-    { path = "tach.filesystem" },
-]
+depends_on = [{ path = "tach.errors" }, { path = "tach.filesystem" }]
 strict = true
 
 [[modules]]
@@ -177,23 +160,13 @@ depends_on = [
 strict = true
 
 [[modules]]
-path = "tach.sarif"
-depends_on = [
-    { path = "tach" },
-    { path = "tach.utils" },
-]
-strict = true
-
-[[modules]]
 path = "tach.show"
 depends_on = []
 strict = true
 
 [[modules]]
 path = "tach.start"
-depends_on = [
-    { path = "tach.cli" },
-]
+depends_on = [{ path = "tach.cli" }]
 strict = true
 
 [[modules]]
@@ -220,18 +193,10 @@ strict = true
 
 [[modules]]
 path = "tach.utils"
-depends_on = [
-    { path = "tach.colors" },
-    { path = "tach.constants" },
-]
+depends_on = []
 
 [cache]
-file_dependencies = [
-    "python/tests/**",
-    "src/*.rs",
-]
+file_dependencies = ["python/tests/**", "src/*.rs"]
 
 [external]
-exclude = [
-    "pytest",
-]
+exclude = ["pytest"]

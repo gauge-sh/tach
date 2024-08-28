@@ -86,10 +86,8 @@ fn parse_project_dependencies<P: AsRef<Path>>(project_root: P) -> impl Iterator<
             .and_then(|v| v.get("dependencies"))
             .and_then(|v| v.as_array())
         {
-            for dep in dependencies_array {
-                if let Some(dep_str) = dep.as_str() {
-                    dependencies.push(dep_str.to_string());
-                }
+            for dep_str in dependencies_array.iter().filter_map(|dep| dep.as_str()) {
+                dependencies.push(dep_str.to_string());
             }
         }
         // Handle optional dependencies if necessary
@@ -98,13 +96,12 @@ fn parse_project_dependencies<P: AsRef<Path>>(project_root: P) -> impl Iterator<
             .and_then(|v| v.get("optional-dependencies"))
             .and_then(|v| v.as_table())
         {
-            for deps in optional_dependencies.values() {
-                if let Some(deps_array) = deps.as_array() {
-                    for dep in deps_array {
-                        if let Some(dep_str) = dep.as_str() {
-                            dependencies.push(dep_str.to_string());
-                        }
-                    }
+            for deps_array in optional_dependencies
+                .values()
+                .filter_map(|deps| deps.as_array())
+            {
+                for dep_str in deps_array.iter().filter_map(|dep| dep.as_str()) {
+                    dependencies.push(dep_str.to_string());
                 }
             }
         }

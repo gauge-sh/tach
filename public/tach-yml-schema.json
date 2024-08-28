@@ -115,6 +115,11 @@
       "type": "boolean",
       "default": false,
       "description": "Cause `tach check` to fail if any circular dependencies are detected"
+    },
+    "use_regex_matching": {
+      "type": "boolean",
+      "default": true,
+      "description": "Uses regex matching for module paths, change to false to use glob matching"
     }
   },
   "required": [

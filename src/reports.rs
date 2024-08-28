@@ -185,12 +185,7 @@ pub fn create_dependency_report(
 
     for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
         let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
-        match get_project_imports(
-            project_root,
-            source_roots,
-            &absolute_pyfile,
-            ignore_type_checking_imports,
-        ) {
+        match get_project_imports(source_roots, &absolute_pyfile, ignore_type_checking_imports) {
             Ok(project_imports) => {
                 let pyfile_in_target_module = absolute_pyfile.starts_with(&absolute_path);
                 if pyfile_in_target_module && !skip_dependencies {
@@ -207,17 +202,14 @@ pub fn create_dependency_report(
 
                                 // for external imports,
                                 // if there is a filter list of dependencies, verify that the import is included
-                                match include_dependency_modules {
-                                    None => true,
-                                    Some(ref included_modules) => {
-                                        for module_path in included_modules {
-                                            if import.module_path.starts_with(module_path) {
-                                                return true;
-                                            }
-                                        }
-                                        false
-                                    }
-                                }
+                                include_dependency_modules.as_ref().map_or(
+                                    true,
+                                    |included_modules| {
+                                        included_modules.iter().any(|module_path| {
+                                            import.module_path.starts_with(module_path)
+                                        })
+                                    },
+                                )
                             })
                             .map(|import| Dependency {
                                 file_path: pyfile.clone(),
@@ -225,7 +217,7 @@ pub fn create_dependency_report(
                                 import,
                             }),
                     );
-                } else if !skip_usages {
+                } else if !pyfile_in_target_module && !skip_usages {
                     // We are looking at imports from outside the target module,
                     // so any import which points to the target module is an external usage
                     for import in project_imports {

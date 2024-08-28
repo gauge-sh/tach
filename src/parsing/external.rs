@@ -23,37 +23,33 @@ pub fn parse_pyproject_toml(pyproject_path: &Path) -> error::Result<ProjectInfo>
 
 pub fn extract_dependencies(toml_value: &Value) -> HashSet<String> {
     let mut dependencies = HashSet::new();
-    let mut has_project_deps = false;
-    let mut has_poetry_deps = false;
 
     // Extract dependencies from standard pyproject.toml format
-    if let Some(project) = toml_value.get("project") {
-        if let Some(deps) = project.get("dependencies") {
+    let has_project_deps = toml_value
+        .get("project")
+        .and_then(|p| p.get("dependencies"))
+        .map_or(false, |deps| {
             extract_deps_from_value(&mut dependencies, deps);
-            has_project_deps = true;
-        }
-    }
+            true
+        });
 
-    // Check for Poetry dependencies
-    if let Some(tool) = toml_value.get("tool") {
-        if let Some(poetry) = tool.get("poetry") {
-            if poetry.get("dependencies").is_some() {
-                has_poetry_deps = true;
-            }
-        }
-    }
+    let has_poetry_deps = toml_value
+        .get("tool")
+        .and_then(|t| t.get("poetry"))
+        .and_then(|p| p.get("dependencies"))
+        .is_some();
 
     // Print warning if both formats are detected
     if has_project_deps && has_poetry_deps {
         eprintln!("Warning: Both project dependencies and Poetry dependencies detected. Using project dependencies.");
     } else if has_poetry_deps {
         // Extract Poetry dependencies only if project dependencies are not present
-        if let Some(tool) = toml_value.get("tool") {
-            if let Some(poetry) = tool.get("poetry") {
-                if let Some(deps) = poetry.get("dependencies") {
-                    extract_deps_from_value(&mut dependencies, deps);
-                }
-            }
+        if let Some(deps) = toml_value
+            .get("tool")
+            .and_then(|tool| tool.get("poetry"))
+            .and_then(|poetry| poetry.get("dependencies"))
+        {
+            extract_deps_from_value(&mut dependencies, deps)
         }
     }
 
@@ -63,10 +59,8 @@ pub fn extract_dependencies(toml_value: &Value) -> HashSet<String> {
 fn extract_deps_from_value(dependencies: &mut HashSet<String>, deps: &Value) {
     match deps {
         Value::Array(deps_array) => {
-            for dep in deps_array {
-                if let Some(dep_str) = dep.as_str() {
-                    dependencies.insert(normalize_package_name(&extract_package_name(dep_str)));
-                }
+            for dep_str in deps_array.iter().filter_map(|dep| dep.as_str()) {
+                dependencies.insert(normalize_package_name(&extract_package_name(dep_str)));
             }
         }
         Value::Table(deps_table) => {
@@ -81,7 +75,7 @@ fn extract_deps_from_value(dependencies: &mut HashSet<String>, deps: &Value) {
 fn extract_package_name(dep_str: &str) -> String {
     // Split on common separators and take the first part
     dep_str
-        .split(|c| c == ' ' || c == '=' || c == '<' || c == '>' || c == '~' || c == ';')
+        .split(&[' ', '=', '<', '>', '~', ';'][..])
         .next()
         .unwrap_or(dep_str)
         .to_string()
@@ -89,46 +83,51 @@ fn extract_package_name(dep_str: &str) -> String {
 
 /// This normalizes a Python distribution name according to PyPI standards
 pub fn normalize_package_name(name: &str) -> String {
-    let lowercase = name.to_lowercase();
-    let normalized = lowercase
+    name.to_lowercase()
         .split(|c: char| c.is_whitespace() || c == '-' || c == '_')
         .filter(|s| !s.is_empty())
         .collect::<Vec<&str>>()
-        .join("_");
-    normalized
+        .join("_")
 }
 
 pub fn extract_source_paths(toml_value: &Value, project_root: &Path) -> Vec<PathBuf> {
     let mut source_paths = Vec::new();
 
     // Check for setuptools configuration
-    if let Some(setuptools) = toml_value.get("tool").and_then(|t| t.get("setuptools")) {
-        if let Some(packages) = setuptools.get("packages").and_then(|p| p.as_array()) {
-            for package in packages {
-                if let Some(package_name) = package.as_str() {
-                    source_paths.push(project_root.join(package_name));
-                }
-            }
+    if let Some(packages) = toml_value
+        .get("tool")
+        .and_then(|t| t.get("setuptools"))
+        .and_then(|setuptools| setuptools.get("packages"))
+        .and_then(|p| p.as_array())
+    {
+        for package_name in packages.iter().filter_map(|package| package.as_str()) {
+            source_paths.push(project_root.join(package_name));
         }
     }
 
     // Check for poetry configuration
-    if let Some(poetry) = toml_value.get("tool").and_then(|t| t.get("poetry")) {
-        if let Some(packages) = poetry.get("packages").and_then(|p| p.as_array()) {
-            for package in packages {
-                if let Some(include) = package.get("include").and_then(|i| i.as_str()) {
-                    let from = package.get("from").and_then(|f| f.as_str()).unwrap_or("");
-                    source_paths.push(project_root.join(from).join(include));
-                }
+    if let Some(packages) = toml_value
+        .get("tool")
+        .and_then(|t| t.get("poetry"))
+        .and_then(|p| p.get("packages"))
+        .and_then(|p| p.as_array())
+    {
+        for package in packages {
+            if let Some(include) = package.get("include").and_then(|i| i.as_str()) {
+                let from = package.get("from").and_then(|f| f.as_str()).unwrap_or("");
+                source_paths.push(project_root.join(from).join(include));
             }
         }
     }
 
     // Check for maturin configuration
-    if let Some(maturin) = toml_value.get("tool").and_then(|t| t.get("maturin")) {
-        if let Some(python_source) = maturin.get("python-source").and_then(|ps| ps.as_str()) {
-            source_paths.push(project_root.join(python_source));
-        }
+    if let Some(python_source) = toml_value
+        .get("tool")
+        .and_then(|t| t.get("maturin"))
+        .and_then(|m| m.get("python-source"))
+        .and_then(|ps| ps.as_str())
+    {
+        source_paths.push(project_root.join(python_source));
     }
 
     // If no specific configuration found, use conventional locations

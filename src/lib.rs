@@ -6,6 +6,7 @@ pub mod exclusion;
 pub mod filesystem;
 pub mod imports;
 pub mod parsing;
+pub mod pattern;
 pub mod reports;
 
 use std::collections::HashMap;
@@ -86,62 +87,59 @@ fn get_normalized_imports(
 
 /// Get first-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_project_imports(
-    project_root: String,
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::NormalizedImports> {
-    let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    imports::get_project_imports(
-        &project_root,
-        &source_roots,
-        &file_path,
-        ignore_type_checking_imports,
-    )
+    imports::get_project_imports(&source_roots, &file_path, ignore_type_checking_imports)
 }
 
 /// Get third-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_external_imports(
-    project_root: String,
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
 ) -> imports::Result<imports::NormalizedImports> {
-    let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
     Ok(
         imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)?
             .into_iter()
             .filter_map(|import| {
-                imports::is_project_import(&project_root, &source_roots, &import.module_path)
-                    .map_or(None, |is_project_import| {
+                imports::is_project_import(&source_roots, &import.module_path).map_or(
+                    None,
+                    |is_project_import| {
                         if is_project_import {
                             None
                         } else {
                             Some(import)
                         }
-                    })
+                    },
+                )
             })
             .collect(),
     )
 }
 
 /// Set excluded paths globally.
-/// This is called separately in order to set up a singleton instance holding regexes,
+/// This is called separately in order to set up a singleton instance holding regex/glob patterns,
 /// since they would be expensive to build for every call.
 #[pyfunction]
-#[pyo3(signature = (project_root, exclude_paths))]
-fn set_excluded_paths(project_root: String, exclude_paths: Vec<String>) -> exclusion::Result<()> {
+#[pyo3(signature = (project_root, exclude_paths, use_regex_matching))]
+fn set_excluded_paths(
+    project_root: String,
+    exclude_paths: Vec<String>,
+    use_regex_matching: bool,
+) -> exclusion::Result<()> {
     let project_root = PathBuf::from(project_root);
     let exclude_paths: Vec<PathBuf> = exclude_paths.iter().map(PathBuf::from).collect();
-    exclusion::set_excluded_paths(&project_root, &exclude_paths)
+    exclusion::set_excluded_paths(&project_root, &exclude_paths, use_regex_matching)
 }
 
 /// Validate external dependency imports against pyproject.toml dependencies

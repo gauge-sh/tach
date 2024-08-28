@@ -150,7 +150,6 @@ def run_affected_tests(
                     continue
 
                 project_imports = get_project_imports(
-                    project_root=str(self.project_root),
                     source_roots=list(map(str, self.source_roots)),
                     file_path=str(item.path.resolve()),
                     ignore_type_checking_imports=True,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from dataclasses import dataclass, field
 from enum import Enum
@@ -105,12 +106,13 @@ def build_parser() -> argparse.ArgumentParser:
     add_base_arguments(check_parser)
 
     ## tach check-external
-    subparsers.add_parser(
+    check_parser_external = subparsers.add_parser(
         "check-external",
         prog=f"{TOOL_NAME} check-external",
         help="Perform checks related to third-party dependencies",
         description="Perform checks related to third-party dependencies",
     )
+    add_base_arguments(check_parser_external)
 
     ## tach sync
     sync_parser = subparsers.add_parser(
@@ -335,6 +337,29 @@ class Tee:
         sys.stderr = self.original_stderr
 
 
+def extend_and_validate(
+    exclude_paths: list[str] | None,
+    project_excludes: list[str],
+    use_regex_matching: bool,
+) -> list[str]:
+    if exclude_paths is not None:
+        exclude_paths.extend(project_excludes)
+    else:
+        exclude_paths = project_excludes
+
+    if not use_regex_matching:
+        return exclude_paths
+
+    for exclude_path in exclude_paths:
+        try:
+            re.compile(exclude_path)
+        except re.error:
+            raise ValueError(
+                f"Invalid regex pattern: {exclude_path}. If you meant to use glob matching, set 'use_regex_matching' to false in your .toml file."
+            )
+    return exclude_paths
+
+
 def tach_check(
     project_root: Path,
     exact: bool = False,
@@ -361,14 +386,14 @@ def tach_check(
 
         exact |= project_config.exact
 
-        if exclude_paths is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
+        exclude_paths = extend_and_validate(
+            exclude_paths, project_config.exclude, project_config.use_regex_matching
+        )
 
         check_result = check(
             project_root=project_root,
             project_config=project_config,
+            exclude_paths=exclude_paths,
         )
         if check_result.warnings:
             print_warnings(check_result.warnings)
@@ -408,6 +433,7 @@ def tach_check(
             pruned_config = sync_dependency_constraints(
                 project_root=project_root,
                 project_config=project_config,
+                exclude_paths=exclude_paths,
             )
             unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:
@@ -427,7 +453,7 @@ def tach_check(
     sys.exit(exit_code)
 
 
-def tach_check_external(project_root: Path):
+def tach_check_external(project_root: Path, exclude_paths: list[str] | None = None):
     logger.info(
         "tach check-external called",
         extra={
@@ -442,9 +468,14 @@ def tach_check_external(project_root: Path):
             print_no_config_found()
             sys.exit(1)
 
+        exclude_paths = extend_and_validate(
+            exclude_paths, project_config.exclude, project_config.use_regex_matching
+        )
+
         result = check_external(
             project_root=project_root,
             project_config=project_config,
+            exclude_paths=exclude_paths,
         )
 
         if result.undeclared_dependencies:
@@ -476,8 +507,14 @@ def tach_mod(
 
     try:
         project_config = parse_project_config(root=project_root) or ProjectConfig()
+        exclude_paths = extend_and_validate(
+            exclude_paths, project_config.exclude, project_config.use_regex_matching
+        )
         saved_changes, warnings = mod_edit_interactive(
-            project_root=project_root, project_config=project_config, depth=depth
+            project_root=project_root,
+            project_config=project_config,
+            exclude_paths=exclude_paths,
+            depth=depth,
         )
     except Exception as e:
         print(str(e))
@@ -511,14 +548,14 @@ def tach_sync(
             print_no_config_found()
             sys.exit(1)
 
-        if exclude_paths is not None:
-            exclude_paths.extend(project_config.exclude)
-        else:
-            exclude_paths = project_config.exclude
+        exclude_paths = extend_and_validate(
+            exclude_paths, project_config.exclude, project_config.use_regex_matching
+        )
 
         sync_project(
             project_root=project_root,
             project_config=project_config,
+            exclude_paths=exclude_paths,
             add=add,
         )
     except Exception as e:
@@ -589,6 +626,10 @@ def tach_report(
         print_no_config_found()
         sys.exit(1)
 
+    exclude_paths = extend_and_validate(
+        exclude_paths, project_config.exclude, project_config.use_regex_matching
+    )
+
     report_path = Path(path)
     try:
         print(
@@ -624,6 +665,10 @@ def tach_report_external(
     if project_config is None:
         print_no_config_found()
         sys.exit(1)
+
+    exclude_paths = extend_and_validate(
+        exclude_paths, project_config.exclude, project_config.use_regex_matching
+    )
 
     report_path = Path(path)
     try:
@@ -764,7 +809,6 @@ def main() -> None:
             f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
         )
 
-    # TODO: rename throughout to 'exclude_patterns' to indicate that these are regex patterns
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
 
     if args.command == "mod":
@@ -781,7 +825,7 @@ def main() -> None:
             sarif=args.sarif,
         )
     elif args.command == "check-external":
-        tach_check_external(project_root=project_root)
+        tach_check_external(project_root=project_root, exclude_paths=exclude_paths)
     elif args.command == "install":
         try:
             install_target = InstallTarget(args.target)

@@ -5,19 +5,20 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.check import check
-from tach.core import Dependency, ProjectConfig
+from tach.core import Dependency
 from tach.filesystem import get_project_config_path
 from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tach.core import ModuleConfig
+    from tach.core import ModuleConfig, ProjectConfig
 
 
 def sync_dependency_constraints(
     project_root: Path,
     project_config: ProjectConfig,
+    exclude_paths: list[str],
     prune: bool = True,
 ) -> ProjectConfig:
     """
@@ -62,6 +63,7 @@ def sync_dependency_constraints(
     check_result = check(
         project_root=project_root,
         project_config=new_config,
+        exclude_paths=exclude_paths,
     )
     for error in check_result.errors:
         error_info = error.error_info
@@ -88,6 +90,7 @@ def sync_dependency_constraints(
 def sync_project(
     project_root: Path,
     project_config: ProjectConfig,
+    exclude_paths: list[str],
     add: bool = False,
 ) -> None:
     config_path = get_project_config_path(project_root)
@@ -99,6 +102,7 @@ def sync_project(
     project_config = sync_dependency_constraints(
         project_root=project_root,
         project_config=project_config,
+        exclude_paths=exclude_paths,
         prune=not add,
     )
 
