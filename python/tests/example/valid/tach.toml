@@ -1,7 +1,6 @@
 exclude = [
     'tests',
     'docs',
-    'venv',
     '.*__pycache__',
     '.*egg-info',
     'domain_four',

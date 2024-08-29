@@ -5,7 +5,6 @@ exclude = [
      "docs/**",
      "**/tests/**",
      "tach.egg-info/**",
-     "venv/**",
 ]
 
 use_regex_matching = false

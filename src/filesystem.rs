@@ -264,6 +264,7 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
 pub fn walk_pyprojects(root: &str) -> impl Iterator<Item = PathBuf> {
     WalkDir::new(root)
         .into_iter()
+        .filter_entry(move |e| !is_hidden(e) && !direntry_is_excluded(e))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file())
         .filter(|entry| entry.file_name() == "pyproject.toml")
