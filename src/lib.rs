@@ -233,15 +233,15 @@ fn update_computation_cache(
     cache::update_computation_cache(project_root, cache_key, value)
 }
 
-// #[pyfunction]
-// #[pyo3(signature = (source_roots, modules, forbid_circular_dependencies))]
-// fn build_module_tree(
-//     source_roots: Vec<PathBuf>,
-//     modules: Vec<core::config::ModuleConfig>,
-//     forbid_circular_dependencies: bool,
-// ) -> core::module::ModuleTree {
-//     parsing::module::build_module_tree(source_roots, modules, forbid_circular_dependencies).unwrap()
-// }
+#[pyfunction]
+#[pyo3(signature = (source_roots, path))]
+fn parse_interface_members(
+    source_roots: Vec<PathBuf>,
+    path: String,
+) -> parsing::Result<Vec<String>> {
+    // let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
+    parsing::py_ast::parse_interface_members(&source_roots, &path)
+}
 
 #[pymodule]
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -256,5 +256,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(create_computation_cache_key, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(update_computation_cache, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(parse_interface_members, m)?)?;
     Ok(())
 }

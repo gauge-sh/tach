@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from tach.core import ModuleTree
 from tach.errors import TachCircularDependencyError
-from tach.parsing import parse_interface_members
+from tach.extension import parse_interface_members
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -83,7 +83,7 @@ def build_module_tree(
             config=module,
             path=module.mod_path,
             interface_members=parse_interface_members(
-                source_roots=source_roots, module_path=module.path
+                source_roots=source_roots, path=module.path
             ),
         )
     return tree

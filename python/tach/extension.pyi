@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 def get_project_imports(
@@ -50,6 +51,7 @@ def update_computation_cache(
     project_root: str, cache_key: str, value: tuple[list[tuple[int, str]], int]
 ) -> None: ...
 def parse_project_config(filepath: str) -> ProjectConfig: ...
+def parse_interface_members(source_roots: list[Path], path: str) -> list[str]: ...
 
 class DependencyConfig:
     path: str
