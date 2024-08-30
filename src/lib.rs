@@ -2,6 +2,7 @@ pub mod cache;
 pub mod check;
 pub mod cli;
 pub mod colors;
+pub mod core;
 pub mod exclusion;
 pub mod filesystem;
 pub mod imports;
@@ -69,8 +70,8 @@ impl From<parsing::ParsingError> for PyErr {
 /// Parse project config
 #[pyfunction]
 #[pyo3(signature = (filepath))]
-fn parse_project_config(filepath: String) -> parsing::Result<parsing::config::ProjectConfig> {
-    parsing::config::parse_project_config(filepath)
+fn parse_project_config(filepath: String) -> parsing::Result<core::config::ProjectConfig> {
+    core::config::parse_project_config(filepath)
 }
 
 #[pyfunction]
@@ -232,9 +233,19 @@ fn update_computation_cache(
     cache::update_computation_cache(project_root, cache_key, value)
 }
 
+// #[pyfunction]
+// #[pyo3(signature = (source_roots, modules, forbid_circular_dependencies))]
+// fn build_module_tree(
+//     source_roots: Vec<PathBuf>,
+//     modules: Vec<core::config::ModuleConfig>,
+//     forbid_circular_dependencies: bool,
+// ) -> core::module::ModuleTree {
+//     parsing::module::build_module_tree(source_roots, modules, forbid_circular_dependencies).unwrap()
+// }
+
 #[pymodule]
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<parsing::config::ProjectConfig>()?;
+    m.add_class::<core::config::ProjectConfig>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;

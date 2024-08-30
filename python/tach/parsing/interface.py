@@ -32,7 +32,7 @@ class InterfaceVisitor(EarlyExitNodeVisitor):
                         if isinstance(element.value, str):
                             self.members.append(element.value)
                 # Early exit
-                self.set_exit(True)
+                # self.set_exit(True)
         # Continue to the next node
         self.generic_visit(node)
 
@@ -48,4 +48,5 @@ def parse_interface_members(source_roots: list[Path], module_path: str) -> list[
     parsed_ast = fs.parse_ast(str(file_path))
     interface_visitor = InterfaceVisitor()
     interface_visitor.visit(parsed_ast)
+    print(interface_visitor.members)
     return interface_visitor.members

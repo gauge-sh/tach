@@ -92,7 +92,11 @@ pub struct ResolvedModule {
     pub member_name: Option<String>,
 }
 
-pub fn module_to_file_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Option<ResolvedModule> {
+pub fn module_to_file_path<P: AsRef<Path>>(
+    roots: &[P],
+    mod_path: &str,
+    check_members: bool,
+) -> Option<ResolvedModule> {
     let mod_as_file_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
     for root in roots {
         let fs_path = root.as_ref().join(&mod_as_file_path);
@@ -136,7 +140,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Optio
 
         // If the original file path does not contain a separator (e.g. 'os', 'ast')
         // then we are done checking this root.
-        if !mod_as_file_path.contains(MAIN_SEPARATOR) {
+        if !mod_as_file_path.contains(MAIN_SEPARATOR) || !check_members {
             continue;
         }
 

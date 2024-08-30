@@ -278,7 +278,7 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
 
 // Source Roots here are assumed to be absolute paths
 pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> Result<bool> {
-    let resolved_module = filesystem::module_to_file_path(source_roots, mod_path);
+    let resolved_module = filesystem::module_to_file_path(source_roots, mod_path, true);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
         Ok(!exclusion::is_path_excluded(

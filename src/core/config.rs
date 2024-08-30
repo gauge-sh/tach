@@ -2,8 +2,8 @@ use pyo3::prelude::*;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
-use super::error;
 use crate::filesystem;
+use crate::parsing::error;
 
 // for serde
 fn default_true() -> bool {
@@ -26,6 +26,26 @@ pub struct ModuleConfig {
     pub depends_on: Vec<DependencyConfig>,
     #[serde(default)]
     pub strict: bool,
+}
+
+impl ModuleConfig {
+    pub fn new(path: &str) -> Self {
+        Self {
+            path: path.to_string(),
+            depends_on: vec![],
+            strict: false,
+        }
+    }
+    pub fn new_root_config() -> Self {
+        // TODO: Import tag from constants
+        Self::new("<root>")
+    }
+    pub fn mod_path(&self) -> String {
+        if self.path == "<root>" {
+            return ".".to_string();
+        }
+        self.path.clone()
+    }
 }
 
 #[derive(Default, Deserialize, Clone)]
