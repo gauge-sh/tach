@@ -92,9 +92,12 @@
       },
       "description": "List of paths to exclude while checking module boundaries"
     },
-    "source_root": {
-      "type": "string",
-      "description": "Root directory for Python source code"
+    "source_roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Root directories for Python source code"
     },
     "exact": {
       "type": "boolean",
