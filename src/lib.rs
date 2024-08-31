@@ -27,7 +27,10 @@ impl From<imports::ImportParseError> for PyErr {
 
 impl From<exclusion::PathExclusionError> for PyErr {
     fn from(err: exclusion::PathExclusionError) -> Self {
-        PyValueError::new_err(err.message)
+        match err {
+            exclusion::PathExclusionError::ConcurrencyError => PyOSError::new_err(err.to_string()),
+            _ => PyValueError::new_err(err.to_string()),
+        }
     }
 }
 
@@ -38,19 +41,14 @@ impl From<reports::ReportCreationError> for PyErr {
 }
 
 impl From<cache::CacheError> for PyErr {
-    fn from(_: cache::CacheError) -> Self {
-        PyValueError::new_err("Failure accessing computation cache.")
+    fn from(err: cache::CacheError) -> Self {
+        PyValueError::new_err(err.to_string())
     }
 }
 
 impl From<check::CheckError> for PyErr {
     fn from(err: check::CheckError) -> Self {
-        match err {
-            check::CheckError::Parse(err) => PyOSError::new_err(err.to_string()),
-            check::CheckError::ImportParse(err) => err.into(),
-            check::CheckError::Io(err) => PyOSError::new_err(err.to_string()),
-            check::CheckError::Filesystem(err) => PyOSError::new_err(err.to_string()),
-        }
+        PyOSError::new_err(err.to_string())
     }
 }
 
