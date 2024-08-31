@@ -4,6 +4,8 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
+use thiserror::Error;
+
 use crate::colors::*;
 
 use crate::cli::create_clickable_link;
@@ -16,39 +18,16 @@ struct Dependency {
     import: NormalizedImport,
 }
 
-#[derive(Debug)]
-pub struct ReportCreationError {
-    pub message: String,
-}
-
-impl fmt::Display for ReportCreationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", &self.message)
-    }
-}
-
-impl From<ImportParseError> for ReportCreationError {
-    fn from(value: ImportParseError) -> Self {
-        ReportCreationError {
-            message: value.message,
-        }
-    }
-}
-
-impl From<FileSystemError> for ReportCreationError {
-    fn from(value: FileSystemError) -> Self {
-        ReportCreationError {
-            message: value.to_string(),
-        }
-    }
-}
-
-impl From<io::Error> for ReportCreationError {
-    fn from(_: io::Error) -> Self {
-        ReportCreationError {
-            message: "I/O failure during report generation.".to_string(),
-        }
-    }
+#[derive(Error, Debug)]
+pub enum ReportCreationError {
+    #[error("I/O failure during report generation:\n{0}")]
+    Io(#[from] io::Error),
+    #[error("Filesystem error: {0}")]
+    Filesystem(#[from] FileSystemError),
+    #[error("Import parsing error: {0}")]
+    ImportParse(#[from] ImportParseError),
+    #[error("Nothing to report when skipping dependencies and usages.")]
+    NothingToReport,
 }
 
 pub type Result<T> = std::result::Result<T, ReportCreationError>;
@@ -175,9 +154,7 @@ pub fn create_dependency_report(
     ignore_type_checking_imports: bool,
 ) -> Result<String> {
     if skip_dependencies && skip_usages {
-        return Err(ReportCreationError {
-            message: "Nothing to report when skipping dependencies and usages.".to_string(),
-        });
+        return Err(ReportCreationError::NothingToReport);
     }
     let absolute_path = fs::canonicalize(path)?;
     let module_path = file_to_module_path(source_roots, &absolute_path)?;
@@ -250,7 +227,7 @@ pub fn create_dependency_report(
             }
             Err(err) => {
                 // Failed to parse project imports
-                report.warnings.push(err.message);
+                report.warnings.push(err.to_string());
             }
         }
     }

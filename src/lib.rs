@@ -18,9 +18,11 @@ use pyo3::prelude::*;
 
 impl From<imports::ImportParseError> for PyErr {
     fn from(err: imports::ImportParseError) -> Self {
-        match err.err_type {
-            imports::ImportParseErrorType::FILESYSTEM => PyOSError::new_err(err.message),
-            imports::ImportParseErrorType::PARSING => PySyntaxError::new_err(err.message),
+        match err {
+            imports::ImportParseError::Parsing { file: _, source: _ } => {
+                PySyntaxError::new_err(err.to_string())
+            }
+            _ => PyOSError::new_err(err.to_string()),
         }
     }
 }
@@ -36,7 +38,7 @@ impl From<exclusion::PathExclusionError> for PyErr {
 
 impl From<reports::ReportCreationError> for PyErr {
     fn from(err: reports::ReportCreationError) -> Self {
-        PyValueError::new_err(err.message)
+        PyValueError::new_err(err.to_string())
     }
 }
 
