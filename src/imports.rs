@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
 use pyo3::conversion::IntoPy;

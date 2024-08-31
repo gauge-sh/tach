@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
