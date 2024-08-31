@@ -193,13 +193,9 @@ pub fn module_to_file_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Optio
 }
 
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
-    let mut file = fs::File::open(path.as_ref()).map_err(|_| {
-        FileSystemError::Other(format!("Could not open path: {}", path.as_ref().display()))
-    })?;
+    let mut file = fs::File::open(path.as_ref())?;
     let mut content = String::new();
-    file.read_to_string(&mut content).map_err(|_| {
-        FileSystemError::Other(format!("Could not read path: {}", path.as_ref().display()))
-    })?;
+    file.read_to_string(&mut content)?;
     Ok(content)
 }
 
