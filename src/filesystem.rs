@@ -7,39 +7,20 @@ use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 
 use globset::Glob;
 use globset::GlobSetBuilder;
+use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::exclusion::is_path_excluded;
 
-#[derive(Debug, Clone)]
-pub struct FileSystemError {
-    pub message: String,
+#[derive(Error, Debug)]
+pub enum FileSystemError {
+    #[error("Encountered unexpected I/O error.\n{0}")]
+    Io(#[from] io::Error),
+    #[error("Path does not appear to be within project root.\n{0}")]
+    StripPrefix(#[from] StripPrefixError),
+    #[error("{0}")]
+    Other(String),
 }
-
-impl std::error::Error for FileSystemError {}
-
-impl fmt::Display for FileSystemError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", &self.message)
-    }
-}
-
-impl From<io::Error> for FileSystemError {
-    fn from(_: io::Error) -> Self {
-        FileSystemError {
-            message: "Encountered unexpected I/O error.".to_string(),
-        }
-    }
-}
-
-impl From<StripPrefixError> for FileSystemError {
-    fn from(_: StripPrefixError) -> Self {
-        FileSystemError {
-            message: "Path does not appear to be within project root.".to_string(),
-        }
-    }
-}
-
 pub type Result<T> = std::result::Result<T, FileSystemError>;
 
 pub fn relative_to<P: AsRef<Path>, R: AsRef<Path>>(path: P, root: R) -> Result<PathBuf> {
@@ -52,12 +33,10 @@ pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Res
     let matching_root = source_roots
         .iter()
         .find(|&root| file_path.starts_with(root))
-        .ok_or(FileSystemError {
-            message: format!(
-                "No matching source root found for filepath: {:?}",
-                file_path
-            ),
-        })?;
+        .ok_or(FileSystemError::Other(format!(
+            "No matching source root found for filepath: {:?}",
+            file_path
+        )))?;
 
     // Get the relative path from the matching root
     let relative_path = file_path.strip_prefix(matching_root)?;
@@ -65,17 +44,18 @@ pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Res
     // If the relative path is empty, return an error
     // indicating that the path cannot be a source root itself
     if relative_path.as_os_str().is_empty() {
-        return Err(FileSystemError {
-            message: "Filepath cannot be a source root.".to_string(),
-        });
+        return Err(FileSystemError::Other(
+            "Filepath cannot be a source root.".to_string(),
+        ));
     }
 
     // Convert the relative path to a module path
     let mut components: Vec<_> = relative_path
         .parent()
-        .ok_or(FileSystemError {
-            message: format!("Encountered invalid filepath: {:?}", relative_path),
-        })?
+        .ok_or(FileSystemError::Other(format!(
+            "Encountered invalid filepath: {:?}",
+            relative_path
+        )))?
         .components()
         .filter_map(|component| component.as_os_str().to_str())
         .collect();
@@ -84,9 +64,10 @@ pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Res
     let file_name = relative_path
         .file_name()
         .and_then(|name| name.to_str())
-        .ok_or(FileSystemError {
-            message: format!("Encountered invalid filepath: {:?}", relative_path),
-        })?;
+        .ok_or(FileSystemError::Other(format!(
+            "Encountered invalid filepath: {:?}",
+            relative_path
+        )))?;
 
     // If the file is not __init__.py, add its name (without extension) to the components
     if file_name != "__init__.py" {
@@ -212,14 +193,13 @@ pub fn module_to_file_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Optio
 }
 
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
-    let mut file = fs::File::open(path.as_ref()).map_err(|_| FileSystemError {
-        message: format!("Could not open path: {}", path.as_ref().display()),
+    let mut file = fs::File::open(path.as_ref()).map_err(|_| {
+        FileSystemError::Other(format!("Could not open path: {}", path.as_ref().display()))
     })?;
     let mut content = String::new();
-    file.read_to_string(&mut content)
-        .map_err(|_| FileSystemError {
-            message: format!("Could not read path: {}", path.as_ref().display()),
-        })?;
+    file.read_to_string(&mut content).map_err(|_| {
+        FileSystemError::Other(format!("Could not read path: {}", path.as_ref().display()))
+    })?;
     Ok(content)
 }
 

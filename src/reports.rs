@@ -38,7 +38,7 @@ impl From<ImportParseError> for ReportCreationError {
 impl From<FileSystemError> for ReportCreationError {
     fn from(value: FileSystemError) -> Self {
         ReportCreationError {
-            message: value.message,
+            message: value.to_string(),
         }
     }
 }

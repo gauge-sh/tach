@@ -305,7 +305,10 @@ pub fn get_normalized_imports(
     let file_contents =
         filesystem::read_file_content(file_path).map_err(|err| ImportParseError {
             err_type: ImportParseErrorType::FILESYSTEM,
-            message: format!("Failed to parse project imports. Failure: {}", err.message),
+            message: format!(
+                "Failed to parse project imports. Failure: {}",
+                err.to_string()
+            ),
         })?;
     let file_ast = parse_python_source(&file_contents).map_err(|err| ImportParseError {
         err_type: ImportParseErrorType::PARSING,
