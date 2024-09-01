@@ -25,7 +25,7 @@ from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
-from tach.show import generate_module_graph_dot_file, generate_show_url
+from tach.show import generate_module_graph_dot_file_render_local, generate_show_url
 from tach.sync import (
     sync_dependency_constraints,
     sync_project,
@@ -140,7 +140,8 @@ def print_show_web_suggestion() -> None:
 
 def print_generated_module_graph_file(output_filepath: Path) -> None:
     print(
-        f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
+        f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}\n"
+        f"{BCOLORS.OKGREEN}Image of the graph stored in the same directory with the name {TOOL_NAME}_graph with a '.png' extension.{BCOLORS.ENDC}"
     )
 
 
@@ -817,7 +818,7 @@ def tach_show(
         else:
             print_show_web_suggestion()
             output_filepath = output_filepath or Path(f"{TOOL_NAME}_module_graph.dot")
-            generate_module_graph_dot_file(project_config, output_filepath)
+            generate_module_graph_dot_file_render_local(project_config, output_filepath)
             print_generated_module_graph_file(output_filepath)
             sys.exit(0)
     except TachError as e:
