@@ -4,22 +4,17 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::{env, fs};
+use thiserror::Error;
 use toml::Value;
 
 use crate::filesystem::{self, walk_pyfiles};
 
-pub struct CacheError;
-
-impl From<DiskCacheError> for CacheError {
-    fn from(_: DiskCacheError) -> Self {
-        CacheError
-    }
-}
-
-impl From<DiskCacheBuildError> for CacheError {
-    fn from(_: DiskCacheBuildError) -> Self {
-        CacheError
-    }
+#[derive(Error, Debug)]
+pub enum CacheError {
+    #[error("Disk cache error: {0}")]
+    DiskCache(#[from] DiskCacheError),
+    #[error("Disk cache build error: {0}")]
+    DiskCacheBuild(#[from] DiskCacheBuildError),
 }
 
 pub type Result<T> = std::result::Result<T, CacheError>;

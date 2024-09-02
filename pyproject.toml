@@ -58,7 +58,7 @@ keywords = [
 dev = [
     # Core deps (pinned)
     "pydantic==2.8.2; python_version > '3.7'",
-    "rich==13.7.1",
+    "rich==13.8.0",
     "prompt-toolkit==3.0.47",
     # Setup
     "pip==24.0",
