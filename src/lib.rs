@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod check;
+pub mod check_ext;
 pub mod cli;
 pub mod colors;
 pub mod core;
@@ -49,8 +50,8 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
-impl From<check::CheckError> for PyErr {
-    fn from(err: check::CheckError) -> Self {
+impl From<check_ext::CheckError> for PyErr {
+    fn from(err: check_ext::CheckError) -> Self {
         PyOSError::new_err(err.to_string())
     }
 }
@@ -151,10 +152,10 @@ fn check_external_dependencies(
     source_roots: Vec<String>,
     module_mappings: HashMap<String, Vec<String>>,
     ignore_type_checking_imports: bool,
-) -> check::Result<check::ExternalCheckDiagnostics> {
+) -> check_ext::Result<check_ext::ExternalCheckDiagnostics> {
     let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    check::check_external_dependencies(
+    check_ext::check_external_dependencies(
         &project_root,
         &source_roots,
         &module_mappings,

@@ -1,9 +1,7 @@
 use std::{
     collections::{HashMap, VecDeque},
-    sync::Arc,
+    rc::Rc,
 };
-
-use pyo3::pyclass;
 
 use super::config::ModuleConfig;
 
@@ -15,20 +13,16 @@ use super::config::ModuleConfig;
 /// If 'is_end_of_path' is False, this node does not represent a real module,
 /// and must have 'config' None and 'full_path' as the empty string.
 ///
-// #[derive(Debug)]
-// #[pyclass(module = "tach.extension")]
-#[derive(Clone)]
+#[derive(PartialEq)]
 pub struct ModuleNode {
     is_end_of_path: bool,
-    full_path: String,
-    config: Option<ModuleConfig>,
-    interface_members: Vec<String>,
-    children: HashMap<String, Arc<ModuleNode>>,
+    pub full_path: String,
+    pub config: Option<ModuleConfig>,
+    pub interface_members: Vec<String>,
+    children: HashMap<String, Rc<ModuleNode>>,
 }
 
-// #[pymethods]
 impl ModuleNode {
-    // #[staticmethod]
     pub fn empty() -> Self {
         Self {
             is_end_of_path: false,
@@ -39,7 +33,6 @@ impl ModuleNode {
         }
     }
 
-    // #[staticmethod]
     pub fn implicit_root() -> Self {
         let config = ModuleConfig::new_root_config();
         Self {
@@ -74,13 +67,10 @@ fn split_module_path(path: &str) -> Vec<&str> {
 /// The core data structure for tach, representing the modules in a project
 /// with a tree structure for module path lookups.
 ///
-// #[derive(Debug)]
-// #[pyclass(module = "tach.extension")]
 pub struct ModuleTree {
-    root: Arc<ModuleNode>,
+    root: Rc<ModuleNode>,
 }
 
-// #[pymethods]
 impl Default for ModuleTree {
     fn default() -> Self {
         Self::new()
@@ -88,29 +78,28 @@ impl Default for ModuleTree {
 }
 
 impl ModuleTree {
-    // #[new]
     pub fn new() -> Self {
         Self {
-            root: Arc::new(ModuleNode::implicit_root()),
+            root: Rc::new(ModuleNode::implicit_root()),
         }
     }
 
-    pub fn get(&self, path: &str) -> Option<ModuleNode> {
+    pub fn get(&self, path: &str) -> Option<Rc<ModuleNode>> {
         if path.is_empty() {
             return None;
         }
 
-        let mut node = Arc::clone(&self.root);
+        let mut node = Rc::clone(&self.root);
         for part in split_module_path(path) {
             if let Some(child) = node.children.get(part) {
-                node = Arc::clone(child);
+                node = Rc::clone(child);
             } else {
                 return None;
             }
         }
 
         if node.is_end_of_path {
-            Some((*node).clone())
+            Some(node)
         } else {
             None
         }
@@ -121,12 +110,12 @@ impl ModuleTree {
             panic!("Cannot insert module with empty path.");
         }
 
-        let mut node = Arc::get_mut(&mut self.root).unwrap();
+        let mut node = Rc::get_mut(&mut self.root).unwrap();
         for part in split_module_path(&path) {
-            node = Arc::get_mut(
+            node = Rc::get_mut(
                 node.children
                     .entry(part.to_owned())
-                    .or_insert(Arc::new(ModuleNode::empty())),
+                    .or_insert(Rc::new(ModuleNode::empty())),
             )
             .unwrap();
         }
@@ -134,15 +123,15 @@ impl ModuleTree {
         node.fill(config, path, interface_members);
     }
 
-    pub fn find_nearest(&self, path: &str) -> Option<ModuleNode> {
-        let mut node = Arc::clone(&self.root);
-        let mut nearest_parent = Arc::clone(&self.root);
+    pub fn find_nearest(&self, path: &str) -> Option<Rc<ModuleNode>> {
+        let mut node = Rc::clone(&self.root);
+        let mut nearest_parent = Rc::clone(&self.root);
 
         for part in split_module_path(path) {
             if let Some(child) = node.children.get(part) {
-                node = Arc::clone(child);
+                node = Rc::clone(child);
                 if node.is_end_of_path {
-                    nearest_parent = Arc::clone(&node);
+                    nearest_parent = Rc::clone(&node);
                 }
             } else {
                 break;
@@ -150,7 +139,7 @@ impl ModuleTree {
         }
 
         if nearest_parent.is_end_of_path {
-            Some((*nearest_parent).clone())
+            Some(nearest_parent)
         } else {
             None
         }
@@ -161,26 +150,25 @@ impl ModuleTree {
     }
 }
 
-#[pyclass(module = "tach.extension")]
 pub struct ModuleTreeIterator {
-    stack: VecDeque<Arc<ModuleNode>>,
+    stack: VecDeque<Rc<ModuleNode>>,
 }
 
 impl ModuleTreeIterator {
     pub fn new(tree: &ModuleTree) -> Self {
         let mut stack = VecDeque::new();
-        stack.push_back(Arc::clone(&tree.root));
+        stack.push_back(Rc::clone(&tree.root));
         Self { stack }
     }
 }
 
 impl Iterator for ModuleTreeIterator {
-    type Item = Arc<ModuleNode>;
+    type Item = Rc<ModuleNode>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(node) = self.stack.pop_front() {
             for child in node.children.values() {
-                self.stack.push_back(Arc::clone(child));
+                self.stack.push_back(Rc::clone(child));
             }
             if node.is_end_of_path {
                 return Some(node);

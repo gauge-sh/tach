@@ -1,73 +1,164 @@
-use std::collections::HashMap;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::{collections::HashSet, rc::Rc};
 
 use thiserror::Error;
 
-use crate::filesystem::relative_to;
-use crate::parsing::external::{normalize_package_name, parse_pyproject_toml};
-use crate::{filesystem, imports, parsing};
+use crate::core::{
+    config::DependencyConfig,
+    module::{ModuleNode, ModuleTree},
+};
 
 #[derive(Error, Debug)]
 pub enum CheckError {
-    #[error("Parsing error: {0}")]
-    Parse(#[from] parsing::error::ParsingError),
-    #[error("Import parsing error: {0}")]
-    ImportParse(#[from] imports::ImportParseError),
-    #[error("IO error: {0}")]
-    Io(#[from] io::Error),
-    #[error("Filesystem error: {0}")]
-    Filesystem(#[from] filesystem::FileSystemError),
+    #[error("Module containing '{file_mod_path}' not found in project.")]
+    ModuleNotFound { file_mod_path: String },
+
+    #[error("Module '{import_nearest_module_path}' is in strict mode. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not included in __all__.")]
+    StrictModeImport {
+        import_mod_path: String,
+        import_nearest_module_path: String,
+        file_nearest_module_path: String,
+    },
+
+    #[error("Could not find module configuration.")]
+    ModuleConfigNotFound,
+
+    #[error("Invalid import {import_nearest_module_path} from {file_nearest_module_path}.")]
+    InvalidImport {
+        file_nearest_module_path: String,
+        import_nearest_module_path: String,
+    },
+
+    #[error("Deprecated import {import_nearest_module_path} from {file_nearest_module_path}.")]
+    DeprecatedImport {
+        file_nearest_module_path: String,
+        import_nearest_module_path: String,
+        // deprecated_dependencies: Vec<DependencyConfig>,
+    },
 }
 
-pub type Result<T> = std::result::Result<T, CheckError>;
+impl CheckError {
+    pub fn is_dependency_error(&self) -> bool {
+        matches!(
+            self,
+            Self::InvalidImport { .. } | Self::DeprecatedImport { .. }
+        )
+    }
 
-pub type ExternalCheckDiagnostics = HashMap<String, Vec<String>>;
+    pub fn is_deprecated(&self) -> bool {
+        matches!(self, Self::DeprecatedImport { .. })
+    }
+}
 
-pub fn check_external_dependencies(
-    project_root: &Path,
-    source_roots: &[PathBuf],
-    module_mappings: &HashMap<String, Vec<String>>,
-    ignore_type_checking_imports: bool,
-) -> Result<ExternalCheckDiagnostics> {
-    let mut diagnostics: ExternalCheckDiagnostics = HashMap::new();
-    for pyproject in filesystem::walk_pyprojects(project_root.to_str().unwrap()) {
-        let project_info = parse_pyproject_toml(&pyproject)?;
-        for source_root in &project_info.source_paths {
-            let source_files = filesystem::walk_pyfiles(source_root.to_str().unwrap());
-            for file_path in source_files {
-                let absolute_file_path = source_root.join(&file_path);
-                let display_file_path = relative_to(&absolute_file_path, project_root)?
-                    .to_string_lossy()
-                    .to_string();
-                if let Ok(imports) = imports::get_normalized_imports(
-                    source_roots,
-                    &absolute_file_path,
-                    ignore_type_checking_imports,
-                ) {
-                    for import in imports {
-                        let top_level_module_name = import.top_level_module_name();
-                        let default_distribution_names = vec![top_level_module_name.to_string()];
-                        let distribution_names: Vec<String> = module_mappings
-                            .get(top_level_module_name)
-                            .unwrap_or(&default_distribution_names)
-                            .iter()
-                            .map(|dist_name| normalize_package_name(dist_name))
-                            .collect();
-                        if !imports::is_project_import(source_roots, &import.module_path)?
-                            && distribution_names
-                                .iter()
-                                .all(|dist_name| !project_info.dependencies.contains(dist_name))
-                        {
-                            let diagnostic =
-                                diagnostics.entry(display_file_path.clone()).or_default();
-                            diagnostic.push(import.top_level_module_name().to_string());
-                        }
-                    }
-                }
-            }
+fn is_top_level_module_import(mod_path: &str, module: &ModuleNode) -> bool {
+    mod_path == module.full_path
+}
+
+pub fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool {
+    let mod_path_segments: Vec<&str> = mod_path.rsplitn(2, '.').collect();
+
+    if mod_path_segments.len() == 1 {
+        // If there's no '.' in the path, compare the whole path with the module's full path.
+        mod_path_segments[0] == module.full_path
+    } else {
+        // If there's a '.', split into package path and member name.
+        let mod_pkg_path = mod_path_segments[1];
+        let mod_member_name = mod_path_segments[0];
+
+        mod_pkg_path == module.full_path
+            && module
+                .interface_members
+                .contains(&mod_member_name.to_string())
+    }
+}
+
+pub fn check_import(
+    module_tree: ModuleTree,
+    import_mod_path: &str,
+    file_mod_path: &str,
+    file_nearest_module: Option<Rc<ModuleNode>>,
+) -> Result<(), CheckError> {
+    let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
+        Some(module) => module,
+        // This should not be none since we intend to filter out any external imports,
+        // but we should allow external imports if they have made it here.
+        None => return Ok(()),
+    };
+
+    let file_nearest_module = file_nearest_module
+        // Lookup file_mod_path if module not given
+        .or_else(|| module_tree.find_nearest(file_mod_path))
+        // If module not found, we should fail since the implication is that
+        // an external module is importing directly from our project
+        .ok_or(CheckError::ModuleNotFound {
+            file_mod_path: file_mod_path.to_string(),
+        })?;
+
+    if import_nearest_module == file_nearest_module {
+        // Imports within the same module are always allowed
+        return Ok(());
+    }
+
+    if let Some(config) = &import_nearest_module.config {
+        if config.strict
+            && !is_top_level_module_import(import_mod_path, &file_nearest_module)
+            && !import_matches_interface_members(import_mod_path, &file_nearest_module)
+        {
+            // In strict mode, import must be of the module itself or one of the
+            // interface members (defined in __all__)
+            return Err(CheckError::StrictModeImport {
+                import_mod_path: import_mod_path.to_string(),
+                import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                file_nearest_module_path: file_nearest_module.full_path.to_string(),
+            });
         }
     }
 
-    Ok(diagnostics)
+    let file_config = file_nearest_module
+        .config
+        .as_ref()
+        .ok_or(CheckError::ModuleConfigNotFound)?;
+    let file_nearest_module_path = &file_config.path;
+    let import_nearest_module_path = &import_nearest_module
+        .config
+        .as_ref()
+        .ok_or(CheckError::ModuleConfigNotFound)?
+        .path;
+
+    // The import must be explicitly allowed in the file's config
+    let allowed_dependencies: HashSet<_> = file_config
+        .depends_on
+        .iter()
+        .filter(|dep| !dep.deprecated)
+        .map(|dep| &dep.path)
+        .collect();
+
+    if allowed_dependencies.contains(import_nearest_module_path) {
+        // he import matches at least one expected dependency
+        return Ok(());
+    }
+
+    let deprecated_dependencies: HashSet<_> = file_config
+        .depends_on
+        .iter()
+        .filter(|dep| dep.deprecated)
+        .map(|dep| &dep.path)
+        .collect();
+
+    if deprecated_dependencies.contains(import_nearest_module_path) {
+        // Dependency exists but is deprecated
+        return Err(CheckError::DeprecatedImport {
+            file_nearest_module_path: file_nearest_module.full_path.to_string(),
+            import_nearest_module_path: import_nearest_module_path.to_string(),
+            // deprecated_dependencies: deprecated_dependencies
+            //     .iter()
+            //     .map(|path| DependencyConfig::from_deprecated_path(path.to_string()))
+            //     .collect(),
+        });
+    }
+
+    // This means the import is not declared as a dependency of the file
+    Err(CheckError::InvalidImport {
+        file_nearest_module_path: file_nearest_module.full_path.to_string(),
+        import_nearest_module_path: import_nearest_module.full_path.to_string(),
+    })
 }

@@ -3,14 +3,14 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 use crate::filesystem;
-use crate::parsing::error;
+use crate::parsing;
 
 // for serde
 fn default_true() -> bool {
     true
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct DependencyConfig {
     pub path: String,
@@ -18,7 +18,22 @@ pub struct DependencyConfig {
     pub deprecated: bool,
 }
 
-#[derive(Deserialize, Clone)]
+impl DependencyConfig {
+    pub fn from_deprecated_path(path: String) -> Self {
+        Self {
+            path,
+            deprecated: true,
+        }
+    }
+    pub fn from_undeprecated_path(path: String) -> Self {
+        Self {
+            path,
+            deprecated: false,
+        }
+    }
+}
+
+#[derive(Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ModuleConfig {
     pub path: String,
@@ -110,7 +125,7 @@ pub struct ProjectConfig {
     pub use_regex_matching: bool,
 }
 
-pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> error::Result<ProjectConfig> {
+pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> parsing::error::Result<ProjectConfig> {
     let content = filesystem::read_file_content(filepath)?;
     let config: ProjectConfig = toml::from_str(&content)?;
     Ok(config)
