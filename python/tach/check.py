@@ -186,19 +186,6 @@ def check(
         for module in module_validation_result.invalid_modules
     )
 
-    # modules: list[ModuleConfig] = []
-
-    # for module in module_validation_result.valid_modules:
-    #     m = ModuleConfig()
-    #     m.path = module.path
-    #     m.depends_on = []
-    #     for dep in module.depends_on:
-    #         d = DependencyConfig()
-    #         d.path = dep.path
-    #         d.deprecated = dep.deprecated
-    #         m.depends_on.append(d)
-    #     m.strict = module.strict
-
     module_tree = build_module_tree(
         source_roots=source_roots,
         modules=module_validation_result.valid_modules,

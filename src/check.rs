@@ -2,10 +2,7 @@ use std::{collections::HashSet, rc::Rc};
 
 use thiserror::Error;
 
-use crate::core::{
-    config::DependencyConfig,
-    module::{ModuleNode, ModuleTree},
-};
+use crate::core::module::{ModuleNode, ModuleTree};
 
 #[derive(Error, Debug)]
 pub enum CheckError {
@@ -22,17 +19,16 @@ pub enum CheckError {
     #[error("Could not find module configuration.")]
     ModuleConfigNotFound,
 
-    #[error("Invalid import {import_nearest_module_path} from {file_nearest_module_path}.")]
+    #[error("Invalid import {invalid_module} from {source_module}.")]
     InvalidImport {
-        file_nearest_module_path: String,
-        import_nearest_module_path: String,
+        source_module: String,
+        invalid_module: String,
     },
 
-    #[error("Deprecated import {import_nearest_module_path} from {file_nearest_module_path}.")]
+    #[error("Deprecated import {invalid_module} from {source_module}.")]
     DeprecatedImport {
-        file_nearest_module_path: String,
-        import_nearest_module_path: String,
-        // deprecated_dependencies: Vec<DependencyConfig>,
+        source_module: String,
+        invalid_module: String,
     },
 }
 
@@ -53,7 +49,7 @@ fn is_top_level_module_import(mod_path: &str, module: &ModuleNode) -> bool {
     mod_path == module.full_path
 }
 
-pub fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool {
+fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool {
     let mod_path_segments: Vec<&str> = mod_path.rsplitn(2, '.').collect();
 
     if mod_path_segments.len() == 1 {
@@ -71,7 +67,7 @@ pub fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> 
     }
 }
 
-pub fn check_import(
+fn check_import(
     module_tree: ModuleTree,
     import_mod_path: &str,
     file_mod_path: &str,
@@ -147,18 +143,14 @@ pub fn check_import(
     if deprecated_dependencies.contains(import_nearest_module_path) {
         // Dependency exists but is deprecated
         return Err(CheckError::DeprecatedImport {
-            file_nearest_module_path: file_nearest_module.full_path.to_string(),
-            import_nearest_module_path: import_nearest_module_path.to_string(),
-            // deprecated_dependencies: deprecated_dependencies
-            //     .iter()
-            //     .map(|path| DependencyConfig::from_deprecated_path(path.to_string()))
-            //     .collect(),
+            source_module: file_nearest_module_path.to_string(),
+            invalid_module: import_nearest_module_path.to_string(),
         });
     }
 
     // This means the import is not declared as a dependency of the file
     Err(CheckError::InvalidImport {
-        file_nearest_module_path: file_nearest_module.full_path.to_string(),
-        import_nearest_module_path: import_nearest_module.full_path.to_string(),
+        source_module: file_nearest_module_path.to_string(),
+        invalid_module: import_nearest_module_path.to_string(),
     })
 }

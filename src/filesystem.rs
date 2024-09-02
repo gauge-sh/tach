@@ -11,6 +11,8 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::exclusion::is_path_excluded;
 
+pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
+
 #[derive(Error, Debug)]
 pub enum FileSystemError {
     #[error("Encountered unexpected I/O error.\n{0}")]

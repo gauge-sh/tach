@@ -3,6 +3,7 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 use crate::filesystem;
+use crate::filesystem::ROOT_MODULE_SENTINEL_TAG;
 use crate::parsing;
 
 // for serde
@@ -52,11 +53,10 @@ impl ModuleConfig {
         }
     }
     pub fn new_root_config() -> Self {
-        // TODO: Import tag from constants
-        Self::new("<root>")
+        Self::new(ROOT_MODULE_SENTINEL_TAG)
     }
     pub fn mod_path(&self) -> String {
-        if self.path == "<root>" {
+        if self.path == ROOT_MODULE_SENTINEL_TAG {
             return ".".to_string();
         }
         self.path.clone()
