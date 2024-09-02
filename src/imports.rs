@@ -242,6 +242,9 @@ impl<'a> ImportVisitor<'a> {
     fn should_ignore_if_statement(&mut self, node: &StmtIf) -> bool {
         let id = match node.test.as_ref() {
             Expr::Name(ref name) => Some(name.id.as_str()),
+            // This will match a single-level attribute access in cases like:
+            // import typing as t; if t.TYPE_CHECKING: ...
+            Expr::Attribute(ref attribute) => Some(attribute.attr.as_str()),
             _ => None,
         };
         id.unwrap_or_default() == "TYPE_CHECKING" && self.ignore_type_checking_imports
