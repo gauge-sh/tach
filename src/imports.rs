@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
 use pyo3::conversion::IntoPy;
@@ -11,28 +11,23 @@ use regex::Regex;
 use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use ruff_source_file::Locator;
+use thiserror::Error;
 
 use crate::parsing::py_ast::parse_python_source;
-use crate::{exclusion, filesystem};
+use crate::{exclusion, filesystem, parsing};
 
-#[derive(Debug)]
-pub enum ImportParseErrorType {
-    FILESYSTEM,
-    PARSING,
-}
-
-#[derive(Debug)]
-pub struct ImportParseError {
-    pub err_type: ImportParseErrorType,
-    pub message: String,
-}
-
-impl std::error::Error for ImportParseError {}
-
-impl fmt::Display for ImportParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", &self.message)
-    }
+#[derive(Error, Debug)]
+pub enum ImportParseError {
+    #[error("Failed to parse project imports.\nFile: {file}\nFailure: {source}")]
+    Parsing {
+        file: String,
+        #[source]
+        source: parsing::ParsingError,
+    },
+    #[error("Failed to parse project imports.\n{0}")]
+    Filesystem(#[from] filesystem::FileSystemError),
+    #[error("Failed to check if path is excluded.\n{0}")]
+    Exclusion(#[from] exclusion::PathExclusionError),
 }
 
 pub type Result<T> = std::result::Result<T, ImportParseError>;
@@ -283,14 +278,9 @@ pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> 
     let resolved_module = filesystem::module_to_file_path(source_roots, mod_path);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
-        return match exclusion::is_path_excluded(module.file_path.as_path().to_str().unwrap()) {
-            Ok(true) => Ok(false),
-            Ok(false) => Ok(true),
-            Err(_) => Err(ImportParseError {
-                err_type: ImportParseErrorType::FILESYSTEM,
-                message: "Failed to check if path is excluded".to_string(),
-            }),
-        };
+        Ok(!exclusion::is_path_excluded(
+            module.file_path.as_path().to_str().unwrap(),
+        )?)
     } else {
         // This is not a project import
         Ok(false)
@@ -302,19 +292,12 @@ pub fn get_normalized_imports(
     file_path: &PathBuf,
     ignore_type_checking_imports: bool,
 ) -> Result<NormalizedImports> {
-    let file_contents =
-        filesystem::read_file_content(file_path).map_err(|err| ImportParseError {
-            err_type: ImportParseErrorType::FILESYSTEM,
-            message: format!("Failed to parse project imports. Failure: {}", err.message),
+    let file_contents = filesystem::read_file_content(file_path)?;
+    let file_ast =
+        parse_python_source(&file_contents).map_err(|err| ImportParseError::Parsing {
+            file: file_path.to_str().unwrap().to_string(),
+            source: err,
         })?;
-    let file_ast = parse_python_source(&file_contents).map_err(|err| ImportParseError {
-        err_type: ImportParseErrorType::PARSING,
-        message: format!(
-            "Failed to parse project imports. File: {:?} Failure: {:?}",
-            file_path.to_str().unwrap(),
-            err
-        ),
-    })?;
     let is_package = file_path.ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let locator = Locator::new(&file_contents);
