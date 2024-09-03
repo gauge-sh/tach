@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.10.5"
+version = "0.10.6"
 authors = [
     { name = "Caelean Barnes", email = "caeleanb@gmail.com" },
     { name = "Evan Doyle", email = "evanmdoyle@gmail.com" },
@@ -63,13 +63,13 @@ keywords = [
 dev = [
     # Core deps (pinned)
     "pydantic==2.8.2; python_version > '3.7'",
-    "rich==13.7.1",
+    "rich==13.8.0",
     "prompt-toolkit==3.0.47",
     # Setup
     "pip==24.0",
     # Code Quality
-    "pyright==1.1.377",
-    "ruff==0.6.2",
+    "pyright==1.1.378",
+    "ruff==0.6.3",
     # Build/Release
     "setuptools==69.5.1; python_version > '3.7'",
     "twine==5.1.1; python_version > '3.7'",

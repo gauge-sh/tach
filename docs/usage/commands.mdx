@@ -137,7 +137,6 @@ options:
                         Specify an output path for a locally generated module graph file.
 ```
 
-
 These are the results of `tach show --web` on the Tach codebase itself:
 ![tach show](assets/tach_show.png)
 
@@ -165,11 +164,10 @@ Using `pytest`, running `tach test` will perform [impact analysis](https://marti
 This can dramatically speed up your test suite in CI, particularly when you make a small change to a large codebase.
 This command also takes advantage of Tach's [computation cache](caching).
 
-
-
 ## tach check-external
 
 Tach can validate that the external imports in your Python packages match your declared package dependencies in `pyproject.toml`.
+
 ```bash
 usage: tach check-external [-h] [-e file_or_path,...]
 
@@ -191,13 +189,17 @@ This means that, although tests may pass in your shared environment, an invalid 
 
 In case you would like to explicitly allow a certain external module, this can be configured in your [`tach.toml`](configuration#external-checks)
 
-<Note>It is recommended to run Tach within a virtual environment containing all of your dependencies across all packages. This is because Tach uses the distribution metadata to map module names like 'git' to their distributions ('GitPython').</Note>
-
-
+<Note>
+  It is recommended to run Tach within a virtual environment containing all of
+  your dependencies across all packages. This is because Tach uses the
+  distribution metadata to map module names like 'git' to their distributions
+  ('GitPython').
+</Note>
 
 ## tach report-external
 
 Tach can determine what external packages are used in a given path in your project.
+
 ```bash
 usage: tach report-external [-h] [--raw] path
 
@@ -228,9 +230,12 @@ rich
 
 to generate a minimal set of external dependencies for that source code.
 
-<Note>It is recommended to run Tach within a virtual environment containing all of your dependencies across all packages. This is because Tach uses the distribution metadata to map module names like 'git' to their distributions ('GitPython').</Note>
-
-
+<Note>
+  It is recommended to run Tach within a virtual environment containing all of
+  your dependencies across all packages. This is because Tach uses the
+  distribution metadata to map module names like 'git' to their distributions
+  ('GitPython').
+</Note>
 
 ## tach install
 
@@ -243,7 +248,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
   - repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.10.5 # change this to the latest tag!
+    rev: v0.10.6 # change this to the latest tag!
     hooks:
       - id: tach
 ```
