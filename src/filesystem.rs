@@ -9,6 +9,7 @@ use globset::GlobSetBuilder;
 use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
+use crate::core::config::ModuleConfig;
 use crate::exclusion::is_path_excluded;
 
 pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
@@ -102,96 +103,70 @@ pub fn module_to_file_path<P: AsRef<Path>>(
     let mod_as_file_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
     for root in roots {
         let fs_path = root.as_ref().join(&mod_as_file_path);
-        let file_path = fs_path.display().to_string();
 
-        // Check for package with .pyi file
-        let init_pyi_path = fs_path.join("__init__.pyi");
-        if init_pyi_path.exists() {
-            return Some(ResolvedModule {
-                file_path: init_pyi_path,
-                member_name: None,
-            });
+        // Check for [package with .pyi, .py] file or [.pyi, .py] file itself
+        for path in &[
+            fs_path.join("__init__.pyi"),
+            fs_path.join("__init__.py"),
+            fs_path.with_extension("pyi"),
+            fs_path.with_extension("py"),
+        ] {
+            if path.exists() {
+                return Some(ResolvedModule {
+                    file_path: path.to_path_buf(),
+                    member_name: None,
+                });
+            }
         }
-
-        // Check for package with .py file
-        let init_py_path = fs_path.join("__init__.py");
-        if init_py_path.exists() {
-            return Some(ResolvedModule {
-                file_path: init_py_path,
-                member_name: None,
-            });
-        }
-
-        // Check for .pyi file
-        let pyi_file_path = format!("{}.pyi", &file_path);
-        if Path::new(&pyi_file_path).exists() {
-            return Some(ResolvedModule {
-                file_path: PathBuf::from(pyi_file_path),
-                member_name: None,
-            });
-        }
-
-        // Check for .py file
-        let py_file_path = format!("{}.py", &file_path);
-        if Path::new(&py_file_path).exists() {
-            return Some(ResolvedModule {
-                file_path: PathBuf::from(py_file_path),
-                member_name: None,
-            });
-        }
-
         // If the original file path does not contain a separator (e.g. 'os', 'ast')
         // then we are done checking this root.
         if !mod_as_file_path.contains(MAIN_SEPARATOR) || !check_members {
             continue;
         }
 
-        if let Some(last_sep_index) = file_path.rfind(MAIN_SEPARATOR) {
-            let member_name = file_path[last_sep_index + 1..].to_string();
+        if let Some(last_sep_index) = mod_as_file_path.rfind(MAIN_SEPARATOR) {
+            let member_name = &mod_as_file_path[last_sep_index + 1..];
+            let base_fs_path = root.as_ref().join(&mod_as_file_path[..last_sep_index]);
 
-            // Check for member within package with .pyi file
-            let init_pyi_file_path = format!(
-                "{}{}__init__.pyi",
-                &file_path[..last_sep_index],
-                MAIN_SEPARATOR
-            );
-            if Path::new(&init_pyi_file_path).exists() {
-                return Some(ResolvedModule {
-                    file_path: PathBuf::from(init_pyi_file_path),
-                    member_name: Some(member_name.clone()),
-                });
+            for path in &[
+                base_fs_path.join("__init__.pyi"),
+                base_fs_path.join("__init__.py"),
+                base_fs_path.with_extension("pyi"),
+                base_fs_path.with_extension("py"),
+            ] {
+                if path.exists() {
+                    return Some(ResolvedModule {
+                        file_path: path.to_path_buf(),
+                        member_name: Some(member_name.to_string()),
+                    });
+                }
             }
+        }
+    }
+    None
+}
 
-            // Check for member within package with .py file
-            let init_py_file_path = format!(
-                "{}{}__init__.py",
-                &file_path[..last_sep_index],
-                MAIN_SEPARATOR
-            );
-            if Path::new(&init_py_file_path).exists() {
-                return Some(ResolvedModule {
-                    file_path: PathBuf::from(init_py_file_path),
-                    member_name: Some(member_name),
-                });
-            }
+fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Option<PathBuf> {
+    if mod_path.is_empty() {
+        return None;
+    }
+    let base_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
 
-            // Check for member within .pyi file
-            let pyi_file_path = format!("{}.pyi", &file_path[..last_sep_index]);
-            if Path::new(&pyi_file_path).exists() {
-                return Some(ResolvedModule {
-                    file_path: PathBuf::from(pyi_file_path),
-                    member_name: Some(member_name.clone()),
-                });
-            }
+    // Iterate through each source root
+    for source_root in roots {
+        let source_root = source_root.as_ref();
 
-            // Check for member within .py file
-            let py_file_path = format!("{}.py", &file_path[..last_sep_index]);
-            if Path::new(&py_file_path).exists() {
-                return Some(ResolvedModule {
-                    file_path: PathBuf::from(py_file_path),
-                    member_name: Some(member_name.clone()),
-                });
-            }
+        // Build paths
+        let dir_path = source_root.join(&base_path);
+        let pyinterface_path = source_root.join(format!("{}.pyi", base_path));
+        let pyfile_path = source_root.join(format!("{}.py", base_path));
+
+        if dir_path.is_dir() {
+            return Some(dir_path);
+        } else if pyinterface_path.exists() {
+            return Some(pyinterface_path);
+        } else if pyfile_path.exists() {
+            return Some(pyfile_path);
         }
     }
     None
@@ -272,4 +247,25 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
                     relative_to(path, PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
                 )
         })
+}
+
+// Returns a tuple of (valid, invalid) modules
+pub fn validate_project_modules(
+    source_roots: &[PathBuf],
+    modules: Vec<ModuleConfig>,
+) -> (Vec<ModuleConfig>, Vec<ModuleConfig>) {
+    let mut result = (Vec::new(), Vec::new());
+
+    for module in modules {
+        if module.path == ROOT_MODULE_SENTINEL_TAG
+            || module_to_pyfile_or_dir_path(source_roots, &module.path).is_some()
+        {
+            // valid module
+            result.0.push(module);
+        } else {
+            // invalid module
+            result.1.push(module);
+        }
+    }
+    result
 }

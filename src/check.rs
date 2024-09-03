@@ -1,8 +1,22 @@
-use std::{collections::HashSet, rc::Rc};
+use std::{
+    collections::HashSet,
+    error::Error,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use thiserror::Error;
 
-use crate::core::module::{ModuleNode, ModuleTree};
+use crate::{
+    core::{
+        config::{parse_project_config, ProjectConfig},
+        module::{ModuleNode, ModuleTree},
+    },
+    exclusion::{is_path_excluded, set_excluded_paths},
+    filesystem as fs,
+    imports::get_project_imports,
+    parsing::{module::build_module_tree, ParsingError},
+};
 
 #[derive(Error, Debug)]
 pub enum CheckError {
@@ -68,7 +82,7 @@ fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool
 }
 
 fn check_import(
-    module_tree: ModuleTree,
+    module_tree: &ModuleTree,
     import_mod_path: &str,
     file_mod_path: &str,
     file_nearest_module: Option<Rc<ModuleNode>>,
@@ -153,4 +167,62 @@ fn check_import(
         source_module: file_nearest_module_path.to_string(),
         invalid_module: import_nearest_module_path.to_string(),
     })
+}
+
+pub fn check(
+    project_root: &Path,
+    _project_config: ProjectConfig,
+    exclude_paths: &[PathBuf],
+) -> Result<(), Box<dyn Error>> {
+    let project_config = parse_project_config(project_root)?;
+    let source_roots: Vec<PathBuf> = project_config
+        .source_roots
+        .into_iter()
+        .map(|r| project_root.join(r))
+        .collect();
+    let (valid_modules, invalid_modules) =
+        fs::validate_project_modules(&source_roots, project_config.modules);
+
+    let module_tree = build_module_tree(
+        &source_roots,
+        valid_modules,
+        project_config.forbid_circular_dependencies,
+    )?;
+
+    set_excluded_paths(
+        project_root,
+        exclude_paths,
+        project_config.use_regex_matching,
+    )?;
+
+    for source_root in &source_roots {
+        for file_path in fs::walk_pyfiles(&source_root.display().to_string()) {
+            let abs_file_path = &source_root.join(&file_path);
+            if is_path_excluded(&abs_file_path.display().to_string())? {
+                continue;
+            }
+            let mod_path = fs::file_to_module_path(&source_roots, &file_path)?;
+            let nearest_module = match module_tree.find_nearest(&mod_path) {
+                Some(v) => v,
+                None => continue,
+            };
+
+            let project_imports = get_project_imports(
+                &source_roots,
+                abs_file_path,
+                project_config.ignore_type_checking_imports,
+            )?;
+
+            for import in project_imports {
+                check_import(
+                    &module_tree,
+                    &import.module_path,
+                    &mod_path,
+                    Some(Rc::clone(&nearest_module)),
+                )?;
+            }
+        }
+    }
+
+    Ok(())
 }

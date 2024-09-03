@@ -54,7 +54,7 @@ pub fn find_modules_with_cycles(modules: &[ModuleConfig]) -> Vec<&String> {
 }
 
 pub fn build_module_tree(
-    source_roots: Vec<PathBuf>,
+    source_roots: &[PathBuf],
     modules: Vec<ModuleConfig>,
     forbid_circular_dependencies: bool,
 ) -> Result<ModuleTree, Box<dyn Error>> {
