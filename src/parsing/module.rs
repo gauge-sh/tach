@@ -7,6 +7,7 @@ use crate::core::module::ModuleTree;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 
+use super::error::ModuleTreeError;
 use super::py_ast::parse_interface_members;
 
 pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
@@ -57,28 +58,22 @@ pub fn build_module_tree(
     source_roots: &[PathBuf],
     modules: Vec<ModuleConfig>,
     forbid_circular_dependencies: bool,
-) -> Result<ModuleTree, Box<dyn Error>> {
+) -> Result<ModuleTree, ModuleTreeError> {
     // Check for duplicate modules
     let duplicate_modules = find_duplicate_modules(&modules);
     if !duplicate_modules.is_empty() {
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            format!(
-                "Failed to build module tree. The following modules were defined more than once: {:?}",
-                duplicate_modules
-            ),
-        )));
+        return Err(ModuleTreeError::DuplicateModules(
+            duplicate_modules.iter().map(|s| s.to_string()).collect(),
+        ));
     }
 
     // Check for circular dependencies if forbidden
     if forbid_circular_dependencies {
         let module_paths = find_modules_with_cycles(&modules);
         if !module_paths.is_empty() {
-            // return Err(Box::new(TachCircularDependencyError::new(module_paths)));
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                format!("Circular dependency error: {:?}", module_paths),
-            )));
+            return Err(ModuleTreeError::CircularDependency(
+                module_paths.iter().map(|s| s.to_string()).collect(),
+            ));
         }
     }
 

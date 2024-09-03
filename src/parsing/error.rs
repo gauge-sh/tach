@@ -19,3 +19,15 @@ pub enum ParsingError {
 }
 
 pub type Result<T> = std::result::Result<T, ParsingError>;
+
+#[derive(Error, Debug)]
+pub enum ModuleTreeError {
+    #[error(
+        "Failed to build module tree. The following modules were defined more than once: {0:?}"
+    )]
+    DuplicateModules(Vec<String>),
+    #[error("Circular dependency detected: {0:?}")]
+    CircularDependency(Vec<String>),
+    #[error("Parsing Error while building module tree.\n{0}")]
+    ParseError(#[from] ParsingError),
+}

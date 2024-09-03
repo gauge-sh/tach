@@ -15,7 +15,7 @@ use crate::{
     exclusion::{is_path_excluded, set_excluded_paths},
     filesystem as fs,
     imports::get_project_imports,
-    parsing::{module::build_module_tree, ParsingError},
+    parsing::module::build_module_tree,
 };
 
 #[derive(Error, Debug)]
@@ -171,7 +171,7 @@ fn check_import(
 
 pub fn check(
     project_root: &Path,
-    _project_config: ProjectConfig,
+    _project_config: &ProjectConfig,
     exclude_paths: &[PathBuf],
 ) -> Result<(), Box<dyn Error>> {
     let project_config = parse_project_config(project_root)?;
