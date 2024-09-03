@@ -20,8 +20,10 @@ from tach.extension import (
     check_computation_cache,
     create_computation_cache_key,
     update_computation_cache,
+    check as check_i,
 )
 from tach.filesystem import install_pre_commit
+from tach.filesystem.project import get_project_config_path
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
@@ -67,10 +69,12 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         f"{{message}} {BCOLORS.ENDC}"
     )
     error_info = error.error_info
-    if error_info.exception_message:
-        return error_template.format(message=error_info.exception_message)
-    elif not error_info.is_dependency_error:
-        return error_template.format(message="Unexpected error")
+    # if error_info.exception_message:
+    #     return error_template.format(message=error_info.exception_message)
+    # elif not error_info.is_dependency_error:
+    #     return error_template.format(message="Unexpected error")
+    if not error_info.is_dependency_error():
+        return error_template.format(message=error_info.to_pystring())
 
     error_message = (
         f"Cannot import '{error.import_mod_path}'. "
@@ -507,9 +511,15 @@ def tach_check(
             exclude_paths, project_config.exclude, project_config.use_regex_matching
         )
 
-        check_result = check(
-            project_root=project_root,
-            project_config=project_config,
+        # check_result = check(
+        #     project_root=project_root,
+        #     project_config=project_config,
+        #     exclude_paths=exclude_paths,
+        # )
+
+        check_result = check_i(
+            project_root=str(project_root),
+            project_config_path=str(get_project_config_path()),
             exclude_paths=exclude_paths,
         )
         if check_result.warnings:

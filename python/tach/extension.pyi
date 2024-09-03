@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Literal
 
+from tach.check import CheckResult
+
 def get_project_imports(
     source_roots: list[str],
     file_path: str,
@@ -52,6 +54,11 @@ def update_computation_cache(
 ) -> None: ...
 def parse_project_config(filepath: str) -> ProjectConfig: ...
 def parse_interface_members(source_roots: list[Path], path: str) -> list[str]: ...
+def check(
+    project_root: str,
+    project_config_path: str,
+    exclude_paths: list[str],
+) -> CheckResult: ...
 
 class DependencyConfig:
     path: str

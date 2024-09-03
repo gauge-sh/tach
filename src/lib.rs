@@ -1,6 +1,6 @@
 pub mod cache;
-pub mod check;
 pub mod check_ext;
+pub mod check_int;
 pub mod cli;
 pub mod colors;
 pub mod core;
@@ -17,6 +17,7 @@ use std::path::PathBuf;
 use cache::ComputationCacheValue;
 use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::PyString;
 
 impl From<imports::ImportParseError> for PyErr {
     fn from(err: imports::ImportParseError) -> Self {
@@ -244,6 +245,16 @@ fn parse_interface_members(
     parsing::py_ast::parse_interface_members(&source_roots, &path)
 }
 
+#[pyfunction]
+#[pyo3(signature = (project_root, project_config_path, exclude_paths))]
+fn check(
+    project_root: String,
+    project_config_path: String,
+    exclude_paths: Vec<String>,
+) -> check_int::CheckDiagnostics {
+    check_int::check(project_root, project_config_path, exclude_paths).unwrap()
+}
+
 #[pymodule]
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<core::config::ProjectConfig>()?;
@@ -258,5 +269,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(check_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(update_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(parse_interface_members, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(check, m)?)?;
     Ok(())
 }

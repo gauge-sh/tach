@@ -28,7 +28,6 @@ class ErrorInfo:
     deprecated_dependencies: list[Dependency] = field(default_factory=list)
     exception_message: str = ""
 
-    @property
     def is_dependency_error(self) -> bool:
         return all((self.source_module, self.invalid_module))
 

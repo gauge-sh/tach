@@ -36,7 +36,7 @@ pub type Result<T> = std::result::Result<T, ImportParseError>;
 #[derive(Debug)]
 pub struct NormalizedImport {
     pub module_path: String,
-    pub line_no: u32,
+    pub line_no: usize,
 }
 
 impl NormalizedImport {
