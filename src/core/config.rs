@@ -34,7 +34,7 @@ impl DependencyConfig {
     }
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ModuleConfig {
     pub path: String,

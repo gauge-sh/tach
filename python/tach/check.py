@@ -164,6 +164,7 @@ def check(
     project_config: ProjectConfig,
     exclude_paths: list[str],
 ) -> CheckResult:
+    # raise NotImplementedError("check function is not implemented yet.")
     if not project_root.is_dir():
         raise errors.TachSetupError(
             f"The path {project_root} is not a valid directory."

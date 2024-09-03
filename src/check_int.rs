@@ -118,8 +118,8 @@ fn check_import(
 
     if let Some(config) = &import_nearest_module.config {
         if config.strict
-            && !is_top_level_module_import(import_mod_path, &file_nearest_module)
-            && !import_matches_interface_members(import_mod_path, &file_nearest_module)
+            && !is_top_level_module_import(import_mod_path, &import_nearest_module)
+            && !import_matches_interface_members(import_mod_path, &import_nearest_module)
         {
             // In strict mode, import must be of the module itself or one of the
             // interface members (defined in __all__)
@@ -252,7 +252,6 @@ pub fn check(
             let Some(nearest_module) = module_tree.find_nearest(&mod_path) else {
                 continue;
             };
-
             let project_imports = match get_project_imports(
                 &source_roots,
                 abs_file_path,

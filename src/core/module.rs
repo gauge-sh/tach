@@ -13,7 +13,7 @@ use super::config::ModuleConfig;
 /// If 'is_end_of_path' is False, this node does not represent a real module,
 /// and must have 'config' None and 'full_path' as the empty string.
 ///
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct ModuleNode {
     is_end_of_path: bool,
     pub full_path: String,
@@ -67,6 +67,7 @@ fn split_module_path(path: &str) -> Vec<&str> {
 /// The core data structure for tach, representing the modules in a project
 /// with a tree structure for module path lookups.
 ///
+#[derive(Debug)]
 pub struct ModuleTree {
     root: Rc<ModuleNode>,
 }
@@ -125,24 +126,20 @@ impl ModuleTree {
 
     pub fn find_nearest(&self, path: &str) -> Option<Rc<ModuleNode>> {
         let mut node = Rc::clone(&self.root);
-        let mut nearest_parent = Rc::clone(&self.root);
+        let mut nearest_parent = None;
 
         for part in split_module_path(path) {
             if let Some(child) = node.children.get(part) {
                 node = Rc::clone(child);
                 if node.is_end_of_path {
-                    nearest_parent = Rc::clone(&node);
+                    nearest_parent = Some(Rc::clone(&node));
                 }
             } else {
                 break;
             }
         }
 
-        if nearest_parent.is_end_of_path {
-            Some(nearest_parent)
-        } else {
-            None
-        }
+        nearest_parent
     }
 
     pub fn iter(&self) -> ModuleTreeIterator {

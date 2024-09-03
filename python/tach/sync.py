@@ -67,7 +67,7 @@ def sync_dependency_constraints(
     )
     for error in check_result.errors:
         error_info = error.error_info
-        if error_info.is_dependency_error:
+        if error_info.is_dependency_error():
             source_path = error_info.source_module
             dep_path = error_info.invalid_module
             deprecated = (
