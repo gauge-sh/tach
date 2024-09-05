@@ -10,20 +10,18 @@ from typing import IO, TYPE_CHECKING, Any
 
 from tach import __version__, cache
 from tach import filesystem as fs
-from tach.check import BoundaryError, check
 from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.core import ProjectConfig
 from tach.errors import TachCircularDependencyError, TachError
 from tach.extension import (
+    check,
     check_computation_cache,
     create_computation_cache_key,
     update_computation_cache,
-    check as check_i,
 )
-from tach.filesystem import install_pre_commit
-from tach.filesystem.project import get_project_config_path
+from tach.filesystem import get_project_config_path, install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
@@ -37,6 +35,7 @@ from tach.utils.display import create_clickable_link
 
 if TYPE_CHECKING:
     from tach.core import UnusedDependencies
+    from tach.extension import BoundaryError
 
 
 def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
@@ -73,21 +72,9 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
     #     return error_template.format(message=error_info.exception_message)
     # elif not error_info.is_dependency_error:
     #     return error_template.format(message="Unexpected error")
-    if not error_info.is_dependency_error():
-        return error_template.format(message=error_info.to_pystring())
-
-    error_message = (
-        f"Cannot import '{error.import_mod_path}'. "
-        f"Module '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
-    )
-
-    warning_message = (
-        f"Import '{error.import_mod_path}' is deprecated. "
-        f"Module '{error_info.source_module}' should not depend on '{error_info.invalid_module}'."
-    )
-    if error_info.is_deprecated:
-        return warning_template.format(message=warning_message)
-    return error_template.format(message=error_message)
+    if error_info.is_deprecated():
+        return warning_template.format(message=error_info.to_pystring())
+    return error_template.format(message=error_info.to_pystring())
 
 
 def print_warnings(warning_list: list[str]) -> None:
@@ -517,9 +504,11 @@ def tach_check(
         #     exclude_paths=exclude_paths,
         # )
 
-        check_result = check_i(
+        check_result = check(
             project_root=str(project_root),
-            project_config_path=str(get_project_config_path()),
+            project_config_path=str(
+                get_project_config_path(project_root or Path.cwd())
+            ),
             exclude_paths=exclude_paths,
         )
         if check_result.warnings:

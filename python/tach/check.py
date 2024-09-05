@@ -31,7 +31,9 @@ class ErrorInfo:
     def is_dependency_error(self) -> bool:
         return all((self.source_module, self.invalid_module))
 
-    @property
+    def to_pystring(self) -> str:
+        return self.exception_message
+
     def is_deprecated(self) -> bool:
         return self.is_dependency_error and self.invalid_module in [
             dep.path for dep in self.deprecated_dependencies
@@ -246,7 +248,7 @@ def check(
                     line_number=project_import[1],
                     error_info=error_info,
                 )
-                if error_info.is_deprecated:
+                if error_info.is_deprecated():
                     boundary_warnings.append(boundary_error)
                 else:
                     boundary_errors.append(boundary_error)

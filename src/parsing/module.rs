@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::error::Error;
 use std::path::PathBuf;
 
 use crate::core::config::ModuleConfig;
@@ -80,7 +79,7 @@ pub fn build_module_tree(
     // Construct the ModuleTree
     let mut tree = ModuleTree::new();
     for module in modules {
-        let interface_members = parse_interface_members(&source_roots, &module.path)?;
+        let interface_members = parse_interface_members(source_roots, &module.path)?;
         let mod_path = module.mod_path();
         tree.insert(module, mod_path, interface_members);
     }

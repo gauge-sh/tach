@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import Literal
 
-from tach.check import CheckResult
-
 def get_project_imports(
     source_roots: list[str],
     file_path: str,
@@ -59,6 +57,22 @@ def check(
     project_config_path: str,
     exclude_paths: list[str],
 ) -> CheckResult: ...
+
+class ErrorInfo:
+    def is_dependency_error(self) -> bool: ...
+    def to_pystring(self) -> str: ...
+    def is_deprecated(self) -> bool: ...
+
+class BoundaryError:
+    file_path: Path
+    line_number: int
+    import_mod_path: str
+    error_info: ErrorInfo
+
+class CheckResult:
+    errors: list[BoundaryError]
+    deprecated_warnings: list[BoundaryError]
+    warnings: list[str]
 
 class DependencyConfig:
     path: str

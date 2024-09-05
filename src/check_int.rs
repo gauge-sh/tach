@@ -10,7 +10,7 @@ use thiserror::Error;
 
 use crate::{
     core::{
-        config::{parse_project_config, ProjectConfig},
+        config::parse_project_config,
         module::{ModuleNode, ModuleTree},
     },
     exclusion::{is_path_excluded, set_excluded_paths},
@@ -248,7 +248,7 @@ pub fn check(
             if is_path_excluded(&abs_file_path.display().to_string())? {
                 continue;
             }
-            let mod_path = fs::file_to_module_path(&source_roots, &abs_file_path)?;
+            let mod_path = fs::file_to_module_path(&source_roots, abs_file_path)?;
             let Some(nearest_module) = module_tree.find_nearest(&mod_path) else {
                 continue;
             };

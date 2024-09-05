@@ -17,7 +17,6 @@ use std::path::PathBuf;
 use cache::ComputationCacheValue;
 use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyString;
 
 impl From<imports::ImportParseError> for PyErr {
     fn from(err: imports::ImportParseError) -> Self {
