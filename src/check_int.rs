@@ -36,14 +36,16 @@ pub enum ImportCheckError {
     #[error("Could not find module configuration.")]
     ModuleConfigNotFound(),
 
-    #[error("Invalid import {invalid_module} from {source_module}.")]
+    #[error("Cannot import '{import_mod_path}'. Module '{source_module}' cannot depend on '{invalid_module}'.")]
     InvalidImport {
+        import_mod_path: String,
         source_module: String,
         invalid_module: String,
     },
 
-    #[error("Deprecated import {invalid_module} from {source_module}.")]
+    #[error("Import '{import_mod_path}' is deprecated. Module '{source_module}' should not depend on '{invalid_module}'.")]
     DeprecatedImport {
+        import_mod_path: String,
         source_module: String,
         invalid_module: String,
     },
@@ -165,6 +167,7 @@ fn check_import(
     if deprecated_dependencies.contains(import_nearest_module_path) {
         // Dependency exists but is deprecated
         return Err(ImportCheckError::DeprecatedImport {
+            import_mod_path: import_mod_path.to_string(),
             source_module: file_nearest_module_path.to_string(),
             invalid_module: import_nearest_module_path.to_string(),
         });
@@ -172,6 +175,7 @@ fn check_import(
 
     // This means the import is not declared as a dependency of the file
     Err(ImportCheckError::InvalidImport {
+        import_mod_path: import_mod_path.to_string(),
         source_module: file_nearest_module_path.to_string(),
         invalid_module: import_nearest_module_path.to_string(),
     })
