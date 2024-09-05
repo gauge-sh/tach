@@ -9,7 +9,7 @@ use crate::parsing::external::{normalize_package_name, parse_pyproject_toml};
 use crate::{filesystem, imports, parsing};
 
 #[derive(Error, Debug)]
-pub enum CheckError {
+pub enum ExternalCheckError {
     #[error("Parsing error: {0}")]
     Parse(#[from] parsing::error::ParsingError),
     #[error("Import parsing error: {0}")]
@@ -20,7 +20,7 @@ pub enum CheckError {
     Filesystem(#[from] filesystem::FileSystemError),
 }
 
-pub type Result<T> = std::result::Result<T, CheckError>;
+pub type Result<T> = std::result::Result<T, ExternalCheckError>;
 
 pub type ExternalCheckDiagnostics = HashMap<String, Vec<String>>;
 

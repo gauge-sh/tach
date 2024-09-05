@@ -1,6 +1,5 @@
 use std::{
     collections::HashSet,
-    error::Error,
     path::{Path, PathBuf},
     rc::Rc,
 };
@@ -10,14 +9,44 @@ use thiserror::Error;
 
 use crate::{
     core::{
-        config::parse_project_config,
+        config::ProjectConfig,
         module::{ModuleNode, ModuleTree},
     },
-    exclusion::{is_path_excluded, set_excluded_paths},
+    exclusion::{self, is_path_excluded, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
-    parsing::module::build_module_tree,
+    parsing::{self, module::build_module_tree},
 };
+
+#[derive(Error, Debug)]
+pub enum CheckError {
+    #[error("The path {0} is not a valid directory.")]
+    InvalidDirectory(String),
+    #[error("Filesystem error: {0}")]
+    Filesystem(#[from] fs::FileSystemError),
+    #[error("Module tree error: {0}")]
+    ModuleTree(#[from] parsing::error::ModuleTreeError),
+    #[error("Exclusion error: {0}")]
+    Exclusion(#[from] exclusion::PathExclusionError),
+}
+
+#[derive(Debug, Clone)]
+#[pyclass(get_all, module = "tach.extension")]
+
+pub struct BoundaryError {
+    pub file_path: PathBuf,
+    pub line_number: usize,
+    pub import_mod_path: String,
+    pub error_info: ImportCheckError,
+}
+
+#[derive(Debug)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct CheckDiagnostics {
+    pub errors: Vec<BoundaryError>,
+    pub deprecated_warnings: Vec<BoundaryError>,
+    pub warnings: Vec<String>,
+}
 
 #[derive(Error, Debug, Clone)]
 #[pyclass(module = "tach.extension")]
@@ -181,39 +210,19 @@ fn check_import(
     })
 }
 
-#[derive(Debug, Clone)]
-#[pyclass(get_all, module = "tach.extension")]
-
-pub struct BoundaryError {
-    pub file_path: PathBuf,
-    pub line_number: usize,
-    pub import_mod_path: String,
-    pub error_info: ImportCheckError,
-}
-
-#[derive(Debug)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct CheckDiagnostics {
-    pub errors: Vec<BoundaryError>,
-    pub deprecated_warnings: Vec<BoundaryError>,
-    pub warnings: Vec<String>,
-}
-
 pub fn check(
     project_root: String,
-    project_config_path: String,
+    project_config: ProjectConfig,
     exclude_paths: Vec<String>,
-) -> Result<CheckDiagnostics, Box<dyn Error>> {
+) -> Result<CheckDiagnostics, CheckError> {
     let project_root = Path::new(&project_root);
 
     let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     if !project_root.is_dir() {
-        eprintln!(
-            "The path {} is not a valid directory.",
-            project_root.display()
-        );
+        return Err(CheckError::InvalidDirectory(
+            project_root.display().to_string(),
+        ));
     }
-    let project_config = parse_project_config(project_config_path)?;
     let source_roots: Vec<PathBuf> = project_config
         .source_roots
         .into_iter()
@@ -263,18 +272,24 @@ pub fn check(
             ) {
                 Ok(v) => v,
                 Err(ImportParseError::Parsing { .. }) => {
-                    eprintln!("Skipping '{}' due to a syntax error.", file_path.display());
+                    warnings.push(format!(
+                        "Skipping '{}' due to a syntax error.",
+                        file_path.display()
+                    ));
                     continue;
                 }
                 Err(ImportParseError::Filesystem(_)) => {
-                    eprintln!("Skipping '{}' due to an I/O error.", file_path.display());
+                    warnings.push(format!(
+                        "Skipping '{}' due to an I/O error.",
+                        file_path.display()
+                    ));
                     continue;
                 }
                 Err(ImportParseError::Exclusion(_)) => {
-                    eprintln!(
-                        "Skipping '{}'. Filed to check if the path is excluded.",
-                        file_path.display()
-                    );
+                    warnings.push(format!(
+                        "Skipping '{}'. Failed to check if the path is excluded.",
+                        file_path.display(),
+                    ));
                     continue;
                 }
             };

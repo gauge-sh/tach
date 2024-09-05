@@ -14,6 +14,8 @@ pub enum ParsingError {
     Filesystem(#[from] FileSystemError),
     #[error("TOML parsing error: {0}")]
     TomlParse(#[from] toml::de::Error),
+    #[error("TOML serializing error: {0}")]
+    TomlSerialize(#[from] toml::ser::Error),
     #[error("Missing field in TOML: {0}")]
     MissingField(String),
 }

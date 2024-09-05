@@ -146,7 +146,10 @@ pub fn module_to_file_path<P: AsRef<Path>>(
     None
 }
 
-fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Option<PathBuf> {
+pub fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(
+    roots: &[P],
+    mod_path: &str,
+) -> Option<PathBuf> {
     if mod_path.is_empty() {
         return None;
     }
@@ -249,7 +252,7 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
         })
 }
 
-// Returns a tuple of (valid, invalid) modules
+/// Returns a tuple of (valid, invalid) modules
 pub fn validate_project_modules(
     source_roots: &[PathBuf],
     modules: Vec<ModuleConfig>,

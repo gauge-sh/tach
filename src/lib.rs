@@ -10,7 +10,9 @@ pub mod imports;
 pub mod parsing;
 pub mod pattern;
 pub mod reports;
+pub mod sync;
 
+use core::config::ProjectConfig;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -50,9 +52,15 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
-impl From<check_ext::CheckError> for PyErr {
-    fn from(err: check_ext::CheckError) -> Self {
+impl From<check_ext::ExternalCheckError> for PyErr {
+    fn from(err: check_ext::ExternalCheckError) -> Self {
         PyOSError::new_err(err.to_string())
+    }
+}
+
+impl From<check_int::CheckError> for PyErr {
+    fn from(err: check_int::CheckError) -> Self {
+        PyValueError::new_err(err.to_string())
     }
 }
 
@@ -63,6 +71,7 @@ impl From<parsing::ParsingError> for PyErr {
             parsing::ParsingError::Io(err) => PyOSError::new_err(err.to_string()),
             parsing::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
             parsing::ParsingError::TomlParse(err) => PyValueError::new_err(err.to_string()),
+            parsing::ParsingError::TomlSerialize(err) => PyValueError::new_err(err.to_string()),
             parsing::ParsingError::MissingField(err) => PyValueError::new_err(err),
         }
     }
@@ -240,18 +249,17 @@ fn parse_interface_members(
     source_roots: Vec<PathBuf>,
     path: String,
 ) -> parsing::Result<Vec<String>> {
-    // let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     parsing::py_ast::parse_interface_members(&source_roots, &path)
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config_path, exclude_paths))]
+#[pyo3(signature = (project_root, project_config, exclude_paths))]
 fn check(
     project_root: String,
-    project_config_path: String,
+    project_config: ProjectConfig,
     exclude_paths: Vec<String>,
-) -> check_int::CheckDiagnostics {
-    check_int::check(project_root, project_config_path, exclude_paths).unwrap()
+) -> PyResult<check_int::CheckDiagnostics> {
+    check_int::check(project_root, project_config, exclude_paths).map_err(Into::into)
 }
 
 #[pymodule]
