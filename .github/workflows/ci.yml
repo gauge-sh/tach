@@ -50,6 +50,9 @@ jobs:
       run: |
         ruff check
         ruff format --check
+    - name: Test with cargo
+      run: |
+        cargo test --no-default-features
     - name: Test with pytest and report coverage
       run: |
         coverage run --branch --source=python -m pytest

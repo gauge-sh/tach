@@ -11,6 +11,7 @@ pub mod parsing;
 pub mod pattern;
 pub mod reports;
 pub mod sync;
+pub mod tests;
 
 use core::config::ProjectConfig;
 use std::collections::HashMap;

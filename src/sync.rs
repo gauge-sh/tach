@@ -29,7 +29,7 @@ pub fn sync_dependency_constraints(
     let mut new_project_config = None;
 
     if prune {
-        let mut existing_modules: Vec<ModuleConfig> = Vec::new();
+        let mut new_modules: Vec<ModuleConfig> = Vec::new();
 
         let source_roots: Vec<PathBuf> = project_config
             .source_roots
@@ -39,11 +39,10 @@ pub fn sync_dependency_constraints(
 
         for module in project_config.modules.iter() {
             // Filter out modules that are not found in the source roots
-            let module_path = fs::module_to_pyfile_or_dir_path(&source_roots, &module.path);
-
-            if module_path.is_some() {
-                existing_modules.push(module.clone());
-            }
+            match fs::module_to_pyfile_or_dir_path(&source_roots, &module.path) {
+                Some(_) => new_modules.push(ModuleConfig::new(&module.path, module.strict)),
+                None => new_modules.push(module.clone()),
+            };
 
             // Track deprecations for each module
             for dependency in module.depends_on.iter() {
@@ -55,16 +54,6 @@ pub fn sync_dependency_constraints(
                 }
             }
         }
-
-        // Create a new configuration with the updated module list
-        let new_modules: Vec<ModuleConfig> = existing_modules
-            .into_iter()
-            .map(|mut module| {
-                module.depends_on.clear(); // Clear dependencies for pruning
-                module
-            })
-            .collect();
-
         new_project_config = Some(project_config.with_modules(new_modules));
     }
     let mut new_project_config = new_project_config.unwrap_or(project_config);

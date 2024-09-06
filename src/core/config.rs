@@ -22,22 +22,22 @@ pub struct DependencyConfig {
 }
 
 impl DependencyConfig {
-    pub fn from_deprecated_path(path: String) -> Self {
+    pub fn from_deprecated_path(path: impl Into<String>) -> Self {
         Self {
-            path,
+            path: path.into(),
             deprecated: true,
         }
     }
-    pub fn from_undeprecated_path(path: String) -> Self {
+    pub fn from_undeprecated_path(path: impl Into<String>) -> Self {
         Self {
-            path,
+            path: path.into(),
             deprecated: false,
         }
     }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
-#[pyclass(get_all, module = "tach.extension")]
+#[pyclass(get_all, eq, module = "tach.extension")]
 pub struct ModuleConfig {
     pub path: String,
     #[serde(default)]
@@ -68,7 +68,7 @@ impl ModuleConfig {
     }
 }
 
-#[derive(Serialize, Default, Deserialize, Clone)]
+#[derive(Debug, Serialize, Default, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum CacheBackend {
     #[default]
@@ -83,7 +83,7 @@ impl IntoPy<PyObject> for CacheBackend {
     }
 }
 
-#[derive(Serialize, Default, Deserialize, Clone)]
+#[derive(Debug, Serialize, Default, Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct CacheConfig {
     #[serde(default)]
@@ -94,7 +94,7 @@ pub struct CacheConfig {
     pub env_dependencies: Vec<String>,
 }
 
-#[derive(Serialize, Default, Deserialize, Clone)]
+#[derive(Debug, Serialize, Default, Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ExternalDependencyConfig {
     #[serde(default)]
@@ -112,7 +112,7 @@ pub struct UnusedDependencies {
     pub dependencies: Vec<DependencyConfig>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
     #[serde(default)]
@@ -155,6 +155,9 @@ impl ProjectConfig {
 
 #[pymethods]
 impl ProjectConfig {
+    fn __str__(&self) -> String {
+        format!("{:#?}", self)
+    }
     pub fn model_dump_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
     }

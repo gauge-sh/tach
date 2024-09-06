@@ -138,8 +138,8 @@ fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool
 
 fn check_import(
     module_tree: &ModuleTree,
-    import_mod_path: &str,
     file_mod_path: &str,
+    import_mod_path: &str,
     file_nearest_module: Option<Rc<ModuleNode>>,
 ) -> Result<(), ImportCheckError> {
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
@@ -314,8 +314,8 @@ pub fn check(
                 found_at_least_one_project_import = true;
                 let Err(error_info) = check_import(
                     &module_tree,
-                    &import.module_path,
                     &mod_path,
+                    &import.module_path,
                     Some(Rc::clone(&nearest_module)),
                 ) else {
                     continue;
@@ -347,4 +347,47 @@ pub fn check(
         deprecated_warnings: boundary_warnings,
         warnings,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::module::ModuleTree;
+    use crate::tests::fixtures::module_tree;
+
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("domain_one", "domain_one", true)]
+    #[case("domain_one", "domain_one.core", true)]
+    #[case("domain_one", "domain_three", true)]
+    #[case("domain_two", "domain_one", true)]
+    #[case("domain_two", "domain_one.public_fn", true)]
+    #[case("domain_two.subdomain", "domain_one", true)]
+    #[case("domain_two", "external", true)]
+    #[case("external", "external", true)]
+    #[case("domain_two", "domain_one.private_fn", false)]
+    #[case("domain_three", "domain_one", false)]
+    #[case("domain_two", "domain_one.core", false)]
+    #[case("domain_two.subdomain", "domain_one.core", false)]
+    #[case("domain_two", "domain_three", false)]
+    #[case("domain_two", "domain_two.subdomain", false)]
+    #[case("external", "domain_three", false)]
+    fn test_check_import(
+        module_tree: ModuleTree,
+        #[case] file_mod_path: &str,
+        #[case] import_mod_path: &str,
+        #[case] expected_result: bool,
+    ) {
+        let check_error = check_import(&module_tree, file_mod_path, import_mod_path, None);
+        let result = check_error.is_ok();
+        assert_eq!(result, expected_result);
+    }
+
+    #[rstest]
+    fn test_check_deprecated_import(module_tree: ModuleTree) {
+        let check_error = check_import(&module_tree, "domain_one", "domain_one.subdomain", None);
+        assert!(check_error.is_err());
+        assert!(check_error.unwrap_err().is_deprecated());
+    }
 }

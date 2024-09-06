@@ -15,11 +15,11 @@ use super::config::ModuleConfig;
 ///
 #[derive(PartialEq, Debug)]
 pub struct ModuleNode {
-    is_end_of_path: bool,
+    pub is_end_of_path: bool,
     pub full_path: String,
     pub config: Option<ModuleConfig>,
     pub interface_members: Vec<String>,
-    children: HashMap<String, Rc<ModuleNode>>,
+    pub children: HashMap<String, Rc<ModuleNode>>,
 }
 
 impl ModuleNode {
@@ -69,7 +69,7 @@ fn split_module_path(path: &str) -> Vec<&str> {
 ///
 #[derive(Debug)]
 pub struct ModuleTree {
-    root: Rc<ModuleNode>,
+    pub root: Rc<ModuleNode>,
 }
 
 impl Default for ModuleTree {
