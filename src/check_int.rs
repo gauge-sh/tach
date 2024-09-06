@@ -89,6 +89,22 @@ impl ImportCheckError {
         )
     }
 
+    pub fn source_path(&self) -> Option<&String> {
+        match self {
+            Self::InvalidImport { source_module, .. } => Some(source_module),
+            Self::DeprecatedImport { source_module, .. } => Some(source_module),
+            _ => None,
+        }
+    }
+
+    pub fn invalid_path(&self) -> Option<&String> {
+        match self {
+            Self::InvalidImport { invalid_module, .. } => Some(invalid_module),
+            Self::DeprecatedImport { invalid_module, .. } => Some(invalid_module),
+            _ => None,
+        }
+    }
+
     pub fn is_deprecated(&self) -> bool {
         matches!(self, Self::DeprecatedImport { .. })
     }
@@ -211,8 +227,8 @@ fn check_import(
 }
 
 pub fn check(
-    project_root: String,
-    project_config: ProjectConfig,
+    project_root: PathBuf,
+    project_config: &ProjectConfig,
     exclude_paths: Vec<String>,
 ) -> Result<CheckDiagnostics, CheckError> {
     let project_root = Path::new(&project_root);
@@ -225,11 +241,11 @@ pub fn check(
     }
     let source_roots: Vec<PathBuf> = project_config
         .source_roots
-        .into_iter()
+        .iter()
         .map(|r| project_root.join(r))
         .collect();
     let (valid_modules, invalid_modules) =
-        fs::validate_project_modules(&source_roots, project_config.modules);
+        fs::validate_project_modules(&source_roots, project_config.modules.clone());
 
     let mut found_at_least_one_project_import = false;
     let mut boundary_errors = Vec::new();

@@ -7,15 +7,15 @@ from typing import TYPE_CHECKING
 from tach import errors
 from tach import filesystem as fs
 from tach.colors import BCOLORS
+from tach.extension import dump_project_config_to_toml
 from tach.filesystem import build_project_config_path
 from tach.interactive import (
     InteractiveModuleConfiguration,
     get_selected_modules_interactive,
 )
-from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
-    from tach.core import ProjectConfig
+    from tach.extension import ProjectConfig
 
 
 def update_modules(

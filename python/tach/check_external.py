@@ -9,7 +9,7 @@ from tach.utils.external import get_module_mappings, is_stdlib_module
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tach.core.config import ProjectConfig
+    from tach.extension import ProjectConfig
 
 
 @dataclass

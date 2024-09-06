@@ -13,29 +13,26 @@ from tach import filesystem as fs
 from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
-from tach.core import ProjectConfig
 from tach.errors import TachCircularDependencyError, TachError
 from tach.extension import (
+    ProjectConfig,
     check,
     check_computation_cache,
     create_computation_cache_key,
+    sync_dependency_constraints,
     update_computation_cache,
 )
-from tach.filesystem import get_project_config_path, install_pre_commit
+from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import generate_module_graph_dot_file, generate_show_url
-from tach.sync import (
-    sync_dependency_constraints,
-    sync_project,
-)
+from tach.sync import sync_project
 from tach.test import run_affected_tests
 from tach.utils.display import create_clickable_link
 
 if TYPE_CHECKING:
-    from tach.core import UnusedDependencies
-    from tach.extension import BoundaryError
+    from tach.extension import BoundaryError, UnusedDependencies
 
 
 def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
@@ -91,7 +88,7 @@ def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> N
             build_error_message(error, source_roots=source_roots),
             file=sys.stderr,
         )
-    if not all(error.error_info.is_deprecated for error in sorted_results):
+    if not all(error.error_info.is_deprecated() for error in sorted_results):
         print(
             f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
             f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
@@ -498,19 +495,12 @@ def tach_check(
             exclude_paths, project_config.exclude, project_config.use_regex_matching
         )
 
-        # check_result = check(
-        #     project_root=project_root,
-        #     project_config=project_config,
-        #     exclude_paths=exclude_paths,
-        # )
-
         check_result = check(
-            project_root=str(project_root),
-            project_config_path=str(
-                get_project_config_path(project_root or Path.cwd())
-            ),
+            project_root=project_root,
+            project_config=project_config,
             exclude_paths=exclude_paths,
         )
+
         if check_result.warnings:
             print_warnings(check_result.warnings)
 
@@ -538,6 +528,7 @@ def tach_check(
                 project_root=project_root,
                 project_config=project_config,
                 exclude_paths=exclude_paths,
+                prune=True,
             )
             unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:

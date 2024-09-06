@@ -46,16 +46,19 @@ pub struct ModuleConfig {
     pub strict: bool,
 }
 
+#[pymethods]
 impl ModuleConfig {
-    pub fn new(path: &str) -> Self {
+    #[new]
+    pub fn new(path: &str, strict: bool) -> Self {
         Self {
             path: path.to_string(),
             depends_on: vec![],
-            strict: false,
+            strict,
         }
     }
+    #[staticmethod]
     pub fn new_root_config() -> Self {
-        Self::new(ROOT_MODULE_SENTINEL_TAG)
+        Self::new(ROOT_MODULE_SENTINEL_TAG, false)
     }
     pub fn mod_path(&self) -> String {
         if self.path == ROOT_MODULE_SENTINEL_TAG {
@@ -135,6 +138,34 @@ pub struct ProjectConfig {
 }
 
 impl ProjectConfig {
+    pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
+        Self {
+            modules,
+            ..self.clone()
+        }
+    }
+
+    fn dependencies_for_module(&self, module: &str) -> Option<&Vec<DependencyConfig>> {
+        self.modules
+            .iter()
+            .find(|mod_config| mod_config.path == module)
+            .map(|mod_config| &mod_config.depends_on)
+    }
+}
+
+#[pymethods]
+impl ProjectConfig {
+    pub fn model_dump_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+
+    pub fn module_paths(&self) -> Vec<String> {
+        self.modules
+            .iter()
+            .map(|module| module.path.clone())
+            .collect()
+    }
+
     pub fn set_modules(&mut self, module_paths: Vec<String>) {
         let new_module_paths: HashSet<String> = module_paths.into_iter().collect();
         let mut new_modules: Vec<ModuleConfig> = Vec::new();
@@ -182,13 +213,6 @@ impl ProjectConfig {
                 ..Default::default()
             });
         }
-    }
-
-    pub fn dependencies_for_module(&self, module: &str) -> Option<&Vec<DependencyConfig>> {
-        self.modules
-            .iter()
-            .find(|mod_config| mod_config.path == module)
-            .map(|mod_config| &mod_config.depends_on)
     }
 
     pub fn compare_dependencies(&self, other_config: &ProjectConfig) -> Vec<UnusedDependencies> {
@@ -239,7 +263,7 @@ impl ProjectConfig {
     }
 }
 
-pub fn dump_project_config_to_toml(config: &mut ProjectConfig) -> parsing::error::Result<String> {
+pub fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String, toml::ser::Error> {
     config.modules.sort_by(|a, b| {
         if a.path == ROOT_MODULE_SENTINEL_TAG {
             Ordering::Less
@@ -257,7 +281,7 @@ pub fn dump_project_config_to_toml(config: &mut ProjectConfig) -> parsing::error
     config.exclude.sort();
     config.source_roots.sort();
 
-    toml::to_string_pretty(&config).map_err(parsing::error::ParsingError::TomlSerialize)
+    toml::to_string(&config)
 }
 
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> parsing::error::Result<ProjectConfig> {

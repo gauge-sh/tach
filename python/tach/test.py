@@ -9,11 +9,12 @@ from tach.errors import TachError, TachSetupError
 from tach.extension import get_project_imports
 from tach.filesystem.git_ops import get_changed_files
 from tach.parsing import build_module_tree
+from tach.extension import ModuleConfig, ProjectConfig
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from tach.core import ModuleConfig, ModuleTree, ProjectConfig
+    from tach.core import ModuleTree
 
 
 def build_module_consumer_map(modules: list[ModuleConfig]) -> dict[str, list[str]]:
@@ -21,9 +22,9 @@ def build_module_consumer_map(modules: list[ModuleConfig]) -> dict[str, list[str
     for module in modules:
         for dependency in module.depends_on:
             if dependency.path in consumer_map:
-                consumer_map[dependency.path].append(module.mod_path)
+                consumer_map[dependency.path].append(module.mod_path())
             else:
-                consumer_map[dependency.path] = [module.mod_path]
+                consumer_map[dependency.path] = [module.mod_path()]
     return consumer_map
 
 

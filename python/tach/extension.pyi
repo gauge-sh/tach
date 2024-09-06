@@ -50,13 +50,26 @@ def check_computation_cache(
 def update_computation_cache(
     project_root: str, cache_key: str, value: tuple[list[tuple[int, str]], int]
 ) -> None: ...
-def parse_project_config(filepath: str) -> ProjectConfig: ...
+def parse_project_config(filepath: Path) -> ProjectConfig: ...
 def parse_interface_members(source_roots: list[Path], path: str) -> list[str]: ...
+def dump_project_config_to_toml(project_config: ProjectConfig) -> str: ...
 def check(
-    project_root: str,
-    project_config_path: str,
+    project_root: Path,
+    project_config: ProjectConfig,
     exclude_paths: list[str],
 ) -> CheckResult: ...
+def sync_dependency_constraints(
+    project_root: Path,
+    project_config: ProjectConfig,
+    exclude_paths: list[str],
+    prune: bool,
+) -> ProjectConfig: ...
+def sync_project(
+    project_root: Path,
+    project_config: ProjectConfig,
+    exclude_paths: list[str],
+    add: bool = False,
+) -> str: ...
 
 class ErrorInfo:
     def is_dependency_error(self) -> bool: ...
@@ -83,6 +96,11 @@ class ModuleConfig:
     depends_on: list[DependencyConfig]
     strict: bool
 
+    @staticmethod
+    def new_root_config() -> ModuleConfig: ...
+    def __new__(cls, strict: bool) -> ModuleConfig: ...
+    def mod_path(self) -> str: ...
+
 CacheBackend = Literal["disk"]
 
 class CacheConfig:
@@ -93,14 +111,30 @@ class CacheConfig:
 class ExternalDependencyConfig:
     exclude: list[str]
 
+class UnusedDependencies:
+    path: str
+    dependencies: list[DependencyConfig]
+
 class ProjectConfig:
     modules: list[ModuleConfig]
     cache: CacheConfig
     external: ExternalDependencyConfig
     exclude: list[str]
-    source_roots: list[str]
+    source_roots: list[Path]
     exact: bool
     disable_logging: bool
     ignore_type_checking_imports: bool
     forbid_circular_dependencies: bool
     use_regex_matching: bool
+
+    def module_paths(self) -> list[str]: ...
+    def model_dump_json(self) -> str: ...
+    def set_modules(self, module_paths: list[str]) -> None: ...
+    def dependencies_for_module(self, module: str) -> list[DependencyConfig]: ...
+    def add_dependency_to_module(
+        self, module: str, dependency: DependencyConfig
+    ) -> None: ...
+    def compare_dependencies(
+        self, other_config: ProjectConfig
+    ) -> list[UnusedDependencies]: ...
+    def dump_project_config_to_toml(self, project_config: ProjectConfig) -> str: ...
