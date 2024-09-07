@@ -71,3 +71,72 @@ pub fn check_external_dependencies(
 
     Ok(diagnostics)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::core::config::ProjectConfig;
+    use crate::tests::fixtures::example_dir;
+
+    use super::*;
+    use rstest::*;
+
+    #[fixture]
+    fn project_config() -> ProjectConfig {
+        ProjectConfig {
+            source_roots: vec![
+                "src/pack-a/src",
+                "src/pack-b/src",
+                "src/pack-c/src",
+                "src/pack-d/src",
+                "src/pack-e/src",
+                "src/pack-f/src",
+                "src/pack-g/src",
+            ]
+            .iter()
+            .map(|s| PathBuf::from(s))
+            .collect(),
+            ignore_type_checking_imports: true,
+            ..Default::default()
+        }
+    }
+
+    #[fixture]
+    fn module_mapping() -> HashMap<String, Vec<String>> {
+        HashMap::from([("git".to_string(), vec!["gitpython".to_string()])])
+    }
+
+    #[rstest]
+    fn check_external_dependencies_multi_package_example(
+        example_dir: PathBuf,
+        project_config: ProjectConfig,
+        module_mapping: HashMap<String, Vec<String>>,
+    ) {
+        let project_root = example_dir.join("multi_package");
+        let result = check_external_dependencies(
+            &project_root,
+            &project_config.source_roots,
+            &module_mapping,
+            project_config.ignore_type_checking_imports,
+        );
+        assert!(result.is_ok_and(|r| r.is_empty()));
+    }
+
+    #[rstest]
+    fn check_external_dependencies_invalid_multi_package_example(
+        example_dir: PathBuf,
+        project_config: ProjectConfig,
+    ) {
+        let project_root = example_dir.join("multi_package");
+        let result = check_external_dependencies(
+            &project_root,
+            &project_config.source_roots,
+            &HashMap::new(),
+            project_config.ignore_type_checking_imports,
+        );
+        let expected_failure_path = "src/pack-a/src/myorg/pack_a/__init__.py";
+        assert!(result.is_ok());
+        let r = result.unwrap();
+        assert!(r.keys().collect::<Vec<_>>() == vec![expected_failure_path]);
+        assert!(r[expected_failure_path] == vec!["git"]);
+    }
+}

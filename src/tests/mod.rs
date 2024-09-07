@@ -9,6 +9,11 @@ pub mod fixtures {
     use rstest::fixture;
 
     #[fixture]
+    pub fn example_dir() -> std::path::PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("python/tests/example")
+    }
+
+    #[fixture]
     pub fn module_tree() -> ModuleTree {
         ModuleTree {
             root: Rc::new(ModuleNode {

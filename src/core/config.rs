@@ -137,11 +137,36 @@ pub struct ProjectConfig {
     pub use_regex_matching: bool,
 }
 
+impl Default for ProjectConfig {
+    fn default() -> Self {
+        Self {
+            modules: Default::default(),
+            cache: Default::default(),
+            external: Default::default(),
+            exclude: Default::default(),
+            source_roots: default_source_roots(),
+            exact: Default::default(),
+            disable_logging: Default::default(),
+            ignore_type_checking_imports: default_true(),
+            forbid_circular_dependencies: Default::default(),
+            use_regex_matching: default_true(),
+        }
+    }
+}
+
 impl ProjectConfig {
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
-            ..self.clone()
+            cache: self.cache.clone(),
+            external: self.external.clone(),
+            exclude: self.exclude.clone(),
+            source_roots: self.source_roots.clone(),
+            exact: self.exact,
+            disable_logging: self.disable_logging,
+            ignore_type_checking_imports: self.ignore_type_checking_imports,
+            forbid_circular_dependencies: self.forbid_circular_dependencies,
+            use_regex_matching: self.forbid_circular_dependencies,
         }
     }
 
@@ -155,6 +180,11 @@ impl ProjectConfig {
 
 #[pymethods]
 impl ProjectConfig {
+    #[new]
+    fn new() -> Self {
+        ProjectConfig::default()
+    }
+
     fn __str__(&self) -> String {
         format!("{:#?}", self)
     }
