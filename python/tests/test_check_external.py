@@ -41,8 +41,11 @@ def test_check_external_dependencies_multi_package_example(
         module_mappings=module_mapping,
         ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
-    # Assert no undeclared dependencies
-    assert not result
+    undeclared_deps = result[0]
+    assert not undeclared_deps
+
+    unused_dependency_root = Path("src", "pack-a", "pyproject.toml")
+    assert "unused" in result[1][str(unused_dependency_root)]
 
 
 def test_check_external_dependencies_invalid_multi_package_example(
@@ -55,8 +58,9 @@ def test_check_external_dependencies_invalid_multi_package_example(
         module_mappings={},
         ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
+    undeclared_deps = result[0]
     expected_failure_path = Path(
         "src", "pack-a", "src", "myorg", "pack_a", "__init__.py"
     )
-    assert set(result.keys()) == {str(expected_failure_path)}
-    assert set(result[str(expected_failure_path)]) == {"git"}
+    assert set(undeclared_deps.keys()) == {str(expected_failure_path)}
+    assert set(undeclared_deps[str(expected_failure_path)]) == {"git"}
