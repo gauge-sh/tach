@@ -12,12 +12,21 @@ use crate::parsing;
 fn default_true() -> bool {
     true
 }
+fn default_source_roots() -> Vec<PathBuf> {
+    vec![PathBuf::from(".")]
+}
+fn is_true(value: &bool) -> bool {
+    *value
+}
+fn is_false(value: &bool) -> bool {
+    !*value
+}
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct DependencyConfig {
     pub path: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub deprecated: bool,
 }
 
@@ -42,7 +51,7 @@ pub struct ModuleConfig {
     pub path: String,
     #[serde(default)]
     pub depends_on: Vec<DependencyConfig>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub strict: bool,
 }
 
@@ -68,11 +77,17 @@ impl ModuleConfig {
     }
 }
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone)]
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum CacheBackend {
     #[default]
     Disk,
+}
+
+impl CacheBackend {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 impl IntoPy<PyObject> for CacheBackend {
@@ -83,26 +98,34 @@ impl IntoPy<PyObject> for CacheBackend {
     }
 }
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone)]
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct CacheConfig {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "CacheBackend::is_default")]
     pub backend: CacheBackend,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub file_dependencies: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub env_dependencies: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone)]
+impl CacheConfig {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ExternalDependencyConfig {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exclude: Vec<String>,
 }
 
-fn default_source_roots() -> Vec<PathBuf> {
-    vec![PathBuf::from(".")]
+impl ExternalDependencyConfig {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 #[derive(Default, Clone)]
@@ -117,23 +140,23 @@ pub struct UnusedDependencies {
 pub struct ProjectConfig {
     #[serde(default)]
     pub modules: Vec<ModuleConfig>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "CacheConfig::is_default")]
     pub cache: CacheConfig,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "ExternalDependencyConfig::is_default")]
     pub external: ExternalDependencyConfig,
     #[serde(default)]
     pub exclude: Vec<String>,
     #[serde(default = "default_source_roots")]
     pub source_roots: Vec<PathBuf>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub exact: bool,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub disable_logging: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub ignore_type_checking_imports: bool,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub forbid_circular_dependencies: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub use_regex_matching: bool,
 }
 
@@ -166,7 +189,7 @@ impl ProjectConfig {
             disable_logging: self.disable_logging,
             ignore_type_checking_imports: self.ignore_type_checking_imports,
             forbid_circular_dependencies: self.forbid_circular_dependencies,
-            use_regex_matching: self.forbid_circular_dependencies,
+            use_regex_matching: self.use_regex_matching,
         }
     }
 

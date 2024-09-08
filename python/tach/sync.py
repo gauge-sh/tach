@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import tomli
+import tomli_w
+
 
 from tach import errors
 from tach import filesystem as fs
@@ -34,6 +37,8 @@ def sync_project(
         exclude_paths=exclude_paths,
         add=add,
     )
+    # Format the content, TODO: should'nt be handled here
+    config_toml_content = tomli_w.dumps(tomli.loads(config_toml_content))
     fs.write_file(str(config_path), config_toml_content)
 
 

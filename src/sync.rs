@@ -49,7 +49,7 @@ pub fn sync_dependency_constraints(
                 if dependency.deprecated {
                     deprecation_map
                         .entry(module.path.clone())
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(dependency.path.clone());
                 }
             }
@@ -72,14 +72,14 @@ pub fn sync_dependency_constraints(
 
             let deprecated = deprecation_map
                 .get(source_path)
-                .map_or(false, |deps| deps.contains(&dep_path));
+                .map_or(false, |deps| deps.contains(dep_path));
 
             let dependency = DependencyConfig {
                 path: dep_path.clone(),
                 deprecated,
             };
 
-            new_project_config.add_dependency_to_module(&source_path, dependency);
+            new_project_config.add_dependency_to_module(source_path, dependency);
         }
     }
 

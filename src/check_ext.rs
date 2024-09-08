@@ -83,7 +83,7 @@ mod tests {
     #[fixture]
     fn project_config() -> ProjectConfig {
         ProjectConfig {
-            source_roots: vec![
+            source_roots: [
                 "src/pack-a/src",
                 "src/pack-b/src",
                 "src/pack-c/src",
@@ -93,7 +93,7 @@ mod tests {
                 "src/pack-g/src",
             ]
             .iter()
-            .map(|s| PathBuf::from(s))
+            .map(PathBuf::from)
             .collect(),
             ignore_type_checking_imports: true,
             ..Default::default()
@@ -136,7 +136,7 @@ mod tests {
         let expected_failure_path = "src/pack-a/src/myorg/pack_a/__init__.py";
         assert!(result.is_ok());
         let r = result.unwrap();
-        assert!(r.keys().collect::<Vec<_>>() == vec![expected_failure_path]);
-        assert!(r[expected_failure_path] == vec!["git"]);
+        assert_eq!(r.keys().collect::<Vec<_>>(), vec![expected_failure_path]);
+        assert_eq!(r[expected_failure_path], vec!["git"]);
     }
 }
