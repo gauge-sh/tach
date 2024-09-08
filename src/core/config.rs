@@ -133,6 +133,7 @@ pub struct UnusedDependencies {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
     #[serde(default)]

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
 
 from tach.parsing import parse_project_config
 
 
 def test_invalid_project_config(example_dir):
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValueError):
         parse_project_config(example_dir / "invalid")
 
 

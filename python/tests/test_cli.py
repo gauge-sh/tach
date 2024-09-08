@@ -14,6 +14,12 @@ from tach.extension import ProjectConfig
 class ErrorInfo:
     exception_message: str
 
+    def is_deprecated(self) -> bool:
+        return False
+
+    def to_pystring(self) -> str:
+        return self.exception_message
+
 
 @dataclass
 class BoundaryError:
