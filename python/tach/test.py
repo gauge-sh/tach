@@ -6,10 +6,9 @@ from typing import TYPE_CHECKING, Any
 
 from tach import filesystem as fs
 from tach.errors import TachError, TachSetupError
-from tach.extension import get_project_imports
+from tach.extension import ModuleConfig, ProjectConfig, get_project_imports
 from tach.filesystem.git_ops import get_changed_files
 from tach.parsing import build_module_tree
-from tach.extension import ModuleConfig, ProjectConfig
 
 if TYPE_CHECKING:
     from pathlib import Path

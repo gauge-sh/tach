@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 
 from tach.cli import tach_check
-from tach.filesystem import validate_project_modules
 from tach.extension import ModuleConfig
+from tach.filesystem import validate_project_modules
 
 
 @pytest.mark.parametrize(

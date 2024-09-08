@@ -33,7 +33,13 @@ pub fn sync_dependency_constraints(
         let source_roots: Vec<PathBuf> = project_config
             .source_roots
             .iter()
-            .map(|r| project_root.join(r))
+            .map(|r| {
+                if r.display().to_string() == "." {
+                    project_root.clone()
+                } else {
+                    project_root.join(r)
+                }
+            })
             .collect();
 
         for module in project_config.modules.iter() {

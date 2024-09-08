@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
-from tach.core.config import Dependency, ModuleConfig, ProjectConfig, RootModuleConfig
 from tach.core.modules import ModuleNode, ModuleTree
+from tach.extension import ModuleConfig, ProjectConfig
 from tach.test import get_affected_modules, get_changed_module_paths
 
+if TYPE_CHECKING:
+    from tach.extension import DependencyConfig as Dependency  # noqa
 # Module-related data in fixtures was auto-generated from the 'tach' codebase
 # June 28, 2024
 
@@ -160,7 +163,7 @@ def module_tree() -> ModuleTree:
         root=ModuleNode(
             is_end_of_path=True,
             full_path=".",
-            config=RootModuleConfig(path="<root>", depends_on=[], strict=False),
+            config=ModuleConfig.new_root_config(),
             interface_members=[],
             children={
                 "tach": ModuleNode(

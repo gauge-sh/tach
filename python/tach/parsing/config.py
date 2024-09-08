@@ -3,27 +3,27 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import tomli
+import tomli_w
+
 from tach import filesystem as fs
-from tach.extension import parse_project_config as ext_parse_project_config
+from tach.extension import (
+    dump_project_config_to_toml as ext_dump_project_config_to_toml,
+)
+from tach.extension import (
+    parse_project_config as ext_parse_project_config,
+)
 
 if TYPE_CHECKING:
     from tach.extension import ProjectConfig
 
-# def dump_project_config_to_toml(config: ProjectConfig) -> str:
-#     config.modules.sort(
-#         key=lambda mod: (mod.path == ROOT_MODULE_SENTINEL_TAG, mod.path)
-#     )
-#     for mod in config.modules:
-#         mod.depends_on.sort(key=lambda dep: dep.path)
 
-#     config.exclude.sort()
-#     config.source_roots.sort()
-
-#     return tomli_w.dumps(
-#         config.model_dump(exclude_unset=True),
-#     )
+def dump_project_config_to_toml(config: ProjectConfig) -> str:
+    data = tomli.loads(ext_dump_project_config_to_toml(config))
+    return tomli_w.dumps(data)
 
 
+# TODO:
 # def migrate_deprecated_config(filepath: Path) -> ProjectConfig:
 #     import yaml
 
@@ -61,57 +61,14 @@ if TYPE_CHECKING:
 def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
     root = root or Path.cwd()
     file_path = fs.get_project_config_path(root)
-
     if file_path:
         # Standard TOML config found
         project_config = ext_parse_project_config(file_path)
     else:
         # No TOML found, check for deprecated (YAML) config as a fallback
-        # file_path = fs.get_deprecated_project_config_path(root)
-        # if not file_path:
-        return None
+        file_path = fs.get_deprecated_project_config_path(root)
+        if not file_path:
+            return None
         # Return right away, this is a final ProjectConfig
-        # return migrate_deprecated_config(file_path)
+        raise NotImplementedError("migrate_deprecated_config is not implemented")
     return project_config
-
-
-#     # 'with_derived_unset_fields' is used here explicitly
-#     #   to ensure that later dumps will not include "unset" fields
-#     #   (i.e. fields that are default values and not declared ALWAYS_DUMP)
-#     return ProjectConfig.with_derived_unset_fields(
-#         {
-#             "modules": [
-#                 ModuleConfig.with_derived_unset_fields(
-#                     {
-#                         "path": module.path,
-#                         "depends_on": [
-#                             Dependency.with_derived_unset_fields(
-#                                 {"path": dep.path, "deprecated": dep.deprecated}
-#                             )
-#                             for dep in module.depends_on
-#                         ],
-#                         "strict": module.strict,
-#                     }
-#                 )
-#                 for module in project_config.modules
-#             ],
-#             "cache": CacheConfig.with_derived_unset_fields(
-#                 {
-#                     "file_dependencies": project_config.cache.file_dependencies,
-#                     "env_dependencies": project_config.cache.env_dependencies,
-#                 }
-#             ),
-#             "external": ExternalDependencyConfig.with_derived_unset_fields(
-#                 {
-#                     "exclude": project_config.external.exclude,
-#                 }
-#             ),
-#             "exclude": project_config.exclude,
-#             "source_roots": [Path(root) for root in project_config.source_roots],
-#             "exact": project_config.exact,
-#             "disable_logging": project_config.disable_logging,
-#             "ignore_type_checking_imports": project_config.ignore_type_checking_imports,
-#             "forbid_circular_dependencies": project_config.forbid_circular_dependencies,
-#             "use_regex_matching": project_config.use_regex_matching,
-#         }
-#     )

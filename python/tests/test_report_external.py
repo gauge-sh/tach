@@ -4,24 +4,24 @@ from unittest.mock import Mock
 
 import pytest
 
-from tach.core.config import ProjectConfig
+from tach.extension import ProjectConfig
 from tach.report import external_dependency_report
 
 
 @pytest.fixture
 def project_config():
-    return ProjectConfig(
-        source_roots=[
-            "src/pack-a/src",
-            "src/pack-b/src",
-            "src/pack-c/src",
-            "src/pack-d/src",
-            "src/pack-e/src",
-            "src/pack-f/src",
-            "src/pack-g/src",
-        ],
-        ignore_type_checking_imports=True,
-    )
+    p = ProjectConfig()
+    p.source_roots = [
+        "src/pack-a/src",
+        "src/pack-b/src",
+        "src/pack-c/src",
+        "src/pack-d/src",
+        "src/pack-e/src",
+        "src/pack-f/src",
+        "src/pack-g/src",
+    ]
+    p.ignore_type_checking_imports = True
+    return p
 
 
 @pytest.fixture

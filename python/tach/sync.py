@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 import tomli
 import tomli_w
 
-
 from tach import errors
 from tach import filesystem as fs
 from tach.extension import (

@@ -242,7 +242,13 @@ pub fn check(
     let source_roots: Vec<PathBuf> = project_config
         .source_roots
         .iter()
-        .map(|r| project_root.join(r))
+        .map(|r| {
+            if r.display().to_string() == "." {
+                project_root.into()
+            } else {
+                project_root.join(r)
+            }
+        })
         .collect();
     let (valid_modules, invalid_modules) =
         fs::validate_project_modules(&source_roots, project_config.modules.clone());

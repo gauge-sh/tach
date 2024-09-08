@@ -176,8 +176,7 @@ impl Iterator for ModuleTreeIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(node) = self.stack.pop_front() {
-            self.stack
-                .extend(node.children.values().map(|child| Rc::clone(child)));
+            self.stack.extend(node.children.values().map(Rc::clone));
             if node.is_end_of_path {
                 return Some(node);
             }
