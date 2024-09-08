@@ -203,6 +203,4 @@ file_dependencies = [
 ]
 
 [external]
-exclude = [
-    "pytest",
-]
+exclude = ["pytest", "pydot", "eval_type_backport"]

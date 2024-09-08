@@ -150,13 +150,30 @@ def print_undeclared_dependencies(
     undeclared_dependencies: dict[str, list[str]],
 ) -> None:
     for file_path, dependencies in undeclared_dependencies.items():
-        print(
-            f"❌ {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
-        )
-        for dependency in dependencies:
-            print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
+        if dependencies:
+            print(
+                f"❌ {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
+            )
+            for dependency in dependencies:
+                print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
     print(
         f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
+        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}"
+    )
+
+
+def print_unused_external_dependencies(
+    unused_dependencies: dict[str, list[str]],
+) -> None:
+    for pyproject_path, dependencies in unused_dependencies.items():
+        if dependencies:
+            print(
+                f"! {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
+            )
+            for dependency in dependencies:
+                print(f"\t{BCOLORS.WARNING}{dependency}{BCOLORS.ENDC}")
+    print(
+        f"{BCOLORS.OKCYAN}\nRemove the unused dependencies from the corresponding pyproject.toml file, "
         f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}"
     )
 
@@ -570,6 +587,9 @@ def tach_check_external(project_root: Path, exclude_paths: list[str] | None = No
             project_config=project_config,
             exclude_paths=exclude_paths,
         )
+
+        if result.unused_dependencies:
+            print_unused_external_dependencies(result.unused_dependencies)
 
         if result.undeclared_dependencies:
             print_undeclared_dependencies(result.undeclared_dependencies)
