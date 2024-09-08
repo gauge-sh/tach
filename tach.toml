@@ -198,4 +198,4 @@ depends_on = []
 file_dependencies = ["python/tests/**", "src/*.rs"]
 
 [external]
-exclude = ["pytest"]
+exclude = ["pytest", "pydot", "eval_type_backport"]

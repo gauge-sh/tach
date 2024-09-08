@@ -8,13 +8,11 @@ version = "0.0.0"
 license.file = "LICENSE"
 readme = "README.md"
 description = "My organization's A package."
-authors = [
-    { name = "Janice Developer", email = "janice@my.org" },
-]
-dependencies = ["GitPython"]
+authors = [{ name = "Janice Developer", email = "janice@my.org" }]
+dependencies = ["GitPython", "Unused"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include=["myorg.*"]
+include = ["myorg.*"]
 namespaces = true
 exclude = ["test*."]

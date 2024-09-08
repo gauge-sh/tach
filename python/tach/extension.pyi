@@ -23,7 +23,7 @@ def check_external_dependencies(
     source_roots: list[str],
     module_mappings: dict[str, list[str]],
     ignore_type_checking_imports: bool,
-) -> dict[str, list[str]]: ...
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]: ...
 def create_dependency_report(
     project_root: str,
     source_roots: list[str],

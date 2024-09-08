@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 @dataclass
 class ExternalCheckDiagnosticts:
     undeclared_dependencies: dict[str, list[str]]
+    unused_dependencies: dict[str, list[str]]
 
 
 def check_external(
@@ -37,22 +38,34 @@ def check_external(
         module_mappings=get_module_mappings(),
         ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
+    undeclared_dependencies_by_file = diagnostics[0]
+    unused_dependencies_by_project = diagnostics[1]
 
     excluded_external_modules = set(project_config.external.exclude)
-    all_undeclared_dependencies: dict[str, list[str]] = {}
-    for filepath, undeclared_dependencies in diagnostics.items():
-        filtered_undeclared_dependencies = set(
+    filtered_undeclared_dependencies: dict[str, list[str]] = {}
+    for filepath, undeclared_dependencies in undeclared_dependencies_by_file.items():
+        dependencies = set(
             filter(
                 lambda dependency: not is_stdlib_module(dependency)
                 and dependency not in excluded_external_modules,
                 undeclared_dependencies,
             )
         )
-        if filtered_undeclared_dependencies:
-            all_undeclared_dependencies[filepath] = list(
-                filtered_undeclared_dependencies
+        if dependencies:
+            filtered_undeclared_dependencies[filepath] = list(dependencies)
+    filtered_unused_dependencies: dict[str, list[str]] = {}
+    for filepath, unused_dependencies in unused_dependencies_by_project.items():
+        dependencies = set(
+            filter(
+                lambda dependency: not is_stdlib_module(dependency)
+                and dependency not in excluded_external_modules,
+                unused_dependencies,
             )
+        )
+        if dependencies:
+            filtered_unused_dependencies[filepath] = list(dependencies)
 
     return ExternalCheckDiagnosticts(
-        undeclared_dependencies=all_undeclared_dependencies
+        undeclared_dependencies=filtered_undeclared_dependencies,
+        unused_dependencies=filtered_unused_dependencies,
     )
