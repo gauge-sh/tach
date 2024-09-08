@@ -1,3 +1,4 @@
+pub mod config;
 pub mod error;
 pub mod external;
 pub mod module;

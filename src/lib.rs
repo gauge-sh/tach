@@ -90,14 +90,14 @@ impl From<sync::SyncError> for PyErr {
 #[pyfunction]
 #[pyo3(signature = (filepath))]
 fn parse_project_config(filepath: PathBuf) -> parsing::Result<core::config::ProjectConfig> {
-    core::config::parse_project_config(filepath)
+    parsing::config::parse_project_config(filepath)
 }
 
 #[pyfunction]
 #[pyo3(signature = (config))]
 fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String, SyncError> {
     // TODO: Error handling hack
-    core::config::dump_project_config_to_toml(config).map_err(SyncError::TomlSerialize)
+    parsing::config::dump_project_config_to_toml(config).map_err(SyncError::TomlSerialize)
 }
 
 #[pyfunction]

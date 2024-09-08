@@ -14,6 +14,11 @@ pub mod fixtures {
     }
 
     #[fixture]
+    pub fn tests_dir() -> std::path::PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("python/tests")
+    }
+
+    #[fixture]
     pub fn module_tree() -> ModuleTree {
         ModuleTree {
             root: Rc::new(ModuleNode {

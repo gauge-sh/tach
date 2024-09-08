@@ -13,6 +13,7 @@ use crate::core::config::ModuleConfig;
 use crate::exclusion::is_path_excluded;
 
 pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
+pub const DEFAULT_EXCLUDE_PATHS: [&str; 4] = ["tests", "docs", ".*__pycache__", ".*egg-info"];
 
 #[derive(Error, Debug)]
 pub enum FileSystemError {
@@ -271,4 +272,37 @@ pub fn validate_project_modules(
         }
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::fixtures::tests_dir;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(&["."], "__init__.py", ".")]
+    #[case(&["."], "domain_one/__init__.py", "domain_one")]
+    #[case(&["."], "domain_one/interface.py", "domain_one.interface")]
+    #[case(&["source/root"], "source/root/domain.py", "domain")]
+    #[case(&["src1", "src2"], "src1/core/lib/cat.py", "core.lib.cat")]
+    fn test_file_to_mod_path(
+        tests_dir: PathBuf,
+        #[case] roots: &[&str],
+        #[case] file_path: &str,
+        #[case] expected: &str,
+    ) {
+        assert_eq!(
+            file_to_module_path(
+                roots
+                    .iter()
+                    .map(|r| tests_dir.join(r))
+                    .collect::<Vec<_>>()
+                    .as_slice(),
+                &tests_dir.join(file_path)
+            )
+            .unwrap(),
+            expected
+        );
+    }
 }

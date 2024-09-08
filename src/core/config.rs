@@ -1,12 +1,9 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use crate::filesystem;
 use crate::filesystem::ROOT_MODULE_SENTINEL_TAG;
-use crate::parsing;
 
 // for serde
 fn default_true() -> bool {
@@ -135,7 +132,7 @@ pub struct UnusedDependencies {
     pub dependencies: Vec<DependencyConfig>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
     #[serde(default)]
@@ -317,31 +314,4 @@ impl ProjectConfig {
 
         all_unused_dependencies
     }
-}
-
-pub fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String, toml::ser::Error> {
-    config.modules.sort_by(|a, b| {
-        if a.path == ROOT_MODULE_SENTINEL_TAG {
-            Ordering::Less
-        } else if b.path == ROOT_MODULE_SENTINEL_TAG {
-            Ordering::Greater
-        } else {
-            a.path.cmp(&b.path)
-        }
-    });
-
-    for module in &mut config.modules {
-        module.depends_on.sort_by(|a, b| a.path.cmp(&b.path));
-    }
-
-    config.exclude.sort();
-    config.source_roots.sort();
-
-    toml::to_string(&config)
-}
-
-pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> parsing::error::Result<ProjectConfig> {
-    let content = filesystem::read_file_content(filepath)?;
-    let config: ProjectConfig = toml::from_str(&content)?;
-    Ok(config)
 }

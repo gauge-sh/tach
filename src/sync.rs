@@ -1,10 +1,9 @@
 use thiserror::Error;
 
 use crate::check_int::check;
-use crate::core::config::{
-    dump_project_config_to_toml, DependencyConfig, ModuleConfig, ProjectConfig,
-};
+use crate::core::config::{DependencyConfig, ModuleConfig, ProjectConfig};
 use crate::filesystem as fs;
+use crate::parsing::config::dump_project_config_to_toml;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
