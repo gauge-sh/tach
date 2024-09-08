@@ -30,4 +30,6 @@ pub enum ModuleTreeError {
     CircularDependency(Vec<String>),
     #[error("Parsing Error while building module tree.\n{0}")]
     ParseError(#[from] ParsingError),
+    #[error("Cannot insert module with empty path.")]
+    InsertNodeError,
 }

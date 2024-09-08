@@ -81,7 +81,7 @@ pub fn build_module_tree(
     for module in modules {
         let interface_members = parse_interface_members(source_roots, &module.path)?;
         let mod_path = module.mod_path();
-        tree.insert(module, mod_path, interface_members);
+        tree.insert(module, mod_path, interface_members)?;
     }
 
     Ok(tree)

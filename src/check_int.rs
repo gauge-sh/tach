@@ -353,7 +353,7 @@ pub fn check(
 mod tests {
     use super::*;
     use crate::core::module::ModuleTree;
-    use crate::tests::fixtures::module_tree;
+    use crate::tests::fixtures::module_tree_check_int;
 
     use rstest::rstest;
 
@@ -374,19 +374,25 @@ mod tests {
     #[case("domain_two", "domain_two.subdomain", false)]
     #[case("external", "domain_three", false)]
     fn test_check_import(
-        module_tree: ModuleTree,
+        module_tree_check_int: ModuleTree,
         #[case] file_mod_path: &str,
         #[case] import_mod_path: &str,
         #[case] expected_result: bool,
     ) {
-        let check_error = check_import(&module_tree, file_mod_path, import_mod_path, None);
+        let check_error =
+            check_import(&module_tree_check_int, file_mod_path, import_mod_path, None);
         let result = check_error.is_ok();
         assert_eq!(result, expected_result);
     }
 
     #[rstest]
-    fn test_check_deprecated_import(module_tree: ModuleTree) {
-        let check_error = check_import(&module_tree, "domain_one", "domain_one.subdomain", None);
+    fn test_check_deprecated_import(module_tree_check_int: ModuleTree) {
+        let check_error = check_import(
+            &module_tree_check_int,
+            "domain_one",
+            "domain_one.subdomain",
+            None,
+        );
         assert!(check_error.is_err());
         assert!(check_error.unwrap_err().is_deprecated());
     }

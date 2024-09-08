@@ -3,6 +3,8 @@ use std::{
     rc::Rc,
 };
 
+use crate::parsing::error::ModuleTreeError;
+
 use super::config::ModuleConfig;
 
 /// A node in the module tree.
@@ -106,9 +108,14 @@ impl ModuleTree {
         }
     }
 
-    pub fn insert(&mut self, config: ModuleConfig, path: String, interface_members: Vec<String>) {
+    pub fn insert(
+        &mut self,
+        config: ModuleConfig,
+        path: String,
+        interface_members: Vec<String>,
+    ) -> Result<(), ModuleTreeError> {
         if path.is_empty() {
-            panic!("Cannot insert module with empty path.");
+            return Err(ModuleTreeError::InsertNodeError);
         }
 
         let mut node = Rc::get_mut(&mut self.root).unwrap();
@@ -122,24 +129,29 @@ impl ModuleTree {
         }
 
         node.fill(config, path, interface_members);
+        Ok(())
     }
 
     pub fn find_nearest(&self, path: &str) -> Option<Rc<ModuleNode>> {
         let mut node = Rc::clone(&self.root);
-        let mut nearest_parent = None;
+        let mut nearest_parent = Rc::clone(&self.root);
 
         for part in split_module_path(path) {
             if let Some(child) = node.children.get(part) {
                 node = Rc::clone(child);
                 if node.is_end_of_path {
-                    nearest_parent = Some(Rc::clone(&node));
+                    nearest_parent = Rc::clone(&node);
                 }
             } else {
                 break;
             }
         }
 
-        nearest_parent
+        if nearest_parent.is_end_of_path {
+            Some(nearest_parent)
+        } else {
+            None
+        }
     }
 
     pub fn iter(&self) -> ModuleTreeIterator {
@@ -163,14 +175,118 @@ impl Iterator for ModuleTreeIterator {
     type Item = Rc<ModuleNode>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(node) = self.stack.pop_front() {
-            for child in node.children.values() {
-                self.stack.push_back(Rc::clone(child));
-            }
+        while let Some(node) = self.stack.pop_front() {
+            self.stack
+                .extend(node.children.values().map(|child| Rc::clone(child)));
             if node.is_end_of_path {
                 return Some(node);
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use rstest::{fixture, rstest};
+
+    use super::*;
+    use crate::tests::fixtures::module_tree;
+
+    #[fixture]
+    fn test_config() -> ModuleConfig {
+        ModuleConfig::new("test", false)
+    }
+
+    #[rstest]
+    fn test_iterate_over_empty_tree() {
+        let tree = ModuleTree::new();
+        let paths: Vec<String> = tree.iter().map(|node| node.full_path.clone()).collect();
+        assert_eq!(paths, ["."]);
+    }
+    #[rstest]
+    fn test_iterate_over_populated_tree(module_tree: ModuleTree) {
+        let paths: HashSet<String> = module_tree
+            .iter()
+            .map(|node| node.full_path.clone())
+            .collect();
+        assert_eq!(
+            paths,
+            HashSet::from(
+                [
+                    ".",
+                    "domain_one",
+                    "domain_one.subdomain",
+                    "domain_two",
+                    "domain_two.subdomain",
+                    "domain_three"
+                ]
+                .map(String::from)
+            )
+        );
+    }
+
+    #[rstest]
+    fn test_get_nonexistent_path(module_tree: ModuleTree) {
+        assert!(module_tree.get("fakepath").is_none());
+    }
+
+    #[rstest]
+    fn test_get_empty_path() {
+        let tree = ModuleTree::new();
+        assert!(tree.get("").is_none());
+    }
+
+    #[rstest]
+    fn test_get_actual_path(module_tree: ModuleTree) {
+        assert!(module_tree.get("domain_one").is_some());
+    }
+
+    #[rstest]
+    fn test_insert_empty_path(test_config: ModuleConfig) {
+        let mut tree = ModuleTree::new();
+        let result = tree.insert(test_config, "".to_string(), vec![]);
+        assert!(matches!(
+            result.unwrap_err(),
+            ModuleTreeError::InsertNodeError
+        ));
+    }
+
+    #[rstest]
+    fn test_insert_single_level_path(test_config: ModuleConfig) {
+        let mut tree = ModuleTree::new();
+        let result = tree.insert(test_config, "domain".to_string(), vec![]);
+        assert!(result.is_ok());
+        let paths: Vec<String> = tree.iter().map(|node| node.full_path.clone()).collect();
+        assert_eq!(paths, [".", "domain"]);
+    }
+
+    #[rstest]
+    fn test_insert_multi_level_path(test_config: ModuleConfig) {
+        let mut tree = ModuleTree::new();
+        let result = tree.insert(test_config, "domain.subdomain".to_string(), vec![]);
+        assert!(result.is_ok());
+        let paths: Vec<String> = tree.iter().map(|node| node.full_path.clone()).collect();
+        assert_eq!(paths, [".", "domain.subdomain"]);
+    }
+
+    #[rstest]
+    fn test_find_nearest_at_root(module_tree: ModuleTree) {
+        let module = module_tree.find_nearest("other_domain");
+        assert_eq!(module, Some(module_tree.root));
+    }
+
+    #[rstest]
+    fn test_find_nearest_in_single_domain(module_tree: ModuleTree) {
+        let module = module_tree.find_nearest("domain_one.thing");
+        assert_eq!(module.unwrap().full_path, "domain_one");
+    }
+
+    #[rstest]
+    fn test_find_nearest_in_nested_domain(module_tree: ModuleTree) {
+        let module = module_tree.find_nearest("domain_two.subdomain.thing");
+        assert_eq!(module.unwrap().full_path, "domain_two.subdomain");
     }
 }

@@ -144,12 +144,14 @@ pub struct ProjectConfig {
     #[serde(default)]
     pub exclude: Vec<String>,
     #[serde(default = "default_source_roots")]
+    #[pyo3(set)]
     pub source_roots: Vec<PathBuf>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub exact: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub disable_logging: bool,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    #[pyo3(set)]
     pub ignore_type_checking_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub forbid_circular_dependencies: bool,
@@ -175,21 +177,6 @@ impl Default for ProjectConfig {
 }
 
 impl ProjectConfig {
-    pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
-        Self {
-            modules,
-            cache: self.cache.clone(),
-            external: self.external.clone(),
-            exclude: self.exclude.clone(),
-            source_roots: self.source_roots.clone(),
-            exact: self.exact,
-            disable_logging: self.disable_logging,
-            ignore_type_checking_imports: self.ignore_type_checking_imports,
-            forbid_circular_dependencies: self.forbid_circular_dependencies,
-            use_regex_matching: self.use_regex_matching,
-        }
-    }
-
     fn dependencies_for_module(&self, module: &str) -> Option<&Vec<DependencyConfig>> {
         self.modules
             .iter()
@@ -217,6 +204,21 @@ impl ProjectConfig {
             .iter()
             .map(|module| module.path.clone())
             .collect()
+    }
+
+    pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
+        Self {
+            modules,
+            cache: self.cache.clone(),
+            external: self.external.clone(),
+            exclude: self.exclude.clone(),
+            source_roots: self.source_roots.clone(),
+            exact: self.exact,
+            disable_logging: self.disable_logging,
+            ignore_type_checking_imports: self.ignore_type_checking_imports,
+            forbid_circular_dependencies: self.forbid_circular_dependencies,
+            use_regex_matching: self.use_regex_matching,
+        }
     }
 
     pub fn set_modules(&mut self, module_paths: Vec<String>) {
