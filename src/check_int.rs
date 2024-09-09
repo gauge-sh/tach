@@ -32,7 +32,6 @@ pub enum CheckError {
 
 #[derive(Debug, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
-
 pub struct BoundaryError {
     pub file_path: PathBuf,
     pub line_number: usize,
@@ -50,7 +49,6 @@ pub struct CheckDiagnostics {
 
 #[derive(Error, Debug, Clone)]
 #[pyclass(module = "tach.extension")]
-
 pub enum ImportCheckError {
     #[error("Module containing '{file_mod_path}' not found in project.")]
     ModuleNotFound { file_mod_path: String },
@@ -198,7 +196,7 @@ fn check_import(
         .collect();
 
     if allowed_dependencies.contains(import_nearest_module_path) {
-        // he import matches at least one expected dependency
+        // The import matches at least one expected dependency
         return Ok(());
     }
 
