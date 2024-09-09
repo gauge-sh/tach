@@ -145,7 +145,12 @@ mod tests {
             &module_mapping,
             project_config.ignore_type_checking_imports,
         );
-        assert!(result.is_ok_and(|r| r.is_empty()));
+        assert!(result.as_ref().unwrap().undeclared_dependencies.is_empty());
+        let unused_dependency_root = "src/pack-a/pyproject.toml";
+        assert!(result
+            .unwrap()
+            .unused_dependencies
+            .contains_key(unused_dependency_root));
     }
 
     #[rstest]
@@ -161,9 +166,14 @@ mod tests {
             project_config.ignore_type_checking_imports,
         );
         let expected_failure_path = "src/pack-a/src/myorg/pack_a/__init__.py";
-        assert!(result.is_ok());
         let r = result.unwrap();
-        assert_eq!(r.keys().collect::<Vec<_>>(), vec![expected_failure_path]);
-        assert_eq!(r[expected_failure_path], vec!["git"]);
+        assert_eq!(
+            r.undeclared_dependencies.keys().collect::<Vec<_>>(),
+            vec![expected_failure_path]
+        );
+        assert_eq!(
+            r.undeclared_dependencies[expected_failure_path],
+            vec!["git"]
+        );
     }
 }
