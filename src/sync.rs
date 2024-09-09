@@ -30,17 +30,7 @@ pub fn sync_dependency_constraints(
     if prune {
         let mut new_modules: Vec<ModuleConfig> = Vec::new();
 
-        let source_roots: Vec<PathBuf> = project_config
-            .source_roots
-            .iter()
-            .map(|r| {
-                if r.display().to_string() == "." {
-                    project_root.clone()
-                } else {
-                    project_root.join(r)
-                }
-            })
-            .collect();
+        let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
 
         for module in project_config.modules.iter() {
             // Filter out modules that are not found in the source roots

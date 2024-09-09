@@ -11,6 +11,7 @@ pub mod parsing;
 pub mod pattern;
 pub mod reports;
 pub mod sync;
+pub mod test;
 pub mod tests;
 
 use core::config::ProjectConfig;
@@ -304,6 +305,7 @@ pub fn sync_project(
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<core::config::ProjectConfig>()?;
     m.add_class::<core::config::ModuleConfig>()?;
+    m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;

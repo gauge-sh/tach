@@ -8,7 +8,8 @@ import pytest
 
 from tach.core.modules import ModuleNode, ModuleTree
 from tach.extension import ModuleConfig, ProjectConfig
-from tach.test import get_affected_modules, get_changed_module_paths
+
+# from tach.test import get_affected_modules, get_changed_module_paths
 
 if TYPE_CHECKING:
     from tach.extension import DependencyConfig as Dependency  # noqa

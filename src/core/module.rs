@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, VecDeque},
-    rc::Rc,
+    sync::Arc,
 };
 
 use crate::parsing::error::ModuleTreeError;
@@ -21,7 +21,7 @@ pub struct ModuleNode {
     pub full_path: String,
     pub config: Option<ModuleConfig>,
     pub interface_members: Vec<String>,
-    pub children: HashMap<String, Rc<ModuleNode>>,
+    pub children: HashMap<String, Arc<ModuleNode>>,
 }
 
 impl ModuleNode {
@@ -71,7 +71,7 @@ fn split_module_path(path: &str) -> Vec<&str> {
 ///
 #[derive(Debug)]
 pub struct ModuleTree {
-    pub root: Rc<ModuleNode>,
+    pub root: Arc<ModuleNode>,
 }
 
 impl Default for ModuleTree {
@@ -83,19 +83,19 @@ impl Default for ModuleTree {
 impl ModuleTree {
     pub fn new() -> Self {
         Self {
-            root: Rc::new(ModuleNode::implicit_root()),
+            root: Arc::new(ModuleNode::implicit_root()),
         }
     }
 
-    pub fn get(&self, path: &str) -> Option<Rc<ModuleNode>> {
+    pub fn get(&self, path: &str) -> Option<Arc<ModuleNode>> {
         if path.is_empty() {
             return None;
         }
 
-        let mut node = Rc::clone(&self.root);
+        let mut node = Arc::clone(&self.root);
         for part in split_module_path(path) {
             if let Some(child) = node.children.get(part) {
-                node = Rc::clone(child);
+                node = Arc::clone(child);
             } else {
                 return None;
             }
@@ -118,12 +118,12 @@ impl ModuleTree {
             return Err(ModuleTreeError::InsertNodeError);
         }
 
-        let mut node = Rc::get_mut(&mut self.root).unwrap();
+        let mut node = Arc::get_mut(&mut self.root).unwrap();
         for part in split_module_path(&path) {
-            node = Rc::get_mut(
+            node = Arc::get_mut(
                 node.children
                     .entry(part.to_owned())
-                    .or_insert(Rc::new(ModuleNode::empty())),
+                    .or_insert(Arc::new(ModuleNode::empty())),
             )
             .unwrap();
         }
@@ -132,15 +132,15 @@ impl ModuleTree {
         Ok(())
     }
 
-    pub fn find_nearest(&self, path: &str) -> Option<Rc<ModuleNode>> {
-        let mut node = Rc::clone(&self.root);
-        let mut nearest_parent = Rc::clone(&self.root);
+    pub fn find_nearest(&self, path: &str) -> Option<Arc<ModuleNode>> {
+        let mut node = Arc::clone(&self.root);
+        let mut nearest_parent = Arc::clone(&self.root);
 
         for part in split_module_path(path) {
             if let Some(child) = node.children.get(part) {
-                node = Rc::clone(child);
+                node = Arc::clone(child);
                 if node.is_end_of_path {
-                    nearest_parent = Rc::clone(&node);
+                    nearest_parent = Arc::clone(&node);
                 }
             } else {
                 break;
@@ -160,23 +160,23 @@ impl ModuleTree {
 }
 
 pub struct ModuleTreeIterator {
-    stack: VecDeque<Rc<ModuleNode>>,
+    stack: VecDeque<Arc<ModuleNode>>,
 }
 
 impl ModuleTreeIterator {
     pub fn new(tree: &ModuleTree) -> Self {
         let mut stack = VecDeque::new();
-        stack.push_back(Rc::clone(&tree.root));
+        stack.push_back(Arc::clone(&tree.root));
         Self { stack }
     }
 }
 
 impl Iterator for ModuleTreeIterator {
-    type Item = Rc<ModuleNode>;
+    type Item = Arc<ModuleNode>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(node) = self.stack.pop_front() {
-            self.stack.extend(node.children.values().map(Rc::clone));
+            self.stack.extend(node.children.values().map(Arc::clone));
             if node.is_end_of_path {
                 return Some(node);
             }

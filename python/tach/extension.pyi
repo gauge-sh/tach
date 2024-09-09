@@ -140,3 +140,17 @@ class ProjectConfig:
         self, other_config: ProjectConfig
     ) -> list[UnusedDependencies]: ...
     def dump_project_config_to_toml(self, project_config: ProjectConfig) -> str: ...
+
+class TachPytestPluginHandler:
+    removed_test_paths: set[Path]
+    all_affected_modules: set[Path]
+    num_removed_items: int
+    tests_ran_to_completion: bool
+    def __new__(
+        cls,
+        project_root: Path,
+        project_config: ProjectConfig,
+        changed_files: list[Path],
+        all_affected_modules: set[Path],
+    ) -> TachPytestPluginHandler: ...
+    def should_remove_items(self, file_path: Path) -> bool: ...
