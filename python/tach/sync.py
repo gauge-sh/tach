@@ -38,7 +38,7 @@ def sync_project(
     )
     # Format the content, TODO: should'nt be handled here
     config_toml_content = tomli_w.dumps(tomli.loads(config_toml_content))
-    fs.write_file(str(config_path), config_toml_content)
+    fs.write_file(config_path, config_toml_content, root=project_root)
 
 
 __all__ = ["sync_project"]

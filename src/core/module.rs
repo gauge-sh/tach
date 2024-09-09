@@ -63,7 +63,7 @@ fn split_module_path(path: &str) -> Vec<&str> {
     if path == "." {
         return vec![];
     }
-    path.split(".").collect()
+    path.split('.').collect()
 }
 
 /// The core data structure for tach, representing the modules in a project

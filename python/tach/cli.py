@@ -65,10 +65,6 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         f"{{message}} {BCOLORS.ENDC}"
     )
     error_info = error.error_info
-    # if error_info.exception_message:
-    #     return error_template.format(message=error_info.exception_message)
-    # elif not error_info.is_dependency_error:
-    #     return error_template.format(message="Unexpected error")
     if error_info.is_deprecated():
         return warning_template.format(message=error_info.to_pystring())
     return error_template.format(message=error_info.to_pystring())

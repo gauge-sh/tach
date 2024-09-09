@@ -21,6 +21,6 @@ def install_pre_commit(project_root: Path) -> tuple[bool, str]:
 
     pre_commit_hook_content = build_pre_commit_hook_content()
 
-    write_file(str(hook_dst), pre_commit_hook_content)
-    mark_executable(str(hook_dst))
+    write_file(hook_dst, pre_commit_hook_content, root=project_root)
+    mark_executable(hook_dst)
     return True, ""
