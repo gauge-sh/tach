@@ -44,7 +44,7 @@ def update_modules(
 
     project_config_path = build_project_config_path(project_root)
     config_toml_content = dump_project_config_to_toml(project_config)
-    fs.write_file(str(project_config_path), config_toml_content)
+    fs.write_file(project_config_path, config_toml_content, root=project_root)
 
 
 @dataclass

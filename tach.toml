@@ -73,13 +73,6 @@ depends_on = []
 strict = true
 
 [[modules]]
-path = "tach.core"
-strict = true
-depends_on = [
-    { path = "tach.extension" },
-]
-
-[[modules]]
 path = "tach.errors"
 depends_on = []
 strict = true
@@ -94,8 +87,6 @@ strict = true
 depends_on = [
     { path = "tach.colors" },
     { path = "tach.constants" },
-    { path = "tach.errors" },
-    { path = "tach.extension" },
     { path = "tach.hooks" },
 ]
 
