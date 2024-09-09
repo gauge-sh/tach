@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
     import pydot  # type: ignore
 
-    from tach.core import ProjectConfig
+    from tach.extension import ProjectConfig
 
 TACH_SHOW_URL = "https://show.gauge.sh"
 

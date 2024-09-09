@@ -14,7 +14,7 @@ from tach import errors
 from tach import filesystem as fs
 from tach.colors import BCOLORS
 from tach.constants import ROOT_MODULE_SENTINEL_TAG
-from tach.core import ModuleConfig
+from tach.extension import ModuleConfig
 
 
 @dataclass

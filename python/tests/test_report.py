@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from tach.core.config import ProjectConfig
 from tach.errors import TachError
+from tach.extension import ProjectConfig
 from tach.report import report
 
 

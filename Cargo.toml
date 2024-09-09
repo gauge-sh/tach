@@ -22,6 +22,8 @@ toml = "0.8.19"
 thiserror = "1.0.63"
 serde = { version = "1.0.210", features = ["derive"] }
 glob = "0.3.1"
+petgraph = "0.6.5"
+serde_json = "1.0.128"
 
 [features]
 extension-module = ["pyo3/extension-module"]
@@ -30,3 +32,4 @@ default = ["extension-module"]
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 pprof = { version = "0.13", features = ["flamegraph", "criterion"] }
+rstest = "0.22.0"

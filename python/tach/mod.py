@@ -15,7 +15,7 @@ from tach.interactive import (
 from tach.parsing import dump_project_config_to_toml
 
 if TYPE_CHECKING:
-    from tach.core import ProjectConfig
+    from tach.extension import ProjectConfig
 
 
 def update_modules(

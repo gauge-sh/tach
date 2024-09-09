@@ -20,7 +20,7 @@ from tach.utils.external import (
 )
 
 if TYPE_CHECKING:
-    from tach.core import ProjectConfig
+    from tach.extension import ProjectConfig
 
 
 def report(

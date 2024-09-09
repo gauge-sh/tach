@@ -10,15 +10,16 @@ from typing import IO, TYPE_CHECKING, Any
 
 from tach import __version__, cache
 from tach import filesystem as fs
-from tach.check import BoundaryError, check
 from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
-from tach.core import ProjectConfig
 from tach.errors import TachCircularDependencyError, TachError
 from tach.extension import (
+    ProjectConfig,
+    check,
     check_computation_cache,
     create_computation_cache_key,
+    sync_dependency_constraints,
     update_computation_cache,
 )
 from tach.filesystem import install_pre_commit
@@ -26,15 +27,12 @@ from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import generate_module_graph_dot_file, generate_show_url
-from tach.sync import (
-    sync_dependency_constraints,
-    sync_project,
-)
+from tach.sync import sync_project
 from tach.test import run_affected_tests
 from tach.utils.display import create_clickable_link
 
 if TYPE_CHECKING:
-    from tach.core import UnusedDependencies
+    from tach.extension import BoundaryError, UnusedDependencies
 
 
 def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
@@ -67,23 +65,13 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         f"{{message}} {BCOLORS.ENDC}"
     )
     error_info = error.error_info
-    if error_info.exception_message:
-        return error_template.format(message=error_info.exception_message)
-    elif not error_info.is_dependency_error:
-        return error_template.format(message="Unexpected error")
-
-    error_message = (
-        f"Cannot import '{error.import_mod_path}'. "
-        f"Module '{error_info.source_module}' cannot depend on '{error_info.invalid_module}'."
-    )
-
-    warning_message = (
-        f"Import '{error.import_mod_path}' is deprecated. "
-        f"Module '{error_info.source_module}' should not depend on '{error_info.invalid_module}'."
-    )
-    if error_info.is_deprecated:
-        return warning_template.format(message=warning_message)
-    return error_template.format(message=error_message)
+    # if error_info.exception_message:
+    #     return error_template.format(message=error_info.exception_message)
+    # elif not error_info.is_dependency_error:
+    #     return error_template.format(message="Unexpected error")
+    if error_info.is_deprecated():
+        return warning_template.format(message=error_info.to_pystring())
+    return error_template.format(message=error_info.to_pystring())
 
 
 def print_warnings(warning_list: list[str]) -> None:
@@ -100,7 +88,7 @@ def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> N
             build_error_message(error, source_roots=source_roots),
             file=sys.stderr,
         )
-    if not all(error.error_info.is_deprecated for error in sorted_results):
+    if not all(error.error_info.is_deprecated() for error in sorted_results):
         print(
             f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
             f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
@@ -529,6 +517,7 @@ def tach_check(
             project_config=project_config,
             exclude_paths=exclude_paths,
         )
+
         if check_result.warnings:
             print_warnings(check_result.warnings)
 
@@ -556,6 +545,7 @@ def tach_check(
                 project_root=project_root,
                 project_config=project_config,
                 exclude_paths=exclude_paths,
+                prune=True,
             )
             unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:

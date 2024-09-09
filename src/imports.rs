@@ -36,7 +36,7 @@ pub type Result<T> = std::result::Result<T, ImportParseError>;
 #[derive(Debug)]
 pub struct NormalizedImport {
     pub module_path: String,
-    pub line_no: u32,
+    pub line_no: usize,
 }
 
 impl NormalizedImport {
@@ -276,9 +276,9 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
     }
 }
 
-// Source Roots here are assumed to be absolute paths
+/// Source Roots here are assumed to be absolute paths
 pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> Result<bool> {
-    let resolved_module = filesystem::module_to_file_path(source_roots, mod_path);
+    let resolved_module = filesystem::module_to_file_path(source_roots, mod_path, true);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
         Ok(!exclusion::is_path_excluded(

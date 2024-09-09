@@ -1,97 +1,94 @@
-use pyo3::prelude::*;
-use serde::Deserialize;
-use std::path::{Path, PathBuf};
+use std::{cmp::Ordering, path::Path};
+
+use crate::{
+    core::config::ProjectConfig,
+    filesystem::{self, ROOT_MODULE_SENTINEL_TAG},
+};
 
 use super::error;
-use crate::filesystem;
 
-// for serde
-fn default_true() -> bool {
-    true
-}
-
-#[derive(Deserialize, Clone)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct DependencyConfig {
-    pub path: String,
-    #[serde(default)]
-    pub deprecated: bool,
-}
-
-#[derive(Deserialize, Clone)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct ModuleConfig {
-    pub path: String,
-    #[serde(default)]
-    pub depends_on: Vec<DependencyConfig>,
-    #[serde(default)]
-    pub strict: bool,
-}
-
-#[derive(Default, Deserialize, Clone)]
-#[serde(rename_all = "lowercase")]
-pub enum CacheBackend {
-    #[default]
-    Disk,
-}
-
-impl IntoPy<PyObject> for CacheBackend {
-    fn into_py(self, py: Python) -> PyObject {
-        match self {
-            Self::Disk => "disk".to_object(py),
+pub fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String, toml::ser::Error> {
+    config.modules.sort_by(|a, b| {
+        if a.path == ROOT_MODULE_SENTINEL_TAG {
+            Ordering::Less
+        } else if b.path == ROOT_MODULE_SENTINEL_TAG {
+            Ordering::Greater
+        } else {
+            a.path.cmp(&b.path)
         }
+    });
+
+    for module in &mut config.modules {
+        module.depends_on.sort_by(|a, b| a.path.cmp(&b.path));
     }
-}
 
-#[derive(Default, Deserialize, Clone)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct CacheConfig {
-    #[serde(default)]
-    pub backend: CacheBackend,
-    #[serde(default)]
-    pub file_dependencies: Vec<String>,
-    #[serde(default)]
-    pub env_dependencies: Vec<String>,
-}
+    config.exclude.sort();
+    config.source_roots.sort();
 
-#[derive(Default, Deserialize, Clone)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct ExternalDependencyConfig {
-    #[serde(default)]
-    pub exclude: Vec<String>,
-}
-
-fn default_source_roots() -> Vec<PathBuf> {
-    vec![PathBuf::from(".")]
-}
-
-#[derive(Deserialize)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct ProjectConfig {
-    #[serde(default)]
-    pub modules: Vec<ModuleConfig>,
-    #[serde(default)]
-    pub cache: CacheConfig,
-    #[serde(default)]
-    pub external: ExternalDependencyConfig,
-    #[serde(default)]
-    pub exclude: Vec<String>,
-    #[serde(default = "default_source_roots")]
-    pub source_roots: Vec<PathBuf>,
-    #[serde(default)]
-    pub exact: bool,
-    #[serde(default)]
-    pub disable_logging: bool,
-    #[serde(default = "default_true")]
-    pub ignore_type_checking_imports: bool,
-    #[serde(default)]
-    pub forbid_circular_dependencies: bool,
-    #[serde(default = "default_true")]
-    pub use_regex_matching: bool,
+    toml::to_string(&config)
 }
 
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> error::Result<ProjectConfig> {
     let content = filesystem::read_file_content(filepath)?;
     let config: ProjectConfig = toml::from_str(&content)?;
     Ok(config)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+    use crate::{
+        core::config::{CacheConfig, DependencyConfig, ExternalDependencyConfig, ModuleConfig},
+        tests::fixtures::example_dir,
+    };
+    use filesystem::DEFAULT_EXCLUDE_PATHS;
+    use rstest::rstest;
+    #[rstest]
+    fn test_parse_valid_project_config(example_dir: PathBuf) {
+        // TODO: remove tach.toml when joining
+        let result = parse_project_config(example_dir.join("valid/tach.toml"));
+        assert!(result.is_ok());
+        assert_eq!(
+            result.unwrap(),
+            ProjectConfig {
+                modules: vec![
+                    ModuleConfig {
+                        path: "domain_one".to_string(),
+                        depends_on: vec![DependencyConfig::from_deprecated_path("domain_two")],
+                        strict: false,
+                    },
+                    ModuleConfig {
+                        path: "domain_three".to_string(),
+                        depends_on: vec![],
+                        strict: false,
+                    },
+                    ModuleConfig {
+                        path: "domain_two".to_string(),
+                        depends_on: vec![DependencyConfig::from_undeprecated_path("domain_three")],
+                        strict: false,
+                    },
+                    ModuleConfig {
+                        path: ROOT_MODULE_SENTINEL_TAG.to_string(),
+                        depends_on: vec![DependencyConfig::from_undeprecated_path("domain_one")],
+                        strict: false,
+                    }
+                ],
+                cache: CacheConfig::default(),
+                exclude: DEFAULT_EXCLUDE_PATHS
+                    .into_iter()
+                    .chain(["domain_four"].into_iter())
+                    .map(String::from)
+                    .collect(),
+                source_roots: vec![PathBuf::from(".")],
+                exact: true,
+                disable_logging: false,
+                ignore_type_checking_imports: true,
+                forbid_circular_dependencies: true,
+                use_regex_matching: true,
+                external: ExternalDependencyConfig::default(),
+            }
+        );
+    }
 }

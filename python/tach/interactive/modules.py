@@ -34,7 +34,7 @@ from tach import filesystem as fs
 if TYPE_CHECKING:
     from prompt_toolkit.formatted_text import AnyFormattedText
 
-    from tach.core import ProjectConfig
+    from tach.extension import ProjectConfig
 
 
 @dataclass
@@ -287,7 +287,7 @@ class InteractiveModuleTree:
                         source_roots=tuple(source_roots),
                         module_path=module_path,
                     )
-                    for module_path in project_config.module_paths
+                    for module_path in project_config.module_paths()
                 ],
             ),
         )
