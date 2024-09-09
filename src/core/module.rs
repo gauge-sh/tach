@@ -192,7 +192,7 @@ mod tests {
     use rstest::{fixture, rstest};
 
     use super::*;
-    use crate::tests::fixtures::module_tree;
+    use crate::tests::module::fixtures::module_tree;
 
     #[fixture]
     fn test_config() -> ModuleConfig {

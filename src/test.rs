@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::sync::Arc;
 use std::{collections::HashMap, path::PathBuf};
 
 use pyo3::{pyclass, pymethods};
@@ -102,7 +101,7 @@ fn build_module_consumer_map(modules: &Vec<ModuleConfig>) -> HashMap<&String, Ve
         for dependency in &module.depends_on {
             consumer_map
                 .entry(&dependency.path)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(module.mod_path());
         }
     }
@@ -114,7 +113,7 @@ fn get_changed_module_paths(
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
 ) -> Result<Vec<String>> {
-    let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
+    let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
 
     let changed_module_paths = changed_files
         .into_iter()
@@ -171,4 +170,84 @@ pub fn get_affected_modules(
     }
 
     Ok(affected_modules.into_iter().collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::test::fixtures::module_tree;
+    use crate::tests::test::fixtures::modules;
+    use rstest::rstest;
+    use std::env;
+
+    #[rstest]
+    #[case(&["python/tach/test.py"], "python", &["tach.test"])]
+    #[case(&["tach/test.py", "tach/a/test.py"], ".", &["tach.test", "tach.a.test"])]
+    #[case(&["tach/a/__init__.py"], ".", &["tach.a"])]
+    fn test_get_changed_module_paths(
+        #[case] changed_files: &[&str],
+        #[case] source_root: &str,
+        #[case] expected_mod_paths: &[&str],
+    ) {
+        let project_root = env::temp_dir();
+        let mut project_config = ProjectConfig::default();
+        project_config.source_roots = vec![PathBuf::from(source_root)];
+        let changed_files = changed_files
+            .iter()
+            .map(|filepath| project_root.join(filepath))
+            .collect();
+        let expected_mod_paths = expected_mod_paths
+            .iter()
+            .map(|path| path.to_string())
+            .collect::<HashSet<_>>();
+        assert_eq!(
+            expected_mod_paths,
+            get_changed_module_paths(&project_root, &project_config, changed_files)
+                .unwrap()
+                .into_iter()
+                .collect()
+        );
+    }
+
+    #[rstest]
+    #[case(&["tach/test.py"], &["tach.test", "tach.cli", "tach.__main__", "tach.start"])]
+    #[case(
+        &["tach/__init__.py"],
+        &[
+            "tach",
+            "tach.cli",
+            "tach.start",
+            "tach.__main__",
+            "tach.logging",
+            "tach.cache"
+        ]
+    )]
+    #[case(&[], &[])]
+    fn test_affected_modules(
+        #[case] changed_files: &[&str],
+        #[case] expected_affected_modules: &[&str],
+        module_tree: ModuleTree,
+        modules: Vec<ModuleConfig>,
+    ) {
+        let project_root = env::temp_dir();
+        let project_config = ProjectConfig {
+            modules,
+            ..Default::default()
+        };
+        let changed_files = changed_files
+            .iter()
+            .map(|filepath| project_root.join(filepath))
+            .collect();
+        let expected_affected_modules = expected_affected_modules
+            .iter()
+            .map(|path| path.to_string())
+            .collect::<HashSet<_>>();
+
+        // consider mocking get_changed_module_paths
+        assert_eq!(
+            expected_affected_modules,
+            get_affected_modules(&project_root, &project_config, changed_files, &module_tree)
+                .unwrap()
+        );
+    }
 }

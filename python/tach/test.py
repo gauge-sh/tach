@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Any
 # from tach import filesystem as fs
 # from tach.errors import TachError, TachSetupError
 from tach.errors import TachSetupError
-from tach.extension import ProjectConfig
-from tach.extension import TachPytestPluginHandler
+from tach.extension import ProjectConfig, TachPytestPluginHandler
 from tach.filesystem.git_ops import get_changed_files
 
 # from tach.parsing import build_module_tree
