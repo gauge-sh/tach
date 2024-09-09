@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod fixtures {
-    use std::{collections::HashMap, rc::Rc};
+    use std::{collections::HashMap, sync::Arc};
 
     use crate::core::{
         config::{DependencyConfig, ModuleConfig},
@@ -21,7 +21,7 @@ pub mod fixtures {
     #[fixture]
     pub fn module_tree() -> ModuleTree {
         ModuleTree {
-            root: Rc::new(ModuleNode {
+            root: Arc::new(ModuleNode {
                 is_end_of_path: true,
                 full_path: ".".to_string(),
                 config: Some(ModuleConfig::new_root_config()),
@@ -29,14 +29,14 @@ pub mod fixtures {
                 children: HashMap::from([
                     (
                         "domain_one".to_string(),
-                        Rc::new(ModuleNode {
+                        Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_one".to_string(),
                             config: Some(ModuleConfig::new("test", false)),
                             interface_members: vec!["public_fn".to_string()],
                             children: HashMap::from([(
                                 "subdomain".to_string(),
-                                Rc::new(ModuleNode {
+                                Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_one.subdomain".to_string(),
                                     config: Some(ModuleConfig::new("test", false)),
@@ -48,14 +48,14 @@ pub mod fixtures {
                     ),
                     (
                         "domain_two".to_string(),
-                        Rc::new(ModuleNode {
+                        Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_two".to_string(),
                             config: Some(ModuleConfig::new("test", false)),
                             interface_members: vec![],
                             children: HashMap::from([(
                                 "subdomain".to_string(),
-                                Rc::new(ModuleNode {
+                                Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_two.subdomain".to_string(),
                                     config: Some(ModuleConfig::new("test", false)),
@@ -67,7 +67,7 @@ pub mod fixtures {
                     ),
                     (
                         "domain_three".to_string(),
-                        Rc::new(ModuleNode {
+                        Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_three".to_string(),
                             config: Some(ModuleConfig::new("test", false)),
@@ -83,7 +83,7 @@ pub mod fixtures {
     #[fixture]
     pub fn module_tree_check_int() -> ModuleTree {
         ModuleTree {
-            root: Rc::new(ModuleNode {
+            root: Arc::new(ModuleNode {
                 is_end_of_path: false,
                 full_path: String::new(),
                 config: None,
@@ -91,7 +91,7 @@ pub mod fixtures {
                 children: HashMap::from([
                     (
                         "domain_one".to_string(),
-                        Rc::new(ModuleNode {
+                        Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_one".to_string(),
                             config: Some(ModuleConfig {
@@ -105,7 +105,7 @@ pub mod fixtures {
                             interface_members: vec!["public_fn".to_string()],
                             children: HashMap::from([(
                                 "subdomain".to_string(),
-                                Rc::new(ModuleNode {
+                                Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_one.subdomain".to_string(),
                                     config: Some(ModuleConfig::new("domain_one.subdomain", true)),
@@ -117,7 +117,7 @@ pub mod fixtures {
                     ),
                     (
                         "domain_two".to_string(),
-                        Rc::new(ModuleNode {
+                        Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_two".to_string(),
                             config: Some(ModuleConfig {
@@ -130,7 +130,7 @@ pub mod fixtures {
                             interface_members: vec![],
                             children: HashMap::from([(
                                 "subdomain".to_string(),
-                                Rc::new(ModuleNode {
+                                Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_two.subdomain".to_string(),
                                     config: Some(ModuleConfig {
@@ -148,7 +148,7 @@ pub mod fixtures {
                     ),
                     (
                         "domain_three".to_string(),
-                        Rc::new(ModuleNode {
+                        Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_three".to_string(),
                             config: Some(ModuleConfig::new("domain_three", false)),

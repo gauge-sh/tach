@@ -184,6 +184,19 @@ impl ProjectConfig {
             .find(|mod_config| mod_config.path == module)
             .map(|mod_config| &mod_config.depends_on)
     }
+    pub fn prepend_roots(&self, project_root: &PathBuf) -> Vec<PathBuf> {
+        // don't prepend if root is "."
+        self.source_roots
+            .iter()
+            .map(|root| {
+                if root.display().to_string() == "." {
+                    project_root.clone()
+                } else {
+                    project_root.join(root)
+                }
+            })
+            .collect()
+    }
 }
 
 #[pymethods]

@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
-    rc::Rc,
+    sync::Arc,
 };
 
 use pyo3::{pyclass, pymethods};
@@ -138,7 +138,7 @@ fn check_import(
     module_tree: &ModuleTree,
     file_mod_path: &str,
     import_mod_path: &str,
-    file_nearest_module: Option<Rc<ModuleNode>>,
+    file_nearest_module: Option<Arc<ModuleNode>>,
 ) -> Result<(), ImportCheckError> {
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
         Some(module) => module,
@@ -229,25 +229,13 @@ pub fn check(
     project_config: &ProjectConfig,
     exclude_paths: Vec<String>,
 ) -> Result<CheckDiagnostics, CheckError> {
-    let project_root = Path::new(&project_root);
-
     let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     if !project_root.is_dir() {
         return Err(CheckError::InvalidDirectory(
             project_root.display().to_string(),
         ));
     }
-    let source_roots: Vec<PathBuf> = project_config
-        .source_roots
-        .iter()
-        .map(|r| {
-            if r.display().to_string() == "." {
-                project_root.into()
-            } else {
-                project_root.join(r)
-            }
-        })
-        .collect();
+    let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
     let (valid_modules, invalid_modules) =
         fs::validate_project_modules(&source_roots, project_config.modules.clone());
 
@@ -270,7 +258,7 @@ pub fn check(
     )?;
 
     set_excluded_paths(
-        project_root,
+        Path::new(&project_root),
         &exclude_paths,
         project_config.use_regex_matching,
     )?;
@@ -320,7 +308,7 @@ pub fn check(
                     &module_tree,
                     &mod_path,
                     &import.module_path,
-                    Some(Rc::clone(&nearest_module)),
+                    Some(Arc::clone(&nearest_module)),
                 ) else {
                     continue;
                 };
