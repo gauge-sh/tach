@@ -145,8 +145,6 @@ depends_on = [
 path = "tach.parsing"
 strict = true
 depends_on = [
-    { path = "tach.core" },
-    { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem" },
 ]
@@ -203,4 +201,8 @@ file_dependencies = [
 ]
 
 [external]
-exclude = ["pytest", "pydot", "eval_type_backport"]
+exclude = [
+    "pytest",
+    "pydot",
+    "eval_type_backport",
+]
