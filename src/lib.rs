@@ -63,7 +63,14 @@ impl From<check_ext::ExternalCheckError> for PyErr {
 
 impl From<check_int::CheckError> for PyErr {
     fn from(err: check_int::CheckError) -> Self {
-        PyValueError::new_err(err.to_string())
+        if let check_int::CheckError::ModuleTree(
+            parsing::error::ModuleTreeError::CircularDependency(c),
+        ) = err
+        {
+            PyErr::new::<TachCircularDependencyError, _>(c)
+        } else {
+            PyValueError::new_err(err.to_string())
+        }
     }
 }
 
@@ -302,7 +309,7 @@ pub fn sync_project(
 }
 
 #[pymodule]
-fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<core::config::ProjectConfig>()?;
     m.add_class::<core::config::ModuleConfig>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
@@ -321,5 +328,23 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(check, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_dependency_constraints, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
+    m.add(
+        "TachCircularDependencyError",
+        py.get_type_bound::<TachCircularDependencyError>(),
+    )?;
     Ok(())
+}
+
+#[pyclass(extends=PyValueError)]
+struct TachCircularDependencyError {
+    #[pyo3(get)]
+    dependencies: Vec<String>,
+}
+
+#[pymethods]
+impl TachCircularDependencyError {
+    #[new]
+    fn new(dependencies: Vec<String>) -> Self {
+        TachCircularDependencyError { dependencies }
+    }
 }

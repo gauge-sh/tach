@@ -71,6 +71,9 @@ def sync_project(
     add: bool = False,
 ) -> str: ...
 
+class TachCircularDependencyError(Exception):
+    dependencies: list[str]
+
 class ErrorInfo:
     def is_dependency_error(self) -> bool: ...
     def to_pystring(self) -> str: ...
