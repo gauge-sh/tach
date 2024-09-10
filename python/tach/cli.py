@@ -13,9 +13,10 @@ from tach import filesystem as fs
 from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
-from tach.errors import TachCircularDependencyError, TachError
+from tach.errors import TachError
 from tach.extension import (
     ProjectConfig,
+    TachCircularDependencyError,
     check,
     check_computation_cache,
     create_computation_cache_key,
@@ -549,7 +550,7 @@ def tach_check(
                 exit_code = 1
     except Exception as e:
         if isinstance(e, TachCircularDependencyError):
-            print_circular_dependency_error(e.module_paths)
+            print_circular_dependency_error(e.dependencies)
         else:
             print(str(e))
         sys.exit(1)
