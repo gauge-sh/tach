@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import fnmatch
-import re
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -30,6 +28,7 @@ from rich.tree import Tree
 
 from tach import errors
 from tach import filesystem as fs
+from tach.utils.exclude import is_path_excluded
 
 if TYPE_CHECKING:
     from prompt_toolkit.formatted_text import AnyFormattedText
@@ -163,15 +162,10 @@ class FileTree:
                             "Must specify whether to use regex matching when providing exclude paths."
                         )
 
-                    entry_path_for_glob = str(entry.relative_to(self.root.full_path))
-                    entry_path_for_regex = f"{entry_path_for_glob}/"
-                    if exclude_paths is not None and any(
-                        (
-                            re.match(exclude_path, entry_path_for_regex)
-                            if use_regex_matching
-                            else fnmatch.fnmatch(entry_path_for_glob, exclude_path)
-                        )
-                        for exclude_path in exclude_paths
+                    if exclude_paths and is_path_excluded(
+                        exclude_paths,
+                        entry.relative_to(self.root.full_path),
+                        use_regex_matching=bool(use_regex_matching),
                     ):
                         # This path is ignored
                         continue
