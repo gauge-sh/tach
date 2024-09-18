@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Generator, Optional
 
 from tach.colors import BCOLORS
+from tach.utils.exclude import is_path_excluded
 
 
 def write_file(path: Path, content: str, root: Optional[Path] = None):
@@ -23,7 +24,11 @@ def mark_executable(path: Path):
 
 
 def walk(
-    root: Path, depth: int | None = None
+    root: Path,
+    project_root: Optional[Path] = None,
+    exclude_paths: Optional[list[str]] = None,
+    use_regex_matching: bool = False,
+    depth: int | None = None,
 ) -> Generator[tuple[Path, list[Path]], None, None]:
     if depth is not None and depth <= 0:
         return
@@ -35,6 +40,16 @@ def walk(
             # This prevents recursing into child directories of hidden paths
             del dirnames[:]
             continue
+
+        if exclude_paths:
+            project_dirpath = (
+                Path(dirpath).relative_to(project_root) if project_root else rel_dirpath
+            )
+            if is_path_excluded(
+                exclude_paths, project_dirpath, use_regex_matching=use_regex_matching
+            ):
+                del dirnames[:]
+                continue
 
         if depth:
             # Ignore anything past requested depth
@@ -48,8 +63,20 @@ def walk(
         yield rel_dirpath, list(map(Path, filter(filter_filename, filenames)))
 
 
-def walk_pyfiles(root: Path, depth: int | None = None) -> Generator[Path, None, None]:
-    for dirpath, filepaths in walk(root, depth=depth):
+def walk_pyfiles(
+    root: Path,
+    project_root: Optional[Path] = None,
+    exclude_paths: Optional[list[str]] = None,
+    use_regex_matching: bool = False,
+    depth: int | None = None,
+) -> Generator[Path, None, None]:
+    for dirpath, filepaths in walk(
+        root,
+        project_root=project_root,
+        exclude_paths=exclude_paths,
+        use_regex_matching=use_regex_matching,
+        depth=depth,
+    ):
         for filepath in filepaths:
             if filepath.name.endswith(".py"):
                 yield dirpath / filepath
