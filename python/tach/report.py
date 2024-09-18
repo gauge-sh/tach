@@ -13,6 +13,7 @@ from tach.extension import (
 )
 from tach.filesystem import walk_pyfiles
 from tach.utils.display import create_clickable_link
+from tach.utils.exclude import is_path_excluded
 from tach.utils.external import (
     get_package_name,
     is_stdlib_module,
@@ -166,6 +167,13 @@ def external_dependency_report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
+    if exclude_paths and is_path_excluded(
+        exclude_paths,
+        path,
+        use_regex_matching=project_config.use_regex_matching,
+    ):
+        raise errors.TachError(f"The path '{path}' is excluded.")
+
     # This informs the Rust extension ahead-of-time which paths are excluded.
     set_excluded_paths(
         project_root=str(project_root),
@@ -186,7 +194,12 @@ def external_dependency_report(
         return render_external_dependency_report(path, external_dependencies, raw=raw)
 
     all_external_dependencies: list[ExternalDependency] = []
-    for pyfile in walk_pyfiles(path):
+    for pyfile in walk_pyfiles(
+        path,
+        project_root=project_root,
+        exclude_paths=exclude_paths,
+        use_regex_matching=project_config.use_regex_matching,
+    ):
         all_external_dependencies.extend(
             get_external_dependencies(
                 source_roots=source_roots,
