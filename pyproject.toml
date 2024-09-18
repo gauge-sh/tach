@@ -59,12 +59,12 @@ keywords = [
 dev = [
     # Core deps (pinned)
     "pydantic==2.8.2; python_version > '3.7'",
-    "rich==13.8.0",
+    "rich==13.8.1",
     "prompt-toolkit==3.0.47",
     # Setup
     "pip==24.0",
     # Code Quality
-    "pyright==1.1.379",
+    "pyright==1.1.380",
     "ruff==0.6.5",
     # Build/Release
     "setuptools==69.5.1; python_version > '3.7'",

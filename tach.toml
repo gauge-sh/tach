@@ -88,6 +88,7 @@ depends_on = [
     { path = "tach.colors" },
     { path = "tach.constants" },
     { path = "tach.hooks" },
+    { path = "tach.utils" },
 ]
 
 [[modules]]
@@ -110,6 +111,7 @@ strict = true
 depends_on = [
     { path = "tach.errors" },
     { path = "tach.filesystem" },
+    { path = "tach.utils" },
 ]
 
 [[modules]]
