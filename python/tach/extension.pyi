@@ -145,8 +145,8 @@ class ProjectConfig:
     def dump_project_config_to_toml(self, project_config: ProjectConfig) -> str: ...
 
 class TachPytestPluginHandler:
-    removed_test_paths: set[Path]
-    all_affected_modules: set[Path]
+    removed_test_paths: set[str]
+    all_affected_modules: set[str]
     num_removed_items: int
     tests_ran_to_completion: bool
     def __new__(
@@ -156,4 +156,5 @@ class TachPytestPluginHandler:
         changed_files: list[Path],
         all_affected_modules: set[Path],
     ) -> TachPytestPluginHandler: ...
+    def remove_test_path(self, path: Path) -> None: ...
     def should_remove_items(self, file_path: Path) -> bool: ...
