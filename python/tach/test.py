@@ -47,14 +47,14 @@ def run_affected_tests(
             for item in copy(items):
                 if not item.path:
                     continue
-                if item.path in self.handler.removed_test_paths:
+                if str(item.path) in self.handler.removed_test_paths:
                     self.handler.num_removed_items += 1
                     items.remove(item)
                     continue
                 if item.path in seen:
                     continue
 
-                if item.path in self.handler.all_affected_modules:
+                if str(item.path) in self.handler.all_affected_modules:
                     # If this test file was changed,
                     # then we know we need to rerun it
                     seen.add(item.path)
@@ -63,7 +63,7 @@ def run_affected_tests(
                 if self.handler.should_remove_items(file_path=item.path.resolve()):
                     self.handler.num_removed_items += 1
                     items.remove(item)
-                    self.handler.removed_test_paths.add(item.path)
+                    self.handler.remove_test_path(item.path)
 
                 seen.add(item.path)
 
