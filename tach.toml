@@ -52,6 +52,7 @@ depends_on = [
     { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem" },
+    { path = "tach.icons" },
     { path = "tach.logging" },
     { path = "tach.mod" },
     { path = "tach.parsing" },
@@ -104,6 +105,11 @@ strict = true
 depends_on = [
     { path = "tach.constants" },
 ]
+
+[[modules]]
+path = "tach.icons"
+strict = true
+depends_on = []
 
 [[modules]]
 path = "tach.interactive"
