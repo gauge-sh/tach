@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
 
-from tach import __version__, cache
+from tach import __version__, cache, icons
 from tach import filesystem as fs
 from tach.check_external import check_external
 from tach.colors import BCOLORS
@@ -58,11 +58,11 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         )
 
     error_template = (
-        f"❌ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
+        f"{icons.FAIL}: {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
     warning_template = (
-        f"‼️ {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
+        f"{icons.WARNING} {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
     error_info = error.error_info
@@ -100,7 +100,7 @@ def print_unused_dependencies(
         for unused_dependencies in all_unused_dependencies
     )
     print(
-        f"❌ {BCOLORS.FAIL}Found unused dependencies: {BCOLORS.ENDC}\n"
+        f"{icons.FAIL}: {BCOLORS.FAIL}Found unused dependencies: {BCOLORS.ENDC}\n"
         + constraint_messages
     )
     print(
@@ -133,7 +133,7 @@ def print_circular_dependency_error(module_paths: list[str]) -> None:
     print(
         "\n".join(
             [
-                f"❌ {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
+                f"{icons.FAIL}: {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
                 for module_path in module_paths
             ]
         )
@@ -149,7 +149,7 @@ def print_undeclared_dependencies(
     for file_path, dependencies in undeclared_dependencies.items():
         if dependencies:
             print(
-                f"❌ {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
+                f"{icons.FAIL}: {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
             )
             for dependency in dependencies:
                 print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
@@ -165,7 +165,7 @@ def print_unused_external_dependencies(
     for pyproject_path, dependencies in unused_dependencies.items():
         if dependencies:
             print(
-                f"! {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
+                f"{icons.WARNING} {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
             )
             for dependency in dependencies:
                 print(f"\t{BCOLORS.WARNING}{dependency}{BCOLORS.ENDC}")
@@ -556,7 +556,9 @@ def tach_check(
         sys.exit(1)
 
     if exit_code == 0:
-        print(f"✅ {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}")
+        print(
+            f"{icons.SUCCESS}: {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}"
+        )
     sys.exit(exit_code)
 
 
@@ -596,7 +598,9 @@ def tach_check_external(project_root: Path, exclude_paths: list[str] | None = No
         print(str(e))
         sys.exit(1)
 
-    print(f"✅ {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}")
+    print(
+        f"{icons.SUCCESS}: {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
+    )
     sys.exit(0)
 
 
@@ -634,7 +638,7 @@ def tach_mod(
         print("\n".join(warnings))
     if saved_changes:
         print(
-            f"✅ {BCOLORS.OKGREEN}Set modules! You may want to run '{TOOL_NAME} sync' "
+            f"{icons.SUCCESS}: {BCOLORS.OKGREEN}Set modules! You may want to run '{TOOL_NAME} sync' "
             f"to automatically set boundaries.{BCOLORS.ENDC}"
         )
     sys.exit(0)
@@ -672,7 +676,7 @@ def tach_sync(
         print(str(e))
         sys.exit(1)
 
-    print(f"✅ {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
+    print(f"{icons.SUCCESS}: {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -704,7 +708,7 @@ def tach_install(project_root: Path, target: InstallTarget) -> None:
 
     if installed:
         print(
-            f"✅ {BCOLORS.OKGREEN}Pre-commit hook installed to '.git/hooks/pre-commit'.{BCOLORS.ENDC}"
+            f"{icons.SUCCESS}: {BCOLORS.OKGREEN}Pre-commit hook installed to '.git/hooks/pre-commit'.{BCOLORS.ENDC}"
         )
         sys.exit(0)
     else:
