@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::filesystem::ROOT_MODULE_SENTINEL_TAG;
+use crate::filesystem::{self, ROOT_MODULE_SENTINEL_TAG};
 
 // for serde
 fn default_true() -> bool {
@@ -12,6 +12,14 @@ fn default_true() -> bool {
 fn default_source_roots() -> Vec<PathBuf> {
     vec![PathBuf::from(".")]
 }
+
+fn default_excludes() -> Vec<String> {
+    filesystem::DEFAULT_EXCLUDE_PATHS
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
+}
+
 fn is_true(value: &bool) -> bool {
     *value
 }
@@ -166,7 +174,7 @@ impl Default for ProjectConfig {
             modules: Default::default(),
             cache: Default::default(),
             external: Default::default(),
-            exclude: Default::default(),
+            exclude: default_excludes(),
             source_roots: default_source_roots(),
             exact: Default::default(),
             disable_logging: Default::default(),
