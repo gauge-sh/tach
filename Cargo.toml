@@ -1,6 +1,6 @@
 [package]
 name = "tach"
-version = "0.11.0"
+version = "0.11.1"
 edition = "2021"
 
 [lib]
@@ -19,7 +19,7 @@ ruff_source_file = { git = "https://github.com/astral-sh/ruff.git", tag = "v0.4.
 cached = { version = "0.53.1", features = ["disk_store"] }
 globset = "0.4.15"
 toml = "0.8.19"
-thiserror = "1.0.63"
+thiserror = "1.0.64"
 serde = { version = "1.0.210", features = ["derive"] }
 glob = "0.3.1"
 petgraph = "0.6.5"
