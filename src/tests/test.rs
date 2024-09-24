@@ -14,22 +14,25 @@ pub mod fixtures {
             ModuleConfig::new("tach", true),
             ModuleConfig {
                 path: "tach.__main__".to_string(),
-                depends_on: vec![DependencyConfig::from_undeprecated_path("tach.start")],
+                depends_on: vec![DependencyConfig::from_path("tach.start")],
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.cache".to_string(),
                 depends_on: ["tach", "tach.filesystem"]
-                    .map(DependencyConfig::from_undeprecated_path)
+                    .map(DependencyConfig::from_path)
                     .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.check".to_string(),
                 depends_on: ["tach.errors", "tach.filesystem", "tach.parsing"]
-                    .map(DependencyConfig::from_undeprecated_path)
+                    .map(DependencyConfig::from_path)
                     .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.cli".to_string(),
@@ -50,16 +53,18 @@ pub mod fixtures {
                     "tach.sync",
                     "tach.test",
                 ]
-                .map(DependencyConfig::from_undeprecated_path)
+                .map(DependencyConfig::from_path)
                 .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig::new("tach.colors", true),
             ModuleConfig::new("tach.constants", true),
             ModuleConfig {
                 path: "tach.core".to_string(),
-                depends_on: vec![DependencyConfig::from_undeprecated_path("tach.constants")],
+                depends_on: vec![DependencyConfig::from_path("tach.constants")],
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig::new("tach.errors", true),
             ModuleConfig {
@@ -71,33 +76,38 @@ pub mod fixtures {
                     "tach.errors",
                     "tach.hooks",
                 ]
-                .map(DependencyConfig::from_undeprecated_path)
+                .map(DependencyConfig::from_path)
                 .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.filesystem.git_ops".to_string(),
-                depends_on: vec![DependencyConfig::from_undeprecated_path("tach.errors")],
+                depends_on: vec![DependencyConfig::from_path("tach.errors")],
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.hooks".to_string(),
-                depends_on: vec![DependencyConfig::from_undeprecated_path("tach.constants")],
+                depends_on: vec![DependencyConfig::from_path("tach.constants")],
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.interactive".to_string(),
                 depends_on: ["tach.errors", "tach.filesystem"]
-                    .map(DependencyConfig::from_undeprecated_path)
+                    .map(DependencyConfig::from_path)
                     .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.logging".to_string(),
                 depends_on: ["tach", "tach.cache", "tach.parsing"]
-                    .map(DependencyConfig::from_undeprecated_path)
+                    .map(DependencyConfig::from_path)
                     .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.mod".to_string(),
@@ -109,27 +119,31 @@ pub mod fixtures {
                     "tach.interactive",
                     "tach.parsing",
                 ]
-                .map(DependencyConfig::from_undeprecated_path)
+                .map(DependencyConfig::from_path)
                 .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.parsing".to_string(),
                 depends_on: ["tach.constants", "tach.core", "tach.filesystem"]
-                    .map(DependencyConfig::from_undeprecated_path)
+                    .map(DependencyConfig::from_path)
                     .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.report".to_string(),
-                depends_on: vec![DependencyConfig::from_undeprecated_path("tach.errors")],
+                depends_on: vec![DependencyConfig::from_path("tach.errors")],
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig::new("tach.show", true),
             ModuleConfig {
                 path: "tach.start".to_string(),
-                depends_on: vec![DependencyConfig::from_undeprecated_path("tach.cli")],
+                depends_on: vec![DependencyConfig::from_path("tach.cli")],
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.sync".to_string(),
@@ -139,9 +153,10 @@ pub mod fixtures {
                     "tach.filesystem",
                     "tach.parsing",
                 ]
-                .map(DependencyConfig::from_undeprecated_path)
+                .map(DependencyConfig::from_path)
                 .into(),
                 strict: true,
+                ..Default::default()
             },
             ModuleConfig {
                 path: "tach.test".to_string(),
@@ -151,9 +166,10 @@ pub mod fixtures {
                     "tach.filesystem.git_ops",
                     "tach.parsing",
                 ]
-                .map(DependencyConfig::from_undeprecated_path)
+                .map(DependencyConfig::from_path)
                 .into(),
                 strict: false,
+                ..Default::default()
             },
         ]
     }
@@ -181,10 +197,9 @@ pub mod fixtures {
                                     full_path: "tach.__main__".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.__main__".to_string(),
-                                        depends_on: vec![DependencyConfig::from_undeprecated_path(
-                                            "tach.start",
-                                        )],
+                                        depends_on: vec![DependencyConfig::from_path("tach.start")],
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec![],
                                     children: HashMap::new(),
@@ -198,9 +213,10 @@ pub mod fixtures {
                                     config: Some(ModuleConfig {
                                         path: "tach.cache".to_string(),
                                         depends_on: ["tach", "tach.filesystem"]
-                                            .map(DependencyConfig::from_undeprecated_path)
+                                            .map(DependencyConfig::from_path)
                                             .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec![
                                         "get_uid".to_string(),
@@ -222,9 +238,10 @@ pub mod fixtures {
                                             "tach.filesystem",
                                             "tach.parsing",
                                         ]
-                                        .map(DependencyConfig::from_undeprecated_path)
+                                        .map(DependencyConfig::from_path)
                                         .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec![
                                         "BoundaryError".to_string(),
@@ -257,9 +274,10 @@ pub mod fixtures {
                                             "tach.sync",
                                             "tach.test",
                                         ]
-                                        .map(DependencyConfig::from_undeprecated_path)
+                                        .map(DependencyConfig::from_path)
                                         .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec!["main".to_string()],
                                     children: HashMap::new(),
@@ -301,10 +319,11 @@ pub mod fixtures {
                                     full_path: "tach.core".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.core".to_string(),
-                                        depends_on: vec![DependencyConfig::from_undeprecated_path(
+                                        depends_on: vec![DependencyConfig::from_path(
                                             "tach.constants",
                                         )],
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: [
                                         "ProjectConfig",
@@ -348,9 +367,10 @@ pub mod fixtures {
                                             "tach.errors",
                                             "tach.hooks",
                                         ]
-                                        .map(DependencyConfig::from_undeprecated_path)
+                                        .map(DependencyConfig::from_path)
                                         .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: [
                                         "get_cwd",
@@ -380,12 +400,11 @@ pub mod fixtures {
                                             full_path: "tach.filesystem.git_ops".to_string(),
                                             config: Some(ModuleConfig {
                                                 path: "tach.filesystem.git_ops".to_string(),
-                                                depends_on: vec![
-                                                    DependencyConfig::from_undeprecated_path(
-                                                        "tach.errors",
-                                                    ),
-                                                ],
+                                                depends_on: vec![DependencyConfig::from_path(
+                                                    "tach.errors",
+                                                )],
                                                 strict: true,
+                                                ..Default::default()
                                             }),
                                             interface_members: vec!["get_changed_files".to_string()],
                                             children: HashMap::new(),
@@ -400,10 +419,11 @@ pub mod fixtures {
                                     full_path: "tach.hooks".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.hooks".to_string(),
-                                        depends_on: vec![DependencyConfig::from_undeprecated_path(
+                                        depends_on: vec![DependencyConfig::from_path(
                                             "tach.constants",
                                         )],
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec![
                                         "build_pre_commit_hook_content".to_string()
@@ -419,9 +439,10 @@ pub mod fixtures {
                                     config: Some(ModuleConfig {
                                         path: "tach.interactive".to_string(),
                                         depends_on: ["tach.errors", "tach.filesystem"]
-                                            .map(DependencyConfig::from_undeprecated_path)
+                                            .map(DependencyConfig::from_path)
                                             .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: [
                                         "get_selected_modules_interactive",
@@ -440,9 +461,10 @@ pub mod fixtures {
                                     config: Some(ModuleConfig {
                                         path: "tach.logging".to_string(),
                                         depends_on: ["tach", "tach.cache", "tach.parsing"]
-                                            .map(DependencyConfig::from_undeprecated_path)
+                                            .map(DependencyConfig::from_path)
                                             .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: [
                                         "logger".to_string(),
@@ -467,9 +489,10 @@ pub mod fixtures {
                                             "tach.interactive",
                                             "tach.parsing",
                                         ]
-                                        .map(DependencyConfig::from_undeprecated_path)
+                                        .map(DependencyConfig::from_path)
                                         .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec!["mod_edit_interactive".to_string()],
                                     children: HashMap::new(),
@@ -487,9 +510,10 @@ pub mod fixtures {
                                             "tach.core",
                                             "tach.filesystem",
                                         ]
-                                        .map(DependencyConfig::from_undeprecated_path)
+                                        .map(DependencyConfig::from_path)
                                         .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: [
                                         "parse_project_config",
@@ -509,10 +533,11 @@ pub mod fixtures {
                                     full_path: "tach.report".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.report".to_string(),
-                                        depends_on: vec![DependencyConfig::from_undeprecated_path(
+                                        depends_on: vec![DependencyConfig::from_path(
                                             "tach.errors",
                                         )],
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec!["report".to_string()],
                                     children: HashMap::new(),
@@ -535,10 +560,9 @@ pub mod fixtures {
                                     full_path: "tach.start".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.start".to_string(),
-                                        depends_on: vec![DependencyConfig::from_undeprecated_path(
-                                            "tach.cli",
-                                        )],
+                                        depends_on: vec![DependencyConfig::from_path("tach.cli")],
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec!["start".to_string()],
                                     children: HashMap::new(),
@@ -557,9 +581,10 @@ pub mod fixtures {
                                             "tach.filesystem",
                                             "tach.parsing",
                                         ]
-                                        .map(DependencyConfig::from_undeprecated_path)
+                                        .map(DependencyConfig::from_path)
                                         .into(),
                                         strict: true,
+                                        ..Default::default()
                                     }),
                                     interface_members: [
                                         "sync_project",
@@ -583,9 +608,10 @@ pub mod fixtures {
                                             "tach.filesystem.git_ops",
                                             "tach.parsing",
                                         ]
-                                        .map(DependencyConfig::from_undeprecated_path)
+                                        .map(DependencyConfig::from_path)
                                         .into(),
                                         strict: false,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec![],
                                     children: HashMap::new(),

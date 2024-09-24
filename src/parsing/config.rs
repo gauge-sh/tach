@@ -58,21 +58,25 @@ mod tests {
                         path: "domain_one".to_string(),
                         depends_on: vec![DependencyConfig::from_deprecated_path("domain_two")],
                         strict: false,
+                        ..Default::default()
                     },
                     ModuleConfig {
                         path: "domain_three".to_string(),
                         depends_on: vec![],
                         strict: false,
+                        ..Default::default()
                     },
                     ModuleConfig {
                         path: "domain_two".to_string(),
-                        depends_on: vec![DependencyConfig::from_undeprecated_path("domain_three")],
+                        depends_on: vec![DependencyConfig::from_path("domain_three")],
                         strict: false,
+                        ..Default::default()
                     },
                     ModuleConfig {
                         path: ROOT_MODULE_SENTINEL_TAG.to_string(),
-                        depends_on: vec![DependencyConfig::from_undeprecated_path("domain_one")],
+                        depends_on: vec![DependencyConfig::from_path("domain_one")],
                         strict: false,
+                        ..Default::default()
                     }
                 ],
                 cache: CacheConfig::default(),
