@@ -17,6 +17,7 @@ from tach.errors import TachError
 from tach.extension import (
     ProjectConfig,
     TachCircularDependencyError,
+    TachVisibilityError,
     check,
     check_computation_cache,
     create_computation_cache_key,
@@ -58,7 +59,7 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         )
 
     error_template = (
-        f"{icons.FAIL}: {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
+        f"{icons.FAIL} {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
     warning_template = (
@@ -133,7 +134,7 @@ def print_circular_dependency_error(module_paths: list[str]) -> None:
     print(
         "\n".join(
             [
-                f"{icons.FAIL}: {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
+                f"{icons.FAIL} {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
                 for module_path in module_paths
             ]
         )
@@ -141,6 +142,18 @@ def print_circular_dependency_error(module_paths: list[str]) -> None:
         f"Remove or unset 'forbid_circular_dependencies' from "
         f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}"
     )
+
+
+def print_visibility_errors(
+    visibility_errors: list[tuple[str, str, list[str]]],
+) -> None:
+    for dependent_module, dependency_module, visibility in visibility_errors:
+        print(
+            f"{icons.FAIL} {BCOLORS.FAIL}Module configuration error:{BCOLORS.ENDC} {BCOLORS.WARNING}'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.{BCOLORS.ENDC}"
+            "\n"
+            f"{BCOLORS.WARNING}Adjust 'visibility' for '{dependency_module}' to include '{dependent_module}', or remove the dependency.{BCOLORS.ENDC}"
+            "\n"
+        )
 
 
 def print_undeclared_dependencies(
@@ -548,16 +561,19 @@ def tach_check(
             if unused_dependencies:
                 print_unused_dependencies(unused_dependencies)
                 exit_code = 1
+    except TachCircularDependencyError as e:
+        print_circular_dependency_error(e.dependencies)
+        sys.exit(1)
+    except TachVisibilityError as e:
+        print_visibility_errors(e.visibility_errors)
+        sys.exit(1)
     except Exception as e:
-        if isinstance(e, TachCircularDependencyError):
-            print_circular_dependency_error(e.dependencies)
-        else:
-            print(str(e))
+        print(str(e))
         sys.exit(1)
 
     if exit_code == 0:
         print(
-            f"{icons.SUCCESS}: {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}"
+            f"{icons.SUCCESS} {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}"
         )
     sys.exit(exit_code)
 
@@ -599,7 +615,7 @@ def tach_check_external(project_root: Path, exclude_paths: list[str] | None = No
         sys.exit(1)
 
     print(
-        f"{icons.SUCCESS}: {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
+        f"{icons.SUCCESS} {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
     )
     sys.exit(0)
 
@@ -638,7 +654,7 @@ def tach_mod(
         print("\n".join(warnings))
     if saved_changes:
         print(
-            f"{icons.SUCCESS}: {BCOLORS.OKGREEN}Set modules! You may want to run '{TOOL_NAME} sync' "
+            f"{icons.SUCCESS} {BCOLORS.OKGREEN}Set modules! You may want to run '{TOOL_NAME} sync' "
             f"to automatically set boundaries.{BCOLORS.ENDC}"
         )
     sys.exit(0)
@@ -676,7 +692,7 @@ def tach_sync(
         print(str(e))
         sys.exit(1)
 
-    print(f"{icons.SUCCESS}: {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
+    print(f"{icons.SUCCESS} {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
     sys.exit(0)
 
 
@@ -708,7 +724,7 @@ def tach_install(project_root: Path, target: InstallTarget) -> None:
 
     if installed:
         print(
-            f"{icons.SUCCESS}: {BCOLORS.OKGREEN}Pre-commit hook installed to '.git/hooks/pre-commit'.{BCOLORS.ENDC}"
+            f"{icons.SUCCESS} {BCOLORS.OKGREEN}Pre-commit hook installed to '.git/hooks/pre-commit'.{BCOLORS.ENDC}"
         )
         sys.exit(0)
     else:

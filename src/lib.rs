@@ -68,6 +68,11 @@ impl From<check_int::CheckError> for PyErr {
         ) = err
         {
             PyErr::new::<TachCircularDependencyError, _>(c)
+        } else if let check_int::CheckError::ModuleTree(
+            parsing::error::ModuleTreeError::VisibilityViolation(v),
+        ) = err
+        {
+            PyErr::new::<TachVisibilityError, _>(v)
         } else {
             PyValueError::new_err(err.to_string())
         }
@@ -332,6 +337,10 @@ fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         "TachCircularDependencyError",
         py.get_type_bound::<TachCircularDependencyError>(),
     )?;
+    m.add(
+        "TachVisibilityError",
+        py.get_type_bound::<TachVisibilityError>(),
+    )?;
     Ok(())
 }
 
@@ -345,6 +354,20 @@ struct TachCircularDependencyError {
 impl TachCircularDependencyError {
     #[new]
     fn new(dependencies: Vec<String>) -> Self {
-        TachCircularDependencyError { dependencies }
+        Self { dependencies }
+    }
+}
+
+#[pyclass(extends=PyValueError)]
+struct TachVisibilityError {
+    #[pyo3(get)]
+    visibility_errors: Vec<PyObject>,
+}
+
+#[pymethods]
+impl TachVisibilityError {
+    #[new]
+    fn new(visibility_errors: Vec<PyObject>) -> Self {
+        Self { visibility_errors }
     }
 }

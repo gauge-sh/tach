@@ -20,8 +20,12 @@ fn default_excludes() -> Vec<String> {
         .collect()
 }
 
-fn default_visibility() -> Vec<String> {
+pub fn global_visibility() -> Vec<String> {
     vec!["*".to_string()]
+}
+
+fn default_visibility() -> Vec<String> {
+    global_visibility()
 }
 
 fn is_default_visibility(value: &Vec<String>) -> bool {

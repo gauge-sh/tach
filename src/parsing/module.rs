@@ -1,12 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::core::config::ModuleConfig;
+use crate::core::config::{global_visibility, ModuleConfig};
 use crate::core::module::ModuleTree;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 
-use super::error::ModuleTreeError;
+use super::error::{ModuleTreeError, VisibilityErrorInfo};
 use super::py_ast::parse_interface_members;
 
 pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
@@ -22,6 +22,61 @@ pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
     }
 
     duplicate_module_paths
+}
+
+fn visibility_matches_module_path(visibility: &str, module_path: &str) -> bool {
+    // If visibility pattern is exactly '*', any module path matches
+    if visibility == "*" {
+        return true;
+    }
+
+    let visibility_components: Vec<&str> = visibility.split('.').collect();
+    let module_components: Vec<&str> = module_path.split('.').collect();
+
+    // If the number of components doesn't match, return false
+    if visibility_components.len() != module_components.len() {
+        return false;
+    }
+
+    // Compare each component
+    visibility_components
+        .iter()
+        .zip(module_components.iter())
+        .all(|(vis_comp, mod_comp)| *vis_comp == "*" || *vis_comp == *mod_comp)
+}
+
+pub fn find_visibility_violations(modules: &[ModuleConfig]) -> Vec<VisibilityErrorInfo> {
+    let mut visibility_by_path: HashMap<String, Vec<String>> = HashMap::new();
+    let mut globally_visible_paths: HashSet<String> = HashSet::new();
+
+    let global_vis = global_visibility();
+    modules.iter().for_each(|module| {
+        if module.visibility == global_vis {
+            globally_visible_paths.insert(module.mod_path().clone());
+        } else {
+            visibility_by_path.insert(module.mod_path().clone(), module.visibility.clone());
+        }
+    });
+
+    let mut results: Vec<VisibilityErrorInfo> = Vec::new();
+    for module in modules.iter() {
+        for dependency_config in module.depends_on.iter() {
+            if let Some(visibility) = visibility_by_path.get(&dependency_config.path) {
+                // check if visibility of this dependency doesn't match the current module
+                if !visibility.iter().any(|visibility_pattern| {
+                    visibility_matches_module_path(visibility_pattern, &module.mod_path())
+                }) {
+                    results.push(VisibilityErrorInfo {
+                        dependent_module: module.mod_path().clone(),
+                        dependency_module: dependency_config.path.clone(),
+                        visibility: visibility.clone(),
+                    })
+                }
+            }
+        }
+    }
+
+    results
 }
 
 pub fn find_modules_with_cycles(modules: &[ModuleConfig]) -> Vec<&String> {
@@ -64,6 +119,12 @@ pub fn build_module_tree(
         return Err(ModuleTreeError::DuplicateModules(
             duplicate_modules.iter().map(|s| s.to_string()).collect(),
         ));
+    }
+
+    // Check for visibility errors (dependency declared on invisible module)
+    let visibility_error_info = find_visibility_violations(&modules);
+    if !visibility_error_info.is_empty() {
+        return Err(ModuleTreeError::VisibilityViolation(visibility_error_info));
     }
 
     // Check for circular dependencies if forbidden
