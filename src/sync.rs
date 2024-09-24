@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use crate::check_int::check;
-use crate::core::config::{DependencyConfig, ModuleConfig, ProjectConfig};
+use crate::core::config::{global_visibility, DependencyConfig, ModuleConfig, ProjectConfig};
 use crate::filesystem as fs;
 use crate::parsing::config::dump_project_config_to_toml;
 use std::collections::HashMap;
@@ -20,12 +20,19 @@ pub enum SyncError {
 /// but will not remove any constraints.
 pub fn sync_dependency_constraints(
     project_root: PathBuf,
-    project_config: ProjectConfig,
+    mut project_config: ProjectConfig,
     exclude_paths: Vec<String>,
     prune: bool,
 ) -> ProjectConfig {
     let mut deprecation_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut visibility_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut new_project_config = None;
+
+    // Drain visibility patterns from modules into visibility map, restore after syncing
+    project_config.modules.iter_mut().for_each(|module| {
+        visibility_map.insert(module.path.clone(), module.visibility.drain(..).collect());
+        module.visibility.extend(global_visibility());
+    });
 
     if prune {
         let mut new_modules: Vec<ModuleConfig> = Vec::new();
@@ -75,6 +82,13 @@ pub fn sync_dependency_constraints(
             };
 
             new_project_config.add_dependency_to_module(source_path, dependency);
+        }
+    }
+
+    // Restore visibility settings
+    for module in new_project_config.modules.iter_mut() {
+        if let Some(visibility) = visibility_map.get(&module.path) {
+            module.visibility = visibility.clone();
         }
     }
 

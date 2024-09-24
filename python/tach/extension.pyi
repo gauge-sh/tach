@@ -100,6 +100,7 @@ class DependencyConfig:
 class ModuleConfig:
     path: str
     depends_on: list[DependencyConfig]
+    visibility: list[str]
     strict: bool
 
     @staticmethod
