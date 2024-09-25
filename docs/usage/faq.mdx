@@ -13,11 +13,21 @@ A 'module' is a Python module with dependencies configured in `tach.toml`. A mod
 The module is identified by its import path from the nearest source root (e.g. `a.b` for `<root>/a/b.py`),
 and its dependencies are listed in the `depends_on` key containing module paths in the same format.
 
+[See more information on configuration here.](./configuration)
+
+### How can I isolate a module from the rest of the code?
+
+To prevent any external usage of a given module, you can set `visibility: []` for the module in `tach.toml`. This means that no other module can declare a dependency on this module.
+
+[See more information on configuration here.](./configuration)
+
 ### Are conditional imports checked?
 
 Tach will check all imports in your source files, including those which are called conditionally.
 The only exceptions are imports made within `TYPE_CHECKING` conditional blocks. If you want to disable checks for
 these imports, you can add `ignore_type_checking_imports: true` to your `tach.toml`.
+
+[See more information on configuration here.](./configuration)
 
 ### Can you catch dynamic references?
 
