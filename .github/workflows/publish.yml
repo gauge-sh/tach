@@ -35,19 +35,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: |
-              3.7
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13-dev
+            3.7
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13-dev
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -68,21 +68,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version:  |
-              3.7
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13-dev
+          python-version: |
+            3.7
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13-dev
           architecture: ${{ matrix.platform.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -102,19 +102,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version:  |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13-dev
+          python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13-dev
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
-          sccache: 'true'
+          sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -148,5 +148,6 @@ jobs:
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
         with:
+          maturin-version: v1.7.1
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
