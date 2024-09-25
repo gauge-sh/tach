@@ -108,8 +108,8 @@ depends_on = [
 
 [[modules]]
 path = "tach.icons"
-strict = true
 depends_on = []
+strict = true
 
 [[modules]]
 path = "tach.interactive"

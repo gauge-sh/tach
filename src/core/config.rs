@@ -20,6 +20,18 @@ fn default_excludes() -> Vec<String> {
         .collect()
 }
 
+pub fn global_visibility() -> Vec<String> {
+    vec!["*".to_string()]
+}
+
+fn default_visibility() -> Vec<String> {
+    global_visibility()
+}
+
+fn is_default_visibility(value: &Vec<String>) -> bool {
+    value == &default_visibility()
+}
+
 fn is_true(value: &bool) -> bool {
     *value
 }
@@ -42,7 +54,7 @@ impl DependencyConfig {
             deprecated: true,
         }
     }
-    pub fn from_undeprecated_path(path: impl Into<String>) -> Self {
+    pub fn from_path(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
             deprecated: false,
@@ -50,14 +62,30 @@ impl DependencyConfig {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, eq, module = "tach.extension")]
 pub struct ModuleConfig {
     pub path: String,
     #[serde(default)]
     pub depends_on: Vec<DependencyConfig>,
+    #[serde(
+        default = "default_visibility",
+        skip_serializing_if = "is_default_visibility"
+    )]
+    pub visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub strict: bool,
+}
+
+impl Default for ModuleConfig {
+    fn default() -> Self {
+        Self {
+            path: String::default(),
+            depends_on: Vec::default(),
+            visibility: default_visibility(),
+            strict: false,
+        }
+    }
 }
 
 #[pymethods]
@@ -67,6 +95,7 @@ impl ModuleConfig {
         Self {
             path: path.to_string(),
             depends_on: vec![],
+            visibility: default_visibility(),
             strict,
         }
     }

@@ -71,8 +71,11 @@ def sync_project(
     add: bool = False,
 ) -> str: ...
 
-class TachCircularDependencyError(Exception):
+class TachCircularDependencyError(ValueError):
     dependencies: list[str]
+
+class TachVisibilityError(ValueError):
+    visibility_errors: list[tuple[str, str, list[str]]]
 
 class ErrorInfo:
     def is_dependency_error(self) -> bool: ...
@@ -97,6 +100,7 @@ class DependencyConfig:
 class ModuleConfig:
     path: str
     depends_on: list[DependencyConfig]
+    visibility: list[str]
     strict: bool
 
     @staticmethod

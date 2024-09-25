@@ -26,9 +26,10 @@ pub mod fixtures {
                                 path: "domain_one".to_string(),
                                 depends_on: vec![
                                     DependencyConfig::from_deprecated_path("domain_one.subdomain"),
-                                    DependencyConfig::from_undeprecated_path("domain_three"),
+                                    DependencyConfig::from_path("domain_three"),
                                 ],
                                 strict: true,
+                                ..Default::default()
                             }),
                             interface_members: vec!["public_fn".to_string()],
                             children: HashMap::from([(
@@ -50,10 +51,9 @@ pub mod fixtures {
                             full_path: "domain_two".to_string(),
                             config: Some(ModuleConfig {
                                 path: "domain_two".to_string(),
-                                depends_on: vec![DependencyConfig::from_undeprecated_path(
-                                    "domain_one",
-                                )],
+                                depends_on: vec![DependencyConfig::from_path("domain_one")],
                                 strict: false,
+                                ..Default::default()
                             }),
                             interface_members: vec![],
                             children: HashMap::from([(
@@ -63,10 +63,9 @@ pub mod fixtures {
                                     full_path: "domain_two.subdomain".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "domain_two".to_string(),
-                                        depends_on: vec![DependencyConfig::from_undeprecated_path(
-                                            "domain_one",
-                                        )],
+                                        depends_on: vec![DependencyConfig::from_path("domain_one")],
                                         strict: false,
+                                        ..Default::default()
                                     }),
                                     interface_members: vec![],
                                     children: HashMap::new(),
