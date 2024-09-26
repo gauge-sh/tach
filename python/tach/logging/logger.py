@@ -4,9 +4,8 @@ import logging
 import multiprocessing
 import os
 import signal
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict
-
-from pydantic import BaseModel, Field
 
 from tach import __version__, cache
 from tach.logging.api import log_record, log_uid
@@ -16,9 +15,10 @@ if TYPE_CHECKING:
     from types import FrameType
 
 
-class LogDataModel(BaseModel):
+@dataclass
+class LogDataModel:
     function: str
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: Dict[str, Any] = field(default_factory=dict)
 
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
