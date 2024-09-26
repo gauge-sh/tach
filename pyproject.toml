@@ -29,18 +29,15 @@ classifiers = [
 ]
 dependencies = [
     "pyyaml~=6.0",
-    "tomli~=2.0",
+    "tomli>=1.2.2",
     "tomli-w~=1.0",
-    "pydantic~=2.0",
     "rich~=13.0",
     "prompt-toolkit~=3.0",
     "GitPython~=3.1",
-    "networkx~=3.0; python_version > '3.7'",
-    "networkx>=2.6,<4.0; python_version == '3.7'",
+    "networkx>=2.6,<4.0",
     "pydot~=2.0",
     "stdlib-list>=0.10.0; python_version < '3.10'",
-    "eval-type-backport>=0.2.0; python_version < '3.10' and python_version > '3.7'",
-    "importlib_metadata>=6.5; python_version == '3.7'",
+    "importlib_metadata>=6.0; python_version == '3.7'",
 ]
 keywords = [
     'python',
@@ -58,7 +55,6 @@ keywords = [
 [project.optional-dependencies]
 dev = [
     # Core deps (pinned)
-    "pydantic==2.8.2; python_version > '3.7'",
     "rich==13.8.1",
     "prompt-toolkit==3.0.47",
     # Setup
@@ -78,7 +74,6 @@ dev = [
     "maturin==1.7.1",
 
     # python version 3.7 pinned dependencies
-    "pydantic==2.5.3; python_version == '3.7'",
     "setuptools==47.1.0; python_version == '3.7'",
     "twine==4.0.2; python_version == '3.7'",
     "build==1.1.1; python_version == '3.7'",
@@ -103,11 +98,7 @@ lint.ignore = ["UP006", "UP007"]
 required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.flake8-type-checking]
-runtime-evaluated-base-classes = ["pydantic.BaseModel", "pydantic.RootModel"]
-runtime-evaluated-decorators = [
-    "pydantic.dataclasses.dataclass",
-    "dataclasses.dataclass",
-]
+runtime-evaluated-decorators = ["dataclasses.dataclass"]
 exempt-modules = ["typing", "typing_extensions"]
 
 [tool.pyright]
