@@ -161,8 +161,10 @@ depends_on = [
 
 [[modules]]
 path = "tach.show"
-depends_on = []
 strict = true
+depends_on = [
+    { path = "tach.filesystem" },
+]
 
 [[modules]]
 path = "tach.start"

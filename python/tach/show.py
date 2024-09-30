@@ -5,6 +5,8 @@ from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
 
+from tach import filesystem as fs
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -36,28 +38,58 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
         return None
 
 
+def module_path_is_included_in_paths(
+    source_roots: tuple[Path, ...], module_path: str, included_paths: list[Path] | None
+) -> bool:
+    if included_paths is None:
+        return True
+    module_fs_path = fs.module_to_pyfile_or_dir_path(source_roots, module_path)
+    if not module_fs_path:
+        return False
+    for included_path in included_paths:
+        if included_path in module_fs_path.parents or included_path == module_fs_path:
+            return True
+    return False
+
+
 def generate_module_graph_dot_file(
+    project_root: Path,
     project_config: ProjectConfig,
     output_filepath: Path,
     included_paths: list[Path] | None = None,
-    all_dependencies: bool = False,
-    all_usages: bool = False,
 ) -> None:
     # Local import because networkx takes about ~100ms to load
     import networkx as nx
 
     graph = nx.DiGraph()  # type: ignore
-    # Add nodes
-    for module in project_config.modules:
-        # If included_paths is provided, only include the modules that resolve to contained paths
-        graph.add_node(module.path)  # type: ignore
 
-    # Add dependency edges
+    def upsert_edge(graph: nx.DiGraph, module: str, dependency: str) -> None:  # type: ignore
+        if module not in graph:
+            graph.add_node(module)  # type: ignore
+        if dependency not in graph:
+            graph.add_node(dependency)  # type: ignore
+        graph.add_edge(module, dependency)  # type: ignore
+
+    source_roots = tuple(
+        map(lambda source_root: project_root / source_root, project_config.source_roots)
+    )
+    included_paths = (
+        list(map(lambda path: project_root / path, included_paths))
+        if included_paths
+        else None
+    )
     for module in project_config.modules:
-        # if all_usages is True, include any dependency which points into the included paths
+        module_is_included = module_path_is_included_in_paths(
+            source_roots, module.path, included_paths
+        )
         for dependency in module.depends_on:
-            # if all_dependencies is False, only include the dependencies that resolve to contained paths
-            graph.add_edge(module.path, dependency.path)  # type: ignore
+            dependency_is_included = module_path_is_included_in_paths(
+                source_roots, dependency.path, included_paths
+            )
+
+            # This essentially means we propagate one degree from the included modules
+            if module_is_included or dependency_is_included:
+                upsert_edge(graph, module.path, dependency.path)
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
     dot_data: str = pydot_graph.to_string()  # type: ignore
