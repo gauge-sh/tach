@@ -324,6 +324,24 @@ def build_parser() -> argparse.ArgumentParser:
         description="Visualize the dependency graph of your project.",
     )
     show_parser.add_argument(
+        "included_paths",
+        type=Path,
+        nargs="*",
+        help="Paths to include in the module graph. If not provided, the entire project is included.",
+    )
+    show_parser.add_argument(
+        "--all-dependencies",
+        "-d",
+        action="store_true",
+        help="Include all dependencies in the module graph, even if not in the included paths.",
+    )
+    show_parser.add_argument(
+        "--all-usages",
+        "-u",
+        action="store_true",
+        help="Include all usages in the module graph, even if not in the included paths.",
+    )
+    show_parser.add_argument(
         "--web",
         action="store_true",
         help="Open your dependency graph in a remote web viewer.",
@@ -331,7 +349,7 @@ def build_parser() -> argparse.ArgumentParser:
     show_parser.add_argument(
         "-o",
         "--out",
-        type=str,
+        type=Path,
         nargs="?",
         default=None,
         help="Specify an output path for a locally generated module graph file.",
@@ -818,7 +836,12 @@ def tach_report_external(
 
 
 def tach_show(
-    project_root: Path, is_web: bool = False, output_filepath: Path | None = None
+    project_root: Path,
+    included_paths: list[Path] | None = None,
+    is_web: bool = False,
+    all_dependencies: bool = False,
+    all_usages: bool = False,
+    output_filepath: Path | None = None,
 ):
     logger.info(
         "tach show called",
@@ -844,7 +867,13 @@ def tach_show(
         else:
             print_show_web_suggestion()
             output_filepath = output_filepath or Path(f"{TOOL_NAME}_module_graph.dot")
-            generate_module_graph_dot_file(project_config, output_filepath)
+            generate_module_graph_dot_file(
+                project_config,
+                included_paths=included_paths,
+                all_dependencies=all_dependencies,
+                all_usages=all_usages,
+                output_filepath=output_filepath,
+            )
             print_generated_module_graph_file(output_filepath)
             sys.exit(0)
     except TachError as e:
@@ -991,7 +1020,10 @@ def main() -> None:
     elif args.command == "show":
         tach_show(
             project_root=project_root,
-            output_filepath=Path(args.out) if args.out is not None else None,
+            included_paths=args.included_paths,
+            all_dependencies=args.all_dependencies,
+            all_usages=args.all_usages,
+            output_filepath=args.out,
             is_web=args.web,
         )
     else:

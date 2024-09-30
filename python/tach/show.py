@@ -37,7 +37,11 @@ def generate_show_url(project_config: ProjectConfig) -> str | None:
 
 
 def generate_module_graph_dot_file(
-    project_config: ProjectConfig, output_filepath: Path
+    project_config: ProjectConfig,
+    output_filepath: Path,
+    included_paths: list[Path] | None = None,
+    all_dependencies: bool = False,
+    all_usages: bool = False,
 ) -> None:
     # Local import because networkx takes about ~100ms to load
     import networkx as nx
@@ -45,11 +49,14 @@ def generate_module_graph_dot_file(
     graph = nx.DiGraph()  # type: ignore
     # Add nodes
     for module in project_config.modules:
+        # If included_paths is provided, only include the modules that resolve to contained paths
         graph.add_node(module.path)  # type: ignore
 
     # Add dependency edges
     for module in project_config.modules:
+        # if all_usages is True, include any dependency which points into the included paths
         for dependency in module.depends_on:
+            # if all_dependencies is False, only include the dependencies that resolve to contained paths
             graph.add_edge(module.path, dependency.path)  # type: ignore
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
