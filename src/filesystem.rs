@@ -192,7 +192,7 @@ fn is_hidden(entry: &DirEntry) -> bool {
 }
 
 fn direntry_is_excluded(entry: &DirEntry) -> bool {
-    is_path_excluded(entry.path().to_str().unwrap()).unwrap_or(false)
+    is_path_excluded(entry.path()).unwrap_or(false)
 }
 
 fn is_pyfile_or_dir(entry: &DirEntry) -> bool {

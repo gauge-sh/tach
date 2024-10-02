@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from tach.extension import get_project_imports
+from tach.constants import DEFAULT_EXCLUDE_PATHS
+from tach.extension import get_project_imports, set_excluded_paths
 
 
 # Utility function to create temporary files with content
@@ -21,6 +22,11 @@ def create_temp_file(directory, filename, content):
 def temp_project():
     with tempfile.TemporaryDirectory() as project_root:
         project_root = Path(project_root)
+        # This is tech debt!!
+        set_excluded_paths(
+            str(project_root), DEFAULT_EXCLUDE_PATHS, use_regex_matching=True
+        )
+
         # Creating some sample Python files in a nested structure
         (project_root / "a" / "b").mkdir(parents=True, exist_ok=True)
         (project_root / "d").mkdir(parents=True, exist_ok=True)

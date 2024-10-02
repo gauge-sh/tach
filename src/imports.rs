@@ -281,9 +281,7 @@ pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> 
     let resolved_module = filesystem::module_to_file_path(source_roots, mod_path, true);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
-        Ok(!exclusion::is_path_excluded(
-            module.file_path.as_path().to_str().unwrap(),
-        )?)
+        Ok(!exclusion::is_path_excluded(module.file_path)?)
     } else {
         // This is not a project import
         Ok(false)
