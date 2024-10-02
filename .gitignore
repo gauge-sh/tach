@@ -170,3 +170,4 @@ cython_debug/
 
 # Generated graph files
 *.dot
+*.mmd
