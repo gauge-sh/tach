@@ -37,7 +37,6 @@ depends_on = [
 path = "tach.check_external"
 depends_on = [
     { path = "tach.extension" },
-    { path = "tach.utils" },
 ]
 
 [[modules]]
@@ -60,7 +59,6 @@ depends_on = [
     { path = "tach.show" },
     { path = "tach.sync" },
     { path = "tach.test" },
-    { path = "tach.utils" },
 ]
 
 [[modules]]
@@ -89,7 +87,6 @@ depends_on = [
     { path = "tach.colors" },
     { path = "tach.constants" },
     { path = "tach.hooks" },
-    { path = "tach.utils" },
 ]
 
 [[modules]]
@@ -117,7 +114,6 @@ strict = true
 depends_on = [
     { path = "tach.errors" },
     { path = "tach.filesystem" },
-    { path = "tach.utils" },
 ]
 
 [[modules]]
@@ -156,7 +152,6 @@ depends_on = [
     { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem" },
-    { path = "tach.utils" },
 ]
 
 [[modules]]
@@ -194,6 +189,7 @@ depends_on = [
 
 [[modules]]
 path = "tach.utils"
+utility = true
 depends_on = []
 
 [cache]
