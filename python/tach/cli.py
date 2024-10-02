@@ -843,7 +843,9 @@ def tach_show(
 
     try:
         if is_web:
-            result = generate_show_url(project_config)
+            result = generate_show_url(
+                project_root, project_config, included_paths=included_paths
+            )
             if result:
                 print("View your dependency graph here:")
                 print(result)

@@ -163,6 +163,7 @@ depends_on = [
 path = "tach.show"
 strict = true
 depends_on = [
+    { path = "tach.extension" },
     { path = "tach.filesystem" },
 ]
 
