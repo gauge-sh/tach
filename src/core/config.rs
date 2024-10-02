@@ -74,16 +74,19 @@ pub struct ModuleConfig {
     )]
     pub visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
+    pub utility: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub strict: bool,
 }
 
 impl Default for ModuleConfig {
     fn default() -> Self {
         Self {
-            path: String::default(),
-            depends_on: Vec::default(),
+            path: Default::default(),
+            depends_on: Default::default(),
             visibility: default_visibility(),
-            strict: false,
+            utility: Default::default(),
+            strict: Default::default(),
         }
     }
 }
@@ -96,7 +99,18 @@ impl ModuleConfig {
             path: path.to_string(),
             depends_on: vec![],
             visibility: default_visibility(),
+            utility: false,
             strict,
+        }
+    }
+    #[staticmethod]
+    pub fn new_utility(path: &str) -> Self {
+        Self {
+            path: path.to_string(),
+            depends_on: vec![],
+            visibility: default_visibility(),
+            utility: true,
+            strict: false,
         }
     }
     #[staticmethod]
