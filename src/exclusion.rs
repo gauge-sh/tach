@@ -28,6 +28,7 @@ pub enum PathExclusionError {
 pub type Result<T> = std::result::Result<T, PathExclusionError>;
 
 pub struct PathExclusions {
+    project_root: PathBuf,
     patterns: Vec<PatternMatcher>,
 }
 
@@ -42,23 +43,39 @@ pub fn set_excluded_paths(
     let mut exclusions = PATH_EXCLUSIONS_SINGLETON
         .lock()
         .map_err(|_| PathExclusionError::ConcurrencyError)?;
-    let absolute_excluded_paths: Vec<PathBuf> = exclude_paths
-        .iter()
-        .map(|path| project_root.join(path))
-        .collect();
     *exclusions = Some(PathExclusions::try_from_with_mode(
-        absolute_excluded_paths,
+        project_root,
+        exclude_paths.into(),
         use_regex_matching,
     )?);
     Ok(())
 }
 
 impl PathExclusions {
-    fn is_path_excluded(&self, path: &str) -> bool {
-        self.patterns.iter().any(|p| p.matches(path))
+    // Input MUST be an absolute path within the project root
+    fn is_path_excluded<P: AsRef<Path>>(&self, path: P) -> bool {
+        // This is for portability across OS
+        // Exclude patterns in 'tach.toml' are universally written with forward slashes,
+        // so we force our relative path to have forward slashes before checking for a match.
+        let path_with_forward_slashes: String = path
+            .as_ref()
+            .strip_prefix(&self.project_root)
+            .unwrap()
+            .components()
+            .map(|component| component.as_os_str().to_string_lossy())
+            .collect::<Vec<_>>()
+            .join("/");
+
+        self.patterns
+            .iter()
+            .any(|p| p.matches(&path_with_forward_slashes))
     }
 
-    fn try_from_with_mode(from: Vec<PathBuf>, use_regex_matching: bool) -> Result<Self> {
+    fn try_from_with_mode<P: AsRef<Path>>(
+        project_root: P,
+        from: Vec<PathBuf>,
+        use_regex_matching: bool,
+    ) -> Result<Self> {
         let mut patterns: Vec<PatternMatcher> = vec![];
         for pattern in from.iter() {
             let pattern_str = pattern.to_str().unwrap();
@@ -68,11 +85,14 @@ impl PathExclusions {
                 PatternMatcher::from_glob(pattern_str)?
             });
         }
-        Ok(Self { patterns })
+        Ok(Self {
+            project_root: project_root.as_ref().to_path_buf(),
+            patterns,
+        })
     }
 }
 
-pub fn is_path_excluded(path: &str) -> Result<bool> {
+pub fn is_path_excluded<P: AsRef<Path>>(path: P) -> Result<bool> {
     PATH_EXCLUSIONS_SINGLETON
         .lock()
         .map(|exclusions| {

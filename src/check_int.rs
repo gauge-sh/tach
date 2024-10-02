@@ -266,7 +266,7 @@ pub fn check(
     for source_root in &source_roots {
         for file_path in fs::walk_pyfiles(&source_root.display().to_string()) {
             let abs_file_path = &source_root.join(&file_path);
-            if is_path_excluded(&abs_file_path.display().to_string())? {
+            if is_path_excluded(abs_file_path)? {
                 continue;
             }
             let mod_path = fs::file_to_module_path(&source_roots, abs_file_path)?;
