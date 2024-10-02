@@ -502,7 +502,7 @@ class InteractiveModuleTree:
                 return
 
             if not self.selected_node.is_module:
-                # Marking as a module is exclusive with other flags
+                # Flags are exclusive
                 self.selected_node.clean_flags()
                 self.selected_node.is_module = True
             else:
@@ -512,7 +512,7 @@ class InteractiveModuleTree:
         @self.key_bindings.add("s")
         def _(event: KeyPressEvent):
             if not self.selected_node.is_source_root:
-                # Marking as a source root is exclusive with other flags
+                # Flags are exclusive
                 self.selected_node.clean_flags()
                 self.selected_node.is_source_root = True
             else:
@@ -522,7 +522,7 @@ class InteractiveModuleTree:
         @self.key_bindings.add("u")
         def _(event: KeyPressEvent):
             if not self.selected_node.is_utility:
-                # Marking as a source root is exclusive with other flags
+                # Flags are exclusive
                 self.selected_node.clean_flags()
                 self.selected_node.is_utility = True
             else:
