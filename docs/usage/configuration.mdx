@@ -12,13 +12,17 @@ This is the project-level configuration file which should be in the root of your
 
 `exclude` accepts a list of directory patterns to exclude from checking. These are treated as regex/glob paths (depending on `use_regex_matching`) which match from the beginning of a given file path. For example: when using glob matching `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
 
-`ignore_type_checking_imports` is a boolean which, when enabled, silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block
+<Note>
+  Tach uses forward slashes to match path separators, even on Windows.
+</Note>
 
-`exact` is a boolean which causes `tach check` to fail if any declared dependencies are found to be unused
+`ignore_type_checking_imports` is a boolean which, when enabled, silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block.
 
-`forbid_circular_dependencies` is a boolean which, when enabled, causes `tach check` to fail if any circular dependencies are detected
+`exact` is a boolean which causes `tach check` to fail if any declared dependencies are found to be unused.
 
-`use_regex_matching` is a boolean which, when enabled, uses regex (default) matching to exclude patterns else uses globs matching
+`forbid_circular_dependencies` is a boolean which, when enabled, causes `tach check` to fail if any circular dependencies are detected.
+
+`use_regex_matching` is a boolean which, when enabled, uses regex (default) matching to exclude patterns else uses globs matching.
 
 ```toml
 exclude = [
@@ -79,7 +83,9 @@ Each module listed under the `modules` key above can accept the following attrib
 - `visibility`: a list of other modules which can import from this module (default: `['*']`)
 - `strict`: enables [strict mode](strict-mode) for the module
 
-Tach also supports [deprecating individual dependencies](../usage/deprecate).
+<Note>
+  Tach also supports [deprecating individual dependencies](../usage/deprecate).
+</Note>
 
 ## Source Roots
 

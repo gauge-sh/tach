@@ -126,13 +126,18 @@ To filter the output, the `-d` and `-u` options allow specifying which module pa
 Tach will generate a visual representation of your dependency graph!
 
 ```bash
-usage: tach show [-h] [--web] [-o [OUT]]
+usage: tach show [-h] [--web] [--mermaid] [-o [OUT]] [included_paths ...]
 
 Visualize the dependency graph of your project.
+
+positional arguments:
+  included_paths        Paths to include in the module graph. If not provided, the entire project is
+                        included.
 
 options:
   -h, --help            show this help message and exit
   --web                 Open your dependency graph in a remote web viewer.
+  --mermaid             Generate a mermaid.js graph instead of a DOT file.
   -o [OUT], --out [OUT]
                         Specify an output path for a locally generated module graph file.
 ```
