@@ -124,4 +124,33 @@ def generate_module_graph_dot_file(
     output_filepath.write_text(dot_data)  # type: ignore
 
 
-__all__ = ["generate_show_url", "generate_module_graph_dot_file"]
+def generate_module_graph_mermaid(
+    project_root: Path,
+    project_config: ProjectConfig,
+    output_filepath: Path,
+    included_paths: list[Path] | None = None,
+):
+    if included_paths:
+        project_config = filter_project_config(
+            project_config, project_root, included_paths
+        )
+    edges: list[str] = []
+    isolated: list[str] = []
+    for module in project_config.modules:
+        for dependency in module.depends_on:
+            edges.append(
+                f"    {module.path.strip('<>')} --> {dependency.path.strip('<>')}"
+            )
+        if not module.depends_on:
+            isolated.append(f"    {module.path.strip('<>')}")
+
+    mermaid_graph = "graph TD\n" + "\n".join(edges) + "\n" + "\n".join(isolated)
+
+    output_filepath.write_text(mermaid_graph)
+
+
+__all__ = [
+    "generate_show_url",
+    "generate_module_graph_dot_file",
+    "generate_module_graph_mermaid",
+]

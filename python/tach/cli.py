@@ -28,7 +28,11 @@ from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
-from tach.show import generate_module_graph_dot_file, generate_show_url
+from tach.show import (
+    generate_module_graph_dot_file,
+    generate_module_graph_mermaid,
+    generate_show_url,
+)
 from tach.sync import sync_project
 from tach.test import run_affected_tests
 from tach.utils.display import create_clickable_link
@@ -118,16 +122,28 @@ def print_no_config_found() -> None:
     )
 
 
-def print_show_web_suggestion() -> None:
-    print(
-        f"{BCOLORS.OKCYAN}NOTE: You are generating a DOT file locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need a program like GraphViz: https://www.graphviz.org/download/\n{BCOLORS.ENDC}"
-    )
+def print_show_web_suggestion(is_mermaid: bool = False) -> None:
+    if is_mermaid:
+        print(
+            f"{BCOLORS.OKCYAN}NOTE: You are generating a Mermaid graph locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need to use Mermaid.js: https://mermaid.js.org/config/usage.html\n{BCOLORS.ENDC}"
+        )
+    else:
+        print(
+            f"{BCOLORS.OKCYAN}NOTE: You are generating a DOT file locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need a program like GraphViz: https://www.graphviz.org/download/\n{BCOLORS.ENDC}"
+        )
 
 
-def print_generated_module_graph_file(output_filepath: Path) -> None:
-    print(
-        f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
-    )
+def print_generated_module_graph_file(
+    output_filepath: Path, is_mermaid: bool = False
+) -> None:
+    if is_mermaid:
+        print(
+            f"{BCOLORS.OKGREEN}Generated a Mermaid file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
+        )
+    else:
+        print(
+            f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
+        )
 
 
 def print_circular_dependency_error(module_paths: list[str]) -> None:
@@ -333,6 +349,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--web",
         action="store_true",
         help="Open your dependency graph in a remote web viewer.",
+    )
+    show_parser.add_argument(
+        "--mermaid",
+        action="store_true",
+        help="Generate a mermaid.js graph instead of a DOT file.",
     )
     show_parser.add_argument(
         "-o",
@@ -827,14 +848,23 @@ def tach_show(
     project_root: Path,
     included_paths: list[Path] | None = None,
     is_web: bool = False,
+    is_mermaid: bool = False,
     output_filepath: Path | None = None,
 ):
     logger.info(
         "tach show called",
         extra={
-            "data": LogDataModel(function="tach_show", parameters={"is_web": is_web}),
+            "data": LogDataModel(
+                function="tach_show",
+                parameters={"is_web": is_web, "is_mermaid": is_mermaid},
+            ),
         },
     )
+
+    if is_web and is_mermaid:
+        print(
+            f"{BCOLORS.WARNING}Passing --web always generates a Mermaid graph remotely; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
+        )
 
     project_config = parse_project_config(root=project_root)
     if project_config is None:
@@ -853,16 +883,31 @@ def tach_show(
             else:
                 sys.exit(1)
         else:
-            print_show_web_suggestion()
-            output_filepath = output_filepath or Path(f"{TOOL_NAME}_module_graph.dot")
-            generate_module_graph_dot_file(
-                project_root,
-                project_config,
-                included_paths=included_paths,
-                output_filepath=output_filepath,
-            )
-            print_generated_module_graph_file(output_filepath)
-            sys.exit(0)
+            print_show_web_suggestion(is_mermaid=is_mermaid)
+            if is_mermaid:
+                output_filepath = output_filepath or Path(
+                    f"{TOOL_NAME}_module_graph.mmd"
+                )
+                generate_module_graph_mermaid(
+                    project_root,
+                    project_config,
+                    included_paths=included_paths,
+                    output_filepath=output_filepath,
+                )
+                print_generated_module_graph_file(output_filepath, is_mermaid=True)
+                sys.exit(0)
+            else:
+                output_filepath = output_filepath or Path(
+                    f"{TOOL_NAME}_module_graph.dot"
+                )
+                generate_module_graph_dot_file(
+                    project_root,
+                    project_config,
+                    included_paths=included_paths,
+                    output_filepath=output_filepath,
+                )
+                print_generated_module_graph_file(output_filepath)
+                sys.exit(0)
     except TachError as e:
         print(f"Failed to show module graph: {e}")
         sys.exit(1)
@@ -1010,6 +1055,7 @@ def main() -> None:
             included_paths=args.included_paths,
             output_filepath=args.out,
             is_web=args.web,
+            is_mermaid=args.mermaid,
         )
     else:
         print("Unrecognized command")
