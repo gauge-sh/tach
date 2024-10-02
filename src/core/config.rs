@@ -271,6 +271,14 @@ impl ProjectConfig {
             .collect()
     }
 
+    pub fn utility_paths(&self) -> Vec<String> {
+        self.modules
+            .iter()
+            .filter(|module| module.utility)
+            .map(|module| module.path.clone())
+            .collect()
+    }
+
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
@@ -311,6 +319,12 @@ impl ProjectConfig {
         }
 
         self.modules = new_modules;
+    }
+
+    pub fn mark_utilities(&mut self, utility_paths: Vec<String>) {
+        for module in &mut self.modules {
+            module.utility = utility_paths.contains(&module.path);
+        }
     }
 
     pub fn add_dependency_to_module(&mut self, module: &str, dependency: DependencyConfig) {
