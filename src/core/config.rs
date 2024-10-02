@@ -183,6 +183,33 @@ pub struct UnusedDependencies {
     pub dependencies: Vec<DependencyConfig>,
 }
 
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum RootModuleTreatment {
+    #[default]
+    Allow,
+    Forbid,
+    Ignore,
+    DependenciesOnly,
+}
+
+impl RootModuleTreatment {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+impl IntoPy<PyObject> for RootModuleTreatment {
+    fn into_py(self, py: Python) -> PyObject {
+        match self {
+            Self::Allow => "allow".to_object(py),
+            Self::Forbid => "forbid".to_object(py),
+            Self::Ignore => "ignore".to_object(py),
+            Self::DependenciesOnly => "dependencies_only".to_object(py),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
@@ -209,6 +236,8 @@ pub struct ProjectConfig {
     pub forbid_circular_dependencies: bool,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub use_regex_matching: bool,
+    #[serde(default, skip_serializing_if = "RootModuleTreatment::is_default")]
+    pub root_module: RootModuleTreatment,
 }
 
 impl Default for ProjectConfig {
@@ -224,6 +253,7 @@ impl Default for ProjectConfig {
             ignore_type_checking_imports: default_true(),
             forbid_circular_dependencies: Default::default(),
             use_regex_matching: default_true(),
+            root_module: Default::default(),
         }
     }
 }
@@ -291,6 +321,7 @@ impl ProjectConfig {
             ignore_type_checking_imports: self.ignore_type_checking_imports,
             forbid_circular_dependencies: self.forbid_circular_dependencies,
             use_regex_matching: self.use_regex_matching,
+            root_module: self.root_module.clone(),
         }
     }
 
