@@ -50,6 +50,12 @@ depends_on = [{ path = "tach.start" }]
 strict = true
 
 [[modules]]
+path = "tach.errors"
+depends_on = []
+strict = true
+utility = true
+
+[[modules]]
 path = "tach.parsing"
 depends_on = [{ path = "tach" }, { path = "tach.filesystem" }]
 visibility = ["tach.check"]
@@ -58,7 +64,6 @@ strict = true
 [[modules]]
 path = "tach.check"
 depends_on = [
-    { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem" },
     { path = "tach.parsing" },
@@ -81,7 +86,8 @@ Each module listed under the `modules` key above can accept the following attrib
 - `path`: the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
 - `depends_on`: a list of the other modules which this module can import from (default: `[]`)
 - `visibility`: a list of other modules which can import from this module (default: `['*']`)
-- `strict`: enables [strict mode](strict-mode) for the module
+- `strict`: enables [strict mode](strict-mode) for the module (boolean)
+- `utility`: marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency (boolean)
 
 <Note>
   Tach also supports [deprecating individual dependencies](../usage/deprecate).

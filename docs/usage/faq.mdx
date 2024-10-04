@@ -21,6 +21,22 @@ To prevent any external usage of a given module, you can set `visibility: []` fo
 
 [See more information on configuration here.](./configuration)
 
+### How can I declare modules which are freely usable by the rest of the code?
+
+This is typically done for modules like `utils/`, `errors/` or `lib/`, which contain relatively isolated code which can be used throughout a project.
+
+Tach allows marking these modules as **Utilities**, which means they can be used without being listed as an explicit dependency.
+
+<Note>
+  Marking a module with `utility: true` is different from `visibility: ['*']`.
+  Even when a module has public visibility, other modules must declare an
+  explicit dependency to use it (in fact, modules are publicly visible by
+  default). In contrast, a utility module does not require its dependents to
+  list an explicit dependency.
+</Note>
+
+[See more information on configuration here.](./configuration)
+
 ### Are conditional imports checked?
 
 Tach will check all imports in your source files, including those which are called conditionally.
