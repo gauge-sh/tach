@@ -23,6 +23,7 @@ def update_modules(
     project_root: Path,
     selected_source_roots: list[Path],
     selected_modules: list[Path],
+    selected_utilities: list[Path],
 ):
     if set(project_config.source_roots) != set(selected_source_roots):
         # Only assign to this field if it has changed,
@@ -40,7 +41,15 @@ def update_modules(
         )
         for selected_module_file_path in selected_modules
     ]
-    project_config.set_modules(module_paths=module_paths)
+    utility_paths = [
+        fs.file_to_module_path(
+            source_roots=tuple(selected_source_roots),
+            file_path=selected_utility_file_path,
+        )
+        for selected_utility_file_path in selected_utilities
+    ]
+    project_config.set_modules(module_paths=[*module_paths, *utility_paths])
+    project_config.mark_utilities(utility_paths=utility_paths)
 
     project_config_path = build_project_config_path(project_root)
     config_toml_content = dump_project_config_to_toml(project_config)
@@ -99,6 +108,7 @@ def mod_edit_interactive(
             project_root=project_root,
             selected_source_roots=interactive_module_configuration.source_roots,
             selected_modules=interactive_module_configuration.module_paths,
+            selected_utilities=interactive_module_configuration.utility_paths,
         )
         return True, []
     else:

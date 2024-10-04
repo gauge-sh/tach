@@ -74,16 +74,19 @@ pub struct ModuleConfig {
     )]
     pub visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
+    pub utility: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub strict: bool,
 }
 
 impl Default for ModuleConfig {
     fn default() -> Self {
         Self {
-            path: String::default(),
-            depends_on: Vec::default(),
+            path: Default::default(),
+            depends_on: Default::default(),
             visibility: default_visibility(),
-            strict: false,
+            utility: Default::default(),
+            strict: Default::default(),
         }
     }
 }
@@ -96,7 +99,18 @@ impl ModuleConfig {
             path: path.to_string(),
             depends_on: vec![],
             visibility: default_visibility(),
+            utility: false,
             strict,
+        }
+    }
+    #[staticmethod]
+    pub fn new_utility(path: &str) -> Self {
+        Self {
+            path: path.to_string(),
+            depends_on: vec![],
+            visibility: default_visibility(),
+            utility: true,
+            strict: false,
         }
     }
     #[staticmethod]
@@ -257,6 +271,14 @@ impl ProjectConfig {
             .collect()
     }
 
+    pub fn utility_paths(&self) -> Vec<String> {
+        self.modules
+            .iter()
+            .filter(|module| module.utility)
+            .map(|module| module.path.clone())
+            .collect()
+    }
+
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
@@ -297,6 +319,12 @@ impl ProjectConfig {
         }
 
         self.modules = new_modules;
+    }
+
+    pub fn mark_utilities(&mut self, utility_paths: Vec<String>) {
+        for module in &mut self.modules {
+            module.utility = utility_paths.contains(&module.path);
+        }
     }
 
     pub fn add_dependency_to_module(&mut self, module: &str, dependency: DependencyConfig) {

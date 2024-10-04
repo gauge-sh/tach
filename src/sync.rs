@@ -42,7 +42,13 @@ pub fn sync_dependency_constraints(
         for module in project_config.modules.iter() {
             // Filter out modules that are not found in the source roots
             match fs::module_to_pyfile_or_dir_path(&source_roots, &module.path) {
-                Some(_) => new_modules.push(ModuleConfig::new(&module.path, module.strict)),
+                Some(_) => {
+                    if module.utility {
+                        new_modules.push(ModuleConfig::new_utility(&module.path))
+                    } else {
+                        new_modules.push(ModuleConfig::new(&module.path, module.strict))
+                    }
+                }
                 None => new_modules.push(module.clone()),
             };
 

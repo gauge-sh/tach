@@ -135,13 +135,20 @@ fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool
 }
 
 fn check_import(
-    module_tree: &ModuleTree,
-    file_mod_path: &str,
     import_mod_path: &str,
+    file_mod_path: &str,
+    module_tree: &ModuleTree,
     file_nearest_module: Option<Arc<ModuleNode>>,
 ) -> Result<(), ImportCheckError> {
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
-        Some(module) => module,
+        Some(module) => {
+            if let Some(true) = module.config.as_ref().map(|config| config.utility) {
+                // Utility modules are always allowed
+                return Ok(());
+            }
+
+            module
+        }
         // This should not be none since we intend to filter out any external imports,
         // but we should allow external imports if they have made it here.
         None => return Ok(()),
@@ -305,9 +312,9 @@ pub fn check(
             for import in project_imports {
                 found_at_least_one_project_import = true;
                 let Err(error_info) = check_import(
-                    &module_tree,
-                    &mod_path,
                     &import.module_path,
+                    &mod_path,
+                    &module_tree,
                     Some(Arc::clone(&nearest_module)),
                 ) else {
                     continue;
@@ -371,14 +378,14 @@ mod tests {
         #[case] import_mod_path: &str,
         #[case] expected_result: bool,
     ) {
-        let check_error = check_import(&module_tree, file_mod_path, import_mod_path, None);
+        let check_error = check_import(import_mod_path, file_mod_path, &module_tree, None);
         let result = check_error.is_ok();
         assert_eq!(result, expected_result);
     }
 
     #[rstest]
     fn test_check_deprecated_import(module_tree: ModuleTree) {
-        let check_error = check_import(&module_tree, "domain_one", "domain_one.subdomain", None);
+        let check_error = check_import("domain_one.subdomain", "domain_one", &module_tree, None);
         assert!(check_error.is_err());
         assert!(check_error.unwrap_err().is_deprecated());
     }

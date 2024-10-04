@@ -38,7 +38,7 @@ def test_visible_children_property(project_root):
 
 def test_set_modules(project_root):
     tree = FileTree.build_from_path(project_root)
-    tree.initialize_modules([project_root / "dir1" / "file1.py"])
+    tree.initialize_modules([project_root / "dir1" / "file1.py"], set())
     assert tree.nodes[str(project_root / "dir1" / "file1.py")].is_module
 
 

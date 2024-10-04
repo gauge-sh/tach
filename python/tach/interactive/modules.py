@@ -43,6 +43,7 @@ class FileNode:
     expanded: bool = False
     is_module: bool = False
     is_source_root: bool = False
+    is_utility: bool = False
     parent: FileNode | None = None
     children: list[FileNode] = field(default_factory=list)
 
@@ -106,6 +107,11 @@ class FileNode:
             if include_self
             else [node for node in self.parent.children if node is not self]
         )
+
+    def clean_flags(self):
+        self.is_module = False
+        self.is_source_root = False
+        self.is_utility = False
 
 
 @dataclass
@@ -193,13 +199,16 @@ class FileTree:
             curr_node.parent.expanded = True
             curr_node = curr_node.parent
 
-    def initialize_modules(self, module_paths: list[Path]):
+    def initialize_modules(self, module_paths: list[Path], utility_paths: set[Path]):
         # NOTE: module_paths here are filesystem paths; they may be files or dirs
         for module_path in module_paths:
-            module_path = str(module_path)
-            if module_path in self.nodes:
-                node = self.nodes[module_path]
-                node.is_module = True
+            module_path_str = str(module_path)
+            if module_path_str in self.nodes:
+                node = self.nodes[module_path_str]
+                if module_path in utility_paths:
+                    node.is_utility = True
+                else:
+                    node.is_module = True
                 self.expand_all_parent_dirs(node)
 
     def initialize_source_roots(self, source_roots: list[Path]):
@@ -208,8 +217,7 @@ class FileTree:
             if str(source_root) not in self.nodes:
                 continue
             node = self.nodes[str(source_root)]
-            # A source root should not also be a module
-            node.is_module = False
+            node.clean_flags()
             node.is_source_root = True
             node.expanded = True
             self.expand_all_parent_dirs(node)
@@ -249,6 +257,7 @@ class ExitCode(Enum):
 class InteractiveModuleConfiguration:
     source_roots: list[Path]
     module_paths: list[Path]
+    utility_paths: list[Path]
 
 
 class InteractiveModuleTree:
@@ -285,7 +294,21 @@ class InteractiveModuleTree:
                 ],
             ),
         )
-        self.file_tree.initialize_modules(module_paths=module_file_paths)
+        utility_file_paths = set(
+            filter(
+                None,
+                [
+                    fs.module_to_pyfile_or_dir_path(
+                        source_roots=tuple(source_roots),
+                        module_path=module_path,
+                    )
+                    for module_path in project_config.utility_paths()
+                ],
+            ),
+        )
+        self.file_tree.initialize_modules(
+            module_paths=module_file_paths, utility_paths=utility_file_paths
+        )
         self.selected_node = self.file_tree.root
 
         self.file_tree.initialize_source_roots(source_roots=source_roots)
@@ -348,6 +371,7 @@ class InteractiveModuleTree:
     KEY_BINDING_LEGEND_MIDDLE: list[tuple[str, str]] = [
         ("Enter", "Mark/unmark Module"),
         ("s", "Mark/unmark Source Root"),
+        ("u", "Mark/unmark Utility"),
     ]
     KEY_BINDING_LEGEND_BOTTOM: list[tuple[str, str]] = [
         ("Ctrl + s", "Exit and save"),
@@ -476,20 +500,33 @@ class InteractiveModuleTree:
             if self.selected_node is self.file_tree.root:
                 # Root should not be explicitly selected
                 return
-            self.selected_node.is_module = not self.selected_node.is_module
 
-            # A module cannot also be a source root
-            if self.selected_node.is_module and self.selected_node.is_source_root:
-                self.selected_node.is_source_root = False
+            if not self.selected_node.is_module:
+                # Flags are exclusive
+                self.selected_node.clean_flags()
+                self.selected_node.is_module = True
+            else:
+                self.selected_node.is_module = False
             self._update_display()
 
         @self.key_bindings.add("s")
         def _(event: KeyPressEvent):
-            self.selected_node.is_source_root = not self.selected_node.is_source_root
+            if not self.selected_node.is_source_root:
+                # Flags are exclusive
+                self.selected_node.clean_flags()
+                self.selected_node.is_source_root = True
+            else:
+                self.selected_node.is_source_root = False
+            self._update_display()
 
-            # A source root cannot also be a module
-            if self.selected_node.is_source_root and self.selected_node.is_module:
-                self.selected_node.is_module = False
+        @self.key_bindings.add("u")
+        def _(event: KeyPressEvent):
+            if not self.selected_node.is_utility:
+                # Flags are exclusive
+                self.selected_node.clean_flags()
+                self.selected_node.is_utility = True
+            else:
+                self.selected_node.is_utility = False
             self._update_display()
 
         @self.key_bindings.add("c-a")
@@ -534,6 +571,8 @@ class InteractiveModuleTree:
             text_parts.append((f"[Source Root] {basename}", "bold cyan"))
         elif node.is_module:
             text_parts.append((f"[Module] {basename}", "bold yellow"))
+        elif node.is_utility:
+            text_parts.append((f"[Utility] {basename}", "bold magenta"))
         elif node == self.selected_node:
             text_parts.append((basename, "bold"))
         else:
@@ -579,15 +618,19 @@ class InteractiveModuleTree:
         if self.exit_code == ExitCode.QUIT_SAVE:
             module_paths: list[Path] = []
             source_roots: list[Path] = []
+            utility_paths: list[Path] = []
             for node in self.file_tree:
                 if node.is_module:
                     module_paths.append(node.full_path)
                 elif node.is_source_root:
                     source_roots.append(node.full_path)
+                elif node.is_utility:
+                    utility_paths.append(node.full_path)
 
             return InteractiveModuleConfiguration(
                 source_roots=source_roots,
                 module_paths=module_paths,
+                utility_paths=utility_paths,
             )
 
 
