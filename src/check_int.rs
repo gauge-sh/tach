@@ -141,14 +141,7 @@ fn check_import(
     file_nearest_module: Option<Arc<ModuleNode>>,
 ) -> Result<(), ImportCheckError> {
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
-        Some(module) => {
-            if let Some(true) = module.config.as_ref().map(|config| config.utility) {
-                // Utility modules are always allowed
-                return Ok(());
-            }
-
-            module
-        }
+        Some(module) => module,
         // This should not be none since we intend to filter out any external imports,
         // but we should allow external imports if they have made it here.
         None => return Ok(()),
@@ -181,6 +174,16 @@ fn check_import(
                 file_nearest_module_path: file_nearest_module.full_path.to_string(),
             });
         }
+    }
+
+    // After checking strictness,
+    // utility modules are always allowed
+    if let Some(true) = import_nearest_module
+        .config
+        .as_ref()
+        .map(|config| config.utility)
+    {
+        return Ok(());
     }
 
     let file_config = file_nearest_module
