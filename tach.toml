@@ -46,9 +46,6 @@ depends_on = [
     { path = "tach" },
     { path = "tach.cache" },
     { path = "tach.check_external" },
-    { path = "tach.colors" },
-    { path = "tach.constants" },
-    { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem" },
     { path = "tach.icons" },
@@ -63,16 +60,19 @@ depends_on = [
 
 [[modules]]
 path = "tach.colors"
+utility = true
 depends_on = []
 strict = true
 
 [[modules]]
 path = "tach.constants"
+utility = true
 depends_on = []
 strict = true
 
 [[modules]]
 path = "tach.errors"
+utility = true
 depends_on = []
 strict = true
 
@@ -84,24 +84,18 @@ depends_on = []
 path = "tach.filesystem"
 strict = true
 depends_on = [
-    { path = "tach.colors" },
-    { path = "tach.constants" },
     { path = "tach.hooks" },
 ]
 
 [[modules]]
 path = "tach.filesystem.git_ops"
 strict = true
-depends_on = [
-    { path = "tach.errors" },
-]
+depends_on = []
 
 [[modules]]
 path = "tach.hooks"
 strict = true
-depends_on = [
-    { path = "tach.constants" },
-]
+depends_on = []
 
 [[modules]]
 path = "tach.icons"
@@ -112,7 +106,6 @@ strict = true
 path = "tach.interactive"
 strict = true
 depends_on = [
-    { path = "tach.errors" },
     { path = "tach.filesystem" },
 ]
 
@@ -129,8 +122,6 @@ depends_on = [
 path = "tach.mod"
 strict = true
 depends_on = [
-    { path = "tach.colors" },
-    { path = "tach.errors" },
     { path = "tach.filesystem" },
     { path = "tach.interactive" },
     { path = "tach.parsing" },
@@ -148,8 +139,6 @@ depends_on = [
 path = "tach.report"
 strict = true
 depends_on = [
-    { path = "tach.colors" },
-    { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem" },
 ]
@@ -173,7 +162,6 @@ depends_on = [
 path = "tach.sync"
 strict = true
 depends_on = [
-    { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem" },
 ]
@@ -182,7 +170,6 @@ depends_on = [
 path = "tach.test"
 strict = true
 depends_on = [
-    { path = "tach.errors" },
     { path = "tach.extension" },
     { path = "tach.filesystem.git_ops" },
 ]
