@@ -205,7 +205,7 @@ impl IntoPy<PyObject> for RootModuleTreatment {
             Self::Allow => "allow".to_object(py),
             Self::Forbid => "forbid".to_object(py),
             Self::Ignore => "ignore".to_object(py),
-            Self::DependenciesOnly => "dependencies_only".to_object(py),
+            Self::DependenciesOnly => "dependenciesonly".to_object(py),
         }
     }
 }
