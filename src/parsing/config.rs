@@ -40,7 +40,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        core::config::{CacheConfig, DependencyConfig, ExternalDependencyConfig, ModuleConfig},
+        core::config::{DependencyConfig, ModuleConfig},
         tests::fixtures::example_dir,
     };
     use filesystem::DEFAULT_EXCLUDE_PATHS;
@@ -79,7 +79,7 @@ mod tests {
                         ..Default::default()
                     }
                 ],
-                cache: CacheConfig::default(),
+                cache: Default::default(),
                 exclude: DEFAULT_EXCLUDE_PATHS
                     .into_iter()
                     .chain(["domain_four"].into_iter())
@@ -91,7 +91,8 @@ mod tests {
                 ignore_type_checking_imports: true,
                 forbid_circular_dependencies: true,
                 use_regex_matching: true,
-                external: ExternalDependencyConfig::default(),
+                external: Default::default(),
+                root_module: Default::default(),
             }
         );
     }

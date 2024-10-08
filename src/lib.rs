@@ -95,6 +95,8 @@ impl From<sync::SyncError> for PyErr {
         match err {
             SyncError::FileWrite(err) => PyOSError::new_err(err.to_string()),
             SyncError::TomlSerialize(err) => PyOSError::new_err(err.to_string()),
+            SyncError::CheckError(err) => err.into(),
+            SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
         }
     }
 }
@@ -298,7 +300,7 @@ fn sync_dependency_constraints(
     project_config: ProjectConfig,
     exclude_paths: Vec<String>,
     prune: bool,
-) -> ProjectConfig {
+) -> Result<ProjectConfig, SyncError> {
     sync::sync_dependency_constraints(project_root, project_config, exclude_paths, prune)
 }
 

@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::core::config::{global_visibility, ModuleConfig};
+use crate::core::config::{global_visibility, ModuleConfig, RootModuleTreatment};
 use crate::core::module::ModuleTree;
+use crate::filesystem::ROOT_MODULE_SENTINEL_TAG;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 
@@ -108,10 +109,63 @@ pub fn find_modules_with_cycles(modules: &[ModuleConfig]) -> Vec<&String> {
     modules_with_cycles
 }
 
+fn validate_root_module_treatment(
+    root_module_treatment: RootModuleTreatment,
+    modules: &[ModuleConfig],
+) -> Result<(), ModuleTreeError> {
+    match root_module_treatment {
+        RootModuleTreatment::Allow | RootModuleTreatment::Ignore => Ok(()),
+        RootModuleTreatment::Forbid => {
+            let root_module_violations: Vec<String> = modules
+                .iter()
+                .filter_map(|module| {
+                    if module.path == ROOT_MODULE_SENTINEL_TAG
+                        || module
+                            .depends_on
+                            .iter()
+                            .any(|dep| dep.path == ROOT_MODULE_SENTINEL_TAG)
+                    {
+                        return Some(module.path.clone());
+                    }
+                    None
+                })
+                .collect();
+
+            if root_module_violations.is_empty() {
+                Ok(())
+            } else {
+                Err(ModuleTreeError::RootModuleViolation(format!(
+                    "The root module ('{}') is forbidden, but was found in module configuration for modules: {}.",
+                    ROOT_MODULE_SENTINEL_TAG,
+                    root_module_violations.into_iter().map(|module| format!("'{}'", module)).collect::<Vec<_>>().join(", ")
+                )))
+            }
+        }
+        RootModuleTreatment::DependenciesOnly => {
+            let root_module_violations: Vec<String> = modules
+                .iter()
+                .filter(|module| module.path == ROOT_MODULE_SENTINEL_TAG)
+                .map(|module| module.path.clone())
+                .collect();
+
+            if root_module_violations.is_empty() {
+                Ok(())
+            } else {
+                Err(ModuleTreeError::RootModuleViolation(format!(
+                    "The root module ('{}') is set to allow dependencies only, but was found as a dependency in: {}.",
+                    ROOT_MODULE_SENTINEL_TAG,
+                    root_module_violations.into_iter().map(|module| format!("'{}'", module)).collect::<Vec<_>>().join(", ")
+                )))
+            }
+        }
+    }
+}
+
 pub fn build_module_tree(
     source_roots: &[PathBuf],
     modules: Vec<ModuleConfig>,
     forbid_circular_dependencies: bool,
+    root_module_treatment: RootModuleTreatment,
 ) -> Result<ModuleTree, ModuleTreeError> {
     // Check for duplicate modules
     let duplicate_modules = find_duplicate_modules(&modules);
@@ -126,6 +180,9 @@ pub fn build_module_tree(
     if !visibility_error_info.is_empty() {
         return Err(ModuleTreeError::VisibilityViolation(visibility_error_info));
     }
+
+    // Check for root module treatment errors
+    validate_root_module_treatment(root_module_treatment, &modules)?;
 
     // Check for circular dependencies if forbidden
     if forbid_circular_dependencies {
