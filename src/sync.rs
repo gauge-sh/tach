@@ -1,8 +1,10 @@
 use thiserror::Error;
 
-use crate::check_int::check;
-use crate::core::config::{global_visibility, DependencyConfig, ModuleConfig, ProjectConfig};
-use crate::filesystem as fs;
+use crate::check_int::{check, CheckError};
+use crate::core::config::{
+    global_visibility, DependencyConfig, ModuleConfig, ProjectConfig, RootModuleTreatment,
+};
+use crate::filesystem::{self as fs, ROOT_MODULE_SENTINEL_TAG};
 use crate::parsing::config::dump_project_config_to_toml;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -13,6 +15,43 @@ pub enum SyncError {
     FileWrite(#[from] std::io::Error),
     #[error("Failed to serialize project configuration to TOML.\n{0}")]
     TomlSerialize(#[from] toml::ser::Error),
+    #[error("Failed to sync project.\n{0}")]
+    CheckError(#[from] CheckError),
+    #[error("Failed to sync project configuration due to root module violation.\n{0}")]
+    RootModuleViolation(String),
+}
+
+fn handle_detected_dependency(
+    module_path: &str,
+    dependency: DependencyConfig,
+    project_config: &mut ProjectConfig,
+) -> Result<(), SyncError> {
+    let module_is_root = module_path == ROOT_MODULE_SENTINEL_TAG;
+    let dependency_is_root = dependency.path == ROOT_MODULE_SENTINEL_TAG;
+
+    if !module_is_root && !dependency_is_root {
+        project_config.add_dependency_to_module(module_path, dependency);
+        return Ok(());
+    }
+
+    match project_config.root_module {
+        RootModuleTreatment::Ignore => Ok(()),
+        RootModuleTreatment::Allow => {
+            project_config.add_dependency_to_module(module_path, dependency);
+            Ok(())
+        }
+        RootModuleTreatment::Forbid => Err(SyncError::RootModuleViolation(format!(
+            "The root module is forbidden, but it was found that '{}' depends on '{}'.",
+            module_path, dependency.path
+        ))),
+        RootModuleTreatment::DependenciesOnly => {
+            if dependency_is_root {
+                return Err(SyncError::RootModuleViolation(format!("No module may depend on the root module, but it was found that '{}' depends on the root module.", module_path)));
+            }
+            project_config.add_dependency_to_module(module_path, dependency);
+            Ok(())
+        }
+    }
 }
 
 /// Update project configuration with auto-detected dependency constraints.
@@ -23,7 +62,7 @@ pub fn sync_dependency_constraints(
     mut project_config: ProjectConfig,
     exclude_paths: Vec<String>,
     prune: bool,
-) -> ProjectConfig {
+) -> Result<ProjectConfig, SyncError> {
     let mut deprecation_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut visibility_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut new_project_config = None;
@@ -67,8 +106,7 @@ pub fn sync_dependency_constraints(
     let mut new_project_config = new_project_config.unwrap_or(project_config);
 
     // If prune is false, the existing project config is reused without changes
-    let check_result = check(project_root, &new_project_config, exclude_paths)
-        .expect("Failed to run the check function");
+    let check_result = check(project_root, &new_project_config, exclude_paths)?;
 
     // Iterate through the check results to add dependencies to the config
     for error in check_result.errors {
@@ -87,7 +125,8 @@ pub fn sync_dependency_constraints(
                 deprecated,
             };
 
-            new_project_config.add_dependency_to_module(source_path, dependency);
+            // The project config determines whether the sync fails, ignores, or adds this dependency
+            handle_detected_dependency(source_path, dependency, &mut new_project_config)?
         }
     }
 
@@ -98,7 +137,7 @@ pub fn sync_dependency_constraints(
         }
     }
 
-    new_project_config
+    Ok(new_project_config)
 }
 
 pub fn sync_project(
@@ -108,7 +147,7 @@ pub fn sync_project(
     add: bool,
 ) -> Result<String, SyncError> {
     let mut project_config =
-        sync_dependency_constraints(project_root, project_config, exclude_paths, !add);
+        sync_dependency_constraints(project_root, project_config, exclude_paths, !add)?;
 
     Ok(dump_project_config_to_toml(&mut project_config)?)
 }

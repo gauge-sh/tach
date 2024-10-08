@@ -46,6 +46,10 @@ impl ModuleNode {
         }
     }
 
+    pub fn is_root(&self) -> bool {
+        self.full_path == "." && self.is_end_of_path
+    }
+
     pub fn fill(
         &mut self,
         config: ModuleConfig,

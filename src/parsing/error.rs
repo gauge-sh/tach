@@ -50,6 +50,8 @@ pub enum ModuleTreeError {
     VisibilityViolation(Vec<VisibilityErrorInfo>),
     #[error("Circular dependency detected: {0:?}")]
     CircularDependency(Vec<String>),
+    #[error("Root module violation: {0:?}")]
+    RootModuleViolation(String),
     #[error("Parsing Error while building module tree.\n{0}")]
     ParseError(#[from] ParsingError),
     #[error("Cannot insert module with empty path.")]

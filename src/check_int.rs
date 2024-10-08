@@ -9,7 +9,7 @@ use thiserror::Error;
 
 use crate::{
     core::{
-        config::ProjectConfig,
+        config::{ProjectConfig, RootModuleTreatment},
         module::{ModuleNode, ModuleTree},
     },
     exclusion::{self, is_path_excluded, set_excluded_paths},
@@ -139,6 +139,7 @@ fn check_import(
     file_mod_path: &str,
     module_tree: &ModuleTree,
     file_nearest_module: Option<Arc<ModuleNode>>,
+    root_module_treatment: RootModuleTreatment,
 ) -> Result<(), ImportCheckError> {
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
         Some(module) => module,
@@ -146,6 +147,10 @@ fn check_import(
         // but we should allow external imports if they have made it here.
         None => return Ok(()),
     };
+
+    if import_nearest_module.is_root() && root_module_treatment == RootModuleTreatment::Ignore {
+        return Ok(());
+    }
 
     let file_nearest_module = file_nearest_module
         // Lookup file_mod_path if module not given
@@ -265,6 +270,7 @@ pub fn check(
         &source_roots,
         valid_modules,
         project_config.forbid_circular_dependencies,
+        project_config.root_module.clone(),
     )?;
 
     set_excluded_paths(
@@ -283,6 +289,11 @@ pub fn check(
             let Some(nearest_module) = module_tree.find_nearest(&mod_path) else {
                 continue;
             };
+
+            if nearest_module.is_root() && project_config.root_module == RootModuleTreatment::Ignore
+            {
+                continue;
+            }
             let project_imports = match get_project_imports(
                 &source_roots,
                 abs_file_path,
@@ -319,6 +330,7 @@ pub fn check(
                     &mod_path,
                     &module_tree,
                     Some(Arc::clone(&nearest_module)),
+                    project_config.root_module.clone(),
                 ) else {
                     continue;
                 };
@@ -381,14 +393,26 @@ mod tests {
         #[case] import_mod_path: &str,
         #[case] expected_result: bool,
     ) {
-        let check_error = check_import(import_mod_path, file_mod_path, &module_tree, None);
+        let check_error = check_import(
+            import_mod_path,
+            file_mod_path,
+            &module_tree,
+            None,
+            RootModuleTreatment::Allow,
+        );
         let result = check_error.is_ok();
         assert_eq!(result, expected_result);
     }
 
     #[rstest]
     fn test_check_deprecated_import(module_tree: ModuleTree) {
-        let check_error = check_import("domain_one.subdomain", "domain_one", &module_tree, None);
+        let check_error = check_import(
+            "domain_one.subdomain",
+            "domain_one",
+            &module_tree,
+            None,
+            RootModuleTreatment::Allow,
+        );
         assert!(check_error.is_err());
         assert!(check_error.unwrap_err().is_deprecated());
     }

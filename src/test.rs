@@ -59,6 +59,7 @@ impl TachPytestPluginHandler {
             &source_roots,
             valid_modules,
             project_config.forbid_circular_dependencies,
+            project_config.root_module.clone(),
         )
         .unwrap();
 
