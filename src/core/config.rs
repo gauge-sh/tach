@@ -67,6 +67,7 @@ impl DependencyConfig {
 pub struct ModuleConfig {
     pub path: String,
     #[serde(default)]
+    #[pyo3(set)]
     pub depends_on: Vec<DependencyConfig>,
     #[serde(
         default = "default_visibility",
