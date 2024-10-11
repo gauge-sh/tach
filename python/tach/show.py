@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from urllib import error, request
 
 from tach import filesystem as fs
-from tach.extension import ModuleConfig, ProjectConfig
+from tach.extension import DependencyConfig, ModuleConfig, ProjectConfig
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -73,9 +73,25 @@ def filter_project_config(
     all_modules = copy(project_config.modules)
     project_config.set_modules([])
     filtered_modules: list[ModuleConfig] = []
+
     for module in all_modules:
-        if module_path_is_included_in_paths(source_roots, module.path, included_paths):
+        module_is_included = module_path_is_included_in_paths(
+            source_roots, module.path, included_paths
+        )
+        if module_is_included:
             filtered_modules.append(module)
+        else:
+            filtered_dependencies: list[DependencyConfig] = []
+            for dependency in module.depends_on:
+                dependency_is_included = module_path_is_included_in_paths(
+                    source_roots, dependency.path, included_paths
+                )
+                if dependency_is_included:
+                    filtered_dependencies.append(dependency)
+            if filtered_dependencies:
+                module.depends_on = filtered_dependencies
+                filtered_modules.append(module)
+
     return ProjectConfig.with_modules(project_config, filtered_modules)
 
 
@@ -97,26 +113,21 @@ def generate_module_graph_dot_file(
             graph.add_node(dependency)  # type: ignore
         graph.add_edge(module, dependency)  # type: ignore
 
-    source_roots = tuple(
-        map(lambda source_root: project_root / source_root, project_config.source_roots)
-    )
     included_paths = (
         list(map(lambda path: project_root / path, included_paths))
         if included_paths
         else None
     )
-    for module in project_config.modules:
-        module_is_included = module_path_is_included_in_paths(
-            source_roots, module.path, included_paths
-        )
-        for dependency in module.depends_on:
-            dependency_is_included = module_path_is_included_in_paths(
-                source_roots, dependency.path, included_paths
-            )
+    if included_paths:
+        modules = filter_project_config(
+            project_config, project_root, included_paths
+        ).modules
+    else:
+        modules = project_config.modules
 
-            # This essentially means we propagate one degree from the included modules
-            if module_is_included or dependency_is_included:
-                upsert_edge(graph, module.path, dependency.path)  # type: ignore
+    for module in modules:
+        for dependency in module.depends_on:
+            upsert_edge(graph, module.path, dependency.path)  # type: ignore
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
     dot_data: str = pydot_graph.to_string()  # type: ignore
