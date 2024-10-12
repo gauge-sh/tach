@@ -989,12 +989,21 @@ def tach_test(
         sys.exit(1)
 
 
+def current_version_is_behind(latest_version: str) -> bool:
+    try:
+        current_version_parts = list(map(int, __version__.split(".")[:3]))
+        latest_version_parts = list(map(int, latest_version.split(".")[:3]))
+        return current_version_parts < latest_version_parts
+    except Exception:
+        return False
+
+
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
     project_root = fs.find_project_config_root() or Path.cwd()
 
     latest_version = cache.get_latest_version()
-    if latest_version and latest_version != __version__:
+    if latest_version and current_version_is_behind(latest_version):
         print(
             f"{BCOLORS.WARNING}WARNING: there is a new {TOOL_NAME} version available"
             f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
