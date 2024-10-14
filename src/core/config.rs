@@ -78,6 +78,8 @@ pub struct ModuleConfig {
     pub utility: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub strict: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub unchecked: bool,
 }
 
 impl Default for ModuleConfig {
@@ -88,6 +90,7 @@ impl Default for ModuleConfig {
             visibility: default_visibility(),
             utility: Default::default(),
             strict: Default::default(),
+            unchecked: Default::default(),
         }
     }
 }
@@ -102,6 +105,7 @@ impl ModuleConfig {
             visibility: default_visibility(),
             utility: false,
             strict,
+            unchecked: false,
         }
     }
     #[staticmethod]
@@ -112,6 +116,7 @@ impl ModuleConfig {
             visibility: default_visibility(),
             utility: true,
             strict: false,
+            unchecked: false,
         }
     }
     #[staticmethod]

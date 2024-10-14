@@ -102,6 +102,7 @@ class ModuleConfig:
     depends_on: list[DependencyConfig]
     visibility: list[str]
     strict: bool
+    unchecked: bool
 
     @staticmethod
     def new_root_config() -> ModuleConfig: ...
