@@ -18,17 +18,17 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: x86_64
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: x86
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: aarch64
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: armv7
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: s390x
-          - runner: ubuntu-latest
+          - runner: ubuntu-22.04
             target: ppc64le
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
             3.10
             3.11
             3.12
-            3.13-dev
+            3.13
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -75,7 +75,7 @@ jobs:
             3.10
             3.11
             3.12
-            3.13-dev
+            3.13
           architecture: ${{ matrix.platform.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -108,7 +108,7 @@ jobs:
             3.10
             3.11
             3.12
-            3.13-dev
+            3.13
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -122,7 +122,7 @@ jobs:
           path: dist
 
   sdist:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Build sdist
@@ -138,7 +138,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/')
     needs: [linux, windows, macos, sdist]
     steps:
