@@ -108,17 +108,13 @@ impl ModuleConfig {
             unchecked: false,
         }
     }
-    #[staticmethod]
-    pub fn new_utility(path: &str) -> Self {
-        Self {
-            path: path.to_string(),
-            depends_on: vec![],
-            visibility: default_visibility(),
-            utility: true,
-            strict: false,
-            unchecked: false,
-        }
+
+    pub fn with_no_dependencies(&self) -> Self {
+        let mut new_module = self.clone();
+        new_module.depends_on = vec![];
+        new_module
     }
+
     #[staticmethod]
     pub fn new_root_config() -> Self {
         Self::new(ROOT_MODULE_SENTINEL_TAG, false)
