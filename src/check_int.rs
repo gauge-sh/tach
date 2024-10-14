@@ -290,6 +290,11 @@ pub fn check(
                 continue;
             };
 
+            if nearest_module.is_unchecked() {
+                // If the module is 'unchecked', we skip checking its imports
+                continue;
+            }
+
             if nearest_module.is_root() && project_config.root_module == RootModuleTreatment::Ignore
             {
                 continue;
