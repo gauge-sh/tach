@@ -54,15 +54,14 @@
         "usage/strict-mode",
         "usage/deprecate",
         "usage/tach-ignore",
+        "usage/unchecked-modules",
         "usage/vscode",
         "usage/faq"
       ]
     },
     {
       "group": "Contributing",
-      "pages": [
-        "contributing/setting-up-project"
-      ]
+      "pages": ["contributing/setting-up-project"]
     }
   ],
   "footerSocials": {

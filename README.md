@@ -1,4 +1,3 @@
-
 # Tach
 
 [![downloads](https://static.pepy.tech/badge/tach/month)](https://pepy.tech/project/tach)
@@ -28,10 +27,11 @@ Here's an example:
 If a module tries to import from another module that is not listed as a dependency, Tach can prevent it.
 
 Tach is:
+
 - 🌎 Open source
 - 🐍 Installable via pip
 - 🔧 Able to be adopted incrementally
-- ⚡  Implemented with no runtime impact
+- ⚡ Implemented with no runtime impact
 - ♾️ Interoperable with your existing systems (cli, hooks, ci, etc.)
 
 ## Getting Started
@@ -148,11 +148,11 @@ Tach also supports:
 
 - [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
 - [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
+- [Incremental adoption](https://docs.gauge.sh/usage/unchecked-modules)
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
 - [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
 - [Inline exceptions](https://docs.gauge.sh/usage/tach-ignore)
 - [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install)
-
 
 More info in the [docs](https://docs.gauge.sh/). Tach logs anonymized usage statistics which can be [opted out](https://docs.gauge.sh/usage/faq/) of.
 If you have any feedback, we'd love to talk!

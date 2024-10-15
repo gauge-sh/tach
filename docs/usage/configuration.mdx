@@ -50,8 +50,8 @@ strict = true
 
 [[modules]]
 path = "tach.__main__"
+unchecked = true
 depends_on = [{ path = "tach.start" }]
-strict = true
 
 [[modules]]
 path = "tach.errors"
@@ -92,6 +92,7 @@ Each module listed under the `modules` key above can accept the following attrib
 - `visibility`: a list of other modules which can import from this module (default: `['*']`)
 - `strict`: enables [strict mode](strict-mode) for the module (boolean)
 - `utility`: marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency (boolean)
+- `unchecked`: marks this module as [**unchecked**](unchecked-modules), meaning Tach will not check its imports (boolean)
 
 <Note>
   Tach also supports [deprecating individual dependencies](../usage/deprecate).
