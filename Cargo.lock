@@ -1587,7 +1587,7 @@ dependencies = [
 
 [[package]]
 name = "tach"
-version = "0.13.3"
+version = "0.13.4"
 dependencies = [
  "cached",
  "criterion",
