@@ -78,6 +78,8 @@ pub struct ModuleConfig {
     pub utility: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub strict: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub unchecked: bool,
 }
 
 impl Default for ModuleConfig {
@@ -88,6 +90,7 @@ impl Default for ModuleConfig {
             visibility: default_visibility(),
             utility: Default::default(),
             strict: Default::default(),
+            unchecked: Default::default(),
         }
     }
 }
@@ -102,18 +105,16 @@ impl ModuleConfig {
             visibility: default_visibility(),
             utility: false,
             strict,
+            unchecked: false,
         }
     }
-    #[staticmethod]
-    pub fn new_utility(path: &str) -> Self {
-        Self {
-            path: path.to_string(),
-            depends_on: vec![],
-            visibility: default_visibility(),
-            utility: true,
-            strict: false,
-        }
+
+    pub fn with_no_dependencies(&self) -> Self {
+        let mut new_module = self.clone();
+        new_module.depends_on = vec![];
+        new_module
     }
+
     #[staticmethod]
     pub fn new_root_config() -> Self {
         Self::new(ROOT_MODULE_SENTINEL_TAG, false)

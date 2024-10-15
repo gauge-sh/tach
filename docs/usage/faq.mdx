@@ -15,6 +15,13 @@ and its dependencies are listed in the `depends_on` key containing module paths 
 
 [See more information on configuration here.](./configuration)
 
+### Can I declare a module without restricting its dependencies?
+
+Yes, you can mark a module as `unchecked` in your `tach.toml` configuration. This lets you make Tach aware of a module boundary so that it can be referenced in other modules' dependencies,
+even if you don't want to restrict the dependencies of every module.
+
+[See an example here.](./unchecked-modules)
+
 ### How can I isolate a module from the rest of the code?
 
 To prevent any external usage of a given module, you can set `visibility: []` for the module in `tach.toml`. This means that no other module can declare a dependency on this module.

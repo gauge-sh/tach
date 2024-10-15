@@ -50,6 +50,10 @@ impl ModuleNode {
         self.full_path == "." && self.is_end_of_path
     }
 
+    pub fn is_unchecked(&self) -> bool {
+        self.config.as_ref().map_or(false, |c| c.unchecked)
+    }
+
     pub fn fill(
         &mut self,
         config: ModuleConfig,

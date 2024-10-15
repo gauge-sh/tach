@@ -77,20 +77,16 @@ pub fn sync_dependency_constraints(
         let mut new_modules: Vec<ModuleConfig> = Vec::new();
 
         let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
+        let (valid_modules, _) =
+            fs::validate_project_modules(&source_roots, project_config.modules.clone());
 
-        for module in project_config.modules.iter() {
-            // Filter out modules that are not found in the source roots
-            match fs::module_to_pyfile_or_dir_path(&source_roots, &module.path) {
-                Some(_) => {
-                    if module.utility {
-                        new_modules.push(ModuleConfig::new_utility(&module.path))
-                    } else {
-                        new_modules.push(ModuleConfig::new(&module.path, module.strict))
-                    }
-                }
-                None => new_modules.push(module.clone()),
-            };
-
+        for module in valid_modules.iter() {
+            // Clone modules and remove declared dependencies (unless unchecked, which should keep dependencies)
+            if module.unchecked {
+                new_modules.push(module.clone());
+            } else {
+                new_modules.push(module.with_no_dependencies());
+            }
             // Track deprecations for each module
             for dependency in module.depends_on.iter() {
                 if dependency.deprecated {
