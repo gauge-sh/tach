@@ -144,7 +144,12 @@ fn validate_root_module_treatment(
         RootModuleTreatment::DependenciesOnly => {
             let root_module_violations: Vec<String> = modules
                 .iter()
-                .filter(|module| module.path == ROOT_MODULE_SENTINEL_TAG)
+                .filter(|module| {
+                    module
+                        .depends_on
+                        .iter()
+                        .any(|dep| dep.path == ROOT_MODULE_SENTINEL_TAG)
+                })
                 .map(|module| module.path.clone())
                 .collect();
 
