@@ -26,6 +26,7 @@ from tach.extension import (
 )
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
+from tach.modularity import export_modularity
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import (
@@ -408,6 +409,34 @@ def build_parser() -> argparse.ArgumentParser:
         nargs=argparse.REMAINDER,
         help=f"Arguments forwarded to pytest. Use '--' to separate these arguments. Ex: '{TOOL_NAME} test -- -v'",
     )
+
+    ## tach modularity
+    modularity_parser = subparsers.add_parser(
+        "modularity",
+        prog=f"{TOOL_NAME} modularity",
+        help="Export a modularity report for your project.",
+        description="Export a modularity report for your project.",
+    )
+    modularity_parser.add_argument(
+        "--upload",
+        action="store_true",
+        help="Upload the report to a remote server.",
+    )
+    modularity_parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        nargs="?",
+        default=None,
+        help="Specify an output path for the modularity report [DEFAULT: 'modularity_report.json']",
+    )
+    modularity_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Ignore warnings and force the report to be generated.",
+    )
+
     return parser
 
 
@@ -989,6 +1018,46 @@ def tach_test(
         sys.exit(1)
 
 
+def tach_modularity(
+    project_root: Path,
+    upload: bool = False,
+    output_path: Path | None = None,
+    force: bool = False,
+):
+    logger.info(
+        "tach modularity called",
+        extra={
+            "data": LogDataModel(
+                function="tach_modularity",
+                parameters={"upload": upload, "force": force},
+            ),
+        },
+    )
+
+    if output_path is not None and upload:
+        print(
+            f"{BCOLORS.WARNING}Cannot upload and write to a file at the same time. Please choose one option.{BCOLORS.ENDC}"
+        )
+        sys.exit(1)
+
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_found()
+        sys.exit(1)
+
+    try:
+        export_modularity(
+            project_root=project_root,
+            project_config=project_config,
+            upload=upload,
+            output_path=output_path,
+            force=force,
+        )
+    except TachError as e:
+        print(f"Failed to export modularity report: {e}")
+        sys.exit(1)
+
+
 def current_version_is_behind(latest_version: str) -> bool:
     try:
         current_version_parts = list(map(int, __version__.split(".")[:3]))
@@ -1065,6 +1134,13 @@ def main() -> None:
             output_filepath=args.out,
             is_web=args.web,
             is_mermaid=args.mermaid,
+        )
+    elif args.command == "modularity":
+        tach_modularity(
+            project_root=project_root,
+            upload=args.upload,
+            output_path=args.output,
+            force=args.force,
         )
     else:
         print("Unrecognized command")

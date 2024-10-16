@@ -298,6 +298,7 @@ pub fn check(
                 &source_roots,
                 abs_file_path,
                 project_config.ignore_type_checking_imports,
+                project_config.include_string_imports,
             ) {
                 Ok(v) => v,
                 Err(ImportParseError::Parsing { .. }) => {

@@ -35,6 +35,7 @@ depends_on = [
 
 [[modules]]
 path = "tach.check_external"
+strict = true
 depends_on = [
     { path = "tach.extension" },
 ]
@@ -51,6 +52,7 @@ depends_on = [
     { path = "tach.icons" },
     { path = "tach.logging" },
     { path = "tach.mod" },
+    { path = "tach.modularity" },
     { path = "tach.parsing" },
     { path = "tach.report" },
     { path = "tach.show" },
@@ -179,6 +181,15 @@ path = "tach.utils"
 utility = true
 depends_on = []
 
+[[modules]]
+path = "tach.modularity"
+strict = true
+depends_on = [
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.filesystem.git_ops" },
+]
+
 [cache]
 file_dependencies = [
     "python/tests/**",
@@ -190,4 +201,10 @@ exclude = [
     "pytest",
     "pydot",
     "eval_type_backport",
+]
+
+
+[gauge]
+valid_interface_rules = [
+    { matches = [".*"], for_modules = ["tach.extension", "tach.utils"] },
 ]

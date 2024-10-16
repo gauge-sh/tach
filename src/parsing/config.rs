@@ -40,7 +40,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        core::config::{DependencyConfig, ModuleConfig},
+        core::config::{DependencyConfig, GaugeConfig, ModuleConfig},
         tests::fixtures::example_dir,
     };
     use filesystem::DEFAULT_EXCLUDE_PATHS;
@@ -89,10 +89,12 @@ mod tests {
                 exact: true,
                 disable_logging: false,
                 ignore_type_checking_imports: true,
+                include_string_imports: false,
                 forbid_circular_dependencies: true,
                 use_regex_matching: true,
                 external: Default::default(),
                 root_module: Default::default(),
+                gauge: GaugeConfig::default(),
             }
         );
     }

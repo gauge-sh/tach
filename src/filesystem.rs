@@ -96,11 +96,22 @@ pub struct ResolvedModule {
     pub member_name: Option<String>,
 }
 
+fn is_potential_python_module(s: &str) -> bool {
+    !s.is_empty()
+        && s.split('.')
+            .all(|part| !part.is_empty() && part.chars().all(|c| c.is_alphanumeric() || c == '_'))
+}
+
 pub fn module_to_file_path<P: AsRef<Path>>(
     roots: &[P],
     mod_path: &str,
     check_members: bool,
 ) -> Option<ResolvedModule> {
+    // Fast check because this may run on every string literal in every source file
+    if !is_potential_python_module(mod_path) {
+        return None;
+    }
+
     let mod_as_file_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
     for root in roots {
         let fs_path = root.as_ref().join(&mod_as_file_path);

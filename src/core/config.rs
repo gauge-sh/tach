@@ -32,6 +32,14 @@ fn is_default_visibility(value: &Vec<String>) -> bool {
     value == &default_visibility()
 }
 
+fn default_for_modules() -> Vec<String> {
+    vec!["*".to_string()]
+}
+
+fn is_default_for_modules(value: &Vec<String>) -> bool {
+    value == &default_for_modules()
+}
+
 fn is_true(value: &bool) -> bool {
     *value
 }
@@ -177,6 +185,30 @@ impl ExternalDependencyConfig {
     }
 }
 
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct InterfaceRuleConfig {
+    pub matches: Vec<String>,
+    #[serde(
+        default = "default_for_modules",
+        skip_serializing_if = "is_default_for_modules"
+    )]
+    pub for_modules: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct GaugeConfig {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub valid_interface_rules: Vec<InterfaceRuleConfig>,
+}
+
+impl GaugeConfig {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
 #[derive(Default, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct UnusedDependencies {
@@ -233,12 +265,16 @@ pub struct ProjectConfig {
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     #[pyo3(set)]
     pub ignore_type_checking_imports: bool,
+    #[serde(default, skip_serializing_if = "is_true")]
+    pub include_string_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub forbid_circular_dependencies: bool,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub use_regex_matching: bool,
     #[serde(default, skip_serializing_if = "RootModuleTreatment::is_default")]
     pub root_module: RootModuleTreatment,
+    #[serde(default, skip_serializing_if = "GaugeConfig::is_default")]
+    pub gauge: GaugeConfig,
 }
 
 impl Default for ProjectConfig {
@@ -252,9 +288,11 @@ impl Default for ProjectConfig {
             exact: Default::default(),
             disable_logging: Default::default(),
             ignore_type_checking_imports: default_true(),
+            include_string_imports: Default::default(),
             forbid_circular_dependencies: Default::default(),
             use_regex_matching: default_true(),
             root_module: Default::default(),
+            gauge: Default::default(),
         }
     }
 }
@@ -320,9 +358,11 @@ impl ProjectConfig {
             exact: self.exact,
             disable_logging: self.disable_logging,
             ignore_type_checking_imports: self.ignore_type_checking_imports,
+            include_string_imports: self.include_string_imports,
             forbid_circular_dependencies: self.forbid_circular_dependencies,
             use_regex_matching: self.use_regex_matching,
             root_module: self.root_module.clone(),
+            gauge: self.gauge.clone(),
         }
     }
 
