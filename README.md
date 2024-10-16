@@ -137,6 +137,7 @@ Tach also supports:
 
 - [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
 - [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
+- [Incremental adoption](https://docs.gauge.sh/usage/unchecked-modules)
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
 - [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
 - [Inline exceptions](https://docs.gauge.sh/usage/tach-ignore)

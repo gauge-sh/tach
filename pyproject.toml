@@ -1,6 +1,6 @@
 [project]
 name = "tach"
-version = "0.13.alpha2"
+version = "0.13.alpha4"
 authors = [
     { name = "Caelean Barnes", email = "caeleanb@gmail.com" },
     { name = "Evan Doyle", email = "evanmdoyle@gmail.com" },
@@ -60,7 +60,7 @@ dev = [
     # Setup
     "pip==24.0",
     # Code Quality
-    "pyright==1.1.383",
+    "pyright==1.1.384",
     "ruff==0.6.9",
     # Build/Release
     "setuptools==69.5.1; python_version > '3.7'",
