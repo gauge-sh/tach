@@ -35,7 +35,12 @@ def _get_installed_modules(dist: Any) -> list[str]:
     try:
         top_level = dist.read_text("top_level.txt")
         if top_level:
-            module_names.update(top_level.strip().split())
+            module_names.update(
+                module_name.strip()
+                for module_name in top_level.splitlines()
+                if module_name.strip()
+            )
+            return list(module_names)
     except Exception:
         pass
 
@@ -43,19 +48,27 @@ def _get_installed_modules(dist: Any) -> list[str]:
     try:
         record = dist.read_text("RECORD")
         if record:
-            module_names.update(
-                line.split(",")[0].split("/")[0]
-                for line in record.splitlines()
-                if "/" in line and not line.startswith("__")
-            )
+            for line in record.splitlines():
+                base_name = line.split(",")[0].split("/")[0]
+                if (
+                    "/" in line
+                    and not base_name.startswith("_")
+                    and not base_name.endswith("dist-info")
+                    and "." not in base_name
+                ):
+                    module_names.add(base_name)
+            if module_names:
+                return list(module_names)
     except Exception:
         pass
 
     # Method 3: Check entry points
     for ep in dist.entry_points:
-        if "." in ep.value:
-            module_names.add(ep.value.split(":")[0])
-
+        if ":" in ep.value:
+            entry_point = ep.value.split(":")[0]
+        else:
+            entry_point = ep.value
+        module_names.add(entry_point.split(".")[0])
     return list(module_names)
 
 
@@ -71,10 +84,15 @@ def get_module_mappings() -> dict[str, list[str]]:
         else:
             from importlib_metadata import distributions  # type: ignore
 
-        return {
-            dist.metadata["Name"]: _get_installed_modules(dist)
-            for dist in distributions()
-        }
+        result: dict[str, list[str]] = {}
+        for dist in distributions():
+            modules = _get_installed_modules(dist)
+            name = dist.metadata["Name"]
+            for module in modules:
+                if module not in result:
+                    result[module] = []
+                result[module].append(name)
+        return result
 
 
 PYPI_PACKAGE_REGEX = re.compile(r"[-_.]+")
