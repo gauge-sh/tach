@@ -98,7 +98,9 @@ def render_external_dependency_report(
         return f"{BCOLORS.OKCYAN}No external dependencies found in {BCOLORS.ENDC}{BCOLORS.OKGREEN}'{path}'.{BCOLORS.ENDC}"
 
     if raw:
-        return "\n".join({dependency.package_name for dependency in dependencies})
+        return "\n".join(
+            sorted({dependency.package_name for dependency in dependencies})
+        )
 
     title = f"[ External Dependencies in '{path}' ]"
     divider = "-" * len(title)
