@@ -17,12 +17,19 @@ impl PatternMatcher {
     }
 
     pub fn from_regex(pattern: &str) -> Result<Self, PathExclusionError> {
-        Ok(PatternMatcher::Regex(regex::Regex::new(pattern).map_err(
-            |e| PathExclusionError::RegexPatternError {
-                exclude: pattern.to_string(),
-                source: e,
-            },
-        )?))
+        let pattern_from_start = if pattern.starts_with(r"^") {
+            pattern.to_string()
+        } else {
+            format!(r"^{}", pattern)
+        };
+        Ok(PatternMatcher::Regex(
+            regex::Regex::new(&pattern_from_start).map_err(|e| {
+                PathExclusionError::RegexPatternError {
+                    exclude: pattern.to_string(),
+                    source: e,
+                }
+            })?,
+        ))
     }
 
     pub fn from_glob(pattern: &str) -> Result<Self, PathExclusionError> {
