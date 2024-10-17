@@ -188,3 +188,34 @@ from external_module import something
         ("file1.c", 3),
     ]
     assert result == expected
+
+
+def test_relative_import_from_parent(temp_project):
+    # Create a nested directory structure
+    (temp_project / "parent" / "child").mkdir(parents=True, exist_ok=True)
+
+    # Create a file in the parent directory
+    parent_file_content = """
+def parent_function():
+    pass
+"""
+    create_temp_file(temp_project / "parent", "parent_module.py", parent_file_content)
+
+    # Create a file in the child directory with a relative import from the parent
+    child_file_content = """
+from .. import parent_module
+
+def child_function():
+    parent_module.parent_function()
+"""
+    create_temp_file(
+        temp_project / "parent" / "child", "child_module.py", child_file_content
+    )
+
+    result = get_project_imports(
+        [str(temp_project)],
+        str(temp_project / "parent" / "child" / "child_module.py"),
+        ignore_type_checking_imports=True,
+    )
+    expected = [("parent.parent_module", 2)]
+    assert result == expected
