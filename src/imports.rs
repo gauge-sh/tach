@@ -147,44 +147,53 @@ impl<'a> ImportVisitor<'a> {
         let mut imports = NormalizedImports::new();
 
         let import_depth: usize = import_statement.level.try_into().unwrap();
+        let num_paths_to_strip = if self.is_package {
+            import_depth.saturating_sub(1)
+        } else {
+            import_depth
+        };
+
+        let mod_path = match &self.file_mod_path {
+            Some(mod_path) => mod_path,
+            None => "",
+        };
+        // If our current file mod path is None, we are not within the source root
+        // so we assume that relative imports are also not within the source root
+        if mod_path.is_empty() && import_depth > 0 {
+            return imports;
+        };
+
+        let base_path_parts: Vec<&str> = mod_path.split('.').collect();
+        let base_path_parts = if num_paths_to_strip > 0 {
+            base_path_parts[..base_path_parts.len() - num_paths_to_strip].to_vec()
+        } else {
+            base_path_parts
+        };
 
         let base_mod_path = if let Some(ref module) = import_statement.module {
             if import_depth > 0 {
                 // For relative imports (level > 0), adjust the base module path
-                let num_paths_to_strip = if self.is_package {
-                    import_depth - 1
+
+                // base_mod_path becomes the current file's mod path
+                // minus the paths_to_strip (due to level of import)
+                // plus the module we are importing from
+                if base_path_parts.is_empty() {
+                    module.to_string()
                 } else {
-                    import_depth
-                };
-
-                // If our current file mod path is None, we are not within the source root
-                // so we assume that relative imports are also not within the source root
-                match &self.file_mod_path {
-                    None => return imports, // early return from the outer function
-                    Some(mod_path) => {
-                        let base_path_parts: Vec<&str> = mod_path.split('.').collect();
-                        let base_path_parts = if num_paths_to_strip > 0 {
-                            base_path_parts[..base_path_parts.len() - num_paths_to_strip].to_vec()
-                        } else {
-                            base_path_parts
-                        };
-
-                        if base_path_parts.is_empty() {
-                            module.to_string()
-                        } else {
-                            // base_mod_path is the current file's mod path
-                            // minus the paths_to_strip (due to level of import)
-                            // plus the module we are importing from
-                            format!("{}.{}", base_path_parts.join("."), module)
-                        }
-                    }
+                    format!("{}.{}", base_path_parts.join("."), module)
                 }
             } else {
                 module.to_string()
             }
         } else {
-            // We are importing from the current package ('.')
-            String::new()
+            // We are importing from the current package ('.') or a parent ('..' or more)
+            // We have already stripped parts from the current file's mod path based on the import depth,
+            // so we just need to join the remaining parts with a '.'
+            if base_path_parts.is_empty() {
+                // This means we are looking at a current package import outside of a source root
+                return imports;
+            }
+            base_path_parts.join(".")
         };
 
         let line_no = self
@@ -203,23 +212,19 @@ impl<'a> ImportVisitor<'a> {
         }
 
         for name in &import_statement.names {
-            let local_mod_path = format!(
-                "{}{}.{}",
-                ".".repeat(import_depth),
-                import_statement.module.as_deref().unwrap_or(""),
-                name.asname.as_deref().unwrap_or(name.name.as_ref())
-            );
             if let Some(ignored) = ignored_modules {
-                if ignored.contains(&local_mod_path) {
+                if ignored.contains(
+                    &name
+                        .asname
+                        .as_deref()
+                        .unwrap_or(name.name.as_ref())
+                        .to_string(),
+                ) {
                     continue; // This import is ignored by a directive
                 }
             }
 
-            let global_mod_path = match import_statement.module {
-                Some(_) => format!("{}.{}", base_mod_path, name.name.as_str()),
-                None => name.name.to_string(),
-            };
-
+            let global_mod_path = format!("{}.{}", base_mod_path, name.name.as_str());
             imports.push(NormalizedImport {
                 module_path: global_mod_path,
                 line_no: self.locator.compute_line_index(name.range.start()).get(),
