@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::fs;
 use std::io;
 use std::path::PathBuf;
 
@@ -156,12 +155,12 @@ pub fn create_dependency_report(
     if skip_dependencies && skip_usages {
         return Err(ReportCreationError::NothingToReport);
     }
-    let absolute_path = fs::canonicalize(path)?;
+    let absolute_path = project_root.join(path);
     let module_path = file_to_module_path(source_roots, &absolute_path)?;
     let mut report = DependencyReport::new(path.to_string_lossy().to_string());
 
     for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
-        let absolute_pyfile = PathBuf::from(&project_root).join(&pyfile);
+        let absolute_pyfile = project_root.join(&pyfile);
         match get_project_imports(source_roots, &absolute_pyfile, ignore_type_checking_imports) {
             Ok(project_imports) => {
                 let pyfile_in_target_module = absolute_pyfile.starts_with(&absolute_path);
