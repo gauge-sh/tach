@@ -49,6 +49,10 @@ def report(
         use_regex_matching=project_config.use_regex_matching,
     )
 
+    # We prefer resolving symlinks and relative paths in Python
+    # because Rust's canonicalize adds an 'extended length path' prefix on Windows
+    # which breaks downstream code that compares to Python-resolved paths (project root, source roots, etc.)
+    path = path.resolve().relative_to(project_root)
     try:
         return create_dependency_report(
             project_root=str(project_root),
