@@ -96,6 +96,8 @@ class Usage:
     filepath: str
     # 1-indexed location of the usage in the file
     line: int
+    # [1.1] The Module that contains the Usage (None indicates Usage outside of any Module)
+    containing_module_path: str | None
 
 
 @dataclass
@@ -111,7 +113,7 @@ class InterfaceRule:
     for_modules: list[str] = field(default_factory=lambda: ["*"])
 
 
-REPORT_VERSION = "1.0"
+REPORT_VERSION = "1.1"
 
 
 @dataclass
@@ -119,17 +121,23 @@ class Report:
     repo: str
     branch: str
     commit: str
+    # [1.1] The full configuration encoded as JSON
+    full_configuration: str
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
     interface_rules: list[InterfaceRule] = field(default_factory=list)
+
+
+@dataclass
+class ReportMetadata:
     version: str = REPORT_VERSION
+    configuration_format: str = "json"
 
 
 @dataclass
 class ReportUpload:
     report: Report
-    # pseudo-json metadata
-    metadata: dict[str, str | int | bool | None] = field(default_factory=dict)
+    metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
 def build_modules(
@@ -212,6 +220,7 @@ def build_usages(
                     full_path=import_mod_path,
                     filepath=str(pyfile),
                     line=line,
+                    containing_module_path=pyfile_containing_module,
                 )
             )
 
@@ -234,7 +243,10 @@ def generate_modularity_report(
     print("Generating report...")
     branch_info = get_current_branch_info(project_root, allow_dirty=force)
     report = Report(
-        repo=branch_info.repo, branch=branch_info.name, commit=branch_info.commit
+        repo=branch_info.repo,
+        branch=branch_info.name,
+        commit=branch_info.commit,
+        full_configuration=project_config.model_dump_json(),
     )
     source_roots = [project_root / root for root in project_config.source_roots]
 
