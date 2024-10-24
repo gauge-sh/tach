@@ -81,7 +81,7 @@ def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> None:
 def upload_report(report: Report, _project_config: ProjectConfig):
     print("Uploading report...")
     path = build_modularity_upload_path(report.repo)
-    post_json_to_gauge_api(path, asdict(ReportUpload(report=report)))
+    post_json_to_gauge_api(path, asdict(report))
     print("Report uploaded!")
 
 
@@ -117,6 +117,12 @@ REPORT_VERSION = "1.1"
 
 
 @dataclass
+class ReportMetadata:
+    version: str = REPORT_VERSION
+    configuration_format: str = "json"
+
+
+@dataclass
 class Report:
     repo: str
     branch: str
@@ -126,17 +132,6 @@ class Report:
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
     interface_rules: list[InterfaceRule] = field(default_factory=list)
-
-
-@dataclass
-class ReportMetadata:
-    version: str = REPORT_VERSION
-    configuration_format: str = "json"
-
-
-@dataclass
-class ReportUpload:
-    report: Report
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
