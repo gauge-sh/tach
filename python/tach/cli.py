@@ -425,7 +425,7 @@ def build_parser() -> argparse.ArgumentParser:
     modularity_parser.add_argument(
         "-o",
         "--output",
-        type=str,
+        type=Path,
         nargs="?",
         default=None,
         help="Specify an output path for the modularity report [DEFAULT: 'modularity_report.json']",
