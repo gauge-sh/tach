@@ -1,21 +1,69 @@
 from __future__ import annotations
 
-from copy import copy
+import os
+import subprocess
+import sys
+import threading
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from queue import Queue
+from typing import IO, TYPE_CHECKING, Any, Tuple
 
 from tach.errors import TachSetupError
-from tach.extension import ProjectConfig, TachPytestPluginHandler
-from tach.filesystem.git_ops import get_changed_files
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from tach.extension import ProjectConfig
+
+
+def run_and_capture(cmd: list[str], **kwargs: Any) -> Tuple[int, str, str]:
+    stdout_queue: Queue[str] = Queue()
+    stderr_queue: Queue[str] = Queue()
+
+    def tee_output(pipe: IO[str], queue: Queue[str], terminal: Any):
+        for line in pipe:
+            queue.put_nowait(line)
+            print(line, end="", file=terminal, flush=True)
+        pipe.close()
+
+    process_env = os.environ.copy()
+    process_env["PYTEST_ADDOPTS"] = "--color=yes"
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        bufsize=1,
+        env=process_env,
+        **kwargs,
+    )
+
+    stdout_thread = threading.Thread(
+        target=tee_output, args=(process.stdout, stdout_queue, sys.stdout)
+    )
+    stderr_thread = threading.Thread(
+        target=tee_output, args=(process.stderr, stderr_queue, sys.stderr)
+    )
+
+    stdout_thread.start()
+    stderr_thread.start()
+
+    returncode = process.wait()
+    stdout_thread.join()
+    stderr_thread.join()
+
+    stdout_content = "".join(stdout_queue.queue)
+    stderr_content = "".join(stderr_queue.queue)
+
+    return returncode, stdout_content, stderr_content
 
 
 @dataclass
 class AffectedTestsResult:
     exit_code: int
     tests_ran_to_completion: bool
+    stdout: str
+    stderr: str
 
 
 def run_affected_tests(
@@ -30,86 +78,27 @@ def run_affected_tests(
     except ImportError:
         raise TachSetupError("Cannot run tests, could not find 'pytest'.")
 
-    class TachPytestPlugin:
-        def __init__(
-            self,
-            handler: TachPytestPluginHandler,
-        ):
-            self.handler = handler
+    cmd = ["pytest", "-p", "tach.pytest_plugin"]
+    if pytest_args:
+        cmd.extend(pytest_args)
+    if base:
+        cmd.extend(["--tach-base", base])
+    if head:
+        cmd.extend(["--tach-head", head])
 
-        def pytest_collection_modifyitems(
-            self,
-            session: pytest.Session,
-            config: pytest.Config,
-            items: list[pytest.Item],
-        ):
-            seen: set[Path] = set()
-            for item in copy(items):
-                if not item.path:
-                    continue
-                if str(item.path) in self.handler.removed_test_paths:
-                    self.handler.num_removed_items += 1
-                    items.remove(item)
-                    continue
-                if item.path in seen:
-                    continue
-
-                if str(item.path) in self.handler.all_affected_modules:
-                    # If this test file was changed,
-                    # then we know we need to rerun it
-                    seen.add(item.path)
-                    continue
-
-                if self.handler.should_remove_items(file_path=item.path.resolve()):
-                    self.handler.num_removed_items += 1
-                    items.remove(item)
-                    self.handler.remove_test_path(item.path)
-
-                seen.add(item.path)
-
-        def pytest_report_collectionfinish(
-            self,
-            config: pytest.Config,
-            start_path: Path,
-            startdir: Any,
-            items: list[pytest.Item],
-        ) -> str | list[str]:
-            return [
-                f"[Tach] Skipped {len(self.handler.removed_test_paths)} test file{'s' if len(self.handler.removed_test_paths) > 1 else ''}"
-                f" ({self.handler.num_removed_items} tests)"
-                " since they were unaffected by current changes.",
-                *(
-                    f"[Tach] > Skipped '{test_path}'"
-                    for test_path in self.handler.removed_test_paths
-                ),
-            ]
-
-        def pytest_terminal_summary(
-            self, terminalreporter: Any, exitstatus: int, config: pytest.Config
-        ):
-            self.handler.tests_ran_to_completion = True
-
-    changed_files = get_changed_files(project_root, head=head, base=base)
-    pytest_plugin_handler = TachPytestPluginHandler(
-        project_root=project_root,
-        project_config=project_config,
-        changed_files=changed_files,
-        all_affected_modules={changed_file.resolve() for changed_file in changed_files},
+    returncode, stdout, stderr = run_and_capture(cmd, cwd=project_root)
+    tests_ran = returncode != pytest.ExitCode.NO_TESTS_COLLECTED
+    exit_code = (
+        pytest.ExitCode.OK
+        if returncode == pytest.ExitCode.NO_TESTS_COLLECTED
+        else returncode
     )
-
-    exit_code = pytest.main(
-        pytest_args, plugins=[TachPytestPlugin(handler=pytest_plugin_handler)]
-    )
-
-    if exit_code == pytest.ExitCode.NO_TESTS_COLLECTED:
-        # Selective testing means running zero tests will happen regularly,
-        # so we do not want the default behavior of failing when no tests
-        # are collected.
-        exit_code = pytest.ExitCode.OK
 
     return AffectedTestsResult(
         exit_code=exit_code,
-        tests_ran_to_completion=pytest_plugin_handler.tests_ran_to_completion,
+        tests_ran_to_completion=tests_ran,
+        stdout=stdout,
+        stderr=stderr,
     )
 
 

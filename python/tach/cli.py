@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any
 
 from tach import __version__, cache, icons
 from tach import filesystem as fs
@@ -432,9 +432,9 @@ class CachedOutput:
     def replay(self):
         for fd, output in self.output:
             if fd == 1:
-                print(output, end="", file=sys.stdout)
+                print(output, file=sys.stdout)
             elif fd == 2:
-                print(output, end="", file=sys.stderr)
+                print(output, file=sys.stderr)
 
 
 def check_cache_for_action(
@@ -462,42 +462,6 @@ def check_cache_for_action(
             exit_code=cache_result[1],
         )
     return CachedOutput(key=cache_key)
-
-
-class TeeStream:
-    def __init__(self, fd: int, source_stream: IO[Any], capture: list[tuple[int, str]]):
-        self.fd = fd
-        self.source_stream = source_stream
-        self.capture = capture
-
-    def write(self, data: Any):
-        self.source_stream.write(data)
-        self.capture.append((self.fd, data))
-
-    def __getattr__(self, name: str) -> Any:
-        # Hack: Proxy attribute access to the source stream
-        return getattr(self.source_stream, name)
-
-
-class Tee:
-    def __init__(self):
-        # stdout output will be indicated by (1, <data>), stderr output by (2, <data>)
-        self.output_capture: list[tuple[int, str]] = []
-        self.original_stdout: Any = None
-        self.original_stderr: Any = None
-
-    def __enter__(self):
-        self.original_stdout = sys.stdout
-        self.original_stderr = sys.stderr
-
-        sys.stdout = TeeStream(1, sys.stdout, self.output_capture)
-        sys.stderr = TeeStream(2, sys.stderr, self.output_capture)
-
-        return self
-
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
-        sys.stdout = self.original_stdout
-        sys.stderr = self.original_stderr
 
 
 def extend_and_validate(
@@ -925,6 +889,10 @@ def tach_test(
         extra={
             "data": LogDataModel(
                 function="tach_test",
+                parameters={
+                    "disable_cache": disable_cache,
+                    "pytest_args": pytest_args,
+                },
             ),
         },
     )
@@ -968,20 +936,31 @@ def tach_test(
 
         # Cache missed, capture terminal output while tests run so we can update the cache
 
-        with Tee() as captured:
-            results = run_affected_tests(
-                project_root=project_root,
-                project_config=project_config,
-                head=head,
-                base=base,
-                pytest_args=pytest_args[1:],  # Remove '--' pseudo-argument
-            )
+        results = run_affected_tests(
+            project_root=project_root,
+            project_config=project_config,
+            head=head,
+            base=base,
+            pytest_args=pytest_args[1:],  # Remove '--' pseudo-argument
+        )
 
         if results.tests_ran_to_completion:
             update_computation_cache(
                 str(project_root),
                 cache_key=cached_output.key,
-                value=(captured.output_capture, results.exit_code),
+                value=(
+                    [
+                        *(
+                            (1, stdout_line)
+                            for stdout_line in results.stdout.split("\n")
+                        ),
+                        *(
+                            (2, stderr_line)
+                            for stderr_line in results.stderr.split("\n")
+                        ),
+                    ],
+                    results.exit_code,
+                ),
             )
         sys.exit(results.exit_code)
     except TachError as e:
