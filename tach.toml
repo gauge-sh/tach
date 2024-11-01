@@ -136,6 +136,15 @@ depends_on = [
 ]
 
 [[modules]]
+path = "tach.pytest_plugin"
+depends_on = [
+    { path =  "tach.filesystem" },
+    { path =  "tach.filesystem.git_ops" },
+    { path =  "tach.extension" },
+    { path =  "tach.parsing" },
+]
+
+[[modules]]
 path = "tach.report"
 strict = true
 depends_on = [
@@ -169,10 +178,7 @@ depends_on = [
 [[modules]]
 path = "tach.test"
 strict = true
-depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem.git_ops" },
-]
+depends_on = []
 
 [[modules]]
 path = "tach.utils"
