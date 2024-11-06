@@ -58,6 +58,10 @@ def walk(
                 continue
 
         def filter_filename(filename: str) -> bool:
+            if exclude_paths and is_path_excluded(
+                exclude_paths, Path(filename), use_regex_matching=use_regex_matching
+            ):
+                return False
             return not filename.startswith(".")
 
         yield rel_dirpath, list(map(Path, filter(filter_filename, filenames)))
