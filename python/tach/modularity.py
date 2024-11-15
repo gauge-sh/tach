@@ -10,12 +10,15 @@ from urllib import parse
 from tach import filesystem as fs
 from tach.errors import TachError
 from tach.extension import (
+    CheckDiagnostics,
     InterfaceRuleConfig,
     ProjectConfig,
+    check,
     get_project_imports,
     parse_interface_members,
 )
 from tach.filesystem.git_ops import get_current_branch_info
+from tach.parsing.config import extend_and_validate
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -38,7 +41,7 @@ def export_modularity(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
+GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://localhost:8000")
 
 
 def build_modularity_upload_path(repo: str) -> str:
@@ -132,6 +135,7 @@ class Report:
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
     interface_rules: list[InterfaceRule] = field(default_factory=list)
+    check_result: CheckDiagnostics | None = None
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
@@ -244,11 +248,19 @@ def generate_modularity_report(
         full_configuration=project_config.model_dump_json(),
     )
     source_roots = [project_root / root for root in project_config.source_roots]
+    exclude_paths = extend_and_validate(
+        None, project_config.exclude, project_config.use_regex_matching
+    )
 
     report.modules = build_modules(source_roots, project_config)
     report.usages = build_usages(project_root, source_roots, project_config)
     report.interface_rules = build_interface_rules(
         project_config.gauge.valid_interface_rules
+    )
+    report.check_result = check(
+        project_root=project_root,
+        project_config=project_config,
+        exclude_paths=exclude_paths,
     )
 
     print("Report generated!")

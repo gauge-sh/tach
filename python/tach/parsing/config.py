@@ -72,3 +72,26 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
         # Return right away, this is a final ProjectConfig
         project_config = migrate_deprecated_config(file_path)
     return project_config
+
+
+def extend_and_validate(
+    exclude_paths: list[str] | None,
+    project_excludes: list[str],
+    use_regex_matching: bool,
+) -> list[str]:
+    if exclude_paths is not None:
+        exclude_paths.extend(project_excludes)
+    else:
+        exclude_paths = project_excludes
+
+    if not use_regex_matching:
+        return exclude_paths
+
+    for exclude_path in exclude_paths:
+        try:
+            re.compile(exclude_path)
+        except re.error:
+            raise ValueError(
+                f"Invalid regex pattern: {exclude_path}. If you meant to use glob matching, set 'use_regex_matching' to false in your .toml file."
+            )
+    return exclude_paths
