@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -93,7 +92,6 @@ class BoundaryError:
     import_mod_path: str
     error_info: ErrorInfo
 
-@dataclass
 class CheckDiagnostics:
     errors: list[BoundaryError]
     deprecated_warnings: list[BoundaryError]
