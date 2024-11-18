@@ -23,7 +23,7 @@ thiserror = "2.0.3"
 serde = { version = "1.0.215", features = ["derive"] }
 glob = "0.3.1"
 petgraph = "0.6.5"
-serde_json = "1.0.132"
+serde_json = "1.0.133"
 
 [features]
 extension-module = ["pyo3/extension-module"]
