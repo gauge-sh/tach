@@ -6,7 +6,7 @@ use std::{
 use crate::{
     colors::BColors,
     core::config::{InterfaceConfig, ProjectConfig},
-    filesystem::{module_to_file_path, read_file_content, ROOT_MODULE_SENTINEL_TAG},
+    filesystem::{read_file_content, ROOT_MODULE_SENTINEL_TAG},
     parsing::py_ast::parse_interface_members,
 };
 
