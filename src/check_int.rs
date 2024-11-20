@@ -9,7 +9,7 @@ use thiserror::Error;
 
 use crate::{
     core::{
-        config::{ProjectConfig, RootModuleTreatment},
+        config::{ProjectConfig, RootModuleTreatment, RuleSetting},
         module::{ModuleNode, ModuleTree},
     },
     exclusion::{self, is_path_excluded, set_excluded_paths},
@@ -76,6 +76,9 @@ pub enum ImportCheckError {
         source_module: String,
         invalid_module: String,
     },
+
+    #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
+    UnusedIgnoreDirective { import_mod_path: String },
 }
 
 #[pymethods]
@@ -352,6 +355,10 @@ pub fn check(
                     boundary_errors.push(boundary_error);
                 }
             }
+
+            if project_config.rules.unused_ignore_directives == RuleSetting::Off {
+                continue;
+            }
             for directive_ignored_import in project_imports.directive_ignored_imports {
                 if let Ok(()) = check_import(
                     &directive_ignored_import.module_path,
@@ -360,10 +367,29 @@ pub fn check(
                     Some(Arc::clone(&nearest_module)),
                     project_config.root_module.clone(),
                 ) {
-                    warnings.push(format!(
+                    let message = format!(
                         "Import '{}' is unnecessarily ignored by a directive.",
                         directive_ignored_import.module_path
-                    ));
+                    );
+                    match project_config.rules.unused_ignore_directives {
+                        RuleSetting::Error => {
+                            boundary_errors.push(BoundaryError {
+                                file_path: file_path.clone(),
+                                line_number: directive_ignored_import.line_no,
+                                import_mod_path: directive_ignored_import.module_path.to_string(),
+                                error_info: ImportCheckError::UnusedIgnoreDirective {
+                                    import_mod_path: directive_ignored_import
+                                        .module_path
+                                        .to_string(),
+                                },
+                            });
+                        }
+                        RuleSetting::Warn => {
+                            warnings.push(message);
+                        }
+                        // Should never be reached
+                        RuleSetting::Off => {}
+                    }
                 }
             }
         }
