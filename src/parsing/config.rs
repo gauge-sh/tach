@@ -93,6 +93,7 @@ mod tests {
                 use_regex_matching: true,
                 external: Default::default(),
                 root_module: Default::default(),
+                rules: Default::default(),
             }
         );
     }

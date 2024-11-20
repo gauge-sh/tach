@@ -197,3 +197,6 @@ exclude = [
     "pydot",
     "eval_type_backport",
 ]
+
+[rules]
+unused_ignore_directives = "error"

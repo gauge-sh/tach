@@ -121,10 +121,13 @@ fn get_normalized_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> imports::Result<imports::NormalizedImports> {
+) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)
+    Ok(
+        imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)?
+            .imports,
+    )
 }
 
 /// Get first-party imports from file_path
@@ -134,10 +137,13 @@ fn get_project_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> imports::Result<imports::NormalizedImports> {
+) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    imports::get_project_imports(&source_roots, &file_path, ignore_type_checking_imports)
+    Ok(
+        imports::get_project_imports(&source_roots, &file_path, ignore_type_checking_imports)?
+            .imports,
+    )
 }
 
 /// Get third-party imports from file_path
@@ -147,11 +153,12 @@ fn get_external_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> imports::Result<imports::NormalizedImports> {
+) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
     Ok(
         imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)?
+            .imports
             .into_iter()
             .filter_map(|import| {
                 imports::is_project_import(&source_roots, &import.module_path).map_or(

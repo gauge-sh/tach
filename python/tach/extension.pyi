@@ -123,6 +123,11 @@ class UnusedDependencies:
     path: str
     dependencies: list[DependencyConfig]
 
+RuleSetting = Literal["error", "warn", "off"]
+
+class RulesConfig:
+    unused_ignore_directives: RuleSetting
+
 class ProjectConfig:
     modules: list[ModuleConfig]
     cache: CacheConfig
@@ -134,6 +139,7 @@ class ProjectConfig:
     ignore_type_checking_imports: bool
     forbid_circular_dependencies: bool
     use_regex_matching: bool
+    rules: RulesConfig
 
     def __new__(cls) -> ProjectConfig: ...
     def module_paths(self) -> list[str]: ...
