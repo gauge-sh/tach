@@ -76,7 +76,11 @@ pub struct ModuleConfig {
     pub visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub utility: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    // TODO: Remove this in a future version
+    // This will be deserialized from old config,
+    // but auto-migrated to interfaces internally.
+    // This means we don't want to serialize it.
+    #[serde(default, skip_serializing)]
     pub strict: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub unchecked: bool,

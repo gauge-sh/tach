@@ -16,18 +16,15 @@ use_regex_matching = false
 [[modules]]
 path = "tach"
 depends_on = []
-strict = true
 
 [[modules]]
 path = "tach.__main__"
-strict = true
 depends_on = [
     { path = "tach.start" },
 ]
 
 [[modules]]
 path = "tach.cache"
-strict = true
 depends_on = [
     { path = "tach" },
     { path = "tach.filesystem" },
@@ -41,7 +38,6 @@ depends_on = [
 
 [[modules]]
 path = "tach.cli"
-strict = true
 depends_on = [
     { path = "tach" },
     { path = "tach.cache" },
@@ -60,21 +56,18 @@ depends_on = [
 
 [[modules]]
 path = "tach.colors"
-utility = true
 depends_on = []
-strict = true
+utility = true
 
 [[modules]]
 path = "tach.constants"
-utility = true
 depends_on = []
-strict = true
+utility = true
 
 [[modules]]
 path = "tach.errors"
-utility = true
 depends_on = []
-strict = true
+utility = true
 
 [[modules]]
 path = "tach.extension"
@@ -82,36 +75,30 @@ depends_on = []
 
 [[modules]]
 path = "tach.filesystem"
-strict = true
 depends_on = [
     { path = "tach.hooks" },
 ]
 
 [[modules]]
 path = "tach.filesystem.git_ops"
-strict = true
 depends_on = []
 
 [[modules]]
 path = "tach.hooks"
-strict = true
 depends_on = []
 
 [[modules]]
 path = "tach.icons"
 depends_on = []
-strict = true
 
 [[modules]]
 path = "tach.interactive"
-strict = true
 depends_on = [
     { path = "tach.filesystem" },
 ]
 
 [[modules]]
 path = "tach.logging"
-strict = true
 depends_on = [
     { path = "tach" },
     { path = "tach.cache" },
@@ -120,7 +107,6 @@ depends_on = [
 
 [[modules]]
 path = "tach.mod"
-strict = true
 depends_on = [
     { path = "tach.filesystem" },
     { path = "tach.interactive" },
@@ -129,7 +115,6 @@ depends_on = [
 
 [[modules]]
 path = "tach.parsing"
-strict = true
 depends_on = [
     { path = "tach.extension" },
     { path = "tach.filesystem" },
@@ -138,15 +123,14 @@ depends_on = [
 [[modules]]
 path = "tach.pytest_plugin"
 depends_on = [
-    { path =  "tach.filesystem" },
-    { path =  "tach.filesystem.git_ops" },
-    { path =  "tach.extension" },
-    { path =  "tach.parsing" },
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.filesystem.git_ops" },
+    { path = "tach.parsing" },
 ]
 
 [[modules]]
 path = "tach.report"
-strict = true
 depends_on = [
     { path = "tach.extension" },
     { path = "tach.filesystem" },
@@ -154,7 +138,6 @@ depends_on = [
 
 [[modules]]
 path = "tach.show"
-strict = true
 depends_on = [
     { path = "tach.extension" },
     { path = "tach.filesystem" },
@@ -162,14 +145,12 @@ depends_on = [
 
 [[modules]]
 path = "tach.start"
-strict = true
 depends_on = [
     { path = "tach.cli" },
 ]
 
 [[modules]]
 path = "tach.sync"
-strict = true
 depends_on = [
     { path = "tach.extension" },
     { path = "tach.filesystem" },
@@ -177,13 +158,191 @@ depends_on = [
 
 [[modules]]
 path = "tach.test"
-strict = true
 depends_on = []
 
 [[modules]]
 path = "tach.utils"
-utility = true
 depends_on = []
+utility = true
+
+[[interfaces]]
+expose = [
+    "__version__",
+]
+from = [
+    "tach",
+]
+
+[[interfaces]]
+expose = []
+from = [
+    "tach.__main__",
+]
+
+[[interfaces]]
+expose = [
+    "get_uid",
+    "update_latest_version",
+    "get_latest_version",
+]
+from = [
+    "tach.cache",
+]
+
+[[interfaces]]
+expose = [
+    "main",
+]
+from = [
+    "tach.cli",
+]
+
+[[interfaces]]
+expose = [
+    "BCOLORS",
+]
+from = [
+    "tach.colors",
+]
+
+[[interfaces]]
+expose = [
+    "PACKAGE_NAME",
+    "TOOL_NAME",
+    "CONFIG_FILE_NAME",
+    "PACKAGE_FILE_NAME",
+    "ROOT_MODULE_SENTINEL_TAG",
+    "DEFAULT_EXCLUDE_PATHS",
+]
+from = [
+    "tach.constants",
+]
+
+[[interfaces]]
+expose = [
+    "TachError",
+    "TachSetupError",
+]
+from = [
+    "tach.errors",
+]
+
+[[interfaces]]
+expose = [
+    "write_file",
+    "walk",
+    "walk_pyfiles",
+    "file_to_module_path",
+    "module_to_pyfile_or_dir_path",
+    "get_project_config_path",
+    "build_project_config_path",
+    "get_deprecated_project_config_path",
+    "find_project_config_root",
+    "install_pre_commit",
+]
+from = [
+    "tach.filesystem",
+]
+
+[[interfaces]]
+expose = [
+    "get_changed_files",
+]
+from = [
+    "tach.filesystem.git_ops",
+]
+
+[[interfaces]]
+expose = [
+    "build_pre_commit_hook_content",
+]
+from = [
+    "tach.hooks",
+]
+
+[[interfaces]]
+expose = []
+from = [
+    "tach.icons",
+]
+
+[[interfaces]]
+expose = [
+    "get_selected_modules_interactive",
+    "InteractiveModuleConfiguration",
+]
+from = [
+    "tach.interactive",
+]
+
+[[interfaces]]
+expose = [
+    "logger",
+    "LogDataModel",
+]
+from = [
+    "tach.logging",
+]
+
+[[interfaces]]
+expose = [
+    "mod_edit_interactive",
+]
+from = [
+    "tach.mod",
+]
+
+[[interfaces]]
+expose = [
+    "parse_project_config",
+    "dump_project_config_to_toml",
+]
+from = [
+    "tach.parsing",
+]
+
+[[interfaces]]
+expose = [
+    "report",
+    "external_dependency_report",
+]
+from = [
+    "tach.report",
+]
+
+[[interfaces]]
+expose = [
+    "generate_show_url",
+    "generate_module_graph_dot_file",
+    "generate_module_graph_mermaid",
+]
+from = [
+    "tach.show",
+]
+
+[[interfaces]]
+expose = [
+    "start",
+]
+from = [
+    "tach.start",
+]
+
+[[interfaces]]
+expose = [
+    "sync_project",
+]
+from = [
+    "tach.sync",
+]
+
+[[interfaces]]
+expose = [
+    "run_affected_tests",
+]
+from = [
+    "tach.test",
+]
 
 [cache]
 file_dependencies = [

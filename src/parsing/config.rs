@@ -1,8 +1,13 @@
-use std::{cmp::Ordering, path::Path};
+use std::{
+    cmp::Ordering,
+    path::{Path, PathBuf},
+};
 
 use crate::{
-    core::config::ProjectConfig,
-    filesystem::{self, ROOT_MODULE_SENTINEL_TAG},
+    colors::BColors,
+    core::config::{InterfaceConfig, ProjectConfig},
+    filesystem::{module_to_file_path, read_file_content, ROOT_MODULE_SENTINEL_TAG},
+    parsing::py_ast::parse_interface_members,
 };
 
 use super::error;
@@ -28,10 +33,43 @@ pub fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String,
     toml::to_string(&config)
 }
 
-pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> error::Result<ProjectConfig> {
-    let content = filesystem::read_file_content(filepath)?;
-    let config: ProjectConfig = toml::from_str(&content)?;
-    Ok(config)
+fn migrate_strict_mode_to_interfaces(filepath: &Path, config: &mut ProjectConfig) -> bool {
+    if config.modules.iter().any(|m| m.strict) {
+        println!(
+            "{}WARNING: Strict mode is deprecated. Migrating to interfaces.{}",
+            BColors::WARNING,
+            BColors::ENDC
+        );
+    } else {
+        // No strict modules, so no need to migrate
+        return false;
+    }
+
+    let mut interfaces: Vec<InterfaceConfig> = vec![];
+    let abs_source_roots: Vec<PathBuf> = config
+        .source_roots
+        .iter()
+        .map(|r| filepath.parent().unwrap().join(r))
+        .collect();
+    for module in &mut config.modules {
+        if module.strict {
+            let interface_members =
+                parse_interface_members(&abs_source_roots, &module.path).unwrap_or_default();
+            interfaces.push(InterfaceConfig {
+                expose: interface_members,
+                from_modules: vec![module.path.clone()],
+            });
+        }
+    }
+    config.interfaces = interfaces;
+    true
+}
+
+pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> error::Result<(ProjectConfig, bool)> {
+    let content = read_file_content(filepath.as_ref())?;
+    let mut config: ProjectConfig = toml::from_str(&content)?;
+    let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config);
+    Ok((config, did_migrate))
 }
 
 #[cfg(test)]
@@ -39,19 +77,20 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
+    use crate::filesystem::DEFAULT_EXCLUDE_PATHS;
     use crate::{
         core::config::{DependencyConfig, ModuleConfig},
         tests::fixtures::example_dir,
     };
-    use filesystem::DEFAULT_EXCLUDE_PATHS;
     use rstest::rstest;
     #[rstest]
     fn test_parse_valid_project_config(example_dir: PathBuf) {
         // TODO: remove tach.toml when joining
         let result = parse_project_config(example_dir.join("valid/tach.toml"));
         assert!(result.is_ok());
+        let (config, _) = result.unwrap();
         assert_eq!(
-            result.unwrap(),
+            config,
             ProjectConfig {
                 modules: vec![
                     ModuleConfig {
