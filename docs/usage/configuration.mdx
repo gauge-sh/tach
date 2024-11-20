@@ -24,6 +24,8 @@ This is the project-level configuration file which should be in the root of your
 
 `root_module` takes a string enum value, and determines how Tach treats code which lives within the project but is not covered by an explicit module. This is described in detail [below](#the_root_module)
 
+`rules` allows precise configuration of the severity of certain types of issues. See [below](#rules) for more details.
+
 `use_regex_matching` is a boolean which, when enabled, uses regex (default) matching to exclude patterns else uses globs matching.
 
 ```toml
@@ -81,6 +83,9 @@ file_dependencies = ["python/tests/**", "src/*.rs"]
 
 [external]
 exclude = ["pytest"]
+
+[rules]
+unused_ignore_directives = "warn"
 ```
 
 ## Modules
@@ -253,3 +258,23 @@ The `env_dependencies` key accepts a list of environment variable names whose va
 When running [`check-external`](commands#tach-check-external), Tach allows excluding certain modules from validation.
 
 Adding the top level module name to the `exclude` key (underneath the `external` key) will allow all usages of the corresponding module.
+
+
+## Rules
+
+Tach allows configuring the severity of certain issues.
+
+The `unused_ignore_directives` rule determines whether unnecessary [`tach-ignore`](tach-ignore) comments trigger a warning, an error, or nothing at all.
+
+Example:
+```py
+# tach-ignore valid_import_fn
+from other.valid import valid_import_fn
+```
+
+```toml
+[rules]
+# "warn" is the default for this rule,
+# other options are "error", "off"
+unused_ignore_directives = "warn"
+```
