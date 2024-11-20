@@ -169,6 +169,7 @@ pub fn create_dependency_report(
                     // is an external dependency
                     report.dependencies.extend(
                         project_imports
+                            .imports
                             .into_iter()
                             .filter(|import| {
                                 if import.module_path.starts_with(&module_path) {
@@ -196,7 +197,7 @@ pub fn create_dependency_report(
                 } else if !pyfile_in_target_module && !skip_usages {
                     // We are looking at imports from outside the target module,
                     // so any import which points to the target module is an external usage
-                    for import in project_imports {
+                    for import in project_imports.imports {
                         if !import.module_path.starts_with(&module_path) {
                             // this import doesn't point to the target module
                             continue;

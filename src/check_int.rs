@@ -299,6 +299,7 @@ pub fn check(
             {
                 continue;
             }
+
             let project_imports = match get_project_imports(
                 &source_roots,
                 abs_file_path,
@@ -328,7 +329,7 @@ pub fn check(
                 }
             };
 
-            for import in project_imports {
+            for import in project_imports.imports {
                 found_at_least_one_project_import = true;
                 let Err(error_info) = check_import(
                     &import.module_path,
@@ -349,6 +350,20 @@ pub fn check(
                     boundary_warnings.push(boundary_error);
                 } else {
                     boundary_errors.push(boundary_error);
+                }
+            }
+            for directive_ignored_import in project_imports.directive_ignored_imports {
+                if let Ok(()) = check_import(
+                    &directive_ignored_import.module_path,
+                    &mod_path,
+                    &module_tree,
+                    Some(Arc::clone(&nearest_module)),
+                    project_config.root_module.clone(),
+                ) {
+                    warnings.push(format!(
+                        "Import '{}' is unnecessarily ignored by a directive.",
+                        directive_ignored_import.module_path
+                    ));
                 }
             }
         }
