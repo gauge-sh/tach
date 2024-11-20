@@ -128,6 +128,14 @@ impl ModuleConfig {
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct InterfaceConfig {
+    pub expose: Vec<String>,
+    #[serde(rename = "from")]
+    pub from_modules: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum CacheBackend {
     #[default]
@@ -287,6 +295,8 @@ impl RulesConfig {
 pub struct ProjectConfig {
     #[serde(default)]
     pub modules: Vec<ModuleConfig>,
+    #[serde(default)]
+    pub interfaces: Vec<InterfaceConfig>,
     #[serde(default, skip_serializing_if = "CacheConfig::is_default")]
     pub cache: CacheConfig,
     #[serde(default, skip_serializing_if = "ExternalDependencyConfig::is_default")]
@@ -317,6 +327,7 @@ impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
             modules: Default::default(),
+            interfaces: Default::default(),
             cache: Default::default(),
             external: Default::default(),
             exclude: default_excludes(),
@@ -386,6 +397,7 @@ impl ProjectConfig {
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
+            interfaces: self.interfaces.clone(),
             cache: self.cache.clone(),
             external: self.external.clone(),
             exclude: self.exclude.clone(),

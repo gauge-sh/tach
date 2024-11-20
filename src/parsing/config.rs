@@ -79,6 +79,7 @@ mod tests {
                         ..Default::default()
                     }
                 ],
+                interfaces: Default::default(),
                 cache: Default::default(),
                 exclude: DEFAULT_EXCLUDE_PATHS
                     .into_iter()

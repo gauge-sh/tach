@@ -109,6 +109,11 @@ class ModuleConfig:
     def __new__(cls, path: str, strict: bool) -> ModuleConfig: ...
     def mod_path(self) -> str: ...
 
+class InterfaceConfig:
+    expose: list[str]
+    # 'from' in tach.toml
+    from_modules: list[str]
+
 CacheBackend = Literal["disk"]
 
 class CacheConfig:
@@ -130,6 +135,7 @@ class RulesConfig:
 
 class ProjectConfig:
     modules: list[ModuleConfig]
+    interfaces: list[InterfaceConfig]
     cache: CacheConfig
     external: ExternalDependencyConfig
     exclude: list[str]
