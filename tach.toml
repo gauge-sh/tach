@@ -268,6 +268,7 @@ from = [
 expose = [
     "parse_project_config",
     "dump_project_config_to_toml",
+    "extend_and_validate",
 ]
 from = [
     "tach.parsing",

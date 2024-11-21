@@ -19,7 +19,7 @@ from tach.extension import (
     get_project_imports,
 )
 from tach.filesystem.git_ops import get_current_branch_info
-from tach.parsing.config import extend_and_validate
+from tach.parsing import extend_and_validate
 
 if TYPE_CHECKING:
     from pathlib import Path
