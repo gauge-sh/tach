@@ -39,7 +39,7 @@ def export_modularity(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://localhost:8000")
+GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "http://localhost:8000")
 
 
 def build_modularity_upload_path(repo: str) -> str:
@@ -139,9 +139,9 @@ class BoundaryError:
 
 @dataclass
 class CheckResult:
-    errors: list[BoundaryError] = []
-    deprecated_warnings: list[BoundaryError] = []
-    warnings: list[str] = []
+    errors: list[BoundaryError] = field(default_factory=list)
+    deprecated_warnings: list[BoundaryError] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -300,16 +300,15 @@ def generate_modularity_report(
     exclude_paths = extend_and_validate(
         None, project_config.exclude, project_config.use_regex_matching
     )
-
-    report.modules = build_modules(source_roots, project_config)
-    report.usages = build_usages(project_root, source_roots, project_config)
-    report.interface_rules = build_interface_rules(
-        project_config.gauge.valid_interface_rules
-    )
     check_diagnostics = check(
         project_root=project_root,
         project_config=project_config,
         exclude_paths=exclude_paths,
+    )
+    report.modules = build_modules(source_roots, project_config)
+    report.usages = build_usages(project_root, source_roots, project_config)
+    report.interface_rules = build_interface_rules(
+        project_config.gauge.valid_interface_rules
     )
     report.check_result = process_check_result(check_diagnostics)
 
