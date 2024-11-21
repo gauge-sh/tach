@@ -44,6 +44,13 @@ Tach allows marking these modules as **Utilities**, which means they can be used
 
 [See more information on configuration here.](./configuration)
 
+### How can I define a public interface for a module?
+
+[Public interfaces](./interfaces) are defined in [tach.toml](./configuration#interfaces), and restrict the imports which are allowed from a given module.
+This is useful when you want to expose a stable API from a module and prevent other modules from becoming deeply coupled to its implementation details.
+
+[See more information on configuration here.](./configuration)
+
 ### Are conditional imports checked?
 
 Tach will check all imports in your source files, including those which are called conditionally.
