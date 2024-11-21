@@ -1,0 +1,69 @@
+name: ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main", "docs"]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          check-latest: true
+
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Check ruff
+        run: |
+          ruff check
+          ruff format --check
+      - name: Test with cargo
+        run: |
+          cargo test --no-default-features
+      - name: Test with pytest and report coverage
+        run: |
+          coverage run --branch --source=python -m pytest
+          coverage report
+      - name: Check types with pyright
+        run: |
+          pyright --pythonversion ${{ matrix.python-version }}
+      - name: Check tach
+        run: tach check
+      - name: Check Rust linting
+        run: cargo clippy
+      - name: Check Rust formatting
+        run: cargo fmt --all --check
+      - name: Check Rust
+        run: cargo check

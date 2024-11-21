@@ -49,8 +49,10 @@ def upload_report_to_gauge(
     post_json_to_gauge_api(path, asdict(report))
     print(f"{BCOLORS.OKGREEN} > Report uploaded!{BCOLORS.ENDC}")
 
+
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
 GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "http://localhost:8000")
+
 
 def build_modularity_upload_path(repo: str) -> str:
     return f"/api/client/repos/{repo}/modularity"
@@ -157,14 +159,8 @@ class Report:
     full_configuration: str
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
-    interface_rules: list[InterfaceRule] = field(default_factory=list)
     check_result: CheckResult = field(default_factory=CheckResult)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
-
-
-def build_modules(
-    source_roots: list[Path], project_config: ProjectConfig
-) -> list[Module]:
     # [1.2] Deprecated
     interface_rules: list[Any] = field(default_factory=list)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
