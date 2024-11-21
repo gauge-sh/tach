@@ -1,8 +1,18 @@
 # Tach
 
+[![downloads](https://static.pepy.tech/badge/tach/month)](https://pepy.tech/project/tach)
+[![version](https://img.shields.io/pypi/v/tach.svg)](https://pypi.Python.org/pypi/tach)
+[![license](https://img.shields.io/pypi/l/tach.svg)](https://pypi.Python.org/pypi/tach)
+[![python](https://img.shields.io/pypi/pyversions/tach.svg)](https://pypi.Python.org/pypi/tach)
+[![ci](https://github.com/gauge-sh/tach/actions/workflows/ci.yml/badge.svg)](https://github.com/gauge-sh/tach/actions/workflows/ci.yml)
+[![pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
+[![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 a Python tool to enforce dependencies, written in Rust. Inspired by modular monolithic architecture.
 
-[Docs](https://docs.gauge.sh) (for the OSS version)
+[Docs](https://docs.gauge.sh)
+
+[Discord](https://discord.gg/Kz2TnszerR)
 
 <div align="center">
     <img src="docs/assets/light_logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
@@ -16,7 +26,21 @@ Here's an example:
 
 If a module tries to import from another module that is not listed as a dependency, Tach can prevent it.
 
+Tach is:
+
+- 🌎 Open source
+- 🐍 Installable via pip
+- 🔧 Able to be adopted incrementally
+- ⚡ Implemented with no runtime impact
+- ♾️ Interoperable with your existing systems (cli, hooks, ci, etc.)
+
 ## Getting Started
+
+### Installation
+
+```bash
+pip install tach
+```
 
 ### Setup
 
@@ -81,19 +105,6 @@ Each error indicates an import which violates your dependencies. If your termina
 
 When an error is detected, `tach check` will exit with a non-zero code. It can be easily integrated with CI/CD, [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach), and more!
 
-### Submitting Reports
-
-Tach is integrated with the [Gauge platform](https://app.gauge.sh)
-
-You can submit modularity reports from your local environment or from CI, given you have an API key set in `GAUGE_API_KEY`.
-
-```bash
-# Generate and upload a modularity report
-tach modularity --upload
-```
-
-![gauge platform](docs/assets/gauge_platform_example_branch_report.png)
-
 ### Extras
 
 Visualize your dependency graph.
@@ -135,7 +146,7 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 
 Tach also supports:
 
-- [Public interfaces for modules](https://docs.gauge.sh/usage/interfaces/)
+- [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
 - [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
 - [Incremental adoption](https://docs.gauge.sh/usage/unchecked-modules)
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
@@ -145,3 +156,13 @@ Tach also supports:
 
 More info in the [docs](https://docs.gauge.sh/). Tach logs anonymized usage statistics which can be [opted out](https://docs.gauge.sh/usage/faq/) of.
 If you have any feedback, we'd love to talk!
+
+If you have any questions or run into any issues, let us know by either reaching out on [Discord](https://discord.gg/Kz2TnszerR) or submitting a [Github Issue](https://github.com/gauge-sh/tach/issues)!
+
+---
+
+### Contributors
+
+<a href="https://github.com/gauge-sh/tach/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=gauge-sh/tach" />
+</a>
