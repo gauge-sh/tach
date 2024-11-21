@@ -135,8 +135,20 @@ impl ModuleConfig {
 #[pyclass(get_all, module = "tach.extension")]
 pub struct InterfaceConfig {
     pub expose: Vec<String>,
-    #[serde(rename = "from")]
+    #[serde(
+        rename = "from",
+        default = "default_from_modules",
+        skip_serializing_if = "is_default_from_modules"
+    )]
     pub from_modules: Vec<String>,
+}
+
+fn default_from_modules() -> Vec<String> {
+    vec![".*".to_string()]
+}
+
+fn is_default_from_modules(value: &Vec<String>) -> bool {
+    value == &default_from_modules()
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
