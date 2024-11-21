@@ -135,7 +135,7 @@ class Report:
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
     interface_rules: list[InterfaceRule] = field(default_factory=list)
-    check_result: CheckDiagnostics | None = None
+    check_diagnostics: CheckDiagnostics | None = None
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
@@ -257,7 +257,7 @@ def generate_modularity_report(
     report.interface_rules = build_interface_rules(
         project_config.gauge.valid_interface_rules
     )
-    report.check_result = check(
+    report.check_diagnostics = check(
         project_root=project_root,
         project_config=project_config,
         exclude_paths=exclude_paths,

@@ -30,7 +30,7 @@ class BoundaryError:
 
 
 @dataclass
-class CheckResult:
+class CheckDiagnostics:
     errors: list[BoundaryError]
     deprecated_warnings: list[BoundaryError]
     warnings: list[str]
@@ -39,7 +39,7 @@ class CheckResult:
 @pytest.fixture
 def mock_check(mocker) -> Mock:
     mock = Mock(
-        return_value=CheckResult(errors=[], deprecated_warnings=[], warnings=[])
+        return_value=CheckDiagnostics(errors=[], deprecated_warnings=[], warnings=[])
     )  # default to a return with no errors
     mocker.patch("tach.cli.check", mock)
     return mock
@@ -69,7 +69,7 @@ def test_execute_with_error(capfd, mock_check, mock_project_config):
     # Mock an error returned from check
     location = Path("valid_dir/file.py")
     message = "Import valid_dir in valid_dir/file.py is blocked by boundary"
-    mock_check.return_value = CheckResult(
+    mock_check.return_value = CheckDiagnostics(
         deprecated_warnings=[],
         warnings=[],
         errors=[
