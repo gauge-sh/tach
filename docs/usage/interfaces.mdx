@@ -1,0 +1,58 @@
+---
+title: Interfaces
+---
+
+A module can adopt a public interface by matching interface rules in [`tach.toml`](./configuration#interfaces).
+
+## How does it work?
+
+When Tach is checking imports from a module with a [public interface](./configuration#interfaces), it will verify that the import matches one of the `expose` patterns.
+This prevents other modules from becoming coupled to implementation details, and makes future changes easier.
+
+## Example
+
+Given modules called 'core' and 'domain', we may have `tach.toml` contents like this:
+
+```toml
+[[modules]]
+path = "domain"
+depends_on = [
+    { path = "core" }
+]
+
+[[modules]]
+path = "core"
+depends_on = []
+
+[[interfaces]]
+expose = ["get_data"]
+from = ["core"]
+```
+
+Then, in `domain.py`, we may have:
+
+```python
+from core.main import DataModel  # This import fails
+
+DataModel.objects.all()
+```
+
+This import would **fail** `tach check` with the following error:
+
+```shell
+❌ domain.py[L1]: Module 'core' is in strict mode. Only imports from the public interface of this module are allowed. The import 'core.main.DataModel' (in module 'parsing') is not public.
+```
+
+In this case, there is a public interface defined in `tach.toml` which includes a service method to use instead.
+
+```python
+from core import get_data  # This import is OK
+
+get_data()
+```
+
+`tach check` will now pass!
+
+```bash
+✅ All module dependencies validated!
+```

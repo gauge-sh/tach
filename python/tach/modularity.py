@@ -2,45 +2,55 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import asdict, dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib import parse
 
 from tach import filesystem as fs
-from tach.errors import TachError
+from tach.colors import BCOLORS
+from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
     CheckDiagnostics,
-    InterfaceRuleConfig,
     ProjectConfig,
     check,
     get_project_imports,
-    parse_interface_members,
 )
 from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing.config import extend_and_validate
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def export_modularity(
+
+def export_report(
     project_root: Path,
     project_config: ProjectConfig,
-    upload: bool = False,
     output_path: Path | None = None,
     force: bool = False,
 ):
+    """Export a modularity report to a local file."""
     report = generate_modularity_report(project_root, project_config, force=force)
+    output_path = output_path or project_root / "modularity_report.json"
+    output_path.write_text(json.dumps(asdict(report), indent=2))
 
-    if upload:
-        upload_report(report, project_config)
-    else:
-        output_path = output_path or project_root / "modularity_report.json"
-        output_path.write_text(json.dumps(asdict(report), indent=2))
 
+def upload_report_to_gauge(
+    project_root: Path,
+    project_config: ProjectConfig,
+    force: bool = False,
+):
+    """Upload a modularity report to Gauge."""
+    report = generate_modularity_report(project_root, project_config, force=force)
+    print(f"{BCOLORS.OKCYAN} > Uploading report...{BCOLORS.ENDC}")
+    path = build_modularity_upload_path(report.repo)
+    post_json_to_gauge_api(path, asdict(report))
+    print(f"{BCOLORS.OKGREEN} > Report uploaded!{BCOLORS.ENDC}")
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
 GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "http://localhost:8000")
-
 
 def build_modularity_upload_path(repo: str) -> str:
     return f"/api/client/repos/{repo}/modularity"
@@ -48,7 +58,11 @@ def build_modularity_upload_path(repo: str) -> str:
 
 def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> None:
     if not GAUGE_API_KEY:
-        raise TachError("GAUGE_API_KEY is not set.")
+        raise TachClosedBetaError(
+            f"{BCOLORS.WARNING}Modularity is currently in closed beta. Visit {GAUGE_API_BASE_URL}/closed-beta to request access.{BCOLORS.ENDC}"
+            "\n\n"
+            f"{BCOLORS.OKCYAN}Already have access? Set the GAUGE_API_KEY environment variable to continue.{BCOLORS.ENDC}"
+        )
     headers = {
         "Content-Type": "application/json",
         "Authorization": GAUGE_API_KEY,
@@ -79,13 +93,6 @@ def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> None:
             conn.close()
 
 
-def upload_report(report: Report, _project_config: ProjectConfig):
-    print("Uploading report...")
-    path = build_modularity_upload_path(report.repo)
-    post_json_to_gauge_api(path, asdict(report))
-    print("Report uploaded!")
-
-
 # NOTE: these usages are all imports
 @dataclass
 class Usage:
@@ -104,17 +111,14 @@ class Usage:
 @dataclass
 class Module:
     path: str
+    # [1.2] Deprecated
     is_strict: bool = False
+    # [1.2] Replaces 'is_strict'
+    has_interface: bool = False
     interface_members: list[str] = field(default_factory=list)
 
 
-@dataclass
-class InterfaceRule:
-    matches: list[str]
-    for_modules: list[str] = field(default_factory=lambda: ["*"])
-
-
-REPORT_VERSION = "1.1"
+REPORT_VERSION = "1.2"
 
 
 @dataclass
@@ -161,29 +165,34 @@ class Report:
 def build_modules(
     source_roots: list[Path], project_config: ProjectConfig
 ) -> list[Module]:
+    # [1.2] Deprecated
+    interface_rules: list[Any] = field(default_factory=list)
+    metadata: ReportMetadata = field(default_factory=ReportMetadata)
+
+
+def build_modules(project_config: ProjectConfig) -> list[Module]:
     modules: list[Module] = []
     for module in project_config.modules:
         if module.mod_path() == ".":
             # Skip <root>
             continue
 
-        if module.strict:
-            # If module is strict, parse and add interface members
-            interface_members = parse_interface_members(
-                source_roots,
-                module.mod_path(),
-            )
+        has_interface = False
+        interface_members: set[str] = set()
+        for interface in project_config.interfaces:
+            if any(
+                re.match(pattern, module.path) for pattern in interface.from_modules
+            ):
+                has_interface = True
+                interface_members.update(interface.expose)
 
-            modules.append(
-                Module(
-                    path=module.path,
-                    is_strict=True,
-                    interface_members=interface_members,
-                )
+        modules.append(
+            Module(
+                path=module.path,
+                has_interface=has_interface,
+                interface_members=list(interface_members),
             )
-        else:
-            modules.append(Module(path=module.path))
-
+        )
     return modules
 
 
@@ -245,16 +254,6 @@ def build_usages(
     return usages
 
 
-def build_interface_rules(
-    interface_rules: list[InterfaceRuleConfig],
-) -> list[InterfaceRule]:
-    # TODO: validate interface rules
-    return [
-        InterfaceRule(matches=rule.matches, for_modules=rule.for_modules)
-        for rule in interface_rules
-    ]
-
-
 def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
     return CheckResult(
         errors=[
@@ -288,7 +287,7 @@ def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
 def generate_modularity_report(
     project_root: Path, project_config: ProjectConfig, force: bool = False
 ) -> Report:
-    print("Generating report...")
+    print(f"{BCOLORS.OKCYAN} > Generating report...{BCOLORS.ENDC}")
     branch_info = get_current_branch_info(project_root, allow_dirty=force)
     report = Report(
         repo=branch_info.repo,
@@ -297,6 +296,9 @@ def generate_modularity_report(
         full_configuration=project_config.model_dump_json(),
     )
     source_roots = [project_root / root for root in project_config.source_roots]
+
+    report.modules = build_modules(project_config)
+    report.usages = build_usages(project_root, source_roots, project_config)
     exclude_paths = extend_and_validate(
         None, project_config.exclude, project_config.use_regex_matching
     )
@@ -305,15 +307,9 @@ def generate_modularity_report(
         project_config=project_config,
         exclude_paths=exclude_paths,
     )
-    report.modules = build_modules(source_roots, project_config)
-    report.usages = build_usages(project_root, source_roots, project_config)
-    report.interface_rules = build_interface_rules(
-        project_config.gauge.valid_interface_rules
-    )
     report.check_result = process_check_result(check_diagnostics)
-
-    print("Report generated!")
+    print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
     return report
 
 
-__all__ = ["export_modularity"]
+__all__ = ["export_report", "upload_report_to_gauge"]

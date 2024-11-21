@@ -50,12 +50,12 @@
       "pages": [
         "usage/commands",
         "usage/configuration",
-        "usage/caching",
-        "usage/strict-mode",
+        "usage/interfaces",
         "usage/deprecate",
         "usage/tach-ignore",
         "usage/unchecked-modules",
         "usage/vscode",
+        "usage/caching",
         "usage/faq"
       ]
     },

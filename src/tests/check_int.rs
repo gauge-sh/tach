@@ -3,10 +3,18 @@ pub mod fixtures {
     use std::{collections::HashMap, sync::Arc};
 
     use crate::core::{
-        config::{DependencyConfig, ModuleConfig},
+        config::{DependencyConfig, InterfaceConfig, ModuleConfig},
         module::{ModuleNode, ModuleTree},
     };
     use rstest::fixture;
+
+    #[fixture]
+    pub fn interface_config() -> Vec<InterfaceConfig> {
+        vec![InterfaceConfig {
+            from_modules: vec!["domain_one".to_string()],
+            expose: vec!["public_fn".to_string()],
+        }]
+    }
 
     #[fixture]
     pub fn module_tree() -> ModuleTree {
@@ -28,16 +36,16 @@ pub mod fixtures {
                                     DependencyConfig::from_deprecated_path("domain_one.subdomain"),
                                     DependencyConfig::from_path("domain_three"),
                                 ],
-                                strict: true,
+                                strict: false,
                                 ..Default::default()
                             }),
-                            interface_members: vec!["public_fn".to_string()],
+                            interface_members: vec![],
                             children: HashMap::from([(
                                 "subdomain".to_string(),
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_one.subdomain".to_string(),
-                                    config: Some(ModuleConfig::new("domain_one.subdomain", true)),
+                                    config: Some(ModuleConfig::new("domain_one.subdomain", false)),
                                     interface_members: vec![],
                                     children: HashMap::new(),
                                 }),

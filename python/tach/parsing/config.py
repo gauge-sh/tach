@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import tomli
 import tomli_w
@@ -23,31 +23,52 @@ def dump_project_config_to_toml(config: ProjectConfig) -> str:
     return tomli_w.dumps(data)
 
 
-def migrate_deprecated_config(filepath: Path) -> ProjectConfig:
+def migrate_deprecated_cache_backend(data: dict[str, Any]) -> dict[str, Any]:
+    if "cache" in data:
+        if "backend" in data["cache"]:
+            data["cache"]["backend"] = "disk"
+    return data
+
+
+def migrate_deprecated_depends_on(data: dict[str, Any]) -> dict[str, Any]:
+    if "modules" in data:
+        for module in data["modules"]:
+            if "depends_on" in module:
+                for index, path in enumerate(module["depends_on"]):
+                    if isinstance(path, str):
+                        module["depends_on"][index] = {"path": path}
+    return data
+
+
+def migrate_deprecated_source_root(data: dict[str, Any]) -> dict[str, Any]:
+    if "source_root" in data:
+        if isinstance(data["source_root"], str):
+            data["source_roots"] = [data["source_root"]]
+            del data["source_root"]
+    return data
+
+
+def migrate_deprecated_yaml_config(filepath: Path) -> ProjectConfig:
     import yaml
 
     content = filepath.read_text()
     data = yaml.safe_load(content)
 
     try:
-        if "cache" in data:
-            if "backend" in data["cache"]:
-                # Force cache backend to 'disk' (original value was 'local')
-                data["cache"]["backend"] = "disk"
-        # Old migrations
-        if "modules" in data:
-            for module in data["modules"]:
-                if "depends_on" in module:
-                    for index, path in enumerate(module["depends_on"]):
-                        if isinstance(path, str):
-                            module["depends_on"][index] = {"path": path}
-        if "source_root" in data and isinstance(data["source_root"], str):
-            data["source_roots"] = [data["source_root"]]
-            del data["source_root"]
+        data = migrate_deprecated_cache_backend(data)
+        data = migrate_deprecated_depends_on(data)
+        data = migrate_deprecated_source_root(data)
         toml_config = tomli_w.dumps(data)
         print("Auto-migrating deprecated YAML config to TOML...")
         filepath.with_suffix(".toml").write_text(toml_config)
-        project_config = ext_parse_project_config(filepath.with_suffix(".toml"))
+        project_config, ext_migrated = ext_parse_project_config(
+            filepath.with_suffix(".toml")
+        )
+        if ext_migrated:
+            # This is a second migration pass, so we need to save the result
+            filepath.with_suffix(".toml").write_text(
+                dump_project_config_to_toml(project_config)
+            )
     except TypeError as e:
         raise ValueError(f"Failed to parse deprecated YAML config: {e}")
     except ValueError as e:
@@ -63,14 +84,19 @@ def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
     file_path = fs.get_project_config_path(root)
     if file_path:
         # Standard TOML config found
-        project_config = ext_parse_project_config(file_path)
+        project_config, ext_migrated = ext_parse_project_config(file_path)
+        if ext_migrated:
+            # This is a second migration pass, so we need to save the result
+            file_path.with_suffix(".toml").write_text(
+                dump_project_config_to_toml(project_config)
+            )
     else:
         # No TOML found, check for deprecated (YAML) config as a fallback
         file_path = fs.get_deprecated_project_config_path(root)
         if not file_path:
             return None
         # Return right away, this is a final ProjectConfig
-        project_config = migrate_deprecated_config(file_path)
+        project_config = migrate_deprecated_yaml_config(file_path)
     return project_config
 
 

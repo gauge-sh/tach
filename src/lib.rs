@@ -104,7 +104,7 @@ impl From<sync::SyncError> for PyErr {
 /// Parse project config
 #[pyfunction]
 #[pyo3(signature = (filepath))]
-fn parse_project_config(filepath: PathBuf) -> parsing::Result<core::config::ProjectConfig> {
+fn parse_project_config(filepath: PathBuf) -> parsing::Result<(core::config::ProjectConfig, bool)> {
     parsing::config::parse_project_config(filepath)
 }
 
@@ -122,15 +122,16 @@ fn get_normalized_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
-) -> imports::Result<imports::NormalizedImports> {
+) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    imports::get_normalized_imports(
+    Ok(imports::get_normalized_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
         include_string_imports,
-    )
+    )?
+    .imports)
 }
 
 /// Get first-party imports from file_path
@@ -141,15 +142,16 @@ fn get_project_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
-) -> imports::Result<imports::NormalizedImports> {
+) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    imports::get_project_imports(
+    Ok(imports::get_project_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
         include_string_imports,
-    )
+    )?
+    .imports)
 }
 
 /// Get third-party imports from file_path
@@ -160,7 +162,7 @@ fn get_external_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
-) -> imports::Result<imports::NormalizedImports> {
+) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
     Ok(imports::get_normalized_imports(
@@ -169,6 +171,7 @@ fn get_external_imports(
         ignore_type_checking_imports,
         include_string_imports,
     )?
+    .imports
     .into_iter()
     .filter_map(|import| {
         imports::is_project_import(&source_roots, &import.module_path).map_or(
@@ -337,8 +340,9 @@ pub fn sync_project(
 fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<core::config::ProjectConfig>()?;
     m.add_class::<core::config::ModuleConfig>()?;
+    m.add_class::<core::config::InterfaceConfig>()?;
+    m.add_class::<core::config::RulesConfig>()?;
     m.add_class::<core::config::DependencyConfig>()?;
-    m.add_class::<core::config::InterfaceRuleConfig>()?;
     m.add_class::<check_int::CheckDiagnostics>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;

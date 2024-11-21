@@ -1,3 +1,4 @@
+exclude = []
 source_roots = [
     "backend",
     "utils",
@@ -7,12 +8,10 @@ exact = true
 [[modules]]
 path = "mod1"
 depends_on = []
-strict = true
 
 [[modules]]
 path = "mod2"
 depends_on = []
-strict = true
 
 [[modules]]
 path = "mod3"
@@ -29,3 +28,19 @@ depends_on = [
 [[modules]]
 path = "myorg.utilpkg"
 depends_on = []
+
+[[interfaces]]
+expose = [
+    "x",
+]
+from = [
+    "mod1",
+]
+
+[[interfaces]]
+expose = [
+    "y",
+]
+from = [
+    "mod2",
+]

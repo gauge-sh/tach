@@ -68,7 +68,7 @@ Give both a try and run `tach check` again. This will generate an error:
 
 Each error indicates an import which violates your dependencies. If your terminal supports hyperlinks, click on the file path to go directly to the error.
 
-`tach check` will also return an error code. It can be easily integrated with CI/CD, [Pre-commit hooks](../usage/commands#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach), and more!
+Tach can easily be added to your CI pipeline, [pre-commit hooks](../usage/commands#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach).
 
 ### Extras
 
@@ -111,7 +111,7 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 
 Tach also supports:
 
-- [Strict public interfaces for modules](../usage/strict-mode)
+- [Public interfaces for modules](../usage/interfaces)
 - [Deprecating individual dependencies](../usage/deprecate)
 - [Manual file configuration](../usage/configuration)
 - [Monorepos and namespace packages](../usage/configuration#source-roots)

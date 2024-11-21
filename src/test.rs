@@ -88,7 +88,7 @@ impl TachPytestPluginHandler {
             get_project_imports(&self.source_roots, &file_path, true, false).unwrap();
         let mut should_remove = true;
 
-        for import in project_imports {
+        for import in project_imports.imports {
             if let Some(nearest_module) = self.module_tree.find_nearest(&import.module_path) {
                 if self.affected_modules.contains(&nearest_module.full_path) {
                     // If the module is affected, break early and don't remove the item

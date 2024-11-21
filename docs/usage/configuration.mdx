@@ -8,7 +8,9 @@ Aside from running `tach mod` and `tach sync`, you can configure Tach by creatin
 
 This is the project-level configuration file which should be in the root of your project.
 
-`modules` defines the modules in your project, and accepts the keys described [below](#modules).
+`modules` defines the modules in your project - [see detais](#modules).
+
+`interfaces` defines the interfaces of modules in your project - [see details](#interfaces).
 
 `exclude` accepts a list of directory patterns to exclude from checking. These are treated as regex/glob paths (depending on `use_regex_matching`) which match from the beginning of a given file path. For example: when using glob matching `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
 
@@ -23,6 +25,8 @@ This is the project-level configuration file which should be in the root of your
 `forbid_circular_dependencies` is a boolean which, when enabled, causes `tach check` to fail if any circular dependencies are detected.
 
 `root_module` takes a string enum value, and determines how Tach treats code which lives within the project but is not covered by an explicit module. This is described in detail [below](#the_root_module)
+
+`rules` allows precise configuration of the severity of certain types of issues. See [below](#rules) for more details.
 
 `use_regex_matching` is a boolean which, when enabled, uses regex (default) matching to exclude patterns else uses globs matching.
 
@@ -46,7 +50,6 @@ root_module = "allow"
 [[modules]]
 path = "tach"
 depends_on = []
-strict = true
 
 [[modules]]
 path = "tach.__main__"
@@ -56,14 +59,12 @@ depends_on = [{ path = "tach.start" }]
 [[modules]]
 path = "tach.errors"
 depends_on = []
-strict = true
 utility = true
 
 [[modules]]
 path = "tach.parsing"
 depends_on = [{ path = "tach" }, { path = "tach.filesystem" }]
 visibility = ["tach.check"]
-strict = true
 
 [[modules]]
 path = "tach.check"
@@ -72,7 +73,18 @@ depends_on = [
     { path = "tach.filesystem" },
     { path = "tach.parsing" },
 ]
-strict = true
+
+[[interfaces]]
+expose = ["types.*]
+
+[[interfaces]]
+expose = [
+    "parse_project_config",
+    "dump_project_config_to_toml",
+]
+from = [
+    "tach.parsing",
+]
 
 ...
 
@@ -81,6 +93,9 @@ file_dependencies = ["python/tests/**", "src/*.rs"]
 
 [external]
 exclude = ["pytest"]
+
+[rules]
+unused_ignore_directives = "warn"
 ```
 
 ## Modules
@@ -90,12 +105,36 @@ Each module listed under the `modules` key above can accept the following attrib
 - `path`: the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
 - `depends_on`: a list of the other modules which this module can import from (default: `[]`)
 - `visibility`: a list of other modules which can import from this module (default: `['*']`)
-- `strict`: enables [strict mode](strict-mode) for the module (boolean)
 - `utility`: marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency (boolean)
 - `unchecked`: marks this module as [**unchecked**](unchecked-modules), meaning Tach will not check its imports (boolean)
 
 <Note>
   Tach also supports [deprecating individual dependencies](../usage/deprecate).
+</Note>
+
+## Interfaces
+
+Public interfaces are defined separately from modules, and define the imports that are allowed from that module.
+
+For example, if a module should expose everything from a nested 'services' folder, the config would look like:
+
+```toml
+[[interfaces]]
+expose = ["services.*"]
+from = ["my_module"]
+```
+
+More specifically:
+
+- `expose`: a list of regex patterns which define the public interface
+- `from` (optional): a list of regex patterns which define the modules which adopt this interface
+
+<Note>
+If an interface entry does not specify `from`, all modules will adopt the interface.
+</Note>
+
+<Note>
+A module can match multiple interface entries - if an import matches _any_ of the entries, it will be considered valid.
 </Note>
 
 ## The Root Module
@@ -253,3 +292,23 @@ The `env_dependencies` key accepts a list of environment variable names whose va
 When running [`check-external`](commands#tach-check-external), Tach allows excluding certain modules from validation.
 
 Adding the top level module name to the `exclude` key (underneath the `external` key) will allow all usages of the corresponding module.
+
+
+## Rules
+
+Tach allows configuring the severity of certain issues.
+
+The `unused_ignore_directives` rule determines whether unnecessary [`tach-ignore`](tach-ignore) comments trigger a warning, an error, or nothing at all.
+
+Example:
+```py
+# tach-ignore valid_import_fn
+from other.valid import valid_import_fn
+```
+
+```toml
+[rules]
+# "warn" is the default for this rule,
+# other options are "error", "off"
+unused_ignore_directives = "warn"
+```

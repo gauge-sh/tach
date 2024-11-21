@@ -55,13 +55,13 @@ pub fn check_external_dependencies(
                 let display_file_path = relative_to(&absolute_file_path, project_root)?
                     .to_string_lossy()
                     .to_string();
-                if let Ok(imports) = imports::get_normalized_imports(
+                if let Ok(normalized_imports) = imports::get_normalized_imports(
                     source_roots,
                     &absolute_file_path,
                     ignore_type_checking_imports,
                     false,
                 ) {
-                    for import in imports {
+                    for import in normalized_imports.imports {
                         let top_level_module_name = import.top_level_module_name();
                         let default_distribution_names = vec![top_level_module_name.to_string()];
                         let distribution_names: Vec<String> = module_mappings

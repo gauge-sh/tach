@@ -32,14 +32,6 @@ fn is_default_visibility(value: &Vec<String>) -> bool {
     value == &default_visibility()
 }
 
-fn default_for_modules() -> Vec<String> {
-    vec!["*".to_string()]
-}
-
-fn is_default_for_modules(value: &Vec<String>) -> bool {
-    value == &default_for_modules()
-}
-
 fn is_true(value: &bool) -> bool {
     *value
 }
@@ -84,7 +76,11 @@ pub struct ModuleConfig {
     pub visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub utility: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    // TODO: Remove this in a future version
+    // This will be deserialized from old config,
+    // but auto-migrated to interfaces internally.
+    // This means we don't want to serialize it.
+    #[serde(default, skip_serializing)]
     pub strict: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub unchecked: bool,
@@ -133,6 +129,26 @@ impl ModuleConfig {
         }
         self.path.clone()
     }
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct InterfaceConfig {
+    pub expose: Vec<String>,
+    #[serde(
+        rename = "from",
+        default = "default_from_modules",
+        skip_serializing_if = "is_default_from_modules"
+    )]
+    pub from_modules: Vec<String>,
+}
+
+fn default_from_modules() -> Vec<String> {
+    vec![".*".to_string()]
+}
+
+fn is_default_from_modules(value: &Vec<String>) -> bool {
+    value == &default_from_modules()
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
@@ -186,30 +202,6 @@ impl ExternalDependencyConfig {
     }
 }
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct InterfaceRuleConfig {
-    pub matches: Vec<String>,
-    #[serde(
-        default = "default_for_modules",
-        skip_serializing_if = "is_default_for_modules"
-    )]
-    pub for_modules: Vec<String>,
-}
-
-#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct GaugeConfig {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub valid_interface_rules: Vec<InterfaceRuleConfig>,
-}
-
-impl GaugeConfig {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}
-
 #[derive(Default, Clone)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct UnusedDependencies {
@@ -245,11 +237,82 @@ impl IntoPy<PyObject> for RootModuleTreatment {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum RuleSetting {
+    Error,
+    Warn,
+    Off,
+}
+
+impl RuleSetting {
+    // These are just necessary for serde macros
+    fn warn() -> Self {
+        Self::Warn
+    }
+
+    fn is_warn(&self) -> bool {
+        *self == Self::Warn
+    }
+
+    fn error() -> Self {
+        Self::Error
+    }
+
+    fn is_error(&self) -> bool {
+        *self == Self::Error
+    }
+
+    fn off() -> Self {
+        Self::Off
+    }
+
+    fn is_off(&self) -> bool {
+        *self == Self::Off
+    }
+}
+
+impl IntoPy<PyObject> for RuleSetting {
+    fn into_py(self, py: Python) -> PyObject {
+        match self {
+            Self::Error => "error".to_object(py),
+            Self::Warn => "warn".to_object(py),
+            Self::Off => "off".to_object(py),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct RulesConfig {
+    #[serde(
+        default = "RuleSetting::warn",
+        skip_serializing_if = "RuleSetting::is_warn"
+    )]
+    pub unused_ignore_directives: RuleSetting,
+}
+
+impl Default for RulesConfig {
+    fn default() -> Self {
+        Self {
+            unused_ignore_directives: RuleSetting::warn(),
+        }
+    }
+}
+
+impl RulesConfig {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
     #[serde(default)]
     pub modules: Vec<ModuleConfig>,
+    #[serde(default)]
+    pub interfaces: Vec<InterfaceConfig>,
     #[serde(default, skip_serializing_if = "CacheConfig::is_default")]
     pub cache: CacheConfig,
     #[serde(default, skip_serializing_if = "ExternalDependencyConfig::is_default")]
@@ -266,7 +329,7 @@ pub struct ProjectConfig {
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     #[pyo3(set)]
     pub ignore_type_checking_imports: bool,
-    #[serde(default, skip_serializing_if = "is_true")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub include_string_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub forbid_circular_dependencies: bool,
@@ -274,14 +337,15 @@ pub struct ProjectConfig {
     pub use_regex_matching: bool,
     #[serde(default, skip_serializing_if = "RootModuleTreatment::is_default")]
     pub root_module: RootModuleTreatment,
-    #[serde(default, skip_serializing_if = "GaugeConfig::is_default")]
-    pub gauge: GaugeConfig,
+    #[serde(default, skip_serializing_if = "RulesConfig::is_default")]
+    pub rules: RulesConfig,
 }
 
 impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
             modules: Default::default(),
+            interfaces: Default::default(),
             cache: Default::default(),
             external: Default::default(),
             exclude: default_excludes(),
@@ -293,7 +357,7 @@ impl Default for ProjectConfig {
             forbid_circular_dependencies: Default::default(),
             use_regex_matching: default_true(),
             root_module: Default::default(),
-            gauge: Default::default(),
+            rules: Default::default(),
         }
     }
 }
@@ -352,6 +416,7 @@ impl ProjectConfig {
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
+            interfaces: self.interfaces.clone(),
             cache: self.cache.clone(),
             external: self.external.clone(),
             exclude: self.exclude.clone(),
@@ -363,7 +428,7 @@ impl ProjectConfig {
             forbid_circular_dependencies: self.forbid_circular_dependencies,
             use_regex_matching: self.use_regex_matching,
             root_module: self.root_module.clone(),
-            gauge: self.gauge.clone(),
+            rules: self.rules.clone(),
         }
     }
 
