@@ -120,7 +120,7 @@ class Module:
     interface_members: list[str] = field(default_factory=list)
 
 
-REPORT_VERSION = "1.2"
+REPORT_VERSION = "1.3"
 
 
 @dataclass
