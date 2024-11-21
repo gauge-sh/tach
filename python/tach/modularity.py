@@ -4,7 +4,8 @@ import json
 import os
 from dataclasses import asdict, dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 from urllib import parse
 
 from tach import filesystem as fs
@@ -19,9 +20,6 @@ from tach.extension import (
 )
 from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing.config import extend_and_validate
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 def export_modularity(
@@ -126,6 +124,27 @@ class ReportMetadata:
 
 
 @dataclass
+class ErrorInfo:
+    is_deprecated: bool
+    pystring: str
+
+
+@dataclass
+class BoundaryError:
+    file_path: Path
+    line_number: int
+    import_mod_path: str
+    error_info: ErrorInfo
+
+
+@dataclass
+class CheckResult:
+    errors: list[BoundaryError] = []
+    deprecated_warnings: list[BoundaryError] = []
+    warnings: list[str] = []
+
+
+@dataclass
 class Report:
     repo: str
     branch: str
@@ -135,7 +154,7 @@ class Report:
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
     interface_rules: list[InterfaceRule] = field(default_factory=list)
-    check_diagnostics: CheckDiagnostics | None = None
+    check_result: CheckResult = field(default_factory=CheckResult)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
@@ -236,6 +255,36 @@ def build_interface_rules(
     ]
 
 
+def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
+    return CheckResult(
+        errors=[
+            BoundaryError(
+                file_path=error.file_path,
+                line_number=error.line_number,
+                import_mod_path=error.import_mod_path,
+                error_info=ErrorInfo(
+                    is_deprecated=error.error_info.is_deprecated(),
+                    pystring=error.error_info.to_pystring(),
+                ),
+            )
+            for error in check_diagnostics.errors
+        ],
+        deprecated_warnings=[
+            BoundaryError(
+                file_path=Path(warning.file_path),
+                line_number=warning.line_number,
+                import_mod_path=warning.import_mod_path,
+                error_info=ErrorInfo(
+                    is_deprecated=warning.error_info.is_deprecated(),
+                    pystring=warning.error_info.to_pystring(),
+                ),
+            )
+            for warning in check_diagnostics.deprecated_warnings
+        ],
+        warnings=check_diagnostics.warnings,
+    )
+
+
 def generate_modularity_report(
     project_root: Path, project_config: ProjectConfig, force: bool = False
 ) -> Report:
@@ -257,11 +306,12 @@ def generate_modularity_report(
     report.interface_rules = build_interface_rules(
         project_config.gauge.valid_interface_rules
     )
-    report.check_diagnostics = check(
+    check_diagnostics = check(
         project_root=project_root,
         project_config=project_config,
         exclude_paths=exclude_paths,
     )
+    report.check_result = process_check_result(check_diagnostics)
 
     print("Report generated!")
     return report
