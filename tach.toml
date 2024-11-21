@@ -47,6 +47,7 @@ depends_on = [
     { path = "tach.icons" },
     { path = "tach.logging" },
     { path = "tach.mod" },
+    { path = "tach.modularity" },
     { path = "tach.parsing" },
     { path = "tach.report" },
     { path = "tach.show" },
@@ -114,6 +115,14 @@ depends_on = [
 ]
 
 [[modules]]
+path = "tach.modularity"
+depends_on = [
+    { path = "tach.extension" },
+    { path = "tach.filesystem" },
+    { path = "tach.filesystem.git_ops" },
+]
+
+[[modules]]
 path = "tach.parsing"
 depends_on = [
     { path = "tach.extension" },
@@ -167,6 +176,16 @@ utility = true
 
 [[interfaces]]
 expose = [
+    "export_report",
+    "upload_report_to_gauge",
+]
+from = [
+    "tach.modularity",
+]
+
+
+[[interfaces]]
+expose = [
     "__version__",
 ]
 from = [
@@ -205,6 +224,7 @@ from = [
 [[interfaces]]
 expose = [
     "get_changed_files",
+    "get_current_branch_info",
 ]
 from = [
     "tach.filesystem.git_ops",

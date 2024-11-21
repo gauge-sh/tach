@@ -59,6 +59,7 @@ pub fn check_external_dependencies(
                     source_roots,
                     &absolute_file_path,
                     ignore_type_checking_imports,
+                    false,
                 ) {
                     for import in normalized_imports.imports {
                         let top_level_module_name = import.top_level_module_name();

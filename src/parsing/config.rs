@@ -129,6 +129,7 @@ mod tests {
                 exact: true,
                 disable_logging: false,
                 ignore_type_checking_imports: true,
+                include_string_imports: false,
                 forbid_circular_dependencies: true,
                 use_regex_matching: true,
                 external: Default::default(),

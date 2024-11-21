@@ -9,6 +9,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 
 use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
+use ruff_python_ast::visitor::Visitor;
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use ruff_source_file::Locator;
 use thiserror::Error;
@@ -323,6 +324,43 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
     }
 }
 
+struct StringImportVisitor<'a> {
+    source_roots: &'a [PathBuf],
+    locator: Locator<'a>,
+    pub normalized_imports: Vec<NormalizedImport>,
+}
+
+impl<'a> StringImportVisitor<'a> {
+    fn new(source_roots: &'a [PathBuf], locator: Locator<'a>) -> Self {
+        StringImportVisitor {
+            source_roots,
+            locator,
+            normalized_imports: vec![],
+        }
+    }
+}
+
+impl<'a> Visitor<'a> for StringImportVisitor<'a> {
+    fn visit_string_literal(&mut self, string_literal: &'a ruff_python_ast::StringLiteral) {
+        // DEFAULT python-infer-string-imports-min-dots is 2
+        if string_literal.value.chars().filter(|&c| c == '.').count() < 2 {
+            return;
+        }
+
+        let resolved_module =
+            filesystem::module_to_file_path(self.source_roots, &string_literal.value, true);
+        if resolved_module.is_some() {
+            self.normalized_imports.push(NormalizedImport {
+                module_path: string_literal.value.to_string(),
+                line_no: self
+                    .locator
+                    .compute_line_index(string_literal.range.start())
+                    .get(),
+            });
+        }
+    }
+}
+
 /// Source Roots here are assumed to be absolute paths
 pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> Result<bool> {
     let resolved_module = filesystem::module_to_file_path(source_roots, mod_path, true);
@@ -339,6 +377,7 @@ pub fn get_normalized_imports(
     source_roots: &[PathBuf],
     file_path: &PathBuf,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> Result<NormalizedImports> {
     let file_contents = filesystem::read_file_content(file_path)?;
     let file_ast =
@@ -348,21 +387,44 @@ pub fn get_normalized_imports(
         })?;
     let is_package = file_path.ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
-    let locator = Locator::new(&file_contents);
     let file_mod_path: Option<String> =
         filesystem::file_to_module_path(source_roots, file_path).ok();
     let mut import_visitor = ImportVisitor::new(
         file_mod_path,
-        locator,
+        Locator::new(&file_contents),
         is_package,
         ignore_directives,
         ignore_type_checking_imports,
     );
+    let mut string_import_visitor =
+        StringImportVisitor::new(source_roots, Locator::new(&file_contents));
+
     match file_ast {
-        Mod::Module(ref module) => import_visitor.visit_body(&module.body),
+        Mod::Module(ref module) => {
+            import_visitor.visit_body(&module.body);
+            if include_string_imports {
+                string_import_visitor.visit_body(&module.body);
+            }
+        }
         Mod::Expression(_) => (), // should error
     };
-    Ok(import_visitor.normalized_imports)
+
+    if include_string_imports {
+        let mut result_imports = Vec::with_capacity(
+            import_visitor.normalized_imports.imports.len()
+                + string_import_visitor.normalized_imports.len(),
+        );
+        result_imports.extend(import_visitor.normalized_imports.imports);
+        result_imports.extend(string_import_visitor.normalized_imports);
+
+        // TODO: catch directive ignored imports in string_import_visitor
+        Ok(NormalizedImports {
+            imports: result_imports,
+            directive_ignored_imports: import_visitor.normalized_imports.directive_ignored_imports,
+        })
+    } else {
+        Ok(import_visitor.normalized_imports)
+    }
 }
 
 pub struct ProjectImports {
@@ -374,9 +436,14 @@ pub fn get_project_imports(
     source_roots: &[PathBuf],
     file_path: &PathBuf,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> Result<ProjectImports> {
-    let normalized_imports =
-        get_normalized_imports(source_roots, file_path, ignore_type_checking_imports)?;
+    let normalized_imports = get_normalized_imports(
+        source_roots,
+        file_path,
+        ignore_type_checking_imports,
+        include_string_imports,
+    )?;
     Ok(ProjectImports {
         imports: normalized_imports
             .imports
