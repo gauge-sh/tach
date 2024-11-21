@@ -10,6 +10,7 @@ use thiserror::Error;
 use crate::{
     core::{
         config::{ProjectConfig, RootModuleTreatment, RuleSetting},
+        interfaces::InterfaceChecker,
         module::{ModuleNode, ModuleTree},
     },
     exclusion::{self, is_path_excluded, set_excluded_paths},
@@ -139,10 +140,10 @@ fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool
 
 fn check_import(
     import_mod_path: &str,
-    file_mod_path: &str,
     module_tree: &ModuleTree,
-    file_nearest_module: Option<Arc<ModuleNode>>,
+    file_nearest_module: Arc<ModuleNode>,
     root_module_treatment: RootModuleTreatment,
+    interface_checker: &InterfaceChecker,
 ) -> Result<(), ImportCheckError> {
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
         Some(module) => module,
@@ -155,27 +156,20 @@ fn check_import(
         return Ok(());
     }
 
-    let file_nearest_module = file_nearest_module
-        // Lookup file_mod_path if module not given
-        .or_else(|| module_tree.find_nearest(file_mod_path))
-        // If module not found, we should fail since the implication is that
-        // an external module is importing directly from our project
-        .ok_or(ImportCheckError::ModuleNotFound {
-            file_mod_path: file_mod_path.to_string(),
-        })?;
-
     if import_nearest_module == file_nearest_module {
         // Imports within the same module are always allowed
         return Ok(());
     }
 
-    if let Some(config) = &import_nearest_module.config {
-        if config.strict
-            && !is_top_level_module_import(import_mod_path, &import_nearest_module)
-            && !import_matches_interface_members(import_mod_path, &import_nearest_module)
-        {
-            // In strict mode, import must be of the module itself or one of the
-            // interface members (defined in __all__)
+    if interface_checker.has_interface(&import_nearest_module.full_path)
+        && import_mod_path != &import_nearest_module.full_path
+    {
+        let import_member = import_mod_path
+            .strip_prefix(&import_nearest_module.full_path)
+            .and_then(|s| s.strip_prefix('.'))
+            .unwrap_or(import_mod_path);
+
+        if !interface_checker.check(import_member, &import_nearest_module.full_path) {
             return Err(ImportCheckError::StrictModeImport {
                 import_mod_path: import_mod_path.to_string(),
                 import_nearest_module_path: import_nearest_module.full_path.to_string(),
@@ -282,6 +276,8 @@ pub fn check(
         project_config.use_regex_matching,
     )?;
 
+    let interface_checker = InterfaceChecker::new(&project_config.interfaces);
+
     for source_root in &source_roots {
         for file_path in fs::walk_pyfiles(&source_root.display().to_string()) {
             let abs_file_path = &source_root.join(&file_path);
@@ -336,10 +332,10 @@ pub fn check(
                 found_at_least_one_project_import = true;
                 let Err(error_info) = check_import(
                     &import.module_path,
-                    &mod_path,
                     &module_tree,
-                    Some(Arc::clone(&nearest_module)),
+                    Arc::clone(&nearest_module),
                     project_config.root_module.clone(),
+                    &interface_checker,
                 ) else {
                     continue;
                 };
@@ -360,13 +356,15 @@ pub fn check(
                 continue;
             }
             for directive_ignored_import in project_imports.directive_ignored_imports {
-                if let Ok(()) = check_import(
+                if check_import(
                     &directive_ignored_import.module_path,
-                    &mod_path,
                     &module_tree,
-                    Some(Arc::clone(&nearest_module)),
+                    Arc::clone(&nearest_module),
                     project_config.root_module.clone(),
-                ) {
+                    &interface_checker,
+                )
+                .is_ok()
+                {
                     let message = format!(
                         "Import '{}' is unnecessarily ignored by a directive.",
                         directive_ignored_import.module_path
@@ -412,8 +410,9 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::config::InterfaceConfig;
     use crate::core::module::ModuleTree;
-    use crate::tests::check_int::fixtures::module_tree;
+    use crate::tests::check_int::fixtures::{interface_config, module_tree};
 
     use rstest::rstest;
 
@@ -424,40 +423,47 @@ mod tests {
     #[case("domain_two", "domain_one", true)]
     #[case("domain_two", "domain_one.public_fn", true)]
     #[case("domain_two.subdomain", "domain_one", true)]
-    #[case("domain_two", "external", true)]
-    #[case("external", "external", true)]
     #[case("domain_two", "domain_one.private_fn", false)]
     #[case("domain_three", "domain_one", false)]
     #[case("domain_two", "domain_one.core", false)]
     #[case("domain_two.subdomain", "domain_one.core", false)]
     #[case("domain_two", "domain_three", false)]
     #[case("domain_two", "domain_two.subdomain", false)]
-    #[case("external", "domain_three", false)]
     fn test_check_import(
         module_tree: ModuleTree,
+        interface_config: Vec<InterfaceConfig>,
         #[case] file_mod_path: &str,
         #[case] import_mod_path: &str,
         #[case] expected_result: bool,
     ) {
+        let file_module = module_tree.find_nearest(file_mod_path).unwrap();
+        let interface_checker = InterfaceChecker::new(&interface_config);
+
         let check_error = check_import(
             import_mod_path,
-            file_mod_path,
             &module_tree,
-            None,
+            file_module.clone(),
             RootModuleTreatment::Allow,
+            &interface_checker,
         );
         let result = check_error.is_ok();
         assert_eq!(result, expected_result);
     }
 
     #[rstest]
-    fn test_check_deprecated_import(module_tree: ModuleTree) {
+    fn test_check_deprecated_import(
+        module_tree: ModuleTree,
+        interface_config: Vec<InterfaceConfig>,
+    ) {
+        let file_module = module_tree.find_nearest("domain_one").unwrap();
+        let interface_checker = InterfaceChecker::new(&interface_config);
+
         let check_error = check_import(
             "domain_one.subdomain",
-            "domain_one",
             &module_tree,
-            None,
+            file_module.clone(),
             RootModuleTreatment::Allow,
+            &interface_checker,
         );
         assert!(check_error.is_err());
         assert!(check_error.unwrap_err().is_deprecated());

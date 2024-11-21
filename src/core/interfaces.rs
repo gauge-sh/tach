@@ -11,19 +11,19 @@ struct CompiledInterface {
 }
 
 impl InterfaceChecker {
-    pub fn new(interfaces: Vec<InterfaceConfig>) -> Self {
+    pub fn new(interfaces: &[InterfaceConfig]) -> Self {
         let compiled = interfaces
-            .into_iter()
+            .iter()
             .map(|interface| CompiledInterface {
                 from_modules: interface
                     .from_modules
-                    .into_iter()
-                    .map(|pattern| Regex::new(&pattern).unwrap())
+                    .iter()
+                    .map(|pattern| Regex::new(&format!("^{}$", pattern)).unwrap())
                     .collect(),
                 expose: interface
                     .expose
-                    .into_iter()
-                    .map(|pattern| Regex::new(&pattern).unwrap())
+                    .iter()
+                    .map(|pattern| Regex::new(&format!("^{}$", pattern)).unwrap())
                     .collect(),
             })
             .collect();
@@ -33,15 +33,33 @@ impl InterfaceChecker {
         }
     }
 
-    pub fn check(&self, import_member: &str, import_mod_path: &str) -> bool {
-        for interface in &self.interfaces {
-            if interface
+    pub fn has_interface(&self, import_mod_path: &str) -> bool {
+        self.interfaces.iter().any(|interface| {
+            interface
                 .from_modules
                 .iter()
-                .any(|re| re.is_match(import_mod_path)) && interface.expose.iter().any(|re| re.is_match(import_member)) {
-                return true;
+                .any(|re| re.is_match(import_mod_path))
+        })
+    }
+
+    /// Check if the import member is exposed by any interface.
+    pub fn check(&self, import_member: &str, import_mod_path: &str) -> bool {
+        let mut found_matching_module = false;
+
+        for interface in &self.interfaces {
+            let matches_module = interface
+                .from_modules
+                .iter()
+                .any(|re| re.is_match(import_mod_path));
+
+            if matches_module {
+                found_matching_module = true;
+                if interface.expose.iter().any(|re| re.is_match(import_member)) {
+                    return true;
+                }
             }
         }
-        false
+
+        !found_matching_module
     }
 }
