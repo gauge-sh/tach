@@ -50,7 +50,7 @@ def check_computation_cache(
 def update_computation_cache(
     project_root: str, cache_key: str, value: tuple[list[tuple[int, str]], int]
 ) -> None: ...
-def parse_project_config(filepath: Path) -> ProjectConfig: ...
+def parse_project_config(filepath: Path) -> tuple[ProjectConfig, bool]: ...
 def parse_interface_members(source_roots: list[Path], path: str) -> list[str]: ...
 def dump_project_config_to_toml(project_config: ProjectConfig) -> str: ...
 def check(
@@ -109,6 +109,11 @@ class ModuleConfig:
     def __new__(cls, path: str, strict: bool) -> ModuleConfig: ...
     def mod_path(self) -> str: ...
 
+class InterfaceConfig:
+    expose: list[str]
+    # 'from' in tach.toml
+    from_modules: list[str]
+
 CacheBackend = Literal["disk"]
 
 class CacheConfig:
@@ -130,6 +135,7 @@ class RulesConfig:
 
 class ProjectConfig:
     modules: list[ModuleConfig]
+    interfaces: list[InterfaceConfig]
     cache: CacheConfig
     external: ExternalDependencyConfig
     exclude: list[str]

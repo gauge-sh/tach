@@ -76,7 +76,11 @@ pub struct ModuleConfig {
     pub visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub utility: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    // TODO: Remove this in a future version
+    // This will be deserialized from old config,
+    // but auto-migrated to interfaces internally.
+    // This means we don't want to serialize it.
+    #[serde(default, skip_serializing)]
     pub strict: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub unchecked: bool,
@@ -125,6 +129,26 @@ impl ModuleConfig {
         }
         self.path.clone()
     }
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct InterfaceConfig {
+    pub expose: Vec<String>,
+    #[serde(
+        rename = "from",
+        default = "default_from_modules",
+        skip_serializing_if = "is_default_from_modules"
+    )]
+    pub from_modules: Vec<String>,
+}
+
+fn default_from_modules() -> Vec<String> {
+    vec![".*".to_string()]
+}
+
+fn is_default_from_modules(value: &Vec<String>) -> bool {
+    value == &default_from_modules()
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
@@ -287,6 +311,8 @@ impl RulesConfig {
 pub struct ProjectConfig {
     #[serde(default)]
     pub modules: Vec<ModuleConfig>,
+    #[serde(default)]
+    pub interfaces: Vec<InterfaceConfig>,
     #[serde(default, skip_serializing_if = "CacheConfig::is_default")]
     pub cache: CacheConfig,
     #[serde(default, skip_serializing_if = "ExternalDependencyConfig::is_default")]
@@ -317,6 +343,7 @@ impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
             modules: Default::default(),
+            interfaces: Default::default(),
             cache: Default::default(),
             external: Default::default(),
             exclude: default_excludes(),
@@ -386,6 +413,7 @@ impl ProjectConfig {
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
+            interfaces: self.interfaces.clone(),
             cache: self.cache.clone(),
             external: self.external.clone(),
             exclude: self.exclude.clone(),

@@ -104,7 +104,7 @@ impl From<sync::SyncError> for PyErr {
 /// Parse project config
 #[pyfunction]
 #[pyo3(signature = (filepath))]
-fn parse_project_config(filepath: PathBuf) -> parsing::Result<core::config::ProjectConfig> {
+fn parse_project_config(filepath: PathBuf) -> parsing::Result<(core::config::ProjectConfig, bool)> {
     parsing::config::parse_project_config(filepath)
 }
 

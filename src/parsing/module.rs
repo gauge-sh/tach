@@ -219,7 +219,8 @@ mod tests {
     fn test_valid_circular_dependencies(example_dir: PathBuf) {
         let project_config = parse_project_config(example_dir.join("valid/tach.toml"));
         assert!(project_config.is_ok());
-        let modules = project_config.unwrap().modules;
+        let (project_config, _) = project_config.unwrap();
+        let modules = project_config.modules;
         let modules_with_cycles = find_modules_with_cycles(&modules);
         assert!(modules_with_cycles.is_empty());
     }
@@ -228,7 +229,8 @@ mod tests {
     fn test_cycles_circular_dependencies(example_dir: PathBuf) {
         let project_config = parse_project_config(example_dir.join("cycles/tach.toml"));
         assert!(project_config.is_ok());
-        let modules = project_config.unwrap().modules;
+        let (project_config, _) = project_config.unwrap();
+        let modules = project_config.modules;
         let module_paths = find_modules_with_cycles(&modules);
         assert_eq!(module_paths, ["domain_one", "domain_two", "domain_three"]);
     }
