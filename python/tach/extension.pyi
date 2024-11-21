@@ -5,16 +5,19 @@ def get_project_imports(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def get_external_imports(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def get_normalized_imports(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def set_excluded_paths(
     project_root: str, exclude_paths: list[str], use_regex_matching: bool
@@ -34,6 +37,7 @@ def create_dependency_report(
     skip_dependencies: bool,
     skip_usages: bool,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> str: ...
 def create_computation_cache_key(
     project_root: str,
@@ -143,6 +147,7 @@ class ProjectConfig:
     exact: bool
     disable_logging: bool
     ignore_type_checking_imports: bool
+    include_string_imports: bool
     forbid_circular_dependencies: bool
     use_regex_matching: bool
     rules: RulesConfig

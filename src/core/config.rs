@@ -330,6 +330,8 @@ pub struct ProjectConfig {
     #[pyo3(set)]
     pub ignore_type_checking_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
+    pub include_string_imports: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
     pub forbid_circular_dependencies: bool,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub use_regex_matching: bool,
@@ -351,6 +353,7 @@ impl Default for ProjectConfig {
             exact: Default::default(),
             disable_logging: Default::default(),
             ignore_type_checking_imports: default_true(),
+            include_string_imports: Default::default(),
             forbid_circular_dependencies: Default::default(),
             use_regex_matching: default_true(),
             root_module: Default::default(),
@@ -421,6 +424,7 @@ impl ProjectConfig {
             exact: self.exact,
             disable_logging: self.disable_logging,
             ignore_type_checking_imports: self.ignore_type_checking_imports,
+            include_string_imports: self.include_string_imports,
             forbid_circular_dependencies: self.forbid_circular_dependencies,
             use_regex_matching: self.use_regex_matching,
             root_module: self.root_module.clone(),

@@ -116,64 +116,76 @@ fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String, Syn
 }
 
 #[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
 fn get_normalized_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(
-        imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)?
-            .imports,
-    )
+    Ok(imports::get_normalized_imports(
+        &source_roots,
+        &file_path,
+        ignore_type_checking_imports,
+        include_string_imports,
+    )?
+    .imports)
 }
 
 /// Get first-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
 fn get_project_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(
-        imports::get_project_imports(&source_roots, &file_path, ignore_type_checking_imports)?
-            .imports,
-    )
+    Ok(imports::get_project_imports(
+        &source_roots,
+        &file_path,
+        ignore_type_checking_imports,
+        include_string_imports,
+    )?
+    .imports)
 }
 
 /// Get third-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
 fn get_external_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(
-        imports::get_normalized_imports(&source_roots, &file_path, ignore_type_checking_imports)?
-            .imports
-            .into_iter()
-            .filter_map(|import| {
-                imports::is_project_import(&source_roots, &import.module_path).map_or(
-                    None,
-                    |is_project_import| {
-                        if is_project_import {
-                            None
-                        } else {
-                            Some(import)
-                        }
-                    },
-                )
-            })
-            .collect(),
-    )
+    Ok(imports::get_normalized_imports(
+        &source_roots,
+        &file_path,
+        ignore_type_checking_imports,
+        include_string_imports,
+    )?
+    .imports
+    .into_iter()
+    .filter_map(|import| {
+        imports::is_project_import(&source_roots, &import.module_path).map_or(
+            None,
+            |is_project_import| {
+                if is_project_import {
+                    None
+                } else {
+                    Some(import)
+                }
+            },
+        )
+    })
+    .collect())
 }
 
 /// Set excluded paths globally.
@@ -212,7 +224,7 @@ fn check_external_dependencies(
 
 /// Create a report of dependencies and usages of a given path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, source_roots, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, ignore_type_checking_imports=false, include_string_imports=false))]
 fn create_dependency_report(
     project_root: String,
     source_roots: Vec<String>,
@@ -222,6 +234,7 @@ fn create_dependency_report(
     skip_dependencies: bool,
     skip_usages: bool,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> reports::Result<String> {
     let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
@@ -235,6 +248,7 @@ fn create_dependency_report(
         skip_dependencies,
         skip_usages,
         ignore_type_checking_imports,
+        include_string_imports,
     )
 }
 
@@ -326,6 +340,8 @@ pub fn sync_project(
 fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<core::config::ProjectConfig>()?;
     m.add_class::<core::config::ModuleConfig>()?;
+    m.add_class::<core::config::InterfaceConfig>()?;
+    m.add_class::<core::config::RulesConfig>()?;
     m.add_class::<core::config::DependencyConfig>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;

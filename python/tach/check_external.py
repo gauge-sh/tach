@@ -69,3 +69,6 @@ def check_external(
         undeclared_dependencies=filtered_undeclared_dependencies,
         unused_dependencies=filtered_unused_dependencies,
     )
+
+
+__all__ = ["check_external"]

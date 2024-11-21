@@ -84,7 +84,8 @@ impl TachPytestPluginHandler {
 
     pub fn should_remove_items(&self, file_path: PathBuf) -> bool {
         // TODO: Remove unwrap
-        let project_imports = get_project_imports(&self.source_roots, &file_path, true).unwrap();
+        let project_imports =
+            get_project_imports(&self.source_roots, &file_path, true, false).unwrap();
         let mut should_remove = true;
 
         for import in project_imports.imports {

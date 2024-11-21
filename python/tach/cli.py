@@ -13,7 +13,7 @@ from tach import filesystem as fs
 from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
-from tach.errors import TachError
+from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
     ProjectConfig,
     TachCircularDependencyError,
@@ -26,6 +26,7 @@ from tach.extension import (
 )
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
+from tach.modularity import export_report, upload_report_to_gauge
 from tach.parsing import parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import (
@@ -408,6 +409,43 @@ def build_parser() -> argparse.ArgumentParser:
         nargs=argparse.REMAINDER,
         help=f"Arguments forwarded to pytest. Use '--' to separate these arguments. Ex: '{TOOL_NAME} test -- -v'",
     )
+
+    ## tach upload
+    upload_parser = subparsers.add_parser(
+        "upload",
+        prog=f"{TOOL_NAME} upload",
+        help="[CLOSED BETA] Upload a modularity report to Gauge",
+        description="[CLOSED BETA] Upload a modularity report to Gauge",
+    )
+    upload_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Ignore warnings and force the report to be generated.",
+    )
+
+    ## tach export
+    export_parser = subparsers.add_parser(
+        "export",
+        prog=f"{TOOL_NAME} export",
+        help="Export a modularity report to a local file",
+        description="Export a modularity report to a local file",
+    )
+    export_parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        nargs="?",
+        default=None,
+        help="Specify an output path for the modularity report [DEFAULT: 'modularity_report.json']",
+    )
+    export_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Ignore warnings and force the report to be generated.",
+    )
+
     return parser
 
 
@@ -968,6 +1006,71 @@ def tach_test(
         sys.exit(1)
 
 
+def tach_export(
+    project_root: Path,
+    output_path: Path | None = None,
+    force: bool = False,
+):
+    logger.info(
+        "tach export called",
+        extra={
+            "data": LogDataModel(
+                function="tach_export",
+                parameters={"force": force},
+            ),
+        },
+    )
+
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_found()
+        sys.exit(1)
+
+    try:
+        export_report(
+            project_root=project_root,
+            project_config=project_config,
+            output_path=output_path,
+            force=force,
+        )
+    except TachError as e:
+        print(f"Failed to export modularity report: {e}")
+        sys.exit(1)
+
+
+def tach_upload(
+    project_root: Path,
+    force: bool = False,
+):
+    logger.info(
+        "tach upload called",
+        extra={
+            "data": LogDataModel(
+                function="tach_upload",
+                parameters={"force": force},
+            ),
+        },
+    )
+
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_found()
+        sys.exit(1)
+
+    try:
+        upload_report_to_gauge(
+            project_root=project_root,
+            project_config=project_config,
+            force=force,
+        )
+    except TachClosedBetaError as e:
+        print(e)
+        sys.exit(1)
+    except TachError as e:
+        print(f"Failed to upload modularity report: {e}")
+        sys.exit(1)
+
+
 def current_version_is_behind(latest_version: str) -> bool:
     try:
         current_version_parts = list(map(int, __version__.split(".")[:3]))
@@ -1044,6 +1147,17 @@ def main() -> None:
             output_filepath=args.out,
             is_web=args.web,
             is_mermaid=args.mermaid,
+        )
+    elif args.command == "export":
+        tach_export(
+            project_root=project_root,
+            output_path=args.output,
+            force=args.force,
+        )
+    elif args.command == "upload":
+        tach_upload(
+            project_root=project_root,
+            force=args.force,
         )
     else:
         print("Unrecognized command")

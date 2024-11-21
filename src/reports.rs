@@ -151,6 +151,7 @@ pub fn create_dependency_report(
     skip_dependencies: bool,
     skip_usages: bool,
     ignore_type_checking_imports: bool,
+    include_string_imports: bool,
 ) -> Result<String> {
     if skip_dependencies && skip_usages {
         return Err(ReportCreationError::NothingToReport);
@@ -161,7 +162,12 @@ pub fn create_dependency_report(
 
     for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
         let absolute_pyfile = project_root.join(&pyfile);
-        match get_project_imports(source_roots, &absolute_pyfile, ignore_type_checking_imports) {
+        match get_project_imports(
+            source_roots,
+            &absolute_pyfile,
+            ignore_type_checking_imports,
+            include_string_imports,
+        ) {
             Ok(project_imports) => {
                 let pyfile_in_target_module = absolute_pyfile.starts_with(&absolute_path);
                 if pyfile_in_target_module && !skip_dependencies {
