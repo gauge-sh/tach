@@ -146,7 +146,7 @@ python/tach/cache/setup.py[L7]: Import 'tach.filesystem.find_project_config_root
 
 Tach also supports:
 
-- [Strict public interfaces for modules](https://docs.gauge.sh/usage/strict-mode/)
+- [Public interfaces for modules](https://docs.gauge.sh/usage/interfaces/)
 - [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
 - [Incremental adoption](https://docs.gauge.sh/usage/unchecked-modules)
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
