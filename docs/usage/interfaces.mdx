@@ -40,7 +40,7 @@ DataModel.objects.all()
 This import would **fail** `tach check` with the following error:
 
 ```shell
-❌ domain.py[L1]: Module 'core' is in strict mode. Only imports from the public interface of this module are allowed. The import 'core.main.DataModel' (in module 'parsing') is not public.
+❌ domain.py[L1]: Module 'core' has a public interface. Only imports from the public interface of this module are allowed. The import 'core.main.DataModel' (in module 'parsing') is not public.
 ```
 
 In this case, there is a public interface defined in `tach.toml` which includes a service method to use instead.
@@ -54,5 +54,5 @@ get_data()
 `tach check` will now pass!
 
 ```bash
-✅ All module dependencies validated!
+✅ All modules validated!
 ```

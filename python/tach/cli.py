@@ -64,11 +64,11 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         )
 
     error_template = (
-        f"{icons.FAIL} {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
+        f"{icons.FAIL}  {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
     warning_template = (
-        f"{icons.WARNING} {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
+        f"{icons.WARNING}  {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
     error_info = error.error_info
@@ -85,17 +85,45 @@ def print_warnings(warning_list: list[str]) -> None:
 def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> None:
     if not error_list:
         return
-    sorted_results = sorted(error_list, key=lambda e: e.file_path)
-    for error in sorted_results:
+
+    interface_errors: list[BoundaryError] = []
+    dependency_errors: list[BoundaryError] = []
+    for error in sorted(error_list, key=lambda e: e.file_path):
+        if error.error_info.is_interface_error():
+            interface_errors.append(error)
+        else:
+            dependency_errors.append(error)
+
+    if interface_errors:
+        print(f"{BCOLORS.FAIL}Interface Errors:{BCOLORS.ENDC}", file=sys.stderr)
+        for error in interface_errors:
+            print(
+                build_error_message(error, source_roots=source_roots),
+                file=sys.stderr,
+            )
         print(
-            build_error_message(error, source_roots=source_roots),
+            f"{BCOLORS.WARNING}\nIf you intended to change an interface, edit the '[[interfaces]]' section of {CONFIG_FILE_NAME}.toml."
+            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
             file=sys.stderr,
         )
-    if not all(error.error_info.is_deprecated() for error in sorted_results):
-        print(
-            f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
-            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
-        )
+
+    if dependency_errors:
+        print(f"{BCOLORS.FAIL}Dependency Errors:{BCOLORS.ENDC}", file=sys.stderr)
+        has_real_errors = False
+        for error in dependency_errors:
+            if not error.error_info.is_deprecated():
+                has_real_errors = True
+            print(
+                build_error_message(error, source_roots=source_roots),
+                file=sys.stderr,
+            )
+        print(file=sys.stderr)
+        if has_real_errors:
+            print(
+                f"{BCOLORS.WARNING}If you intended to add a new dependency, run 'tach sync' to update your module configuration."
+                f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
+                file=sys.stderr,
+            )
 
 
 def print_unused_dependencies(
@@ -254,7 +282,17 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser.add_argument(
         "--exact",
         action="store_true",
-        help="Raise errors if any dependency constraints are unused.",
+        help="When checking dependencies, raise errors if any dependencies are unused.",
+    )
+    check_parser.add_argument(
+        "--dependencies",
+        action="store_true",
+        help="Check dependency constraints between modules. When present, all checks must be explicitly enabled.",
+    )
+    check_parser.add_argument(
+        "--interfaces",
+        action="store_true",
+        help="Check interface implementations. When present, all checks must be explicitly enabled.",
     )
     add_base_arguments(check_parser)
 
@@ -528,6 +566,8 @@ def extend_and_validate(
 def tach_check(
     project_root: Path,
     exact: bool = False,
+    dependencies: bool = True,
+    interfaces: bool = True,
     exclude_paths: list[str] | None = None,
 ):
     logger.info(
@@ -554,6 +594,8 @@ def tach_check(
         check_result = check(
             project_root=project_root,
             project_config=project_config,
+            dependencies=dependencies,
+            interfaces=interfaces,
             exclude_paths=exclude_paths,
         )
 
@@ -564,22 +606,14 @@ def tach_check(
             project_root / source_root for source_root in project_config.source_roots
         ]
 
-        if check_result.deprecated_warnings:
-            print_errors(
-                check_result.deprecated_warnings,
-                source_roots=source_roots,
-            )
-        exit_code = 0
+        print_errors(
+            check_result.errors + check_result.deprecated_warnings,
+            source_roots=source_roots,
+        )
+        exit_code = 1 if len(check_result.errors) > 0 else 0
 
-        if check_result.errors:
-            print_errors(
-                check_result.errors,
-                source_roots=source_roots,
-            )
-            exit_code = 1
-
-        # If we're checking in strict mode, we want to verify that pruning constraints has no effect
-        if exact:
+        # If we're checking in exact mode, we want to verify that pruning constraints has no effect
+        if dependencies and exact:
             pruned_config = sync_dependency_constraints(
                 project_root=project_root,
                 project_config=project_config,
@@ -601,9 +635,7 @@ def tach_check(
         sys.exit(1)
 
     if exit_code == 0:
-        print(
-            f"{icons.SUCCESS} {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}"
-        )
+        print(f"{icons.SUCCESS} {BCOLORS.OKGREEN}All modules validated!{BCOLORS.ENDC}")
     sys.exit(exit_code)
 
 
@@ -1100,9 +1132,18 @@ def main() -> None:
     elif args.command == "sync":
         tach_sync(project_root=project_root, add=args.add, exclude_paths=exclude_paths)
     elif args.command == "check":
-        tach_check(
-            project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
-        )
+        if args.dependencies or args.interfaces:
+            tach_check(
+                project_root=project_root,
+                dependencies=args.dependencies,
+                interfaces=args.interfaces,
+                exact=args.exact,
+                exclude_paths=exclude_paths,
+            )
+        else:
+            tach_check(
+                project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
+            )
     elif args.command == "check-external":
         tach_check_external(project_root=project_root, exclude_paths=exclude_paths)
     elif args.command == "install":

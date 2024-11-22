@@ -102,7 +102,13 @@ pub fn sync_dependency_constraints(
     let mut new_project_config = new_project_config.unwrap_or(project_config);
 
     // If prune is false, the existing project config is reused without changes
-    let check_result = check(project_root, &new_project_config, exclude_paths)?;
+    let check_result = check(
+        project_root,
+        &new_project_config,
+        true,  // dependencies
+        false, // interfaces
+        exclude_paths,
+    )?;
 
     // Iterate through the check results to add dependencies to the config
     for error in check_result.errors {

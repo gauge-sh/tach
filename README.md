@@ -87,7 +87,7 @@ tach check
 You will see:
 
 ```bash
-✅ All module dependencies validated!
+✅ All modules validated!
 ```
 
 You can validate that Tach is working by either:
