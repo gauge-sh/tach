@@ -578,7 +578,7 @@ def tach_check(
             )
             exit_code = 1
 
-        # If we're checking in strict mode, we want to verify that pruning constraints has no effect
+        # If we're checking in exact mode, we want to verify that pruning constraints has no effect
         if exact:
             pruned_config = sync_dependency_constraints(
                 project_root=project_root,

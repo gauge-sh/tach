@@ -54,7 +54,7 @@ pub enum ImportCheckError {
     #[error("Module containing '{file_mod_path}' not found in project.")]
     ModuleNotFound { file_mod_path: String },
 
-    #[error("Module '{import_nearest_module_path}' is in strict mode. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
+    #[error("Module '{import_nearest_module_path}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
     StrictModeImport {
         import_mod_path: String,
         import_nearest_module_path: String,
