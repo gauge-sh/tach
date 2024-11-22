@@ -65,22 +65,28 @@ When run without the `--add` flag, `tach sync` will remove modules from the `tac
 Tach will flag any unwanted imports between modules. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
 ```bash
-usage: tach check [-h] [--exact] [-e file_or_path,...]
+usage: tach check [-h] [--exact] [--dependencies] [--interfaces] [-e file_or_path,...]
 
 Check existing boundaries against your dependencies and module interfaces
 
 options:
   -h, --help            show this help message and exit
-  --exact               Raise errors if any dependency constraints are unused.
+  --exact               When checking dependencies, raise errors if any dependencies are unused.
+  --dependencies        Check dependency constraints between modules. When present, all checks must be explicitly enabled.
+  --interfaces          Check interface implementations. When present, all checks must be explicitly enabled.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
+Using the `--dependencies` or `--interfaces` flag will limit the checks performed to the respective category.
+By default, all checks will be performed.
+
+### Dependency Errors
 An error will indicate:
 
 - the file path in which the error was detected
-- the path associated with that file
-- the path associated with the attempted import
+- the module associated with that file
+- the module associated with the attempted import
 
 If `--exact` is provided, additional errors will be raised if a dependency exists in `tach.toml` that does not exist in the code.
 
@@ -89,6 +95,23 @@ Example:
 ```bash
 > tach check
 ❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Module 'tach' cannot depend on 'tach.filesystem'.
+```
+
+NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
+
+
+### Interface Errors
+An error will indicate:
+
+- the file path in which the error was detected
+- the module associated with that file
+- the module associated with the attempted import
+- the non-public member associated with the attempted import
+
+Example:
+
+```bash
+❌  tach/mod.py[L13]: Module 'tach.interactive' has a defined public interface. Only imports from the public interface of this module are allowed. The import 'tach.interactive.get_selected_modules_interactive' (in module 'tach.mod') is not public.
 ```
 
 NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
