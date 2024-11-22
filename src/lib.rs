@@ -305,13 +305,21 @@ fn parse_interface_members(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, exclude_paths))]
+#[pyo3(signature = (project_root, project_config, dependencies, interfaces, exclude_paths))]
 fn check(
     project_root: PathBuf,
     project_config: &ProjectConfig,
+    dependencies: bool,
+    interfaces: bool,
     exclude_paths: Vec<String>,
-) -> PyResult<check_int::CheckDiagnostics> {
-    check_int::check(project_root, project_config, exclude_paths).map_err(Into::into)
+) -> Result<check_int::CheckDiagnostics, check_int::CheckError> {
+    check_int::check(
+        project_root,
+        project_config,
+        dependencies,
+        interfaces,
+        exclude_paths,
+    )
 }
 
 #[pyfunction]

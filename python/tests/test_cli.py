@@ -13,9 +13,18 @@ from tach.extension import ProjectConfig
 @dataclass
 class ErrorInfo:
     exception_message: str
+    dependency_error: bool = False
+    interface_error: bool = False
+    deprecated: bool = False
+
+    def is_dependency_error(self) -> bool:
+        return self.dependency_error
+
+    def is_interface_error(self) -> bool:
+        return self.interface_error
 
     def is_deprecated(self) -> bool:
-        return False
+        return self.deprecated
 
     def to_pystring(self) -> str:
         return self.exception_message
@@ -62,7 +71,7 @@ def test_execute_with_config(capfd, mock_check, mock_project_config):
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All module dependencies validated!" in captured.out
+    assert "All modules validated!" in captured.out
 
 
 def test_execute_with_error(capfd, mock_check, mock_project_config):
@@ -109,4 +118,4 @@ def test_execute_with_valid_exclude(capfd, mock_check, mock_project_config):
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All module dependencies validated!" in captured.out
+    assert "All modules validated!" in captured.out

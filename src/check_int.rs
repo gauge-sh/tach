@@ -54,7 +54,7 @@ pub enum ImportCheckError {
     #[error("Module containing '{file_mod_path}' not found in project.")]
     ModuleNotFound { file_mod_path: String },
 
-    #[error("Module '{import_nearest_module_path}' is in strict mode. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
+    #[error("Module '{import_nearest_module_path}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
     StrictModeImport {
         import_mod_path: String,
         import_nearest_module_path: String,
@@ -80,6 +80,9 @@ pub enum ImportCheckError {
 
     #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
     UnusedIgnoreDirective { import_mod_path: String },
+
+    #[error("No checks enabled. At least one of dependencies or interfaces must be enabled.")]
+    NoChecksEnabled(),
 }
 
 #[pymethods]
@@ -89,6 +92,10 @@ impl ImportCheckError {
             self,
             Self::InvalidImport { .. } | Self::DeprecatedImport { .. }
         )
+    }
+
+    pub fn is_interface_error(&self) -> bool {
+        matches!(self, Self::StrictModeImport { .. })
     }
 
     pub fn source_path(&self) -> Option<&String> {
@@ -144,7 +151,13 @@ fn check_import(
     file_nearest_module: Arc<ModuleNode>,
     root_module_treatment: RootModuleTreatment,
     interface_checker: &InterfaceChecker,
+    check_dependencies: bool,
+    check_interfaces: bool,
 ) -> Result<(), ImportCheckError> {
+    if !check_dependencies && !check_interfaces {
+        return Err(ImportCheckError::NoChecksEnabled());
+    }
+
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
         Some(module) => module,
         // This should not be none since we intend to filter out any external imports,
@@ -161,7 +174,8 @@ fn check_import(
         return Ok(());
     }
 
-    if interface_checker.has_interface(&import_nearest_module.full_path)
+    if check_interfaces
+        && interface_checker.has_interface(&import_nearest_module.full_path)
         && import_mod_path != &import_nearest_module.full_path
     {
         let import_member = import_mod_path
@@ -178,8 +192,10 @@ fn check_import(
         }
     }
 
-    // After checking strictness,
-    // utility modules are always allowed
+    if !check_dependencies {
+        return Ok(());
+    }
+
     if let Some(true) = import_nearest_module
         .config
         .as_ref()
@@ -239,8 +255,18 @@ fn check_import(
 pub fn check(
     project_root: PathBuf,
     project_config: &ProjectConfig,
+    dependencies: bool,
+    interfaces: bool,
     exclude_paths: Vec<String>,
 ) -> Result<CheckDiagnostics, CheckError> {
+    if !dependencies && !interfaces {
+        return Ok(CheckDiagnostics {
+            errors: Vec::new(),
+            deprecated_warnings: Vec::new(),
+            warnings: vec!["WARNING: No checks enabled. At least one of dependencies or interfaces must be enabled.".to_string()],
+        });
+    }
+
     let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     if !project_root.is_dir() {
         return Err(CheckError::InvalidDirectory(
@@ -337,6 +363,8 @@ pub fn check(
                     Arc::clone(&nearest_module),
                     project_config.root_module.clone(),
                     &interface_checker,
+                    dependencies,
+                    interfaces,
                 ) else {
                     continue;
                 };
@@ -363,6 +391,8 @@ pub fn check(
                     Arc::clone(&nearest_module),
                     project_config.root_module.clone(),
                     &interface_checker,
+                    dependencies,
+                    interfaces,
                 )
                 .is_ok()
                 {
@@ -446,6 +476,8 @@ mod tests {
             file_module.clone(),
             RootModuleTreatment::Allow,
             &interface_checker,
+            true,
+            true,
         );
         let result = check_error.is_ok();
         assert_eq!(result, expected_result);
@@ -465,6 +497,8 @@ mod tests {
             file_module.clone(),
             RootModuleTreatment::Allow,
             &interface_checker,
+            true,
+            true,
         );
         assert!(check_error.is_err());
         assert!(check_error.unwrap_err().is_deprecated());

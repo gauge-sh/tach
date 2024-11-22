@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from tach.cli import tach_check
+from tach.icons import SUCCESS, WARNING
 
 
 def test_valid_example_dir(example_dir, capfd):
@@ -11,8 +12,8 @@ def test_valid_example_dir(example_dir, capfd):
         tach_check(project_root=project_root)
     assert exc_info.value.code == 0
     captured = capfd.readouterr()
-    assert "✅" in captured.out  # success state
-    assert "‼️" in captured.err  # deprecated warning
+    assert SUCCESS in captured.out  # success state
+    assert WARNING in captured.err  # deprecated warning
 
 
 def test_valid_example_dir_monorepo(example_dir):
