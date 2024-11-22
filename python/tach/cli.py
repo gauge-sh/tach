@@ -254,7 +254,17 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser.add_argument(
         "--exact",
         action="store_true",
-        help="Raise errors if any dependency constraints are unused.",
+        help="When checking dependencies, raise errors if any dependencies are unused.",
+    )
+    check_parser.add_argument(
+        "--dependencies",
+        action="store_true",
+        help="Check dependency constraints between modules. When present, all checks must be explicitly enabled.",
+    )
+    check_parser.add_argument(
+        "--interfaces",
+        action="store_true",
+        help="Check interface implementations. When present, all checks must be explicitly enabled.",
     )
     add_base_arguments(check_parser)
 
@@ -528,6 +538,8 @@ def extend_and_validate(
 def tach_check(
     project_root: Path,
     exact: bool = False,
+    dependencies: bool = True,
+    interfaces: bool = True,
     exclude_paths: list[str] | None = None,
 ):
     logger.info(
@@ -554,6 +566,8 @@ def tach_check(
         check_result = check(
             project_root=project_root,
             project_config=project_config,
+            dependencies=dependencies,
+            interfaces=interfaces,
             exclude_paths=exclude_paths,
         )
 
@@ -579,7 +593,7 @@ def tach_check(
             exit_code = 1
 
         # If we're checking in exact mode, we want to verify that pruning constraints has no effect
-        if exact:
+        if dependencies and exact:
             pruned_config = sync_dependency_constraints(
                 project_root=project_root,
                 project_config=project_config,
@@ -601,9 +615,7 @@ def tach_check(
         sys.exit(1)
 
     if exit_code == 0:
-        print(
-            f"{icons.SUCCESS} {BCOLORS.OKGREEN}All module dependencies validated!{BCOLORS.ENDC}"
-        )
+        print(f"{icons.SUCCESS} {BCOLORS.OKGREEN}All modules validated!{BCOLORS.ENDC}")
     sys.exit(exit_code)
 
 
@@ -1100,9 +1112,18 @@ def main() -> None:
     elif args.command == "sync":
         tach_sync(project_root=project_root, add=args.add, exclude_paths=exclude_paths)
     elif args.command == "check":
-        tach_check(
-            project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
-        )
+        if args.dependencies or args.interfaces:
+            tach_check(
+                project_root=project_root,
+                dependencies=args.dependencies,
+                interfaces=args.interfaces,
+                exact=args.exact,
+                exclude_paths=exclude_paths,
+            )
+        else:
+            tach_check(
+                project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
+            )
     elif args.command == "check-external":
         tach_check_external(project_root=project_root, exclude_paths=exclude_paths)
     elif args.command == "install":

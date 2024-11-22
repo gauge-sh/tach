@@ -60,6 +60,8 @@ def dump_project_config_to_toml(project_config: ProjectConfig) -> str: ...
 def check(
     project_root: Path,
     project_config: ProjectConfig,
+    dependencies: bool,
+    interfaces: bool,
     exclude_paths: list[str],
 ) -> CheckResult: ...
 def sync_dependency_constraints(

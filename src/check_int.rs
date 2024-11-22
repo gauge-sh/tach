@@ -239,6 +239,8 @@ fn check_import(
 pub fn check(
     project_root: PathBuf,
     project_config: &ProjectConfig,
+    dependencies: bool,
+    interfaces: bool,
     exclude_paths: Vec<String>,
 ) -> Result<CheckDiagnostics, CheckError> {
     let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();

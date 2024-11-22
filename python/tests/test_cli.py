@@ -62,7 +62,7 @@ def test_execute_with_config(capfd, mock_check, mock_project_config):
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All module dependencies validated!" in captured.out
+    assert "All modules validated!" in captured.out
 
 
 def test_execute_with_error(capfd, mock_check, mock_project_config):
@@ -109,4 +109,4 @@ def test_execute_with_valid_exclude(capfd, mock_check, mock_project_config):
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
-    assert "All module dependencies validated!" in captured.out
+    assert "All modules validated!" in captured.out
