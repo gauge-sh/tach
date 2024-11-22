@@ -13,9 +13,18 @@ from tach.extension import ProjectConfig
 @dataclass
 class ErrorInfo:
     exception_message: str
+    dependency_error: bool = False
+    interface_error: bool = False
+    deprecated: bool = False
+
+    def is_dependency_error(self) -> bool:
+        return self.dependency_error
+
+    def is_interface_error(self) -> bool:
+        return self.interface_error
 
     def is_deprecated(self) -> bool:
-        return False
+        return self.deprecated
 
     def to_pystring(self) -> str:
         return self.exception_message

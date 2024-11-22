@@ -94,6 +94,10 @@ impl ImportCheckError {
         )
     }
 
+    pub fn is_interface_error(&self) -> bool {
+        matches!(self, Self::StrictModeImport { .. })
+    }
+
     pub fn source_path(&self) -> Option<&String> {
         match self {
             Self::InvalidImport { source_module, .. } => Some(source_module),

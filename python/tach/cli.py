@@ -85,16 +85,41 @@ def print_warnings(warning_list: list[str]) -> None:
 def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> None:
     if not error_list:
         return
-    sorted_results = sorted(error_list, key=lambda e: e.file_path)
-    for error in sorted_results:
+
+    interface_errors: list[BoundaryError] = []
+    dependency_errors: list[BoundaryError] = []
+    for error in sorted(error_list, key=lambda e: e.file_path):
+        if error.error_info.is_interface_error():
+            interface_errors.append(error)
+        else:
+            dependency_errors.append(error)
+
+    if interface_errors:
+        print(f"{BCOLORS.FAIL}Interface Errors:{BCOLORS.ENDC}", file=sys.stderr)
+        for error in interface_errors:
+            print(
+                build_error_message(error, source_roots=source_roots),
+                file=sys.stderr,
+            )
         print(
-            build_error_message(error, source_roots=source_roots),
+            f"{BCOLORS.WARNING}\nIf you intended to change an interface, edit the '[[interfaces]]' section of {CONFIG_FILE_NAME}.toml."
+            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
             file=sys.stderr,
         )
-    if not all(error.error_info.is_deprecated() for error in sorted_results):
+
+    if dependency_errors:
+        if interface_errors:
+            print("\n", file=sys.stderr)  # Add spacing between sections
+        print(f"{BCOLORS.FAIL}Dependency Errors:{BCOLORS.ENDC}", file=sys.stderr)
+        for error in dependency_errors:
+            print(
+                build_error_message(error, source_roots=source_roots),
+                file=sys.stderr,
+            )
         print(
             f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
-            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}"
+            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
+            file=sys.stderr,
         )
 
 
