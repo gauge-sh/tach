@@ -64,11 +64,11 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         )
 
     error_template = (
-        f"{icons.FAIL} {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.FAIL}: "
+        f"{icons.FAIL}  {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
     warning_template = (
-        f"{icons.WARNING} {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
+        f"{icons.WARNING}  {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
     error_info = error.error_info
@@ -108,19 +108,22 @@ def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> N
         )
 
     if dependency_errors:
-        if interface_errors:
-            print("\n", file=sys.stderr)  # Add spacing between sections
         print(f"{BCOLORS.FAIL}Dependency Errors:{BCOLORS.ENDC}", file=sys.stderr)
+        has_real_errors = False
         for error in dependency_errors:
+            if not error.error_info.is_deprecated():
+                has_real_errors = True
             print(
                 build_error_message(error, source_roots=source_roots),
                 file=sys.stderr,
             )
-        print(
-            f"{BCOLORS.WARNING}\nIf you intended to add a new dependency, run 'tach sync' to update your module configuration."
-            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
-            file=sys.stderr,
-        )
+        print(file=sys.stderr)
+        if has_real_errors:
+            print(
+                f"{BCOLORS.WARNING}If you intended to add a new dependency, run 'tach sync' to update your module configuration."
+                f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
+                file=sys.stderr,
+            )
 
 
 def print_unused_dependencies(
@@ -603,19 +606,11 @@ def tach_check(
             project_root / source_root for source_root in project_config.source_roots
         ]
 
-        if check_result.deprecated_warnings:
-            print_errors(
-                check_result.deprecated_warnings,
-                source_roots=source_roots,
-            )
-        exit_code = 0
-
-        if check_result.errors:
-            print_errors(
-                check_result.errors,
-                source_roots=source_roots,
-            )
-            exit_code = 1
+        print_errors(
+            check_result.errors + check_result.deprecated_warnings,
+            source_roots=source_roots,
+        )
+        exit_code = 1 if len(check_result.errors) > 0 else 0
 
         # If we're checking in exact mode, we want to verify that pruning constraints has no effect
         if dependencies and exact:

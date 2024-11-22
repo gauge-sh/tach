@@ -15,14 +15,12 @@ def test_unicode_encoding():
 SUPPORTS_UNICODE = test_unicode_encoding()
 
 
-### Icons which don't depend on Unicode support
-WARNING = "‼️"
-
-
 ### Icons which depend on Unicode support
 if SUPPORTS_UNICODE:
     SUCCESS = "✅"
+    WARNING = "⚠️"
     FAIL = "❌"
 else:
     SUCCESS = "[OK]"
+    WARNING = "[WARN]"
     FAIL = "[FAIL]"
