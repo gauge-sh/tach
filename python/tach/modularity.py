@@ -111,6 +111,12 @@ class Usage:
 
 
 @dataclass
+class Dependency:
+    path: str
+    deprecated: bool = False
+
+
+@dataclass
 class Module:
     path: str
     # [1.2] Deprecated
@@ -118,6 +124,8 @@ class Module:
     # [1.2] Replaces 'is_strict'
     has_interface: bool = False
     interface_members: list[str] = field(default_factory=list)
+    # [1.3] Adds 'depends_on'
+    depends_on: list[Dependency] = field(default_factory=list)
 
 
 REPORT_VERSION = "1.3"
@@ -181,12 +189,16 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
             ):
                 has_interface = True
                 interface_members.update(interface.expose)
-
+        dependencies = [
+            Dependency(path=dep.path, deprecated=dep.deprecated)
+            for dep in module.depends_on
+        ]
         modules.append(
             Module(
                 path=module.path,
                 has_interface=has_interface,
                 interface_members=list(interface_members),
+                depends_on=dependencies,
             )
         )
     return modules
@@ -302,6 +314,8 @@ def generate_modularity_report(
         project_root=project_root,
         project_config=project_config,
         exclude_paths=exclude_paths,
+        dependencies=True,
+        interfaces=False,  # for now leave this as a separate concern
     )
     report.check_result = process_check_result(check_diagnostics)
     print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
