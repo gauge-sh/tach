@@ -61,7 +61,10 @@ if TYPE_CHECKING:
 # tach-ignore(external dependency)
 from a.b import c
 from d.e import f  # tach-ignore(legacy import) f
-from local.g.h import i, j  # tach-ignore(deprecated, using j instead) i
+from local.g.h import (  # tach-ignore(deprecated, using j instead) i
+    i,
+    j,
+)
 
 # tach-ignore(temporary workaround) k
 from local.m.n import k, l
@@ -191,9 +194,9 @@ def test_ignored_imports(temp_project):
         include_string_imports=False,
     )
     expected = [
-        ("local.g.h.j", 5),  # only 'i' is ignored, 'j' is included
-        ("local.m.n.l", 8),  # only 'k' is ignored, 'l' is included
-        ("file3", 10),
+        ("local.g.h.j", 7),  # only 'i' is ignored, 'j' is included
+        ("local.m.n.l", 11),  # only 'k' is ignored, 'l' is included
+        ("file3", 13),
     ]
     assert result == expected
 
