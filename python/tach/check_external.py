@@ -18,6 +18,10 @@ class ExternalCheckDiagnosticts:
     unused_dependencies: dict[str, list[str]]
 
 
+def extract_module_mappings(rename: list[str]) -> dict[str, list[str]]:
+    return {module: [name] for module, name in [module.split(":") for module in rename]}
+
+
 def check_external(
     project_root: Path,
     project_config: ProjectConfig,
@@ -32,10 +36,15 @@ def check_external(
         use_regex_matching=project_config.use_regex_matching,
     )
 
+    metadata_module_mappings = get_module_mappings()
+    if project_config.external.rename:
+        metadata_module_mappings.update(
+            extract_module_mappings(project_config.external.rename)
+        )
     diagnostics = check_external_dependencies(
         project_root=str(project_root),
         source_roots=serialized_source_roots,
-        module_mappings=get_module_mappings(),
+        module_mappings=metadata_module_mappings,
         ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
     undeclared_dependencies_by_file = diagnostics[0]
