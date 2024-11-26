@@ -57,15 +57,23 @@ pub fn extract_dependencies(toml_value: &Value) -> HashSet<String> {
 }
 
 fn extract_deps_from_value(dependencies: &mut HashSet<String>, deps: &Value) {
+    const EXCLUDED_DEPS: [&str; 3] = ["python", "poetry", "poetry-core"];
+
     match deps {
         Value::Array(deps_array) => {
             for dep_str in deps_array.iter().filter_map(|dep| dep.as_str()) {
-                dependencies.insert(normalize_package_name(&extract_package_name(dep_str)));
+                let pkg_name = normalize_package_name(&extract_package_name(dep_str));
+                if !EXCLUDED_DEPS.contains(&pkg_name.as_str()) {
+                    dependencies.insert(pkg_name);
+                }
             }
         }
         Value::Table(deps_table) => {
             for dep_name in deps_table.keys() {
-                dependencies.insert(normalize_package_name(&extract_package_name(dep_name)));
+                let pkg_name = normalize_package_name(&extract_package_name(dep_name));
+                if !EXCLUDED_DEPS.contains(&pkg_name.as_str()) {
+                    dependencies.insert(pkg_name);
+                }
             }
         }
         _ => {}
