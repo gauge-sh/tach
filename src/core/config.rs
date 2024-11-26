@@ -194,6 +194,8 @@ impl CacheConfig {
 pub struct ExternalDependencyConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exclude: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rename: Vec<String>,
 }
 
 impl ExternalDependencyConfig {

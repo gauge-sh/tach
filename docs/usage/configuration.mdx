@@ -287,12 +287,39 @@ The `file_dependencies` key accepts a list of glob patterns to indicate addition
 
 The `env_dependencies` key accepts a list of environment variable names whose values affect your project's behavior under test. This may include a `DEBUG` flag, or database connection parameters in the case of tests which use a configurable database.
 
-## External Checks
+## External
 
 When running [`check-external`](commands#tach-check-external), Tach allows excluding certain modules from validation.
 
 Adding the top level module name to the `exclude` key (underneath the `external` key) will allow all usages of the corresponding module.
 
+Example:
+```toml
+[external]
+exclude = ["PIL"]
+```
+
+Tach also allows supplying a `rename` field to handle cases where the top level module name does not match the name of the package.
+
+For example, the `pillow` package supplies the `PIL` module, so Tach needs to map imports from `PIL` to the `pillow` package specifier in your requirements.
+
+```toml
+[external]
+rename = [
+  # Format "[module name]:[package name]"
+  "PIL:pillow",
+  ...
+]
+```
+
+In most cases you should not need to specify `rename` manually (see the Note below).
+
+<Note>
+  It is recommended to run Tach within a virtual environment containing all of
+  your dependencies across all packages. This is because Tach uses the
+  distribution metadata to map module names like 'git' to their distributions
+  ('GitPython').
+</Note>
 
 ## Rules
 

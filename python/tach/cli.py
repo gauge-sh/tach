@@ -223,7 +223,7 @@ def print_unused_external_dependencies(
     for pyproject_path, dependencies in unused_dependencies.items():
         if dependencies:
             print(
-                f"{icons.WARNING} {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
+                f"{icons.WARNING}  {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
             )
             for dependency in dependencies:
                 print(f"\t{BCOLORS.WARNING}{dependency}{BCOLORS.ENDC}")

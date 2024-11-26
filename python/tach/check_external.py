@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from tach.errors import TachError
 from tach.extension import check_external_dependencies, set_excluded_paths
 from tach.utils.external import get_module_mappings, is_stdlib_module
 
@@ -16,6 +17,17 @@ if TYPE_CHECKING:
 class ExternalCheckDiagnosticts:
     undeclared_dependencies: dict[str, list[str]]
     unused_dependencies: dict[str, list[str]]
+
+
+def extract_module_mappings(rename: list[str]) -> dict[str, list[str]]:
+    try:
+        return {
+            module: [name] for module, name in [module.split(":") for module in rename]
+        }
+    except ValueError as e:
+        raise TachError(
+            "Invalid rename format: expected format is a list of 'module:name' pairs, e.g. ['PIL:pillow']"
+        ) from e
 
 
 def check_external(
@@ -32,10 +44,15 @@ def check_external(
         use_regex_matching=project_config.use_regex_matching,
     )
 
+    metadata_module_mappings = get_module_mappings()
+    if project_config.external.rename:
+        metadata_module_mappings.update(
+            extract_module_mappings(project_config.external.rename)
+        )
     diagnostics = check_external_dependencies(
         project_root=str(project_root),
         source_roots=serialized_source_roots,
-        module_mappings=get_module_mappings(),
+        module_mappings=metadata_module_mappings,
         ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
     undeclared_dependencies_by_file = diagnostics[0]
