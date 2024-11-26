@@ -72,7 +72,7 @@ impl IntoPy<PyObject> for NormalizedImport {
 pub type IgnoreDirectives = HashMap<usize, Vec<String>>;
 
 static TACH_IGNORE_REGEX: Lazy<regex::Regex> =
-    Lazy::new(|| Regex::new(r"# *tach-ignore(( [\w.]+)*)$").unwrap());
+    Lazy::new(|| Regex::new(r"# *tach-ignore(?:\([^)]*\))?((?:\s+[\w.]+)*)\s*$").unwrap());
 
 fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
     let mut ignores: IgnoreDirectives = HashMap::new();
@@ -86,10 +86,15 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
             } else {
                 ignored_modules
                     .split_whitespace()
-                    .map(String::from)
+                    .map(|module| module.to_string())
                     .collect()
             };
-            ignores.insert(normal_lineno, modules);
+
+            if line.starts_with('#') {
+                ignores.insert(normal_lineno + 1, modules);
+            } else {
+                ignores.insert(normal_lineno, modules);
+            }
         }
     }
 
@@ -129,12 +134,11 @@ impl<'a> ImportVisitor<'a> {
             .locator
             .compute_line_index(import_statement.range.start())
             .get();
-        let ignored_modules: Option<&Vec<String>> =
-            self.ignore_directives.get(&line_no.saturating_sub(1));
+        let ignored_modules: Option<&Vec<String>> = self.ignore_directives.get(&line_no);
 
         if let Some(ignored) = ignored_modules {
             if ignored.is_empty() {
-                // Blanket ignore of following import - add all to directive_ignored_imports
+                // Blanket ignore of current import - add all to directive_ignored_imports
                 normalized_imports.directive_ignored_imports.extend(
                     import_statement.names.iter().map(|alias| NormalizedImport {
                         module_path: alias.name.to_string(),
@@ -231,8 +235,7 @@ impl<'a> ImportVisitor<'a> {
             .locator
             .compute_line_index(import_statement.range.start())
             .get();
-        let ignored_modules: Option<&Vec<String>> =
-            self.ignore_directives.get(&line_no.saturating_sub(1));
+        let ignored_modules: Option<&Vec<String>> = self.ignore_directives.get(&line_no);
 
         if let Some(ignored) = ignored_modules {
             if ignored.is_empty() {
