@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from tach.errors import TachError
 from tach.extension import check_external_dependencies, set_excluded_paths
 from tach.utils.external import get_module_mappings, is_stdlib_module
 
@@ -19,7 +20,14 @@ class ExternalCheckDiagnosticts:
 
 
 def extract_module_mappings(rename: list[str]) -> dict[str, list[str]]:
-    return {module: [name] for module, name in [module.split(":") for module in rename]}
+    try:
+        return {
+            module: [name] for module, name in [module.split(":") for module in rename]
+        }
+    except ValueError as e:
+        raise TachError(
+            "Invalid rename format: expected format is a list of 'module:name' pairs, e.g. ['PIL:pillow']"
+        ) from e
 
 
 def check_external(
