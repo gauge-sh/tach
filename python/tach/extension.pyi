@@ -130,6 +130,7 @@ class CacheConfig:
 
 class ExternalDependencyConfig:
     exclude: list[str]
+    rename: list[str]
 
 class UnusedDependencies:
     path: str
