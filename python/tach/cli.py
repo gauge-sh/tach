@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from dataclasses import dataclass, field
 from enum import Enum
@@ -27,7 +26,7 @@ from tach.extension import (
 from tach.filesystem import install_pre_commit
 from tach.logging import LogDataModel, logger
 from tach.modularity import export_report, upload_report_to_gauge
-from tach.parsing import parse_project_config
+from tach.parsing import extend_and_validate, parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import (
     generate_module_graph_dot_file,
@@ -539,28 +538,6 @@ def check_cache_for_action(
         )
     return CachedOutput(key=cache_key)
 
-
-def extend_and_validate(
-    exclude_paths: list[str] | None,
-    project_excludes: list[str],
-    use_regex_matching: bool,
-) -> list[str]:
-    if exclude_paths is not None:
-        exclude_paths.extend(project_excludes)
-    else:
-        exclude_paths = project_excludes
-
-    if not use_regex_matching:
-        return exclude_paths
-
-    for exclude_path in exclude_paths:
-        try:
-            re.compile(exclude_path)
-        except re.error:
-            raise ValueError(
-                f"Invalid regex pattern: {exclude_path}. If you meant to use glob matching, set 'use_regex_matching' to false in your .toml file."
-            )
-    return exclude_paths
 
 
 def tach_check(
