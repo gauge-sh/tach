@@ -96,10 +96,14 @@ pub struct ResolvedModule {
     pub member_name: Option<String>,
 }
 
-fn is_potential_python_module(s: &str) -> bool {
+fn is_potential_python_module_path(s: &str) -> bool {
     !s.is_empty()
-        && s.split('.')
-            .all(|part| !part.is_empty() && part.chars().all(|c| c.is_alphanumeric() || c == '_'))
+        && s.split('.').all(|part| {
+            !part.is_empty()
+                && part
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '_' || c == '*')
+        })
 }
 
 pub fn module_to_file_path<P: AsRef<Path>>(
@@ -108,7 +112,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(
     check_members: bool,
 ) -> Option<ResolvedModule> {
     // Fast check because this may run on every string literal in every source file
-    if !is_potential_python_module(mod_path) {
+    if !is_potential_python_module_path(mod_path) {
         return None;
     }
 
