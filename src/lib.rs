@@ -224,31 +224,28 @@ fn check_external_dependencies(
 
 /// Create a report of dependencies and usages of a given path
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, ignore_type_checking_imports=false, include_string_imports=false))]
+#[pyo3(signature = (project_root, project_config, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, raw))]
 fn create_dependency_report(
     project_root: String,
-    source_roots: Vec<String>,
+    project_config: &ProjectConfig,
     path: String,
     include_dependency_modules: Option<Vec<String>>,
     include_usage_modules: Option<Vec<String>>,
     skip_dependencies: bool,
     skip_usages: bool,
-    ignore_type_checking_imports: bool,
-    include_string_imports: bool,
+    raw: bool,
 ) -> reports::Result<String> {
     let project_root = PathBuf::from(project_root);
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(path);
     reports::create_dependency_report(
         &project_root,
-        &source_roots,
+        project_config,
         &file_path,
         include_dependency_modules,
         include_usage_modules,
         skip_dependencies,
         skip_usages,
-        ignore_type_checking_imports,
-        include_string_imports,
+        raw,
     )
 }
 
