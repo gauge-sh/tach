@@ -34,7 +34,7 @@ pub enum ImportParseError {
 pub type Result<T> = std::result::Result<T, ImportParseError>;
 
 /// An import with a normalized module path and located line number
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NormalizedImport {
     pub module_path: String,
     pub line_no: usize,

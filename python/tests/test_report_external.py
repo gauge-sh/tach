@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -12,13 +13,13 @@ from tach.report import external_dependency_report
 def project_config():
     p = ProjectConfig()
     p.source_roots = [
-        "src/pack-a/src",
-        "src/pack-b/src",
-        "src/pack-c/src",
-        "src/pack-d/src",
-        "src/pack-e/src",
-        "src/pack-f/src",
-        "src/pack-g/src",
+        Path("src/pack-a/src"),
+        Path("src/pack-b/src"),
+        Path("src/pack-c/src"),
+        Path("src/pack-d/src"),
+        Path("src/pack-e/src"),
+        Path("src/pack-f/src"),
+        Path("src/pack-g/src"),
     ]
     p.ignore_type_checking_imports = True
     return p
@@ -60,7 +61,9 @@ def test_report_raw_multi_package_example(example_dir, project_config, module_ma
         path=project_root / "src/pack-a/src/myorg/pack_a/__init__.py",
         raw=True,
     )
-    assert result == "gitpython"
+    assert [line for line in result.splitlines() if not line.startswith("#")] == [
+        "gitpython"
+    ]
 
 
 def test_report_empty_raw_multi_package_example(

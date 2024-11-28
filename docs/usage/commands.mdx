@@ -121,30 +121,48 @@ NOTE: If your terminal supports hyperlinks, you can click on the failing file pa
 Tach can generate a report showing all the dependencies and usages of a given module.
 
 ```bash
-usage: tach report [-h] [-d module_path,...] [--no-deps] [-u module_path,...] [--no-usages] [-e file_or_path,...] path
+usage: tach report [-h] [--dependencies] [--usages] [--external] [-d module_path,...] [-u module_path,...] [--raw] [-e file_or_path,...] path
 
-Create a report of dependencies and usages of the given path or directory.
+Create a report of dependencies and usages.
 
 positional arguments:
   path                  The path or directory path used to generate the report.
 
 options:
   -h, --help            show this help message and exit
-  -d module_path,..., --dependencies module_path,...
+  --dependencies        Generate dependency report. When present, all reports must be explicitly enabled.
+  --usages              Generate usage report. When present, all reports must be explicitly enabled.
+  --external            Generate external dependency report. When present, all reports must be explicitly enabled.
+  -d module_path,..., --dependency-modules module_path,...
                         Comma separated module list of dependencies to include [includes everything by default]
-  --no-deps             Do not include dependencies in the report.
-  -u module_path,..., --usages module_path,...
+  -u module_path,..., --usage-modules module_path,...
                         Comma separated module list of usages to include [includes everything by default]
-  --no-usages           Do not include usages in the report.
+  --raw                 Group lines by module and print each without any formatting.
   -e file_or_path,..., --exclude file_or_path,...
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
-This will generate a textual report showing the file and line number of each relevant import.
-By default, the report will include a section containing all external usages of a module,
-as well as all dependencies of the module. These can be toggled off with `--no-usages` and `--no-deps` respectively.
+By default, this will generate a textual report showing the file and line number of each module dependency, module usage, and external dependency. Each section corresponds to a command line flag.
 
-To filter the output, the `-d` and `-u` options allow specifying which module paths to include in the dependency section and usage section respectively.
+The given `path` can be a directory or a file path. The [module](../configuration#modules) which contains the given path will be used to determine which imports to include in the report.
+Generally, if an import points to a file which is contained by a different module, it will be included.
+
+The `--dependencies` flag includes module dependencies, meaning any import which targets a different module within your project. For example, if `core.api` and `core.services` are marked as modules,
+then an import of `core.api.member` from within `core.services` would be included in a report for `core/services`.
+
+The `--usages` flag includes module usages, meaning any import which comes from a different module within your project. For example, if `core.api` and `core.services` are marked as modules,
+then an import of `core.services.member` from within `core.api` would be included in a report for `core/services`.
+
+The `--external` flag includes external (3rd party) dependencies, meaning any import which targets a module outside of your project. For example, importing `pydantic` or `tomli` would be included in this report.
+
+<Note>
+  It is recommended to run Tach within a virtual environment containing all of
+  your dependencies across all packages. This is because Tach uses the
+  distribution metadata to map 3rd party module names like 'git' to their distributions
+  ('GitPython').
+</Note>
+
+Supplying the `--raw` flag will group the results by module name and eliminate formatting, making the output more easily machine-readable.
 
 ## tach show
 
@@ -226,46 +244,6 @@ In case you would like to explicitly allow a certain external module, this can b
   ('GitPython').
 </Note>
 
-## tach report-external
-
-Tach can determine what external packages are used in a given path in your project.
-
-```bash
-usage: tach report-external [-h] [--raw] path
-
-Create a report of third-party dependencies.
-
-positional arguments:
-  path        The path or directory path used to generate the report.
-
-options:
-  -h, --help  show this help message and exit
-  --raw       Print machine-readable raw output. Each line will contain a PEP 508 dependency string.
-```
-
-This is typically useful for 'tree-shaking' during a build process.
-For example, if you are building a deployable image with only a subset of your code, you would run:
-
-```bash
-> tach report-external --raw [source_path]
-tomli-w
-stdlib-list
-importlib-metadata
-gitpython
-prompt-toolkit
-networkx
-rich
-```
-
-to generate a minimal set of external dependencies for that source code.
-
-<Note>
-  It is recommended to run Tach within a virtual environment containing all of
-  your dependencies across all packages. This is because Tach uses the
-  distribution metadata to map module names like 'git' to their distributions
-  ('GitPython').
-</Note>
-
 ## tach install
 
 Tach can be installed into your development workflow automatically as a pre-commit hook.
@@ -277,7 +255,7 @@ If you use the [pre-commit framework](https://github.com/pre-commit/pre-commit),
 ```yaml
 repos:
   - repo: https://github.com/gauge-sh/tach-pre-commit
-    rev: v0.15.5 # change this to the latest tag!
+    rev: v0.16.0 # change this to the latest tag!
     hooks:
       - id: tach
 ```

@@ -30,14 +30,13 @@ def check_external_dependencies(
 ) -> tuple[dict[str, list[str]], dict[str, list[str]]]: ...
 def create_dependency_report(
     project_root: str,
-    source_roots: list[str],
+    project_config: ProjectConfig,
     path: str,
     include_dependency_modules: list[str] | None,
     include_usage_modules: list[str] | None,
     skip_dependencies: bool,
     skip_usages: bool,
-    ignore_type_checking_imports: bool,
-    include_string_imports: bool,
+    raw: bool,
 ) -> str: ...
 def create_computation_cache_key(
     project_root: str,

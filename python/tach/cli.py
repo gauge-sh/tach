@@ -322,53 +322,51 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser = subparsers.add_parser(
         "report",
         prog=f"{TOOL_NAME} report",
-        help="Create a report of dependencies and usages of the given path or directory.",
-        description="Create a report of dependencies and usages of the given path or directory.",
+        help="Create a report of dependencies and usages.",
+        description="Create a report of dependencies and usages.",
     )
     report_parser.add_argument(
         "path", help="The path or directory path used to generate the report."
     )
+    # Report type flags
+    report_parser.add_argument(
+        "--dependencies",
+        action="store_true",
+        help="Generate dependency report. When present, all reports must be explicitly enabled.",
+    )
+    report_parser.add_argument(
+        "--usages",
+        action="store_true",
+        help="Generate usage report. When present, all reports must be explicitly enabled.",
+    )
+    report_parser.add_argument(
+        "--external",
+        action="store_true",
+        help="Generate external dependency report. When present, all reports must be explicitly enabled.",
+    )
+    # Report options
     report_parser.add_argument(
         "-d",
-        "--dependencies",
+        "--dependency-modules",
         required=False,
         type=str,
         metavar="module_path,...",
         help="Comma separated module list of dependencies to include [includes everything by default]",
     )
     report_parser.add_argument(
-        "--no-deps",
-        action="store_true",
-        help="Do not include dependencies in the report.",
-    )
-    report_parser.add_argument(
         "-u",
-        "--usages",
+        "--usage-modules",
         required=False,
         type=str,
         metavar="module_path,...",
         help="Comma separated module list of usages to include [includes everything by default]",
     )
     report_parser.add_argument(
-        "--no-usages", action="store_true", help="Do not include usages in the report."
-    )
-    add_base_arguments(report_parser)
-
-    ## tach report-external
-    report_external_parser = subparsers.add_parser(
-        "report-external",
-        prog=f"{TOOL_NAME} report-external",
-        help="Create a report of third-party dependencies.",
-        description="Create a report of third-party dependencies.",
-    )
-    report_external_parser.add_argument(
-        "path", help="The path or directory path used to generate the report."
-    )
-    report_external_parser.add_argument(
         "--raw",
         action="store_true",
-        help="Print machine-readable raw output. Each line will contain a PEP 508 dependency string.",
+        help="Group lines by module and print each without any formatting.",
     )
+    add_base_arguments(report_parser)
 
     ## tach show
     show_parser = subparsers.add_parser(
@@ -777,8 +775,10 @@ def tach_report(
     path: str,
     include_dependency_modules: list[str] | None = None,
     include_usage_modules: list[str] | None = None,
-    skip_dependencies: bool = False,
-    skip_usages: bool = False,
+    dependencies: bool = False,
+    usages: bool = False,
+    external: bool = False,
+    raw: bool = False,
     exclude_paths: list[str] | None = None,
 ):
     logger.info(
@@ -786,6 +786,11 @@ def tach_report(
         extra={
             "data": LogDataModel(
                 function="tach_report",
+                parameters={
+                    "dependencies": dependencies,
+                    "usages": usages,
+                    "external": external,
+                },
             ),
         },
     )
@@ -800,55 +805,40 @@ def tach_report(
 
     report_path = Path(path)
     try:
-        print(
-            report(
-                project_root,
-                report_path,
-                project_config=project_config,
-                include_dependency_modules=include_dependency_modules,
-                include_usage_modules=include_usage_modules,
-                skip_dependencies=skip_dependencies,
-                skip_usages=skip_usages,
-                exclude_paths=exclude_paths,
+        # Generate reports based on flags
+        generate_all = not (dependencies or usages or external)
+        generate_dependencies = generate_all or dependencies
+        generate_usages = generate_all or usages
+        generate_external = generate_all or external
+
+        reports: list[str] = []
+        if generate_dependencies or generate_usages:
+            reports.append(
+                report(
+                    project_root,
+                    report_path,
+                    project_config=project_config,
+                    include_dependency_modules=include_dependency_modules,
+                    include_usage_modules=include_usage_modules,
+                    skip_dependencies=not generate_dependencies,
+                    skip_usages=not generate_usages,
+                    raw=raw,
+                    exclude_paths=exclude_paths,
+                )
             )
-        )
-        sys.exit(0)
-    except TachError as e:
-        print(f"Report failed: {e}")
-        sys.exit(1)
 
-
-def tach_report_external(
-    project_root: Path, path: str, raw: bool, exclude_paths: list[str] | None = None
-):
-    logger.info(
-        "tach report-external called",
-        extra={
-            "data": LogDataModel(
-                function="tach_report_external",
-            ),
-        },
-    )
-    project_config = parse_project_config(root=project_root)
-    if project_config is None:
-        print_no_config_found()
-        sys.exit(1)
-
-    exclude_paths = extend_and_validate(
-        exclude_paths, project_config.exclude, project_config.use_regex_matching
-    )
-
-    report_path = Path(path)
-    try:
-        print(
-            external_dependency_report(
-                project_root,
-                report_path,
-                raw=raw,
-                project_config=project_config,
-                exclude_paths=exclude_paths,
+        if generate_external:
+            reports.append(
+                external_dependency_report(
+                    project_root,
+                    report_path,
+                    raw=raw,
+                    project_config=project_config,
+                    exclude_paths=exclude_paths,
+                )
             )
-        )
+
+        print("\n".join(reports))
         sys.exit(0)
     except TachError as e:
         print(f"Report failed: {e}")
@@ -1132,31 +1122,21 @@ def main() -> None:
         tach_install(project_root=project_root, target=install_target)
     elif args.command == "report":
         include_dependency_modules = (
-            args.dependencies.split(",") if args.dependencies else None
+            args.dependency_modules.split(",") if args.dependency_modules else None
         )
-        include_usage_modules = args.usages.split(",") if args.usages else None
+        include_usage_modules = (
+            args.usage_modules.split(",") if args.usage_modules else None
+        )
         tach_report(
             project_root=project_root,
             path=args.path,
             include_dependency_modules=include_dependency_modules,
             include_usage_modules=include_usage_modules,
-            skip_dependencies=args.no_deps,
-            skip_usages=args.no_usages,
-            exclude_paths=exclude_paths,
-        )
-    elif args.command == "report-external":
-        tach_report_external(
-            project_root=project_root,
-            path=args.path,
+            dependencies=args.dependencies,
+            usages=args.usages,
+            external=args.external,
             raw=args.raw,
-        )
-    elif args.command == "test":
-        tach_test(
-            project_root=project_root,
-            head=args.head,
-            base=args.base,
-            disable_cache=args.disable_cache,
-            pytest_args=args.pytest_args,
+            exclude_paths=exclude_paths,
         )
     elif args.command == "show":
         tach_show(
@@ -1165,6 +1145,14 @@ def main() -> None:
             output_filepath=args.out,
             is_web=args.web,
             is_mermaid=args.mermaid,
+        )
+    elif args.command == "test":
+        tach_test(
+            project_root=project_root,
+            head=args.head,
+            base=args.base,
+            disable_cache=args.disable_cache,
+            pytest_args=args.pytest_args,
         )
     elif args.command == "export":
         tach_export(

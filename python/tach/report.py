@@ -32,6 +32,7 @@ def report(
     include_usage_modules: list[str] | None = None,
     skip_dependencies: bool = False,
     skip_usages: bool = False,
+    raw: bool = False,
     exclude_paths: list[str] | None = None,
 ) -> str:
     if not project_root.is_dir():
@@ -51,22 +52,18 @@ def report(
 
     # We prefer resolving symlinks and relative paths in Python
     # because Rust's canonicalize adds an 'extended length path' prefix on Windows
-    # which breaks downstream code that compares to Python-resolved paths (project root, source roots, etc.)
+    # which breaks downstream code that compares to Python-resolved paths
     path = path.resolve().relative_to(project_root)
     try:
         return create_dependency_report(
             project_root=str(project_root),
-            source_roots=[
-                str(project_root / source_root)
-                for source_root in project_config.source_roots
-            ],
+            project_config=project_config,
             path=str(path),
             include_dependency_modules=include_dependency_modules,
             include_usage_modules=include_usage_modules,
             skip_dependencies=skip_dependencies,
             skip_usages=skip_usages,
-            ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-            include_string_imports=project_config.include_string_imports,
+            raw=raw,
         )
     except ValueError as e:
         raise errors.TachError(str(e))
@@ -103,7 +100,7 @@ def render_external_dependency_report(
         return f"{BCOLORS.OKCYAN}No external dependencies found in {BCOLORS.ENDC}{BCOLORS.OKGREEN}'{path}'.{BCOLORS.ENDC}"
 
     if raw:
-        return "\n".join(
+        return "# External Dependencies\n" + "\n".join(
             sorted({dependency.package_name for dependency in dependencies})
         )
 
