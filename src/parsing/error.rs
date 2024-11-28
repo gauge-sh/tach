@@ -56,4 +56,6 @@ pub enum ModuleTreeError {
     ParseError(#[from] ParsingError),
     #[error("Cannot insert module with empty path.")]
     InsertNodeError,
+    #[error("Module not found: {0}")]
+    ModuleNotFound(String),
 }
