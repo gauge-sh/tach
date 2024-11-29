@@ -120,6 +120,7 @@ depends_on = [
     { path = "tach.extension" },
     { path = "tach.filesystem" },
     { path = "tach.filesystem.git_ops" },
+    { path = "tach.parsing" },
 ]
 
 [[modules]]
