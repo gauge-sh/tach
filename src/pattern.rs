@@ -17,7 +17,7 @@ impl PatternMatcher {
     }
 
     pub fn from_regex(pattern: &str) -> Result<Self, PathExclusionError> {
-        let pattern_from_start = if pattern.starts_with(r"^") {
+        let pattern_from_start = if pattern.starts_with('^') {
             pattern.to_string()
         } else {
             format!(r"^{}", pattern)
