@@ -537,7 +537,6 @@ def check_cache_for_action(
     return CachedOutput(key=cache_key)
 
 
-
 def tach_check(
     project_root: Path,
     exact: bool = False,
