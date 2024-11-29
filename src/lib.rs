@@ -348,6 +348,7 @@ fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<core::config::InterfaceConfig>()?;
     m.add_class::<core::config::RulesConfig>()?;
     m.add_class::<core::config::DependencyConfig>()?;
+    m.add_class::<check_int::CheckDiagnostics>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;

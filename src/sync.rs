@@ -135,7 +135,7 @@ pub fn sync_dependency_constraints(
     // Restore visibility settings
     for module in new_project_config.modules.iter_mut() {
         if let Some(visibility) = visibility_map.get(&module.path) {
-            module.visibility = visibility.clone();
+            module.visibility.clone_from(visibility);
         }
     }
 

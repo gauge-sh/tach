@@ -62,7 +62,7 @@ def check(
     dependencies: bool,
     interfaces: bool,
     exclude_paths: list[str],
-) -> CheckResult: ...
+) -> CheckDiagnostics: ...
 def sync_dependency_constraints(
     project_root: Path,
     project_config: ProjectConfig,
@@ -94,7 +94,7 @@ class BoundaryError:
     import_mod_path: str
     error_info: ErrorInfo
 
-class CheckResult:
+class CheckDiagnostics:
     errors: list[BoundaryError]
     deprecated_warnings: list[BoundaryError]
     warnings: list[str]

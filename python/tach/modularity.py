@@ -5,20 +5,21 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import Any
 from urllib import parse
 
 from tach import filesystem as fs
 from tach.colors import BCOLORS
 from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
+    CheckDiagnostics,
     ProjectConfig,
+    check,
     get_project_imports,
 )
 from tach.filesystem.git_ops import get_current_branch_info
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from tach.parsing import extend_and_validate
 
 
 def export_report(
@@ -47,7 +48,7 @@ def upload_report_to_gauge(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
+GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "http://localhost:8000")
 
 
 def build_modularity_upload_path(repo: str) -> str:
@@ -107,6 +108,12 @@ class Usage:
 
 
 @dataclass
+class Dependency:
+    path: str
+    deprecated: bool = False
+
+
+@dataclass
 class Module:
     path: str
     # [1.2] Deprecated
@@ -114,15 +121,38 @@ class Module:
     # [1.2] Replaces 'is_strict'
     has_interface: bool = False
     interface_members: list[str] = field(default_factory=list)
+    # [1.3] Adds 'depends_on'
+    depends_on: list[Dependency] = field(default_factory=list)
 
 
-REPORT_VERSION = "1.2"
+REPORT_VERSION = "1.3"
 
 
 @dataclass
 class ReportMetadata:
     version: str = REPORT_VERSION
     configuration_format: str = "json"
+
+
+@dataclass
+class ErrorInfo:
+    is_deprecated: bool
+    pystring: str
+
+
+@dataclass
+class BoundaryError:
+    file_path: Path
+    line_number: int
+    import_mod_path: str
+    error_info: ErrorInfo
+
+
+@dataclass
+class CheckResult:
+    errors: list[BoundaryError] = field(default_factory=list)
+    deprecated_warnings: list[BoundaryError] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -134,6 +164,8 @@ class Report:
     full_configuration: str
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
+    check_result: CheckResult = field(default_factory=CheckResult)
+    metadata: ReportMetadata = field(default_factory=ReportMetadata)
     # [1.2] Deprecated
     interface_rules: list[Any] = field(default_factory=list)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
@@ -145,6 +177,7 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
         if module.mod_path() == ".":
             # Skip <root>
             continue
+
         has_interface = False
         interface_members: set[str] = set()
         for interface in project_config.interfaces:
@@ -153,15 +186,18 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
             ):
                 has_interface = True
                 interface_members.update(interface.expose)
-
+        dependencies = [
+            Dependency(path=dep.path, deprecated=dep.deprecated)
+            for dep in module.depends_on
+        ]
         modules.append(
             Module(
                 path=module.path,
                 has_interface=has_interface,
                 interface_members=list(interface_members),
+                depends_on=dependencies,
             )
         )
-
     return modules
 
 
@@ -223,6 +259,36 @@ def build_usages(
     return usages
 
 
+def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
+    return CheckResult(
+        errors=[
+            BoundaryError(
+                file_path=error.file_path,
+                line_number=error.line_number,
+                import_mod_path=error.import_mod_path,
+                error_info=ErrorInfo(
+                    is_deprecated=error.error_info.is_deprecated(),
+                    pystring=error.error_info.to_pystring(),
+                ),
+            )
+            for error in check_diagnostics.errors
+        ],
+        deprecated_warnings=[
+            BoundaryError(
+                file_path=Path(warning.file_path),
+                line_number=warning.line_number,
+                import_mod_path=warning.import_mod_path,
+                error_info=ErrorInfo(
+                    is_deprecated=warning.error_info.is_deprecated(),
+                    pystring=warning.error_info.to_pystring(),
+                ),
+            )
+            for warning in check_diagnostics.deprecated_warnings
+        ],
+        warnings=check_diagnostics.warnings,
+    )
+
+
 def generate_modularity_report(
     project_root: Path, project_config: ProjectConfig, force: bool = False
 ) -> Report:
@@ -238,7 +304,17 @@ def generate_modularity_report(
 
     report.modules = build_modules(project_config)
     report.usages = build_usages(project_root, source_roots, project_config)
-
+    exclude_paths = extend_and_validate(
+        None, project_config.exclude, project_config.use_regex_matching
+    )
+    check_diagnostics = check(
+        project_root=project_root,
+        project_config=project_config,
+        exclude_paths=exclude_paths,
+        dependencies=True,
+        interfaces=False,  # for now leave this as a separate concern
+    )
+    report.check_result = process_check_result(check_diagnostics)
     print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
     return report
 
