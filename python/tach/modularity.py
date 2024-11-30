@@ -48,7 +48,7 @@ def upload_report_to_gauge(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "http://localhost:8000")
+GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
 
 
 def build_modularity_upload_path(repo: str) -> str:
