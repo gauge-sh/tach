@@ -49,10 +49,16 @@ impl NormalizedImport {
     }
 }
 
+#[derive(Debug)]
+pub struct DirectiveIgnoredImport {
+    pub import: NormalizedImport,
+    pub reason: String,
+}
+
 #[derive(Debug, Default)]
 pub struct NormalizedImports {
     pub imports: Vec<NormalizedImport>,
-    pub directive_ignored_imports: Vec<NormalizedImport>,
+    pub directive_ignored_imports: Vec<DirectiveIgnoredImport>,
 }
 
 impl NormalizedImports {
@@ -69,10 +75,21 @@ impl IntoPy<PyObject> for NormalizedImport {
     }
 }
 
-pub type IgnoreDirectives = HashMap<usize, Vec<String>>;
+#[derive(Debug)]
+pub struct ProjectImports {
+    pub imports: Vec<NormalizedImport>,
+    pub directive_ignored_imports: Vec<DirectiveIgnoredImport>,
+}
+
+pub struct IgnoreDirective {
+    modules: Vec<String>,
+    reason: String,
+}
+
+pub type IgnoreDirectives = HashMap<usize, IgnoreDirective>;
 
 static TACH_IGNORE_REGEX: Lazy<regex::Regex> =
-    Lazy::new(|| Regex::new(r"# *tach-ignore(?:\([^)]*\))?((?:\s+[\w.]+)*)\s*$").unwrap());
+    Lazy::new(|| Regex::new(r"# *tach-ignore(?:\(([^)]*)\))?((?:\s+[\w.]+)*)\s*$").unwrap());
 
 fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
     let mut ignores: IgnoreDirectives = HashMap::new();
@@ -80,7 +97,10 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
     for (lineno, line) in file_content.lines().enumerate() {
         let normal_lineno = lineno + 1;
         if let Some(captures) = TACH_IGNORE_REGEX.captures(line) {
-            let ignored_modules = captures.get(1).map_or("", |m| m.as_str());
+            let reason = captures
+                .get(1)
+                .map_or("".to_string(), |m| m.as_str().to_string());
+            let ignored_modules = captures.get(2).map_or("", |m| m.as_str());
             let modules: Vec<String> = if ignored_modules.is_empty() {
                 Vec::new()
             } else {
@@ -90,10 +110,12 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
                     .collect()
             };
 
+            let directive = IgnoreDirective { modules, reason };
+
             if line.starts_with('#') {
-                ignores.insert(normal_lineno + 1, modules);
+                ignores.insert(normal_lineno + 1, directive);
             } else {
-                ignores.insert(normal_lineno, modules);
+                ignores.insert(normal_lineno, directive);
             }
         }
     }
@@ -134,21 +156,27 @@ impl<'a> ImportVisitor<'a> {
             .locator
             .compute_line_index(import_statement.range.start())
             .get();
-        let ignored_modules: Option<&Vec<String>> = self.ignore_directives.get(&line_no);
+        let ignored_directive: Option<&IgnoreDirective> = self.ignore_directives.get(&line_no);
 
-        if let Some(ignored) = ignored_modules {
-            if ignored.is_empty() {
+        if let Some(ignored) = ignored_directive {
+            if ignored.modules.is_empty() {
                 // Blanket ignore of current import - add all to directive_ignored_imports
                 normalized_imports.directive_ignored_imports.extend(
-                    import_statement.names.iter().map(|alias| NormalizedImport {
-                        module_path: alias.name.to_string(),
-                        line_no: self
-                            .locator
-                            .compute_line_index(alias.range.start())
-                            .get()
-                            .try_into()
-                            .unwrap(),
-                    }),
+                    import_statement
+                        .names
+                        .iter()
+                        .map(|alias| DirectiveIgnoredImport {
+                            import: NormalizedImport {
+                                module_path: alias.name.to_string(),
+                                line_no: self
+                                    .locator
+                                    .compute_line_index(alias.range.start())
+                                    .get()
+                                    .try_into()
+                                    .unwrap(),
+                            },
+                            reason: ignored.reason.clone(),
+                        }),
                 );
                 return normalized_imports;
             }
@@ -165,9 +193,14 @@ impl<'a> ImportVisitor<'a> {
                     .unwrap(),
             };
 
-            if let Some(ignored) = ignored_modules {
-                if ignored.contains(alias.name.as_ref()) {
-                    normalized_imports.directive_ignored_imports.push(import);
+            if let Some(ignored) = ignored_directive {
+                if ignored.modules.contains(alias.name.as_ref()) {
+                    normalized_imports
+                        .directive_ignored_imports
+                        .push(DirectiveIgnoredImport {
+                            import,
+                            reason: ignored.reason.clone(),
+                        });
                 } else {
                     normalized_imports.imports.push(import);
                 }
@@ -235,23 +268,26 @@ impl<'a> ImportVisitor<'a> {
             .locator
             .compute_line_index(import_statement.range.start())
             .get();
-        let ignored_modules: Option<&Vec<String>> = self.ignore_directives.get(&line_no);
+        let ignored_directive: Option<&IgnoreDirective> = self.ignore_directives.get(&line_no);
 
-        if let Some(ignored) = ignored_modules {
-            if ignored.is_empty() {
+        if let Some(ignored) = ignored_directive {
+            if ignored.modules.is_empty() {
                 // Blanket ignore - add all imports to directive_ignored_imports
                 for name in &import_statement.names {
                     let global_mod_path = format!("{}.{}", base_mod_path, name.name.as_str());
                     normalized_imports
                         .directive_ignored_imports
-                        .push(NormalizedImport {
-                            module_path: global_mod_path,
-                            line_no: self
-                                .locator
-                                .compute_line_index(name.range.start())
-                                .get()
-                                .try_into()
-                                .unwrap(),
+                        .push(DirectiveIgnoredImport {
+                            import: NormalizedImport {
+                                module_path: global_mod_path,
+                                line_no: self
+                                    .locator
+                                    .compute_line_index(name.range.start())
+                                    .get()
+                                    .try_into()
+                                    .unwrap(),
+                            },
+                            reason: ignored.reason.clone(),
                         });
                 }
                 return normalized_imports;
@@ -270,15 +306,20 @@ impl<'a> ImportVisitor<'a> {
                     .unwrap(),
             };
 
-            if let Some(ignored) = ignored_modules {
-                if ignored.contains(
+            if let Some(ignored) = ignored_directive {
+                if ignored.modules.contains(
                     &name
                         .asname
                         .as_deref()
                         .unwrap_or(name.name.as_ref())
                         .to_string(),
                 ) {
-                    normalized_imports.directive_ignored_imports.push(import);
+                    normalized_imports
+                        .directive_ignored_imports
+                        .push(DirectiveIgnoredImport {
+                            import,
+                            reason: ignored.reason.clone(),
+                        });
                 } else {
                     normalized_imports.imports.push(import);
                 }
@@ -430,11 +471,6 @@ pub fn get_normalized_imports(
     }
 }
 
-pub struct ProjectImports {
-    pub imports: Vec<NormalizedImport>,
-    pub directive_ignored_imports: Vec<NormalizedImport>,
-}
-
 pub fn get_project_imports(
     source_roots: &[PathBuf],
     file_path: &PathBuf,
@@ -461,10 +497,10 @@ pub fn get_project_imports(
         directive_ignored_imports: normalized_imports
             .directive_ignored_imports
             .into_iter()
-            .filter_map(|normalized_import| {
-                is_project_import(source_roots, &normalized_import.module_path)
+            .filter_map(|directive_ignored_import| {
+                is_project_import(source_roots, &directive_ignored_import.import.module_path)
                     .map_or(None, |is_project_import| {
-                        is_project_import.then_some(normalized_import)
+                        is_project_import.then_some(directive_ignored_import)
                     })
             })
             .collect(),

@@ -139,6 +139,7 @@ RuleSetting = Literal["error", "warn", "off"]
 
 class RulesConfig:
     unused_ignore_directives: RuleSetting
+    require_ignore_directive_reasons: RuleSetting
 
 class ProjectConfig:
     modules: list[ModuleConfig]

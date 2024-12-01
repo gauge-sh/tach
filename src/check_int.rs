@@ -81,6 +81,9 @@ pub enum ImportCheckError {
     #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
     UnusedIgnoreDirective { import_mod_path: String },
 
+    #[error("Import '{import_mod_path}' is ignored without providing a reason.")]
+    MissingIgnoreDirectiveReason { import_mod_path: String },
+
     #[error("No checks enabled. At least one of dependencies or interfaces must be enabled.")]
     NoChecksEnabled(),
 }
@@ -380,44 +383,76 @@ pub fn check(
                     boundary_errors.push(boundary_error);
                 }
             }
-
-            if project_config.rules.unused_ignore_directives == RuleSetting::Off {
+            // Skip directive-related checks if both rules are off
+            if project_config.rules.unused_ignore_directives == RuleSetting::Off
+                && project_config.rules.require_ignore_directive_reasons == RuleSetting::Off
+            {
                 continue;
             }
+
             for directive_ignored_import in project_imports.directive_ignored_imports {
-                if check_import(
-                    &directive_ignored_import.module_path,
-                    &module_tree,
-                    Arc::clone(&nearest_module),
-                    project_config.root_module.clone(),
-                    &interface_checker,
-                    dependencies,
-                    interfaces,
-                )
-                .is_ok()
+                // Check for missing ignore directive reasons
+                if project_config.rules.require_ignore_directive_reasons != RuleSetting::Off
+                    && directive_ignored_import.reason.is_empty()
                 {
-                    let message = format!(
-                        "Import '{}' is unnecessarily ignored by a directive.",
-                        directive_ignored_import.module_path
-                    );
-                    match project_config.rules.unused_ignore_directives {
-                        RuleSetting::Error => {
+                    let error = BoundaryError {
+                        file_path: file_path.clone(),
+                        line_number: directive_ignored_import.import.line_no,
+                        import_mod_path: directive_ignored_import.import.module_path.to_string(),
+                        error_info: ImportCheckError::MissingIgnoreDirectiveReason {
+                            import_mod_path: directive_ignored_import
+                                .import
+                                .module_path
+                                .to_string(),
+                        },
+                    };
+                    if project_config.rules.require_ignore_directive_reasons == RuleSetting::Error {
+                        boundary_errors.push(error);
+                    } else {
+                        warnings.push(format!(
+                            "Import '{}' is ignored without providing a reason",
+                            directive_ignored_import.import.module_path
+                        ));
+                    }
+                }
+
+                // Check for unnecessary ignore directives
+                if project_config.rules.unused_ignore_directives != RuleSetting::Off {
+                    let is_unnecessary = check_import(
+                        &directive_ignored_import.import.module_path,
+                        &module_tree,
+                        Arc::clone(&nearest_module),
+                        project_config.root_module.clone(),
+                        &interface_checker,
+                        dependencies,
+                        interfaces,
+                    )
+                    .is_ok();
+
+                    if is_unnecessary {
+                        let message = format!(
+                            "Import '{}' is unnecessarily ignored by a directive.",
+                            directive_ignored_import.import.module_path
+                        );
+
+                        if project_config.rules.unused_ignore_directives == RuleSetting::Error {
                             boundary_errors.push(BoundaryError {
                                 file_path: file_path.clone(),
-                                line_number: directive_ignored_import.line_no,
-                                import_mod_path: directive_ignored_import.module_path.to_string(),
+                                line_number: directive_ignored_import.import.line_no,
+                                import_mod_path: directive_ignored_import
+                                    .import
+                                    .module_path
+                                    .to_string(),
                                 error_info: ImportCheckError::UnusedIgnoreDirective {
                                     import_mod_path: directive_ignored_import
+                                        .import
                                         .module_path
                                         .to_string(),
                                 },
                             });
-                        }
-                        RuleSetting::Warn => {
+                        } else {
                             warnings.push(message);
                         }
-                        // Should never be reached
-                        RuleSetting::Off => {}
                     }
                 }
             }

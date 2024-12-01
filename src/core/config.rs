@@ -291,12 +291,18 @@ pub struct RulesConfig {
         skip_serializing_if = "RuleSetting::is_warn"
     )]
     pub unused_ignore_directives: RuleSetting,
+    #[serde(
+        default = "RuleSetting::off",
+        skip_serializing_if = "RuleSetting::is_off"
+    )]
+    pub require_ignore_directive_reasons: RuleSetting,
 }
 
 impl Default for RulesConfig {
     fn default() -> Self {
         Self {
             unused_ignore_directives: RuleSetting::warn(),
+            require_ignore_directive_reasons: RuleSetting::off(),
         }
     }
 }
