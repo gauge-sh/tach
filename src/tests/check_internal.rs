@@ -9,8 +9,9 @@ pub mod fixtures {
     #[fixture]
     pub fn interface_config() -> Vec<InterfaceConfig> {
         vec![InterfaceConfig {
-            from_modules: vec!["domain_one".to_string()],
             expose: vec!["public_fn".to_string()],
+            from_modules: vec!["domain_one".to_string()],
+            serializable: false,
         }]
     }
 

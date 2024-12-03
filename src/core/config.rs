@@ -142,6 +142,8 @@ pub struct InterfaceConfig {
         skip_serializing_if = "is_default_from_modules"
     )]
     pub from_modules: Vec<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub serializable: bool,
 }
 
 fn default_from_modules() -> Vec<String> {

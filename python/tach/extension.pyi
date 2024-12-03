@@ -118,6 +118,7 @@ class InterfaceConfig:
     expose: list[str]
     # 'from' in tach.toml
     from_modules: list[str]
+    serializable: bool
 
 CacheBackend = Literal["disk"]
 
