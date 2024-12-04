@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::check_int::{check, CheckError};
+use crate::commands::check_internal::{check, CheckError};
 use crate::core::config::{
     global_visibility, DependencyConfig, ModuleConfig, ProjectConfig, RootModuleTreatment,
 };

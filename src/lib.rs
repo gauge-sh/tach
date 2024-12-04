@@ -1,27 +1,22 @@
 pub mod cache;
-pub mod check_ext;
-pub mod check_int;
 pub mod cli;
 pub mod colors;
+pub mod commands;
 pub mod core;
 pub mod exclusion;
 pub mod filesystem;
 pub mod imports;
 pub mod parsing;
 pub mod pattern;
-pub mod reports;
-pub mod sync;
-pub mod test;
 pub mod tests;
 
-use core::config::ProjectConfig;
+use commands::{check_external, check_internal, report, sync, test};
+use core::config;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use cache::ComputationCacheValue;
 use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
-use sync::SyncError;
 
 impl From<imports::ImportParseError> for PyErr {
     fn from(err: imports::ImportParseError) -> Self {
@@ -43,8 +38,8 @@ impl From<exclusion::PathExclusionError> for PyErr {
     }
 }
 
-impl From<reports::ReportCreationError> for PyErr {
-    fn from(err: reports::ReportCreationError) -> Self {
+impl From<report::ReportCreationError> for PyErr {
+    fn from(err: report::ReportCreationError) -> Self {
         PyValueError::new_err(err.to_string())
     }
 }
@@ -55,20 +50,20 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
-impl From<check_ext::ExternalCheckError> for PyErr {
-    fn from(err: check_ext::ExternalCheckError) -> Self {
+impl From<check_external::ExternalCheckError> for PyErr {
+    fn from(err: check_external::ExternalCheckError) -> Self {
         PyOSError::new_err(err.to_string())
     }
 }
 
-impl From<check_int::CheckError> for PyErr {
-    fn from(err: check_int::CheckError) -> Self {
-        if let check_int::CheckError::ModuleTree(
+impl From<check_internal::CheckError> for PyErr {
+    fn from(err: check_internal::CheckError) -> Self {
+        if let check_internal::CheckError::ModuleTree(
             parsing::error::ModuleTreeError::CircularDependency(c),
         ) = err
         {
             PyErr::new::<TachCircularDependencyError, _>(c)
-        } else if let check_int::CheckError::ModuleTree(
+        } else if let check_internal::CheckError::ModuleTree(
             parsing::error::ModuleTreeError::VisibilityViolation(v),
         ) = err
         {
@@ -93,10 +88,10 @@ impl From<parsing::ParsingError> for PyErr {
 impl From<sync::SyncError> for PyErr {
     fn from(err: sync::SyncError) -> Self {
         match err {
-            SyncError::FileWrite(err) => PyOSError::new_err(err.to_string()),
-            SyncError::TomlSerialize(err) => PyOSError::new_err(err.to_string()),
-            SyncError::CheckError(err) => err.into(),
-            SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
+            sync::SyncError::FileWrite(err) => PyOSError::new_err(err.to_string()),
+            sync::SyncError::TomlSerialize(err) => PyOSError::new_err(err.to_string()),
+            sync::SyncError::CheckError(err) => err.into(),
+            sync::SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
         }
     }
 }
@@ -104,15 +99,17 @@ impl From<sync::SyncError> for PyErr {
 /// Parse project config
 #[pyfunction]
 #[pyo3(signature = (filepath))]
-fn parse_project_config(filepath: PathBuf) -> parsing::Result<(core::config::ProjectConfig, bool)> {
+fn parse_project_config(filepath: PathBuf) -> parsing::Result<(config::ProjectConfig, bool)> {
     parsing::config::parse_project_config(filepath)
 }
 
 #[pyfunction]
 #[pyo3(signature = (config))]
-fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String, SyncError> {
+fn dump_project_config_to_toml(
+    config: &mut config::ProjectConfig,
+) -> Result<String, sync::SyncError> {
     // TODO: Error handling hack
-    parsing::config::dump_project_config_to_toml(config).map_err(SyncError::TomlSerialize)
+    parsing::config::dump_project_config_to_toml(config).map_err(sync::SyncError::TomlSerialize)
 }
 
 #[pyfunction]
@@ -211,10 +208,10 @@ fn check_external_dependencies(
     source_roots: Vec<String>,
     module_mappings: HashMap<String, Vec<String>>,
     ignore_type_checking_imports: bool,
-) -> check_ext::Result<check_ext::ExternalCheckDiagnostics> {
+) -> check_external::Result<check_external::ExternalCheckDiagnostics> {
     let project_root = PathBuf::from(project_root);
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    check_ext::check_external_dependencies(
+    check_external::check_external_dependencies(
         &project_root,
         &source_roots,
         &module_mappings,
@@ -227,17 +224,17 @@ fn check_external_dependencies(
 #[pyo3(signature = (project_root, project_config, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, raw))]
 fn create_dependency_report(
     project_root: String,
-    project_config: &ProjectConfig,
+    project_config: &config::ProjectConfig,
     path: String,
     include_dependency_modules: Option<Vec<String>>,
     include_usage_modules: Option<Vec<String>>,
     skip_dependencies: bool,
     skip_usages: bool,
     raw: bool,
-) -> reports::Result<String> {
+) -> report::Result<String> {
     let project_root = PathBuf::from(project_root);
     let file_path = PathBuf::from(path);
-    reports::create_dependency_report(
+    report::create_dependency_report(
         &project_root,
         project_config,
         &file_path,
@@ -278,7 +275,7 @@ fn create_computation_cache_key(
 fn check_computation_cache(
     project_root: String,
     cache_key: String,
-) -> cache::Result<Option<ComputationCacheValue>> {
+) -> cache::Result<Option<cache::ComputationCacheValue>> {
     cache::check_computation_cache(project_root, cache_key)
 }
 
@@ -287,8 +284,8 @@ fn check_computation_cache(
 fn update_computation_cache(
     project_root: String,
     cache_key: String,
-    value: ComputationCacheValue,
-) -> cache::Result<Option<ComputationCacheValue>> {
+    value: cache::ComputationCacheValue,
+) -> cache::Result<Option<cache::ComputationCacheValue>> {
     cache::update_computation_cache(project_root, cache_key, value)
 }
 
@@ -305,12 +302,12 @@ fn parse_interface_members(
 #[pyo3(signature = (project_root, project_config, dependencies, interfaces, exclude_paths))]
 fn check(
     project_root: PathBuf,
-    project_config: &ProjectConfig,
+    project_config: &config::ProjectConfig,
     dependencies: bool,
     interfaces: bool,
     exclude_paths: Vec<String>,
-) -> Result<check_int::CheckDiagnostics, check_int::CheckError> {
-    check_int::check(
+) -> Result<check_internal::CheckDiagnostics, check_internal::CheckError> {
+    check_internal::check(
         project_root,
         project_config,
         dependencies,
@@ -323,10 +320,10 @@ fn check(
 #[pyo3(signature = (project_root, project_config, exclude_paths, prune))]
 fn sync_dependency_constraints(
     project_root: PathBuf,
-    project_config: ProjectConfig,
+    project_config: config::ProjectConfig,
     exclude_paths: Vec<String>,
     prune: bool,
-) -> Result<ProjectConfig, SyncError> {
+) -> Result<config::ProjectConfig, sync::SyncError> {
     sync::sync_dependency_constraints(project_root, project_config, exclude_paths, prune)
 }
 
@@ -334,21 +331,21 @@ fn sync_dependency_constraints(
 #[pyo3(signature = (project_root, project_config, exclude_paths, add))]
 pub fn sync_project(
     project_root: PathBuf,
-    project_config: ProjectConfig,
+    project_config: config::ProjectConfig,
     exclude_paths: Vec<String>,
     add: bool,
-) -> Result<String, SyncError> {
+) -> Result<String, sync::SyncError> {
     sync::sync_project(project_root, project_config, exclude_paths, add)
 }
 
 #[pymodule]
 fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<core::config::ProjectConfig>()?;
-    m.add_class::<core::config::ModuleConfig>()?;
-    m.add_class::<core::config::InterfaceConfig>()?;
-    m.add_class::<core::config::RulesConfig>()?;
-    m.add_class::<core::config::DependencyConfig>()?;
-    m.add_class::<check_int::CheckDiagnostics>()?;
+    m.add_class::<config::ProjectConfig>()?;
+    m.add_class::<config::ModuleConfig>()?;
+    m.add_class::<config::InterfaceConfig>()?;
+    m.add_class::<config::RulesConfig>()?;
+    m.add_class::<config::DependencyConfig>()?;
+    m.add_class::<check_internal::CheckDiagnostics>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
