@@ -478,7 +478,7 @@ mod tests {
     use super::*;
     use crate::core::config::InterfaceConfig;
     use crate::core::module::ModuleTree;
-    use crate::tests::check_int::fixtures::{interface_config, module_tree};
+    use crate::tests::check_internal::fixtures::{interface_config, module_tree};
 
     use rstest::rstest;
 
