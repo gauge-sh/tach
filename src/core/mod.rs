@@ -1,3 +1,2 @@
 pub mod config;
-pub mod interfaces;
-pub mod module;
+pub mod error;

@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::filesystem::{self, ROOT_MODULE_SENTINEL_TAG};
+pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
+pub const DEFAULT_EXCLUDE_PATHS: [&str; 4] = ["tests", "docs", ".*__pycache__", ".*egg-info"];
 
 // for serde
 fn default_true() -> bool {
@@ -14,7 +15,7 @@ fn default_source_roots() -> Vec<PathBuf> {
 }
 
 fn default_excludes() -> Vec<String> {
-    filesystem::DEFAULT_EXCLUDE_PATHS
+    DEFAULT_EXCLUDE_PATHS
         .iter()
         .map(|s| s.to_string())
         .collect()

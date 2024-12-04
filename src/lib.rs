@@ -4,10 +4,14 @@ pub mod colors;
 pub mod commands;
 pub mod core;
 pub mod exclusion;
+pub mod external;
 pub mod filesystem;
 pub mod imports;
+pub mod interfaces;
+pub mod modules;
 pub mod parsing;
 pub mod pattern;
+pub mod python;
 pub mod tests;
 
 use commands::{check_external, check_internal, report, sync, test};
@@ -59,12 +63,12 @@ impl From<check_external::ExternalCheckError> for PyErr {
 impl From<check_internal::CheckError> for PyErr {
     fn from(err: check_internal::CheckError) -> Self {
         if let check_internal::CheckError::ModuleTree(
-            parsing::error::ModuleTreeError::CircularDependency(c),
+            modules::error::ModuleTreeError::CircularDependency(c),
         ) = err
         {
             PyErr::new::<TachCircularDependencyError, _>(c)
         } else if let check_internal::CheckError::ModuleTree(
-            parsing::error::ModuleTreeError::VisibilityViolation(v),
+            modules::error::ModuleTreeError::VisibilityViolation(v),
         ) = err
         {
             PyErr::new::<TachVisibilityError, _>(v)
@@ -74,14 +78,25 @@ impl From<check_internal::CheckError> for PyErr {
     }
 }
 
-impl From<parsing::ParsingError> for PyErr {
-    fn from(err: parsing::ParsingError) -> Self {
+impl From<python::error::ParsingError> for PyErr {
+    fn from(err: python::error::ParsingError) -> Self {
         match err {
-            parsing::ParsingError::PythonParse(err) => PySyntaxError::new_err(err.to_string()),
-            parsing::ParsingError::Io(err) => PyOSError::new_err(err.to_string()),
-            parsing::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
-            parsing::ParsingError::TomlParse(err) => PyValueError::new_err(err.to_string()),
-            parsing::ParsingError::MissingField(err) => PyValueError::new_err(err),
+            python::error::ParsingError::PythonParse(err) => {
+                PySyntaxError::new_err(err.to_string())
+            }
+            python::error::ParsingError::Io(err) => PyOSError::new_err(err.to_string()),
+            python::error::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
+        }
+    }
+}
+
+impl From<parsing::error::ParsingError> for PyErr {
+    fn from(err: parsing::error::ParsingError) -> Self {
+        match err {
+            parsing::error::ParsingError::Io(err) => PyOSError::new_err(err.to_string()),
+            parsing::error::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
+            parsing::error::ParsingError::TomlParse(err) => PyValueError::new_err(err.to_string()),
+            parsing::error::ParsingError::MissingField(err) => PyValueError::new_err(err),
         }
     }
 }
@@ -96,10 +111,23 @@ impl From<sync::SyncError> for PyErr {
     }
 }
 
+impl IntoPy<PyObject> for modules::error::VisibilityErrorInfo {
+    fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
+        (
+            self.dependent_module,
+            self.dependency_module,
+            self.visibility,
+        )
+            .into_py(py)
+    }
+}
+
 /// Parse project config
 #[pyfunction]
 #[pyo3(signature = (filepath))]
-fn parse_project_config(filepath: PathBuf) -> parsing::Result<(config::ProjectConfig, bool)> {
+fn parse_project_config(
+    filepath: PathBuf,
+) -> parsing::config::Result<(config::ProjectConfig, bool)> {
     parsing::config::parse_project_config(filepath)
 }
 
@@ -294,8 +322,8 @@ fn update_computation_cache(
 fn parse_interface_members(
     source_roots: Vec<PathBuf>,
     path: String,
-) -> parsing::Result<Vec<String>> {
-    parsing::py_ast::parse_interface_members(&source_roots, &path)
+) -> python::parsing::Result<Vec<String>> {
+    python::parsing::parse_interface_members(&source_roots, &path)
 }
 
 #[pyfunction]

@@ -14,8 +14,8 @@ use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use ruff_source_file::Locator;
 use thiserror::Error;
 
-use crate::parsing::py_ast::parse_python_source;
-use crate::{exclusion, filesystem, parsing};
+use crate::python::{error::ParsingError, parsing::parse_python_source};
+use crate::{exclusion, filesystem};
 
 #[derive(Error, Debug)]
 pub enum ImportParseError {
@@ -23,7 +23,7 @@ pub enum ImportParseError {
     Parsing {
         file: String,
         #[source]
-        source: parsing::ParsingError,
+        source: ParsingError,
     },
     #[error("Failed to parse project imports.\n{0}")]
     Filesystem(#[from] filesystem::FileSystemError),

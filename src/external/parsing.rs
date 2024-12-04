@@ -5,12 +5,14 @@ use toml::Value;
 
 use super::error;
 
+pub type Result<T> = std::result::Result<T, error::ParsingError>;
+
 pub struct ProjectInfo {
     pub dependencies: HashSet<String>,
     pub source_paths: Vec<PathBuf>,
 }
 
-pub fn parse_pyproject_toml(pyproject_path: &Path) -> error::Result<ProjectInfo> {
+pub fn parse_pyproject_toml(pyproject_path: &Path) -> Result<ProjectInfo> {
     let content = fs::read_to_string(pyproject_path)?;
     let toml_value: Value = toml::from_str(&content)?;
     let dependencies = extract_dependencies(&toml_value);
