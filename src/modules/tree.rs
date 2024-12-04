@@ -3,9 +3,8 @@ use std::{
     sync::Arc,
 };
 
-use crate::parsing::error::ModuleTreeError;
-
-use super::config::ModuleConfig;
+use super::error::ModuleTreeError;
+use crate::core::config::ModuleConfig;
 
 /// A node in the module tree.
 ///

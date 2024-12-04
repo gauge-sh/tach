@@ -2,10 +2,8 @@
 pub mod fixtures {
     use std::{collections::HashMap, sync::Arc};
 
-    use crate::core::{
-        config::{DependencyConfig, InterfaceConfig, ModuleConfig},
-        module::{ModuleNode, ModuleTree},
-    };
+    use crate::core::config::{DependencyConfig, InterfaceConfig, ModuleConfig};
+    use crate::modules::{ModuleNode, ModuleTree};
     use rstest::fixture;
 
     #[fixture]

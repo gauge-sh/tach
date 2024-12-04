@@ -13,7 +13,7 @@ use crate::filesystem::{
     file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
 };
 use crate::imports::{get_project_imports, ImportParseError, NormalizedImport};
-use crate::parsing::{error::ModuleTreeError, module::build_module_tree};
+use crate::modules::{build_module_tree, error::ModuleTreeError};
 
 struct Dependency {
     file_path: PathBuf,

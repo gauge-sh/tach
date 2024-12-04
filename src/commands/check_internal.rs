@@ -8,15 +8,12 @@ use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::{
-    core::{
-        config::{ProjectConfig, RootModuleTreatment, RuleSetting},
-        interfaces::InterfaceChecker,
-        module::{ModuleNode, ModuleTree},
-    },
+    core::config::{ProjectConfig, RootModuleTreatment, RuleSetting},
     exclusion::{self, is_path_excluded, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
-    parsing::{self, module::build_module_tree},
+    interfaces::InterfaceChecker,
+    modules::{self, build_module_tree, ModuleNode, ModuleTree},
 };
 
 #[derive(Error, Debug)]
@@ -26,7 +23,7 @@ pub enum CheckError {
     #[error("Filesystem error: {0}")]
     Filesystem(#[from] fs::FileSystemError),
     #[error("Module tree error: {0}")]
-    ModuleTree(#[from] parsing::error::ModuleTreeError),
+    ModuleTree(#[from] modules::error::ModuleTreeError),
     #[error("Exclusion error: {0}")]
     Exclusion(#[from] exclusion::PathExclusionError),
 }
@@ -477,8 +474,8 @@ pub fn check(
 mod tests {
     use super::*;
     use crate::core::config::InterfaceConfig;
-    use crate::core::module::ModuleTree;
-    use crate::tests::check_int::fixtures::{interface_config, module_tree};
+    use crate::modules::ModuleTree;
+    use crate::tests::check_internal::fixtures::{interface_config, module_tree};
 
     use rstest::rstest;
 

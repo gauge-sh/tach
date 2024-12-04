@@ -1,14 +1,15 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::core::config::{global_visibility, ModuleConfig, RootModuleTreatment};
-use crate::core::module::ModuleTree;
-use crate::filesystem::ROOT_MODULE_SENTINEL_TAG;
+use crate::core::config::{
+    global_visibility, ModuleConfig, RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG,
+};
+use crate::python::parsing::parse_interface_members;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 
 use super::error::{ModuleTreeError, VisibilityErrorInfo};
-use super::py_ast::parse_interface_members;
+use super::tree::ModuleTree;
 
 pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
     let mut duplicate_module_paths = Vec::new();
