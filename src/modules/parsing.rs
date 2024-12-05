@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use crate::core::config::{
     global_visibility, ModuleConfig, RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG,
 };
-use crate::python::parsing::parse_interface_members;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 
@@ -203,9 +202,8 @@ pub fn build_module_tree(
     // Construct the ModuleTree
     let mut tree = ModuleTree::new();
     for module in modules {
-        let interface_members = parse_interface_members(source_roots, &module.path)?;
         let mod_path = module.mod_path();
-        tree.insert(module, mod_path, interface_members)?;
+        tree.insert(module, mod_path)?;
     }
 
     Ok(tree)

@@ -318,15 +318,6 @@ fn update_computation_cache(
 }
 
 #[pyfunction]
-#[pyo3(signature = (source_roots, path))]
-fn parse_interface_members(
-    source_roots: Vec<PathBuf>,
-    path: String,
-) -> python::parsing::Result<Vec<String>> {
-    python::parsing::parse_interface_members(&source_roots, &path)
-}
-
-#[pyfunction]
 #[pyo3(signature = (project_root, project_config, dependencies, interfaces, exclude_paths))]
 fn check(
     project_root: PathBuf,
@@ -385,7 +376,6 @@ fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(create_computation_cache_key, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(update_computation_cache, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(parse_interface_members, m)?)?;
     m.add_function(wrap_pyfunction_bound!(dump_project_config_to_toml, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_dependency_constraints, m)?)?;

@@ -123,28 +123,6 @@ impl ImportCheckError {
     }
 }
 
-fn is_top_level_module_import(mod_path: &str, module: &ModuleNode) -> bool {
-    mod_path == module.full_path
-}
-
-fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool {
-    let mod_path_segments: Vec<&str> = mod_path.rsplitn(2, '.').collect();
-
-    if mod_path_segments.len() == 1 {
-        // If there's no '.' in the path, compare the whole path with the module's full path.
-        mod_path_segments[0] == module.full_path
-    } else {
-        // If there's a '.', split into package path and member name.
-        let mod_pkg_path = mod_path_segments[1];
-        let mod_member_name = mod_path_segments[0];
-
-        mod_pkg_path == module.full_path
-            && module
-                .interface_members
-                .contains(&mod_member_name.to_string())
-    }
-}
-
 fn check_import(
     import_mod_path: &str,
     module_tree: &ModuleTree,

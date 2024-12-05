@@ -21,7 +21,6 @@ pub mod fixtures {
                 is_end_of_path: false,
                 full_path: String::new(),
                 config: None,
-                interface_members: vec![],
                 children: HashMap::from([
                     (
                         "domain_one".to_string(),
@@ -37,14 +36,12 @@ pub mod fixtures {
                                 strict: false,
                                 ..Default::default()
                             }),
-                            interface_members: vec![],
                             children: HashMap::from([(
                                 "subdomain".to_string(),
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_one.subdomain".to_string(),
                                     config: Some(ModuleConfig::new("domain_one.subdomain", false)),
-                                    interface_members: vec![],
                                     children: HashMap::new(),
                                 }),
                             )]),
@@ -61,7 +58,6 @@ pub mod fixtures {
                                 strict: false,
                                 ..Default::default()
                             }),
-                            interface_members: vec![],
                             children: HashMap::from([(
                                 "subdomain".to_string(),
                                 Arc::new(ModuleNode {
@@ -73,7 +69,6 @@ pub mod fixtures {
                                         strict: false,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec![],
                                     children: HashMap::new(),
                                 }),
                             )]),
@@ -85,7 +80,6 @@ pub mod fixtures {
                             is_end_of_path: true,
                             full_path: "domain_three".to_string(),
                             config: Some(ModuleConfig::new("domain_three", false)),
-                            interface_members: vec![],
                             children: HashMap::new(),
                         }),
                     ),
