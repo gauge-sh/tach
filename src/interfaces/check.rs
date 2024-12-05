@@ -1,65 +1,70 @@
-use crate::core::config::InterfaceConfig;
-use regex::Regex;
+use std::path::PathBuf;
+
+use super::matcher::{CompiledInterface, CompiledInterfaces};
+use super::serializable::{InterfaceMemberStatus, SerializableChecker};
+use crate::core::config::{InterfaceConfig, ModuleConfig};
 
 pub struct InterfaceChecker {
-    interfaces: Vec<CompiledInterface>,
+    interfaces: CompiledInterfaces,
+    serializable_checker: SerializableChecker,
 }
 
-struct CompiledInterface {
-    from_modules: Vec<Regex>,
-    expose: Vec<Regex>,
+pub enum CheckResult {
+    Exposed {
+        marked_serializable: bool,
+        is_serializable: bool,
+    },
+    NotExposed,
+    NoInterfaces,
+    TopLevelModule,
 }
 
 impl InterfaceChecker {
-    pub fn new(interfaces: &[InterfaceConfig]) -> Self {
-        let compiled = interfaces
-            .iter()
-            .map(|interface| CompiledInterface {
-                from_modules: interface
-                    .from_modules
-                    .iter()
-                    .map(|pattern| Regex::new(&format!("^{}$", pattern)).unwrap())
-                    .collect(),
-                expose: interface
-                    .expose
-                    .iter()
-                    .map(|pattern| Regex::new(&format!("^{}$", pattern)).unwrap())
-                    .collect(),
-            })
-            .collect();
+    pub fn build(
+        interfaces: &[InterfaceConfig],
+        modules: &[ModuleConfig],
+        source_roots: &[PathBuf],
+    ) -> Self {
+        let compiled = CompiledInterfaces::build(interfaces);
+        let serializable_checker = SerializableChecker::build(&compiled, modules, source_roots);
 
         Self {
             interfaces: compiled,
+            serializable_checker,
         }
     }
 
-    pub fn has_interface(&self, import_mod_path: &str) -> bool {
-        self.interfaces.iter().any(|interface| {
-            interface
-                .from_modules
-                .iter()
-                .any(|re| re.is_match(import_mod_path))
-        })
-    }
+    pub fn check_member(&self, member: &str, module_path: &str) -> CheckResult {
+        if member.is_empty() {
+            return CheckResult::TopLevelModule;
+        }
 
-    /// Check if the import member is exposed by any interface.
-    pub fn check(&self, import_member: &str, import_mod_path: &str) -> bool {
-        let mut found_matching_module = false;
+        let matching_interfaces: Vec<&CompiledInterface> =
+            self.interfaces.matching_interfaces(module_path);
 
-        for interface in &self.interfaces {
-            let matches_module = interface
-                .from_modules
-                .iter()
-                .any(|re| re.is_match(import_mod_path));
+        if matching_interfaces.is_empty() {
+            return CheckResult::NoInterfaces;
+        }
 
-            if matches_module {
-                found_matching_module = true;
-                if interface.expose.iter().any(|re| re.is_match(import_member)) {
-                    return true;
-                }
+        let mut is_exposed = false;
+        let mut marked_serializable = false;
+        for interface in matching_interfaces {
+            if interface.expose.iter().any(|re| re.is_match(member)) {
+                is_exposed = true;
+                marked_serializable |= interface.serializable;
             }
         }
 
-        !found_matching_module
+        if !is_exposed {
+            return CheckResult::NotExposed;
+        }
+
+        CheckResult::Exposed {
+            marked_serializable,
+            is_serializable: matches!(
+                self.serializable_checker.is_serializable(member),
+                InterfaceMemberStatus::Serializable | InterfaceMemberStatus::Unknown
+            ),
+        }
     }
 }

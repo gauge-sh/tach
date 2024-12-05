@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod fixtures {
-    use std::{collections::HashMap, sync::Arc};
+    use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
     use crate::core::config::{DependencyConfig, InterfaceConfig, ModuleConfig};
     use crate::modules::{ModuleNode, ModuleTree};
@@ -87,5 +87,33 @@ pub mod fixtures {
                 ]),
             }),
         }
+    }
+
+    #[fixture]
+    pub fn module_config() -> Vec<ModuleConfig> {
+        vec![
+            ModuleConfig {
+                path: "domain_one".to_string(),
+                depends_on: vec![
+                    DependencyConfig::from_deprecated_path("domain_one.subdomain"),
+                    DependencyConfig::from_path("domain_three"),
+                ],
+                strict: false,
+                ..Default::default()
+            },
+            ModuleConfig::new("domain_one.subdomain", false),
+            ModuleConfig {
+                path: "domain_two".to_string(),
+                depends_on: vec![DependencyConfig::from_path("domain_one")],
+                strict: false,
+                ..Default::default()
+            },
+            ModuleConfig::new("domain_three", false),
+        ]
+    }
+
+    #[fixture]
+    pub fn source_roots() -> Vec<PathBuf> {
+        vec![PathBuf::from("src")]
     }
 }

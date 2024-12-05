@@ -56,7 +56,7 @@ impl TachPytestPluginHandler {
         // TODO: Remove unwraps
         let module_tree = build_module_tree(
             &source_roots,
-            valid_modules,
+            &valid_modules,
             project_config.forbid_circular_dependencies,
             project_config.root_module.clone(),
         )
