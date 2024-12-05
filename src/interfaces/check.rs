@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use super::error::InterfaceError;
 use super::matcher::{CompiledInterface, CompiledInterfaces};
 use super::serializable::{InterfaceMemberStatus, SerializableChecker};
 use crate::core::config::{InterfaceConfig, ModuleConfig};
@@ -24,14 +25,14 @@ impl InterfaceChecker {
         interfaces: &[InterfaceConfig],
         modules: &[ModuleConfig],
         source_roots: &[PathBuf],
-    ) -> Self {
+    ) -> Result<Self, InterfaceError> {
         let compiled = CompiledInterfaces::build(interfaces);
-        let serializable_checker = SerializableChecker::build(&compiled, modules, source_roots);
+        let serializable_checker = SerializableChecker::build(&compiled, modules, source_roots)?;
 
-        Self {
+        Ok(Self {
             interfaces: compiled,
             serializable_checker,
-        }
+        })
     }
 
     pub fn check_member(&self, member: &str, module_path: &str) -> CheckResult {
@@ -40,7 +41,7 @@ impl InterfaceChecker {
         }
 
         let matching_interfaces: Vec<&CompiledInterface> =
-            self.interfaces.matching_interfaces(module_path);
+            self.interfaces.matching(module_path).collect();
 
         if matching_interfaces.is_empty() {
             return CheckResult::NoInterfaces;

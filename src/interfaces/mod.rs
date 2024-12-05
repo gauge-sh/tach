@@ -1,4 +1,5 @@
 pub mod check;
+pub mod error;
 pub mod matcher;
 pub mod serializable;
 

@@ -12,7 +12,9 @@ use crate::{
     exclusion::{self, is_path_excluded, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
-    interfaces::{check::CheckResult as InterfaceCheckResult, InterfaceChecker},
+    interfaces::{
+        check::CheckResult as InterfaceCheckResult, error::InterfaceError, InterfaceChecker,
+    },
     modules::{self, build_module_tree, ModuleNode, ModuleTree},
 };
 
@@ -26,6 +28,8 @@ pub enum CheckError {
     ModuleTree(#[from] modules::error::ModuleTreeError),
     #[error("Exclusion error: {0}")]
     Exclusion(#[from] exclusion::PathExclusionError),
+    #[error("Interface error: {0}")]
+    Interface(#[from] InterfaceError),
 }
 
 #[derive(Debug, Clone)]
@@ -306,7 +310,7 @@ pub fn check(
             &project_config.interfaces,
             &valid_modules,
             &source_roots,
-        ))
+        )?)
     } else {
         None
     };
