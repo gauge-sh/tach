@@ -6,10 +6,7 @@ use crate::python::parsing::parse_python_source;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use ruff_python_ast::{
-    statement_visitor::StatementVisitor,
-    Expr, Mod, Stmt,
-};
+use ruff_python_ast::{statement_visitor::StatementVisitor, Expr, Mod, Stmt};
 
 #[derive(Debug, Clone)]
 pub enum InterfaceMemberStatus {
@@ -97,7 +94,7 @@ struct ModuleInterfaceVisitor<'a> {
     // module prefix of the current AST being visited (based on the outer module path)
     current_module_prefix: Option<&'a str>,
     // all interface members found in the current module
-    pub interface_members: Vec<InterfaceMember>,
+    current_interface_members: Vec<InterfaceMember>,
 }
 
 impl<'a> ModuleInterfaceVisitor<'a> {
@@ -106,16 +103,16 @@ impl<'a> ModuleInterfaceVisitor<'a> {
             all_interfaces: interfaces,
             current_interfaces: vec![],
             current_module_prefix: None,
-            interface_members: vec![],
+            current_interface_members: vec![],
         }
     }
 
-    fn visit_body_for_module(
+    fn get_interface_members(
         &mut self,
         module_path: &'a str,
-        module_prefix: &'a str,
+        module_prefix: &'a str, // note: should include the dot separators, including a trailing dot
         body: &[Stmt],
-    ) {
+    ) -> Vec<InterfaceMember> {
         self.current_interfaces = self
             .all_interfaces
             .clone()
@@ -123,10 +120,22 @@ impl<'a> ModuleInterfaceVisitor<'a> {
             .matching(module_path)
             .collect();
         self.current_module_prefix = Some(module_prefix);
-        self.interface_members.clear();
+        self.current_interface_members.clear();
         self.visit_body(body);
-        self.current_module_prefix = None;
-        self.current_interfaces.clear();
+        let current_interfaces: Vec<&CompiledInterface> =
+            self.current_interfaces.drain(..).collect();
+        let module_prefix = self.current_module_prefix.take().unwrap();
+        self.current_interface_members
+            .drain(..)
+            .filter(|member| {
+                current_interfaces.iter().any(|interface| {
+                    interface
+                        .expose
+                        .iter()
+                        .any(|re| re.is_match(&format!("{}{}", module_prefix, member.name)))
+                })
+            })
+            .collect()
     }
 }
 
@@ -135,7 +144,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
         match stmt {
             Stmt::Assign(node) => {
                 for target in &node.targets {
-                    self.interface_members.push(InterfaceMember {
+                    self.current_interface_members.push(InterfaceMember {
                         name: match target {
                             Expr::Name(name) => name.id.clone(),
                             _ => panic!("Expected Expr::Name"),
@@ -145,7 +154,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
                 }
             }
             Stmt::AnnAssign(node) => {
-                self.interface_members.push(InterfaceMember {
+                self.current_interface_members.push(InterfaceMember {
                     name: match node.target.as_ref() {
                         Expr::Name(name) => name.id.clone(),
                         _ => panic!("Expected Expr::Name"),
@@ -160,7 +169,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
                 });
             }
             Stmt::FunctionDef(node) => {
-                self.interface_members.push(InterfaceMember {
+                self.current_interface_members.push(InterfaceMember {
                     name: node.name.id.clone(),
                     node: InterfaceMemberNode::Function {
                         parameters: node
@@ -190,7 +199,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
                 });
             }
             Stmt::ClassDef(node) => {
-                self.interface_members.push(InterfaceMember {
+                self.current_interface_members.push(InterfaceMember {
                     name: node.name.id.clone(),
                     node: InterfaceMemberNode::Class,
                 });
@@ -217,10 +226,10 @@ pub fn parse_typed_interface_members(
             Ok(Mod::Module(ast)) => ast,
             _ => panic!("Expected ast::Mod variant"),
         };
-        visitor.visit_body_for_module(module_path, "", &ast.body);
+        let interface_members = visitor.get_interface_members(module_path, "", &ast.body);
 
-        println!("{:?}", visitor.interface_members);
-        for member in visitor.interface_members.iter() {
+        println!("{:?}", interface_members);
+        for member in interface_members.iter() {
             member_status.insert(member.name.clone(), InterfaceMemberStatus::Serializable);
         }
     }
@@ -303,8 +312,6 @@ class MyClass:
             InterfaceMemberStatus::Unknown
         ));
 
-        println!("{:?}", checker);
-
         Ok(())
     }
 
@@ -331,8 +338,6 @@ class MyClass:
             checker.is_serializable("x"),
             InterfaceMemberStatus::Unknown
         ));
-
-        println!("{:?}", checker);
 
         Ok(())
     }
@@ -387,8 +392,6 @@ y: str = "hello"
             checker.is_serializable("y"),
             InterfaceMemberStatus::Unknown
         ));
-
-        println!("{:?}", checker);
 
         Ok(())
     }
