@@ -228,8 +228,8 @@ pub fn type_check_all_interface_members(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::core::config::InterfaceConfig;
+    
+    
     use rstest::*;
     use std::path::PathBuf;
     use tempfile::TempDir;
