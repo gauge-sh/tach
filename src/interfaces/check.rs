@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
+use super::compiled::CompiledInterfaces;
 use super::data_types::{TypeCheckCache, TypeCheckResult};
 use super::error::InterfaceError;
-use super::matcher::CompiledInterfaces;
 use crate::core::config::{InterfaceConfig, ModuleConfig};
 
 pub struct InterfaceChecker {

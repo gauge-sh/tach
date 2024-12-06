@@ -9,14 +9,18 @@ pub struct CompiledInterface {
 }
 
 impl CompiledInterface {
-    pub fn matches(&self, module_path: &str) -> bool {
+    pub fn matches_module(&self, module_path: &str) -> bool {
         self.from_modules
             .iter()
             .any(|regex| regex.is_match(module_path))
     }
 
+    pub fn matches_member(&self, member_name: &str) -> bool {
+        self.expose.iter().any(|regex| regex.is_match(member_name))
+    }
+
     pub fn should_type_check(&self, module_path: &str) -> bool {
-        self.data_types != InterfaceDataTypes::All && self.matches(module_path)
+        self.data_types != InterfaceDataTypes::All && self.matches_module(module_path)
     }
 }
 
@@ -58,7 +62,7 @@ impl CompiledInterfaces {
     pub fn get_interfaces(&self, module_path: &str) -> Vec<&CompiledInterface> {
         self.interfaces
             .iter()
-            .filter(|interface| interface.matches(module_path))
+            .filter(|interface| interface.matches_module(module_path))
             .collect()
     }
 
@@ -67,5 +71,15 @@ impl CompiledInterfaces {
             .iter()
             .filter(|interface| interface.should_type_check(module_path))
             .collect()
+    }
+
+    pub fn get_data_types(&self, module_path: &str, member_name: &str) -> &InterfaceDataTypes {
+        // NOTE: this takes the first matching interface,
+        //   however, if multiple interfaces match, we need to establish a precedence order
+        self.get_interfaces(module_path)
+            .iter()
+            .find(|interface| interface.matches_member(member_name))
+            .map(|interface| &interface.data_types)
+            .unwrap_or(&InterfaceDataTypes::All)
     }
 }

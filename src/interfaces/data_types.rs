@@ -1,5 +1,5 @@
+use super::compiled::{CompiledInterface, CompiledInterfaces};
 use super::error::InterfaceError;
-use super::matcher::{CompiledInterface, CompiledInterfaces};
 use crate::core::config::{InterfaceDataTypes, ModuleConfig};
 use crate::filesystem::module_to_file_path;
 use crate::python::parsing::parse_python_source;
@@ -198,6 +198,90 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
     }
 }
 
+pub fn is_primitive_type(annotation: &str) -> bool {
+    matches!(
+        annotation,
+        "int" | "str" | "bool" | "float" | "list" | "dict" | "tuple"
+    )
+}
+
+trait DataTypeChecker {
+    fn type_check_function(
+        &self,
+        parameters: &[FunctionParameter],
+        return_type: &Option<String>,
+    ) -> TypeCheckResult;
+    fn type_check_variable(&self, annotation: &Option<String>) -> TypeCheckResult;
+    fn type_check_class(&self) -> TypeCheckResult;
+}
+
+impl DataTypeChecker for InterfaceDataTypes {
+    fn type_check_function(
+        &self,
+        parameters: &[FunctionParameter],
+        return_type: &Option<String>,
+    ) -> TypeCheckResult {
+        match self {
+            InterfaceDataTypes::All => TypeCheckResult::MatchedInterface {
+                expected: self.clone(),
+            },
+            InterfaceDataTypes::Primitive => {
+                if parameters
+                    .iter()
+                    .all(|p| is_primitive_type(&p.annotation.as_deref().unwrap_or("")))
+                    && return_type.as_ref().map_or(false, |t| is_primitive_type(t))
+                {
+                    TypeCheckResult::MatchedInterface {
+                        expected: self.clone(),
+                    }
+                } else {
+                    TypeCheckResult::DidNotMatchInterface {
+                        expected: self.clone(),
+                    }
+                }
+            }
+        }
+    }
+
+    fn type_check_variable(&self, annotation: &Option<String>) -> TypeCheckResult {
+        match self {
+            InterfaceDataTypes::All => TypeCheckResult::MatchedInterface {
+                expected: self.clone(),
+            },
+            InterfaceDataTypes::Primitive => {
+                if is_primitive_type(annotation.as_deref().unwrap_or("")) {
+                    TypeCheckResult::MatchedInterface {
+                        expected: self.clone(),
+                    }
+                } else {
+                    TypeCheckResult::DidNotMatchInterface {
+                        expected: self.clone(),
+                    }
+                }
+            }
+        }
+    }
+
+    fn type_check_class(&self) -> TypeCheckResult {
+        TypeCheckResult::Unknown
+    }
+}
+
+pub fn type_check_interface_member(
+    interface_member: &InterfaceMember,
+    data_types: &InterfaceDataTypes,
+) -> TypeCheckResult {
+    // NOTE: will need more parameters/state to do this for most cases
+    match &interface_member.node {
+        InterfaceMemberNode::Variable { annotation } => data_types.type_check_variable(annotation),
+        InterfaceMemberNode::Function {
+            parameters,
+            return_type,
+        } => data_types.type_check_function(parameters, return_type),
+        InterfaceMemberNode::Class => data_types.type_check_class(),
+    }
+}
+
 pub fn type_check_all_interface_members(
     source_roots: &[PathBuf],
     module_paths: &[&str],
@@ -217,10 +301,15 @@ pub fn type_check_all_interface_members(
         };
         let interface_members = visitor.get_interface_members(module_path, "", &ast.body);
 
-        println!("{:?}", interface_members);
-        for member in interface_members.iter() {
-            member_status.insert(member.name.clone(), TypeCheckResult::Unknown);
-        }
+        member_status.extend(interface_members.iter().map(|member| {
+            (
+                member.name.clone(),
+                type_check_interface_member(
+                    member,
+                    interfaces.get_data_types(module_path, &member.name),
+                ),
+            )
+        }));
     }
 
     Ok(member_status)
@@ -228,36 +317,143 @@ pub fn type_check_all_interface_members(
 
 #[cfg(test)]
 mod tests {
-    
-    
+    use super::*;
+    use crate::core::config::InterfaceConfig;
     use rstest::*;
-    use std::path::PathBuf;
+    use std::fs;
     use tempfile::TempDir;
 
-    fn setup_test_files(temp_dir: &TempDir, files: &[(&str, &str)]) -> Vec<PathBuf> {
-        let source_root = temp_dir.path().to_path_buf();
-        for (path, content) in files {
-            let full_path = source_root.join(path);
-            std::fs::create_dir_all(full_path.parent().unwrap()).unwrap();
-            std::fs::write(full_path, content).unwrap();
-        }
-        vec![source_root]
+    #[fixture]
+    fn temp_dir() -> TempDir {
+        TempDir::new().unwrap()
     }
 
     #[fixture]
-    fn basic_python_module() -> (&'static str, &'static str) {
-        (
+    fn basic_interface() -> InterfaceConfig {
+        InterfaceConfig {
+            expose: vec![".*".to_string()],
+            from_modules: vec!["my_module".to_string()],
+            data_types: InterfaceDataTypes::Primitive,
+        }
+    }
+
+    fn setup_test_files(temp_dir: &TempDir, source_files: &[(&str, &str)]) -> Vec<PathBuf> {
+        // Create source files in temp directory
+        for (file_name, content) in source_files {
+            let file_path = temp_dir.path().join(file_name);
+            fs::write(file_path, content.trim()).unwrap();
+        }
+
+        // Return temp dir path as the only source root
+        vec![temp_dir.path().to_path_buf()]
+    }
+
+    #[rstest]
+    #[case("int", true)]
+    #[case("str", true)]
+    #[case("bool", true)]
+    #[case("float", true)]
+    #[case("list", true)]
+    #[case("dict", true)]
+    #[case("tuple", true)]
+    #[case("CustomType", false)]
+    #[case("MyClass", false)]
+    fn test_is_primitive_type(#[case] type_name: &str, #[case] expected: bool) {
+        assert_eq!(is_primitive_type(type_name), expected);
+    }
+
+    #[rstest]
+    fn test_type_check_primitive_function() {
+        let data_types = InterfaceDataTypes::Primitive;
+
+        // Test primitive function
+        let primitive_func = vec![
+            FunctionParameter {
+                name: "a".to_string(),
+                annotation: Some("int".to_string()),
+            },
+            FunctionParameter {
+                name: "b".to_string(),
+                annotation: Some("str".to_string()),
+            },
+        ];
+        let return_type = Some("bool".to_string());
+
+        match data_types.type_check_function(&primitive_func, &return_type) {
+            TypeCheckResult::MatchedInterface { expected } => {
+                assert_eq!(expected, InterfaceDataTypes::Primitive)
+            }
+            _ => panic!("Expected MatchedInterface"),
+        }
+
+        // Test non-primitive function
+        let non_primitive_func = vec![FunctionParameter {
+            name: "a".to_string(),
+            annotation: Some("CustomType".to_string()),
+        }];
+        let return_type = Some("bool".to_string());
+
+        match data_types.type_check_function(&non_primitive_func, &return_type) {
+            TypeCheckResult::DidNotMatchInterface { expected } => {
+                assert_eq!(expected, InterfaceDataTypes::Primitive)
+            }
+            _ => panic!("Expected DidNotMatchInterface"),
+        }
+    }
+
+    #[rstest]
+    fn test_type_check_cache_build(temp_dir: TempDir, basic_interface: InterfaceConfig) {
+        let source_files = [(
             "my_module.py",
             r#"
 x: int = 1
-y = "hello"
+y: str = "hello"
+z: CustomType = custom()
 
 def func(a: int, b: str) -> bool:
     pass
 
-class MyClass:
+def custom_func(a: CustomType) -> CustomType:
     pass
             "#,
-        )
+        )];
+
+        let source_roots = setup_test_files(&temp_dir, &source_files);
+        let interfaces = CompiledInterfaces::build(&[basic_interface]);
+        let modules = vec![ModuleConfig::new("my_module", false)];
+
+        let cache = TypeCheckCache::build(&interfaces, &modules, &source_roots).unwrap();
+
+        // Test primitive variable
+        match cache.get_result("x") {
+            TypeCheckResult::MatchedInterface { expected } => {
+                assert_eq!(expected, InterfaceDataTypes::Primitive)
+            }
+            _ => panic!("Expected MatchedInterface for x"),
+        }
+
+        // Test non-primitive variable
+        match cache.get_result("z") {
+            TypeCheckResult::DidNotMatchInterface { expected } => {
+                assert_eq!(expected, InterfaceDataTypes::Primitive)
+            }
+            _ => panic!("Expected DidNotMatchInterface for z"),
+        }
+
+        // Test primitive function
+        match cache.get_result("func") {
+            TypeCheckResult::MatchedInterface { expected } => {
+                assert_eq!(expected, InterfaceDataTypes::Primitive)
+            }
+            _ => panic!("Expected MatchedInterface for func"),
+        }
+
+        // Test non-primitive function
+        match cache.get_result("custom_func") {
+            TypeCheckResult::DidNotMatchInterface { expected } => {
+                assert_eq!(expected, InterfaceDataTypes::Primitive)
+            }
+            _ => panic!("Expected DidNotMatchInterface for custom_func"),
+        }
     }
 }
