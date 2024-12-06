@@ -510,11 +510,10 @@ mod tests {
         #[case] expected_result: bool,
     ) {
         let file_module = module_tree.find_nearest(file_mod_path).unwrap();
-        let interface_checker = Some(InterfaceChecker::build(
-            &interface_config,
-            &module_config,
-            &[PathBuf::from(".")],
-        ));
+        let interface_checker = Some(
+            InterfaceChecker::build(&interface_config, &module_config, &[PathBuf::from(".")])
+                .unwrap(),
+        );
 
         let check_error = check_import(
             import_mod_path,
@@ -535,11 +534,10 @@ mod tests {
         interface_config: Vec<InterfaceConfig>,
     ) {
         let file_module = module_tree.find_nearest("domain_one").unwrap();
-        let interface_checker = Some(InterfaceChecker::build(
-            &interface_config,
-            &module_config,
-            &[PathBuf::from(".")],
-        ));
+        let interface_checker = Some(
+            InterfaceChecker::build(&interface_config, &module_config, &[PathBuf::from(".")])
+                .unwrap(),
+        );
 
         let check_error = check_import(
             "domain_one.subdomain",

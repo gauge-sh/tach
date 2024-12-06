@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use ruff_python_ast::{
-    statement_visitor::{walk_stmt, StatementVisitor},
+    statement_visitor::StatementVisitor,
     Expr, Mod, Stmt,
 };
 
@@ -65,18 +65,138 @@ impl SerializableChecker {
     }
 }
 
+#[derive(Debug)]
+struct FunctionParameter {
+    name: String,
+    annotation: Option<String>,
+}
+
+#[derive(Debug)]
+enum InterfaceMemberNode {
+    Variable {
+        annotation: Option<String>,
+    },
+    Function {
+        parameters: Vec<FunctionParameter>,
+        return_type: Option<String>,
+    },
+    Class,
+}
+
+#[derive(Debug)]
+struct InterfaceMember {
+    name: String,
+    node: InterfaceMemberNode,
+}
+
 struct ModuleInterfaceVisitor<'a> {
-    interfaces: Vec<&'a CompiledInterface>,
-    member_status: &'a mut HashMap<String, InterfaceMemberStatus>,
+    // all interfaces to check against
+    all_interfaces: Vec<&'a CompiledInterface>,
+    // current matching interfaces to check against (based on the outer module path)
+    current_interfaces: Vec<&'a CompiledInterface>,
+    // module prefix of the current AST being visited (based on the outer module path)
+    current_module_prefix: Option<&'a str>,
+    // all interface members found in the current module
+    pub interface_members: Vec<InterfaceMember>,
+}
+
+impl<'a> ModuleInterfaceVisitor<'a> {
+    fn new(interfaces: Vec<&'a CompiledInterface>) -> Self {
+        Self {
+            all_interfaces: interfaces,
+            current_interfaces: vec![],
+            current_module_prefix: None,
+            interface_members: vec![],
+        }
+    }
+
+    fn visit_body_for_module(
+        &mut self,
+        module_path: &'a str,
+        module_prefix: &'a str,
+        body: &[Stmt],
+    ) {
+        self.current_interfaces = self
+            .all_interfaces
+            .clone()
+            .into_iter()
+            .matching(module_path)
+            .collect();
+        self.current_module_prefix = Some(module_prefix);
+        self.interface_members.clear();
+        self.visit_body(body);
+        self.current_module_prefix = None;
+        self.current_interfaces.clear();
+    }
 }
 
 impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
     fn visit_stmt(&mut self, stmt: &Stmt) {
-        // extract the top level assignments, functions and classes
-        // with type annotations
-        // then check if the types are serializable (use unknown for classes for now)
-        // then update the interface_member_status map
-        ()
+        match stmt {
+            Stmt::Assign(node) => {
+                for target in &node.targets {
+                    self.interface_members.push(InterfaceMember {
+                        name: match target {
+                            Expr::Name(name) => name.id.clone(),
+                            _ => panic!("Expected Expr::Name"),
+                        },
+                        node: InterfaceMemberNode::Variable { annotation: None },
+                    });
+                }
+            }
+            Stmt::AnnAssign(node) => {
+                self.interface_members.push(InterfaceMember {
+                    name: match node.target.as_ref() {
+                        Expr::Name(name) => name.id.clone(),
+                        _ => panic!("Expected Expr::Name"),
+                    },
+                    node: InterfaceMemberNode::Variable {
+                        annotation: match node.annotation.as_ref() {
+                            Expr::Name(name) => Some(name.id.clone()),
+                            Expr::StringLiteral(s) => Some(s.value.to_string()),
+                            _ => None,
+                        },
+                    },
+                });
+            }
+            Stmt::FunctionDef(node) => {
+                self.interface_members.push(InterfaceMember {
+                    name: node.name.id.clone(),
+                    node: InterfaceMemberNode::Function {
+                        parameters: node
+                            .parameters
+                            .iter_non_variadic_params()
+                            .map(|p| FunctionParameter {
+                                name: p.parameter.name.to_string(),
+                                annotation: match &p.parameter.annotation {
+                                    Some(annotation) => match annotation.as_ref() {
+                                        Expr::Name(name) => Some(name.id.clone()),
+                                        Expr::StringLiteral(s) => Some(s.value.to_string()),
+                                        _ => None,
+                                    },
+                                    None => None,
+                                },
+                            })
+                            .collect(),
+                        return_type: match node.returns.as_ref() {
+                            Some(r) => match r.as_ref() {
+                                Expr::Name(name) => Some(name.id.clone()),
+                                Expr::StringLiteral(s) => Some(s.value.to_string()),
+                                _ => None,
+                            },
+                            None => None,
+                        },
+                    },
+                });
+            }
+            Stmt::ClassDef(node) => {
+                self.interface_members.push(InterfaceMember {
+                    name: node.name.id.clone(),
+                    node: InterfaceMemberNode::Class,
+                });
+            }
+            _ => (),
+        }
     }
 }
 
@@ -87,22 +207,189 @@ pub fn parse_typed_interface_members(
 ) -> Result<HashMap<String, InterfaceMemberStatus>, InterfaceError> {
     let mut member_status = HashMap::new();
 
-    // for each module, parse the source files
-    let mut visitor = ModuleInterfaceVisitor {
-        interfaces: interfaces.to_vec(),
-        member_status: &mut member_status,
-    };
-
+    // for each module, parse the source files and use the visitor to extract the typed interface members
+    let mut visitor = ModuleInterfaceVisitor::new(interfaces.to_vec());
     for module_path in module_paths {
-        // dont want to fully traverse the module, but should probably use the interface patterns to find the appropriate files?
         let resolved_mod = module_to_file_path(source_roots, module_path, false).unwrap();
+        // first get this working for only the module file itself
         let python_source = std::fs::read_to_string(resolved_mod.file_path).unwrap();
         let ast = match parse_python_source(&python_source) {
             Ok(Mod::Module(ast)) => ast,
             _ => panic!("Expected ast::Mod variant"),
         };
-        visitor.visit_body(&ast.body);
+        visitor.visit_body_for_module(module_path, "", &ast.body);
+
+        println!("{:?}", visitor.interface_members);
+        for member in visitor.interface_members.iter() {
+            member_status.insert(member.name.clone(), InterfaceMemberStatus::Serializable);
+        }
     }
 
     Ok(member_status)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::config::InterfaceConfig;
+    use rstest::*;
+    use std::path::PathBuf;
+    use tempfile::TempDir;
+
+    fn setup_test_files(temp_dir: &TempDir, files: &[(&str, &str)]) -> Vec<PathBuf> {
+        let source_root = temp_dir.path().to_path_buf();
+        for (path, content) in files {
+            let full_path = source_root.join(path);
+            std::fs::create_dir_all(full_path.parent().unwrap()).unwrap();
+            std::fs::write(full_path, content).unwrap();
+        }
+        vec![source_root]
+    }
+
+    #[fixture]
+    fn basic_python_module() -> (&'static str, &'static str) {
+        (
+            "my_module.py",
+            r#"
+x: int = 1
+y = "hello"
+
+def func(a: int, b: str) -> bool:
+    pass
+
+class MyClass:
+    pass
+            "#,
+        )
+    }
+
+    #[rstest]
+    fn test_basic_serializable_members(
+        basic_python_module: (&str, &str),
+    ) -> Result<(), InterfaceError> {
+        let temp_dir = TempDir::new().unwrap();
+        let source_roots = setup_test_files(&temp_dir, &[basic_python_module]);
+
+        // Create a test interface that marks the module as serializable
+        let interfaces = CompiledInterfaces::build(&[InterfaceConfig {
+            from_modules: vec!["my_module".to_string()],
+            expose: vec![".*".to_string()], // Match everything
+            serializable: true,
+        }]);
+
+        let modules = vec![ModuleConfig::new("my_module", false)];
+
+        let checker = SerializableChecker::build(&interfaces, &modules, &source_roots)?;
+
+        // Check that members are marked as serializable
+        assert!(matches!(
+            checker.is_serializable("x"),
+            InterfaceMemberStatus::Serializable
+        ));
+        assert!(matches!(
+            checker.is_serializable("y"),
+            InterfaceMemberStatus::Serializable
+        ));
+        assert!(matches!(
+            checker.is_serializable("func"),
+            InterfaceMemberStatus::Serializable
+        ));
+        assert!(matches!(
+            checker.is_serializable("MyClass"),
+            InterfaceMemberStatus::Serializable
+        ));
+        assert!(matches!(
+            checker.is_serializable("nonexistent"),
+            InterfaceMemberStatus::Unknown
+        ));
+
+        println!("{:?}", checker);
+
+        Ok(())
+    }
+
+    #[rstest]
+    fn test_non_serializable_interface(
+        basic_python_module: (&str, &str),
+    ) -> Result<(), InterfaceError> {
+        let temp_dir = TempDir::new().unwrap();
+        let source_roots = setup_test_files(&temp_dir, &[basic_python_module]);
+
+        // Create a test interface that is NOT marked as serializable
+        let interfaces = CompiledInterfaces::build(&[InterfaceConfig {
+            from_modules: vec!["my_module".to_string()],
+            expose: vec![".*".to_string()],
+            serializable: false,
+        }]);
+
+        let modules = vec![ModuleConfig::new("my_module", false)];
+
+        let checker = SerializableChecker::build(&interfaces, &modules, &source_roots)?;
+
+        // Check that members are marked as Unknown (not serializable)
+        assert!(matches!(
+            checker.is_serializable("x"),
+            InterfaceMemberStatus::Unknown
+        ));
+
+        println!("{:?}", checker);
+
+        Ok(())
+    }
+
+    #[rstest]
+    fn test_multiple_modules() -> Result<(), InterfaceError> {
+        let temp_dir = TempDir::new().unwrap();
+
+        let files = vec![
+            (
+                "module1.py",
+                r#"
+x: int = 1
+                "#,
+            ),
+            (
+                "module2.py",
+                r#"
+y: str = "hello"
+                "#,
+            ),
+        ];
+        let source_roots = setup_test_files(&temp_dir, &files);
+
+        // Create interfaces with different serialization settings
+        let interfaces = CompiledInterfaces::build(&[
+            InterfaceConfig {
+                from_modules: vec!["module1".to_string()],
+                expose: vec![".*".to_string()],
+                serializable: true,
+            },
+            InterfaceConfig {
+                from_modules: vec!["module2".to_string()],
+                expose: vec![".*".to_string()],
+                serializable: false,
+            },
+        ]);
+
+        let modules = vec![
+            ModuleConfig::new("module1", false),
+            ModuleConfig::new("module2", false),
+        ];
+
+        let checker = SerializableChecker::build(&interfaces, &modules, &source_roots)?;
+
+        // Check that members are marked correctly
+        assert!(matches!(
+            checker.is_serializable("x"),
+            InterfaceMemberStatus::Serializable
+        ));
+        assert!(matches!(
+            checker.is_serializable("y"),
+            InterfaceMemberStatus::Unknown
+        ));
+
+        println!("{:?}", checker);
+
+        Ok(())
+    }
 }
