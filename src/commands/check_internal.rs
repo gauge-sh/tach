@@ -107,7 +107,10 @@ impl ImportCheckError {
     }
 
     pub fn is_interface_error(&self) -> bool {
-        matches!(self, Self::PrivateImport { .. })
+        matches!(
+            self,
+            Self::PrivateImport { .. } | Self::InvalidDataTypeExport { .. }
+        )
     }
 
     pub fn source_path(&self) -> Option<&String> {

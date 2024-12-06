@@ -12,7 +12,7 @@ use ruff_python_ast::{statement_visitor::StatementVisitor, Expr, Mod, Stmt};
 pub enum TypeCheckResult {
     MatchedInterface { expected: InterfaceDataTypes },
     DidNotMatchInterface { expected: InterfaceDataTypes },
-    Unknown, // not in any interface marked as serializable, or could not determine
+    Unknown, // not in any interface with data type constraints, or could not determine data type
 }
 
 #[derive(Debug, Clone)]
@@ -228,7 +228,7 @@ impl DataTypeChecker for InterfaceDataTypes {
             InterfaceDataTypes::Primitive => {
                 if parameters
                     .iter()
-                    .all(|p| is_primitive_type(&p.annotation.as_deref().unwrap_or("")))
+                    .all(|p| is_primitive_type(p.annotation.as_deref().unwrap_or("")))
                     && return_type.as_ref().map_or(false, |t| is_primitive_type(t))
                 {
                     TypeCheckResult::MatchedInterface {

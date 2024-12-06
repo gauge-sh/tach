@@ -157,10 +157,7 @@ impl InterfaceDataTypes {
 
 impl IntoPy<PyObject> for InterfaceDataTypes {
     fn into_py(self, py: Python) -> PyObject {
-        match self {
-            Self::All => "all".to_object(py),
-            Self::Primitive => "primitive".to_object(py),
-        }
+        self.to_string().to_object(py)
     }
 }
 

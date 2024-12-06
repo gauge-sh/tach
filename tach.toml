@@ -183,7 +183,6 @@ expose = [
 from = [
     "tach.modularity",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -201,7 +200,6 @@ expose = [
 from = [
     "tach.cli",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -210,7 +208,6 @@ expose = [
 from = [
     "tach.colors",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -234,7 +231,6 @@ expose = [
 from = [
     "tach.filesystem.git_ops",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -243,7 +239,6 @@ expose = [
 from = [
     "tach.hooks",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -253,7 +248,6 @@ expose = [
 from = [
     "tach.interactive",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -263,7 +257,6 @@ expose = [
 from = [
     "tach.logging",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -272,7 +265,6 @@ expose = [
 from = [
     "tach.mod",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -283,7 +275,6 @@ expose = [
 from = [
     "tach.parsing",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -293,7 +284,6 @@ expose = [
 from = [
     "tach.report",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -304,7 +294,6 @@ expose = [
 from = [
     "tach.show",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -313,7 +302,6 @@ expose = [
 from = [
     "tach.start",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -322,7 +310,6 @@ expose = [
 from = [
     "tach.sync",
 ]
-data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -331,7 +318,6 @@ expose = [
 from = [
     "tach.test",
 ]
-data_types = "primitive"
 
 [cache]
 file_dependencies = [
