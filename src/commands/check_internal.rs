@@ -12,7 +12,10 @@ use crate::{
     exclusion::{self, is_path_excluded, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
-    interfaces::InterfaceChecker,
+    interfaces::{
+        check::CheckResult as InterfaceCheckResult, data_types::TypeCheckResult,
+        error::InterfaceError, InterfaceChecker,
+    },
     modules::{self, build_module_tree, ModuleNode, ModuleTree},
 };
 
@@ -26,6 +29,8 @@ pub enum CheckError {
     ModuleTree(#[from] modules::error::ModuleTreeError),
     #[error("Exclusion error: {0}")]
     Exclusion(#[from] exclusion::PathExclusionError),
+    #[error("Interface error: {0}")]
+    Interface(#[from] InterfaceError),
 }
 
 #[derive(Debug, Clone)]
@@ -52,10 +57,17 @@ pub enum ImportCheckError {
     ModuleNotFound { file_mod_path: String },
 
     #[error("Module '{import_nearest_module_path}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
-    StrictModeImport {
+    PrivateImport {
         import_mod_path: String,
         import_nearest_module_path: String,
         file_nearest_module_path: String,
+    },
+
+    #[error("The import '{import_mod_path}' (from module '{import_nearest_module_path}') matches an interface but does not match the expected data type ('{expected_data_type}').")]
+    InvalidDataTypeExport {
+        import_mod_path: String,
+        import_nearest_module_path: String,
+        expected_data_type: String,
     },
 
     #[error("Could not find module configuration.")]
@@ -95,7 +107,10 @@ impl ImportCheckError {
     }
 
     pub fn is_interface_error(&self) -> bool {
-        matches!(self, Self::StrictModeImport { .. })
+        matches!(
+            self,
+            Self::PrivateImport { .. } | Self::InvalidDataTypeExport { .. }
+        )
     }
 
     pub fn source_path(&self) -> Option<&String> {
@@ -128,11 +143,10 @@ fn check_import(
     module_tree: &ModuleTree,
     file_nearest_module: Arc<ModuleNode>,
     root_module_treatment: RootModuleTreatment,
-    interface_checker: &InterfaceChecker,
+    interface_checker: &Option<InterfaceChecker>,
     check_dependencies: bool,
-    check_interfaces: bool,
 ) -> Result<(), ImportCheckError> {
-    if !check_dependencies && !check_interfaces {
+    if !check_dependencies && interface_checker.is_none() {
         return Err(ImportCheckError::NoChecksEnabled());
     }
 
@@ -152,21 +166,32 @@ fn check_import(
         return Ok(());
     }
 
-    if check_interfaces
-        && interface_checker.has_interface(&import_nearest_module.full_path)
-        && import_mod_path != &import_nearest_module.full_path
-    {
+    if let Some(interface_checker) = interface_checker {
+        // When interfaces are enabled, we check whether the import is a valid export
         let import_member = import_mod_path
             .strip_prefix(&import_nearest_module.full_path)
             .and_then(|s| s.strip_prefix('.'))
-            .unwrap_or(import_mod_path);
-
-        if !interface_checker.check(import_member, &import_nearest_module.full_path) {
-            return Err(ImportCheckError::StrictModeImport {
-                import_mod_path: import_mod_path.to_string(),
-                import_nearest_module_path: import_nearest_module.full_path.to_string(),
-                file_nearest_module_path: file_nearest_module.full_path.to_string(),
-            });
+            .unwrap_or("");
+        let check_result =
+            interface_checker.check_member(import_member, &import_nearest_module.full_path);
+        match check_result {
+            InterfaceCheckResult::NotExposed => {
+                return Err(ImportCheckError::PrivateImport {
+                    import_mod_path: import_mod_path.to_string(),
+                    import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                    file_nearest_module_path: file_nearest_module.full_path.to_string(),
+                });
+            }
+            InterfaceCheckResult::Exposed {
+                type_check_result: TypeCheckResult::DidNotMatchInterface { expected },
+            } => {
+                return Err(ImportCheckError::InvalidDataTypeExport {
+                    import_mod_path: import_mod_path.to_string(),
+                    import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                    expected_data_type: expected.to_string(),
+                });
+            }
+            _ => {}
         }
     }
 
@@ -269,7 +294,7 @@ pub fn check(
 
     let module_tree = build_module_tree(
         &source_roots,
-        valid_modules,
+        &valid_modules,
         project_config.forbid_circular_dependencies,
         project_config.root_module.clone(),
     )?;
@@ -280,7 +305,13 @@ pub fn check(
         project_config.use_regex_matching,
     )?;
 
-    let interface_checker = InterfaceChecker::new(&project_config.interfaces);
+    let interface_checker = if interfaces {
+        let interface_checker = InterfaceChecker::new(&project_config.interfaces);
+        // This is expensive
+        Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
+    } else {
+        None
+    };
 
     for source_root in &source_roots {
         for file_path in fs::walk_pyfiles(&source_root.display().to_string()) {
@@ -342,7 +373,6 @@ pub fn check(
                     project_config.root_module.clone(),
                     &interface_checker,
                     dependencies,
-                    interfaces,
                 ) else {
                     continue;
                 };
@@ -400,7 +430,6 @@ pub fn check(
                         project_config.root_module.clone(),
                         &interface_checker,
                         dependencies,
-                        interfaces,
                     )
                     .is_ok();
 
@@ -451,9 +480,9 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::config::InterfaceConfig;
+    use crate::core::config::{InterfaceConfig, ModuleConfig};
     use crate::modules::ModuleTree;
-    use crate::tests::check_internal::fixtures::{interface_config, module_tree};
+    use crate::tests::check_internal::fixtures::{interface_config, module_config, module_tree};
 
     use rstest::rstest;
 
@@ -472,13 +501,18 @@ mod tests {
     #[case("domain_two", "domain_two.subdomain", false)]
     fn test_check_import(
         module_tree: ModuleTree,
+        module_config: Vec<ModuleConfig>,
         interface_config: Vec<InterfaceConfig>,
         #[case] file_mod_path: &str,
         #[case] import_mod_path: &str,
         #[case] expected_result: bool,
     ) {
         let file_module = module_tree.find_nearest(file_mod_path).unwrap();
-        let interface_checker = InterfaceChecker::new(&interface_config);
+        let interface_checker = Some(
+            InterfaceChecker::new(&interface_config)
+                .with_type_check_cache(&module_config, &[PathBuf::from(".")])
+                .unwrap(),
+        );
 
         let check_error = check_import(
             import_mod_path,
@@ -486,7 +520,6 @@ mod tests {
             file_module.clone(),
             RootModuleTreatment::Allow,
             &interface_checker,
-            true,
             true,
         );
         let result = check_error.is_ok();
@@ -496,10 +529,15 @@ mod tests {
     #[rstest]
     fn test_check_deprecated_import(
         module_tree: ModuleTree,
+        module_config: Vec<ModuleConfig>,
         interface_config: Vec<InterfaceConfig>,
     ) {
         let file_module = module_tree.find_nearest("domain_one").unwrap();
-        let interface_checker = InterfaceChecker::new(&interface_config);
+        let interface_checker = Some(
+            InterfaceChecker::new(&interface_config)
+                .with_type_check_cache(&module_config, &[PathBuf::from(".")])
+                .unwrap(),
+        );
 
         let check_error = check_import(
             "domain_one.subdomain",
@@ -507,7 +545,6 @@ mod tests {
             file_module.clone(),
             RootModuleTreatment::Allow,
             &interface_checker,
-            true,
             true,
         );
         assert!(check_error.is_err());

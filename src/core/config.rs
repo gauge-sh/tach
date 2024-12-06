@@ -133,6 +133,35 @@ impl ModuleConfig {
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum InterfaceDataTypes {
+    #[default]
+    All,
+    Primitive,
+}
+
+impl ToString for InterfaceDataTypes {
+    fn to_string(&self) -> String {
+        match self {
+            Self::All => "all".to_string(),
+            Self::Primitive => "primitive".to_string(),
+        }
+    }
+}
+
+impl InterfaceDataTypes {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+impl IntoPy<PyObject> for InterfaceDataTypes {
+    fn into_py(self, py: Python) -> PyObject {
+        self.to_string().to_object(py)
+    }
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct InterfaceConfig {
     pub expose: Vec<String>,
@@ -142,6 +171,8 @@ pub struct InterfaceConfig {
         skip_serializing_if = "is_default_from_modules"
     )]
     pub from_modules: Vec<String>,
+    #[serde(default, skip_serializing_if = "InterfaceDataTypes::is_default")]
+    pub data_types: InterfaceDataTypes,
 }
 
 fn default_from_modules() -> Vec<String> {

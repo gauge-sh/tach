@@ -216,7 +216,7 @@ pub fn create_dependency_report(
         validate_project_modules(&source_roots, project_config.modules.clone());
     let module_tree = build_module_tree(
         &source_roots,
-        valid_modules,
+        &valid_modules,
         false,                      // skip circular dependency check in report
         RootModuleTreatment::Allow, // skip root module check in report
     )?;

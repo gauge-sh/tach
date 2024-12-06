@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     colors::BColors,
-    core::config::{InterfaceConfig, ProjectConfig, ROOT_MODULE_SENTINEL_TAG},
+    core::config::{InterfaceConfig, InterfaceDataTypes, ProjectConfig, ROOT_MODULE_SENTINEL_TAG},
     filesystem::read_file_content,
     python::parsing::parse_interface_members,
 };
@@ -62,6 +62,7 @@ fn migrate_strict_mode_to_interfaces(filepath: &Path, config: &mut ProjectConfig
             interfaces.push(InterfaceConfig {
                 expose: interface_members,
                 from_modules: vec![module.path.clone()],
+                data_types: InterfaceDataTypes::All,
             });
         }
     }

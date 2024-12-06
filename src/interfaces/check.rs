@@ -1,65 +1,70 @@
-use crate::core::config::InterfaceConfig;
-use regex::Regex;
+use std::path::PathBuf;
+
+use super::compiled::CompiledInterfaces;
+use super::data_types::{TypeCheckCache, TypeCheckResult};
+use super::error::InterfaceError;
+use crate::core::config::{InterfaceConfig, ModuleConfig};
 
 pub struct InterfaceChecker {
-    interfaces: Vec<CompiledInterface>,
+    interfaces: CompiledInterfaces,
+    type_check_cache: Option<TypeCheckCache>,
 }
 
-struct CompiledInterface {
-    from_modules: Vec<Regex>,
-    expose: Vec<Regex>,
+pub enum CheckResult {
+    Exposed { type_check_result: TypeCheckResult },
+    NotExposed,
+    NoInterfaces,
+    TopLevelModule,
 }
 
 impl InterfaceChecker {
     pub fn new(interfaces: &[InterfaceConfig]) -> Self {
-        let compiled = interfaces
-            .iter()
-            .map(|interface| CompiledInterface {
-                from_modules: interface
-                    .from_modules
-                    .iter()
-                    .map(|pattern| Regex::new(&format!("^{}$", pattern)).unwrap())
-                    .collect(),
-                expose: interface
-                    .expose
-                    .iter()
-                    .map(|pattern| Regex::new(&format!("^{}$", pattern)).unwrap())
-                    .collect(),
-            })
-            .collect();
+        let compiled = CompiledInterfaces::build(interfaces);
 
         Self {
             interfaces: compiled,
+            type_check_cache: None,
         }
     }
 
-    pub fn has_interface(&self, import_mod_path: &str) -> bool {
-        self.interfaces.iter().any(|interface| {
-            interface
-                .from_modules
-                .iter()
-                .any(|re| re.is_match(import_mod_path))
-        })
+    pub fn with_type_check_cache(
+        mut self,
+        modules: &[ModuleConfig],
+        source_roots: &[PathBuf],
+    ) -> Result<Self, InterfaceError> {
+        let type_check_cache = TypeCheckCache::build(&self.interfaces, modules, source_roots)?;
+        self.type_check_cache = Some(type_check_cache);
+        Ok(self)
     }
 
-    /// Check if the import member is exposed by any interface.
-    pub fn check(&self, import_member: &str, import_mod_path: &str) -> bool {
-        let mut found_matching_module = false;
+    pub fn check_member(&self, member: &str, module_path: &str) -> CheckResult {
+        if member.is_empty() {
+            return CheckResult::TopLevelModule;
+        }
 
-        for interface in &self.interfaces {
-            let matches_module = interface
-                .from_modules
-                .iter()
-                .any(|re| re.is_match(import_mod_path));
+        let matching_interfaces = self.interfaces.get_interfaces(module_path);
 
-            if matches_module {
-                found_matching_module = true;
-                if interface.expose.iter().any(|re| re.is_match(import_member)) {
-                    return true;
-                }
+        if matching_interfaces.is_empty() {
+            return CheckResult::NoInterfaces;
+        }
+
+        let mut is_exposed = false;
+        for interface in matching_interfaces {
+            if interface.expose.iter().any(|re| re.is_match(member)) {
+                is_exposed = true;
             }
         }
 
-        !found_matching_module
+        if !is_exposed {
+            return CheckResult::NotExposed;
+        }
+
+        CheckResult::Exposed {
+            type_check_result: self
+                .type_check_cache
+                .as_ref()
+                .map(|cache| cache.get_result(member))
+                .unwrap_or(TypeCheckResult::Unknown),
+        }
     }
 }

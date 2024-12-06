@@ -168,12 +168,12 @@ fn validate_root_module_treatment(
 
 pub fn build_module_tree(
     source_roots: &[PathBuf],
-    modules: Vec<ModuleConfig>,
+    modules: &[ModuleConfig],
     forbid_circular_dependencies: bool,
     root_module_treatment: RootModuleTreatment,
 ) -> Result<ModuleTree, ModuleTreeError> {
     // Check for duplicate modules
-    let duplicate_modules = find_duplicate_modules(&modules);
+    let duplicate_modules = find_duplicate_modules(modules);
     if !duplicate_modules.is_empty() {
         return Err(ModuleTreeError::DuplicateModules(
             duplicate_modules.iter().map(|s| s.to_string()).collect(),
@@ -181,17 +181,17 @@ pub fn build_module_tree(
     }
 
     // Check for visibility errors (dependency declared on invisible module)
-    let visibility_error_info = find_visibility_violations(&modules);
+    let visibility_error_info = find_visibility_violations(modules);
     if !visibility_error_info.is_empty() {
         return Err(ModuleTreeError::VisibilityViolation(visibility_error_info));
     }
 
     // Check for root module treatment errors
-    validate_root_module_treatment(root_module_treatment, &modules)?;
+    validate_root_module_treatment(root_module_treatment, modules)?;
 
     // Check for circular dependencies if forbidden
     if forbid_circular_dependencies {
-        let module_paths = find_modules_with_cycles(&modules);
+        let module_paths = find_modules_with_cycles(modules);
         if !module_paths.is_empty() {
             return Err(ModuleTreeError::CircularDependency(
                 module_paths.iter().map(|s| s.to_string()).collect(),
@@ -203,7 +203,7 @@ pub fn build_module_tree(
     let mut tree = ModuleTree::new();
     for module in modules {
         let mod_path = module.mod_path();
-        tree.insert(module, mod_path)?;
+        tree.insert(module.clone(), mod_path)?;
     }
 
     Ok(tree)
