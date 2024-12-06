@@ -13,7 +13,8 @@ use crate::{
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
     interfaces::{
-        check::CheckResult as InterfaceCheckResult, error::InterfaceError, InterfaceChecker,
+        check::CheckResult as InterfaceCheckResult, data_types::TypeCheckResult,
+        error::InterfaceError, InterfaceChecker,
     },
     modules::{self, build_module_tree, ModuleNode, ModuleTree},
 };
@@ -62,11 +63,11 @@ pub enum ImportCheckError {
         file_nearest_module_path: String,
     },
 
-    #[error("Module '{import_nearest_module_path}' has a defined public interface marked as serializable. The import '{import_mod_path}' (in module '{file_nearest_module_path}') matches the interface but is not serializable.")]
-    UnserializableExport {
+    #[error("The import '{import_mod_path}' (from module '{import_nearest_module_path}') matches an interface but does not match the expected data type ('{expected_data_type}').")]
+    InvalidDataTypeExport {
         import_mod_path: String,
         import_nearest_module_path: String,
-        file_nearest_module_path: String,
+        expected_data_type: String,
     },
 
     #[error("Could not find module configuration.")]
@@ -179,16 +180,13 @@ fn check_import(
                 });
             }
             InterfaceCheckResult::Exposed {
-                marked_serializable,
-                is_serializable,
+                type_check_result: TypeCheckResult::DidNotMatchInterface { expected },
             } => {
-                if marked_serializable && !is_serializable {
-                    return Err(ImportCheckError::UnserializableExport {
-                        import_mod_path: import_mod_path.to_string(),
-                        import_nearest_module_path: import_nearest_module.full_path.to_string(),
-                        file_nearest_module_path: file_nearest_module.full_path.to_string(),
-                    });
-                }
+                return Err(ImportCheckError::InvalidDataTypeExport {
+                    import_mod_path: import_mod_path.to_string(),
+                    import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                    expected_data_type: expected.to_string(),
+                });
             }
             _ => {}
         }
@@ -305,12 +303,9 @@ pub fn check(
     )?;
 
     let interface_checker = if interfaces {
+        let interface_checker = InterfaceChecker::new(&project_config.interfaces);
         // This is expensive
-        Some(InterfaceChecker::build(
-            &project_config.interfaces,
-            &valid_modules,
-            &source_roots,
-        )?)
+        Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
     } else {
         None
     };
@@ -511,7 +506,8 @@ mod tests {
     ) {
         let file_module = module_tree.find_nearest(file_mod_path).unwrap();
         let interface_checker = Some(
-            InterfaceChecker::build(&interface_config, &module_config, &[PathBuf::from(".")])
+            InterfaceChecker::new(&interface_config)
+                .with_type_check_cache(&module_config, &[PathBuf::from(".")])
                 .unwrap(),
         );
 
@@ -535,7 +531,8 @@ mod tests {
     ) {
         let file_module = module_tree.find_nearest("domain_one").unwrap();
         let interface_checker = Some(
-            InterfaceChecker::build(&interface_config, &module_config, &[PathBuf::from(".")])
+            InterfaceChecker::new(&interface_config)
+                .with_type_check_cache(&module_config, &[PathBuf::from(".")])
                 .unwrap(),
         );
 

@@ -1,6 +1,6 @@
 use super::error::InterfaceError;
-use super::matcher::{CompiledInterface, CompiledInterfaceIterExt, CompiledInterfaces};
-use crate::core::config::ModuleConfig;
+use super::matcher::{CompiledInterface, CompiledInterfaces};
+use crate::core::config::{InterfaceDataTypes, ModuleConfig};
 use crate::filesystem::module_to_file_path;
 use crate::python::parsing::parse_python_source;
 use std::collections::HashMap;
@@ -9,35 +9,27 @@ use std::path::PathBuf;
 use ruff_python_ast::{statement_visitor::StatementVisitor, Expr, Mod, Stmt};
 
 #[derive(Debug, Clone)]
-pub enum InterfaceMemberStatus {
-    Serializable,
-    NotSerializable,
+pub enum TypeCheckResult {
+    MatchedInterface { expected: InterfaceDataTypes },
+    DidNotMatchInterface { expected: InterfaceDataTypes },
     Unknown, // not in any interface marked as serializable, or could not determine
 }
 
 #[derive(Debug, Clone)]
-pub struct SerializableChecker {
-    interface_member_status: HashMap<String, InterfaceMemberStatus>,
+pub struct TypeCheckCache {
+    type_check_cache: HashMap<String, TypeCheckResult>,
 }
 
-impl SerializableChecker {
+impl TypeCheckCache {
     pub fn build(
         compiled_interfaces: &CompiledInterfaces,
         modules: &[ModuleConfig],
         source_roots: &[PathBuf],
     ) -> Result<Self, InterfaceError> {
-        let serializable_interfaces: Vec<&CompiledInterface> =
-            compiled_interfaces.serializable().collect();
         let module_paths: Vec<&str> = modules
             .iter()
             .filter_map(|module| {
-                if serializable_interfaces
-                    .clone()
-                    .into_iter()
-                    .matching(module.path.as_str())
-                    .next()
-                    .is_some()
-                {
+                if compiled_interfaces.should_type_check(module.path.as_str()) {
                     Some(module.path.as_str())
                 } else {
                     None
@@ -46,19 +38,19 @@ impl SerializableChecker {
             .collect();
 
         Ok(Self {
-            interface_member_status: parse_typed_interface_members(
+            type_check_cache: type_check_all_interface_members(
                 source_roots,
                 &module_paths,
-                &serializable_interfaces,
+                compiled_interfaces,
             )?,
         })
     }
 
-    pub fn is_serializable(&self, member: &str) -> InterfaceMemberStatus {
-        self.interface_member_status
+    pub fn get_result(&self, member: &str) -> TypeCheckResult {
+        self.type_check_cache
             .get(member)
             .cloned()
-            .unwrap_or(InterfaceMemberStatus::Unknown)
+            .unwrap_or(TypeCheckResult::Unknown)
     }
 }
 
@@ -88,7 +80,7 @@ struct InterfaceMember {
 
 struct ModuleInterfaceVisitor<'a> {
     // all interfaces to check against
-    all_interfaces: Vec<&'a CompiledInterface>,
+    all_interfaces: &'a CompiledInterfaces,
     // current matching interfaces to check against (based on the outer module path)
     current_interfaces: Vec<&'a CompiledInterface>,
     // module prefix of the current AST being visited (based on the outer module path)
@@ -98,7 +90,7 @@ struct ModuleInterfaceVisitor<'a> {
 }
 
 impl<'a> ModuleInterfaceVisitor<'a> {
-    fn new(interfaces: Vec<&'a CompiledInterface>) -> Self {
+    fn new(interfaces: &'a CompiledInterfaces) -> Self {
         Self {
             all_interfaces: interfaces,
             current_interfaces: vec![],
@@ -115,10 +107,7 @@ impl<'a> ModuleInterfaceVisitor<'a> {
     ) -> Vec<InterfaceMember> {
         self.current_interfaces = self
             .all_interfaces
-            .clone()
-            .into_iter()
-            .matching(module_path)
-            .collect();
+            .get_interfaces_to_type_check(module_path);
         self.current_module_prefix = Some(module_prefix);
         self.current_interface_members.clear();
         self.visit_body(body);
@@ -209,15 +198,15 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
     }
 }
 
-pub fn parse_typed_interface_members(
+pub fn type_check_all_interface_members(
     source_roots: &[PathBuf],
     module_paths: &[&str],
-    interfaces: &[&CompiledInterface],
-) -> Result<HashMap<String, InterfaceMemberStatus>, InterfaceError> {
+    interfaces: &CompiledInterfaces,
+) -> Result<HashMap<String, TypeCheckResult>, InterfaceError> {
     let mut member_status = HashMap::new();
 
     // for each module, parse the source files and use the visitor to extract the typed interface members
-    let mut visitor = ModuleInterfaceVisitor::new(interfaces.to_vec());
+    let mut visitor = ModuleInterfaceVisitor::new(interfaces);
     for module_path in module_paths {
         let resolved_mod = module_to_file_path(source_roots, module_path, false).unwrap();
         // first get this working for only the module file itself
@@ -230,7 +219,7 @@ pub fn parse_typed_interface_members(
 
         println!("{:?}", interface_members);
         for member in interface_members.iter() {
-            member_status.insert(member.name.clone(), InterfaceMemberStatus::Serializable);
+            member_status.insert(member.name.clone(), TypeCheckResult::Unknown);
         }
     }
 
@@ -270,129 +259,5 @@ class MyClass:
     pass
             "#,
         )
-    }
-
-    #[rstest]
-    fn test_basic_serializable_members(
-        basic_python_module: (&str, &str),
-    ) -> Result<(), InterfaceError> {
-        let temp_dir = TempDir::new().unwrap();
-        let source_roots = setup_test_files(&temp_dir, &[basic_python_module]);
-
-        // Create a test interface that marks the module as serializable
-        let interfaces = CompiledInterfaces::build(&[InterfaceConfig {
-            from_modules: vec!["my_module".to_string()],
-            expose: vec![".*".to_string()], // Match everything
-            serializable: true,
-        }]);
-
-        let modules = vec![ModuleConfig::new("my_module", false)];
-
-        let checker = SerializableChecker::build(&interfaces, &modules, &source_roots)?;
-
-        // Check that members are marked as serializable
-        assert!(matches!(
-            checker.is_serializable("x"),
-            InterfaceMemberStatus::Serializable
-        ));
-        assert!(matches!(
-            checker.is_serializable("y"),
-            InterfaceMemberStatus::Serializable
-        ));
-        assert!(matches!(
-            checker.is_serializable("func"),
-            InterfaceMemberStatus::Serializable
-        ));
-        assert!(matches!(
-            checker.is_serializable("MyClass"),
-            InterfaceMemberStatus::Serializable
-        ));
-        assert!(matches!(
-            checker.is_serializable("nonexistent"),
-            InterfaceMemberStatus::Unknown
-        ));
-
-        Ok(())
-    }
-
-    #[rstest]
-    fn test_non_serializable_interface(
-        basic_python_module: (&str, &str),
-    ) -> Result<(), InterfaceError> {
-        let temp_dir = TempDir::new().unwrap();
-        let source_roots = setup_test_files(&temp_dir, &[basic_python_module]);
-
-        // Create a test interface that is NOT marked as serializable
-        let interfaces = CompiledInterfaces::build(&[InterfaceConfig {
-            from_modules: vec!["my_module".to_string()],
-            expose: vec![".*".to_string()],
-            serializable: false,
-        }]);
-
-        let modules = vec![ModuleConfig::new("my_module", false)];
-
-        let checker = SerializableChecker::build(&interfaces, &modules, &source_roots)?;
-
-        // Check that members are marked as Unknown (not serializable)
-        assert!(matches!(
-            checker.is_serializable("x"),
-            InterfaceMemberStatus::Unknown
-        ));
-
-        Ok(())
-    }
-
-    #[rstest]
-    fn test_multiple_modules() -> Result<(), InterfaceError> {
-        let temp_dir = TempDir::new().unwrap();
-
-        let files = vec![
-            (
-                "module1.py",
-                r#"
-x: int = 1
-                "#,
-            ),
-            (
-                "module2.py",
-                r#"
-y: str = "hello"
-                "#,
-            ),
-        ];
-        let source_roots = setup_test_files(&temp_dir, &files);
-
-        // Create interfaces with different serialization settings
-        let interfaces = CompiledInterfaces::build(&[
-            InterfaceConfig {
-                from_modules: vec!["module1".to_string()],
-                expose: vec![".*".to_string()],
-                serializable: true,
-            },
-            InterfaceConfig {
-                from_modules: vec!["module2".to_string()],
-                expose: vec![".*".to_string()],
-                serializable: false,
-            },
-        ]);
-
-        let modules = vec![
-            ModuleConfig::new("module1", false),
-            ModuleConfig::new("module2", false),
-        ];
-
-        let checker = SerializableChecker::build(&interfaces, &modules, &source_roots)?;
-
-        // Check that members are marked correctly
-        assert!(matches!(
-            checker.is_serializable("x"),
-            InterfaceMemberStatus::Serializable
-        ));
-        assert!(matches!(
-            checker.is_serializable("y"),
-            InterfaceMemberStatus::Unknown
-        ));
-
-        Ok(())
     }
 }

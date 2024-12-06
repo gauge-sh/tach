@@ -1,7 +1,7 @@
 pub mod check;
+pub mod data_types;
 pub mod error;
 pub mod matcher;
-pub mod serializable;
 
 pub use check::InterfaceChecker;
-pub use serializable::SerializableChecker;
+pub use data_types::TypeCheckCache;

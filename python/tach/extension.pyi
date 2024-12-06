@@ -114,11 +114,13 @@ class ModuleConfig:
     def __new__(cls, path: str, strict: bool) -> ModuleConfig: ...
     def mod_path(self) -> str: ...
 
+InterfaceDataTypes = Literal["all", "primitive"]
+
 class InterfaceConfig:
     expose: list[str]
     # 'from' in tach.toml
     from_modules: list[str]
-    serializable: bool
+    data_types: InterfaceDataTypes
 
 CacheBackend = Literal["disk"]
 

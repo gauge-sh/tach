@@ -2,7 +2,9 @@
 pub mod fixtures {
     use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-    use crate::core::config::{DependencyConfig, InterfaceConfig, ModuleConfig};
+    use crate::core::config::{
+        DependencyConfig, InterfaceConfig, InterfaceDataTypes, ModuleConfig,
+    };
     use crate::modules::{ModuleNode, ModuleTree};
     use rstest::fixture;
 
@@ -11,7 +13,7 @@ pub mod fixtures {
         vec![InterfaceConfig {
             expose: vec!["public_fn".to_string()],
             from_modules: vec!["domain_one".to_string()],
-            serializable: false,
+            data_types: InterfaceDataTypes::All,
         }]
     }
 

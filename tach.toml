@@ -183,7 +183,7 @@ expose = [
 from = [
     "tach.modularity",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -192,7 +192,7 @@ expose = [
 from = [
     "tach",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -201,7 +201,7 @@ expose = [
 from = [
     "tach.cli",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -210,7 +210,7 @@ expose = [
 from = [
     "tach.colors",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -224,7 +224,7 @@ expose = [
 from = [
     "tach.constants",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -234,7 +234,7 @@ expose = [
 from = [
     "tach.filesystem.git_ops",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -243,7 +243,7 @@ expose = [
 from = [
     "tach.hooks",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -253,7 +253,7 @@ expose = [
 from = [
     "tach.interactive",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -263,7 +263,7 @@ expose = [
 from = [
     "tach.logging",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -272,7 +272,7 @@ expose = [
 from = [
     "tach.mod",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -283,7 +283,7 @@ expose = [
 from = [
     "tach.parsing",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -293,7 +293,7 @@ expose = [
 from = [
     "tach.report",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -304,7 +304,7 @@ expose = [
 from = [
     "tach.show",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -313,7 +313,7 @@ expose = [
 from = [
     "tach.start",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -322,7 +322,7 @@ expose = [
 from = [
     "tach.sync",
 ]
-serializable = true
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -331,7 +331,7 @@ expose = [
 from = [
     "tach.test",
 ]
-serializable = true
+data_types = "primitive"
 
 [cache]
 file_dependencies = [

@@ -1,11 +1,23 @@
-use crate::core::config::InterfaceConfig;
+use crate::core::config::{InterfaceConfig, InterfaceDataTypes};
 use regex::Regex;
 
 #[derive(Debug, Clone)]
 pub struct CompiledInterface {
     pub from_modules: Vec<Regex>,
     pub expose: Vec<Regex>,
-    pub serializable: bool,
+    pub data_types: InterfaceDataTypes,
+}
+
+impl CompiledInterface {
+    pub fn matches(&self, module_path: &str) -> bool {
+        self.from_modules
+            .iter()
+            .any(|regex| regex.is_match(module_path))
+    }
+
+    pub fn should_type_check(&self, module_path: &str) -> bool {
+        self.data_types != InterfaceDataTypes::All && self.matches(module_path)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -18,7 +30,7 @@ impl CompiledInterfaces {
         let compiled = interfaces
             .iter()
             .map(|interface| CompiledInterface {
-                serializable: interface.serializable,
+                data_types: interface.data_types.clone(),
                 from_modules: interface
                     .from_modules
                     .iter()
@@ -37,39 +49,23 @@ impl CompiledInterfaces {
         }
     }
 
-    pub fn matching<'a>(
-        &'a self,
-        module_path: &'a str,
-    ) -> impl Iterator<Item = &'a CompiledInterface> {
-        self.interfaces.iter().matching(module_path)
+    pub fn should_type_check(&self, module_path: &str) -> bool {
+        self.interfaces
+            .iter()
+            .any(|interface| interface.should_type_check(module_path))
     }
 
-    pub fn serializable(&self) -> impl Iterator<Item = &CompiledInterface> {
-        self.interfaces.iter().serializable()
-    }
-}
-
-// Extension trait for any iterator over CompiledInterface references
-pub trait CompiledInterfaceIterExt<'a> {
-    fn serializable(self) -> impl Iterator<Item = &'a CompiledInterface>;
-    fn matching(self, module_path: &str) -> impl Iterator<Item = &'a CompiledInterface>;
-}
-
-impl<'a, I> CompiledInterfaceIterExt<'a> for I
-where
-    I: Iterator<Item = &'a CompiledInterface>,
-{
-    fn serializable(self) -> impl Iterator<Item = &'a CompiledInterface> {
-        self.filter(|interface| interface.serializable)
+    pub fn get_interfaces(&self, module_path: &str) -> Vec<&CompiledInterface> {
+        self.interfaces
+            .iter()
+            .filter(|interface| interface.matches(module_path))
+            .collect()
     }
 
-    fn matching(self, module_path: &str) -> impl Iterator<Item = &'a CompiledInterface> {
-        let module_path = String::from(module_path);
-        self.filter(move |interface| {
-            interface
-                .from_modules
-                .iter()
-                .any(|re| re.is_match(&module_path))
-        })
+    pub fn get_interfaces_to_type_check(&self, module_path: &str) -> Vec<&CompiledInterface> {
+        self.interfaces
+            .iter()
+            .filter(|interface| interface.should_type_check(module_path))
+            .collect()
     }
 }

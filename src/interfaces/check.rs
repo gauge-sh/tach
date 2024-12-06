@@ -1,38 +1,40 @@
 use std::path::PathBuf;
 
+use super::data_types::{TypeCheckCache, TypeCheckResult};
 use super::error::InterfaceError;
-use super::matcher::{CompiledInterface, CompiledInterfaces};
-use super::serializable::{InterfaceMemberStatus, SerializableChecker};
+use super::matcher::CompiledInterfaces;
 use crate::core::config::{InterfaceConfig, ModuleConfig};
 
 pub struct InterfaceChecker {
     interfaces: CompiledInterfaces,
-    serializable_checker: SerializableChecker,
+    type_check_cache: Option<TypeCheckCache>,
 }
 
 pub enum CheckResult {
-    Exposed {
-        marked_serializable: bool,
-        is_serializable: bool,
-    },
+    Exposed { type_check_result: TypeCheckResult },
     NotExposed,
     NoInterfaces,
     TopLevelModule,
 }
 
 impl InterfaceChecker {
-    pub fn build(
-        interfaces: &[InterfaceConfig],
+    pub fn new(interfaces: &[InterfaceConfig]) -> Self {
+        let compiled = CompiledInterfaces::build(interfaces);
+
+        Self {
+            interfaces: compiled,
+            type_check_cache: None,
+        }
+    }
+
+    pub fn with_type_check_cache(
+        mut self,
         modules: &[ModuleConfig],
         source_roots: &[PathBuf],
     ) -> Result<Self, InterfaceError> {
-        let compiled = CompiledInterfaces::build(interfaces);
-        let serializable_checker = SerializableChecker::build(&compiled, modules, source_roots)?;
-
-        Ok(Self {
-            interfaces: compiled,
-            serializable_checker,
-        })
+        let type_check_cache = TypeCheckCache::build(&self.interfaces, modules, source_roots)?;
+        self.type_check_cache = Some(type_check_cache);
+        Ok(self)
     }
 
     pub fn check_member(&self, member: &str, module_path: &str) -> CheckResult {
@@ -40,19 +42,16 @@ impl InterfaceChecker {
             return CheckResult::TopLevelModule;
         }
 
-        let matching_interfaces: Vec<&CompiledInterface> =
-            self.interfaces.matching(module_path).collect();
+        let matching_interfaces = self.interfaces.get_interfaces(module_path);
 
         if matching_interfaces.is_empty() {
             return CheckResult::NoInterfaces;
         }
 
         let mut is_exposed = false;
-        let mut marked_serializable = false;
         for interface in matching_interfaces {
             if interface.expose.iter().any(|re| re.is_match(member)) {
                 is_exposed = true;
-                marked_serializable |= interface.serializable;
             }
         }
 
@@ -61,11 +60,11 @@ impl InterfaceChecker {
         }
 
         CheckResult::Exposed {
-            marked_serializable,
-            is_serializable: matches!(
-                self.serializable_checker.is_serializable(member),
-                InterfaceMemberStatus::Serializable | InterfaceMemberStatus::Unknown
-            ),
+            type_check_result: self
+                .type_check_cache
+                .as_ref()
+                .map(|cache| cache.get_result(member))
+                .unwrap_or(TypeCheckResult::Unknown),
         }
     }
 }
