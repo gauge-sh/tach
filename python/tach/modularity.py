@@ -142,7 +142,7 @@ class ErrorInfo:
 
 @dataclass
 class BoundaryError:
-    file_path: Path
+    file_path: str
     line_number: int
     import_mod_path: str
     error_info: ErrorInfo
@@ -275,7 +275,7 @@ def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
         ],
         deprecated_warnings=[
             BoundaryError(
-                file_path=Path(warning.file_path),
+                file_path=warning.file_path,
                 line_number=warning.line_number,
                 import_mod_path=warning.import_mod_path,
                 error_info=ErrorInfo(

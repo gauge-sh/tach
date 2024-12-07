@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class ExternalCheckDiagnosticts:
+class ExternalCheckDiagnostics:
     undeclared_dependencies: dict[str, list[str]]
     unused_dependencies: dict[str, list[str]]
 
@@ -34,7 +34,7 @@ def check_external(
     project_root: Path,
     project_config: ProjectConfig,
     exclude_paths: list[str],
-) -> ExternalCheckDiagnosticts:
+) -> ExternalCheckDiagnostics:
     serialized_source_roots = [
         str(project_root / source_root) for source_root in project_config.source_roots
     ]
@@ -82,7 +82,7 @@ def check_external(
         if dependencies:
             filtered_unused_dependencies[filepath] = list(dependencies)
 
-    return ExternalCheckDiagnosticts(
+    return ExternalCheckDiagnostics(
         undeclared_dependencies=filtered_undeclared_dependencies,
         unused_dependencies=filtered_unused_dependencies,
     )
