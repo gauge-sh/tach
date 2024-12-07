@@ -5,10 +5,9 @@ use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::core::config::{ModuleConfig, ProjectConfig};
-use crate::core::module::ModuleTree;
 use crate::filesystem::{self as fs};
 use crate::imports::get_project_imports;
-use crate::parsing::module::build_module_tree;
+use crate::modules::{build_module_tree, ModuleTree};
 
 #[derive(Error, Debug)]
 pub enum TestError {
@@ -57,7 +56,7 @@ impl TachPytestPluginHandler {
         // TODO: Remove unwraps
         let module_tree = build_module_tree(
             &source_roots,
-            valid_modules,
+            &valid_modules,
             project_config.forbid_circular_dependencies,
             project_config.root_module.clone(),
         )

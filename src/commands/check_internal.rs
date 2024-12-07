@@ -8,15 +8,15 @@ use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::{
-    core::{
-        config::{ProjectConfig, RootModuleTreatment, RuleSetting},
-        interfaces::InterfaceChecker,
-        module::{ModuleNode, ModuleTree},
-    },
+    core::config::{ProjectConfig, RootModuleTreatment, RuleSetting},
     exclusion::{self, is_path_excluded, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
-    parsing::{self, module::build_module_tree},
+    interfaces::{
+        check::CheckResult as InterfaceCheckResult, data_types::TypeCheckResult,
+        error::InterfaceError, InterfaceChecker,
+    },
+    modules::{self, build_module_tree, ModuleNode, ModuleTree},
 };
 
 #[derive(Error, Debug)]
@@ -26,9 +26,11 @@ pub enum CheckError {
     #[error("Filesystem error: {0}")]
     Filesystem(#[from] fs::FileSystemError),
     #[error("Module tree error: {0}")]
-    ModuleTree(#[from] parsing::error::ModuleTreeError),
+    ModuleTree(#[from] modules::error::ModuleTreeError),
     #[error("Exclusion error: {0}")]
     Exclusion(#[from] exclusion::PathExclusionError),
+    #[error("Interface error: {0}")]
+    Interface(#[from] InterfaceError),
 }
 
 #[derive(Debug, Clone)]
@@ -55,10 +57,17 @@ pub enum ImportCheckError {
     ModuleNotFound { file_mod_path: String },
 
     #[error("Module '{import_nearest_module_path}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
-    StrictModeImport {
+    PrivateImport {
         import_mod_path: String,
         import_nearest_module_path: String,
         file_nearest_module_path: String,
+    },
+
+    #[error("The import '{import_mod_path}' (from module '{import_nearest_module_path}') matches an interface but does not match the expected data type ('{expected_data_type}').")]
+    InvalidDataTypeExport {
+        import_mod_path: String,
+        import_nearest_module_path: String,
+        expected_data_type: String,
     },
 
     #[error("Could not find module configuration.")]
@@ -81,6 +90,9 @@ pub enum ImportCheckError {
     #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
     UnusedIgnoreDirective { import_mod_path: String },
 
+    #[error("Import '{import_mod_path}' is ignored without providing a reason.")]
+    MissingIgnoreDirectiveReason { import_mod_path: String },
+
     #[error("No checks enabled. At least one of dependencies or interfaces must be enabled.")]
     NoChecksEnabled(),
 }
@@ -95,7 +107,10 @@ impl ImportCheckError {
     }
 
     pub fn is_interface_error(&self) -> bool {
-        matches!(self, Self::StrictModeImport { .. })
+        matches!(
+            self,
+            Self::PrivateImport { .. } | Self::InvalidDataTypeExport { .. }
+        )
     }
 
     pub fn source_path(&self) -> Option<&String> {
@@ -123,38 +138,15 @@ impl ImportCheckError {
     }
 }
 
-fn is_top_level_module_import(mod_path: &str, module: &ModuleNode) -> bool {
-    mod_path == module.full_path
-}
-
-fn import_matches_interface_members(mod_path: &str, module: &ModuleNode) -> bool {
-    let mod_path_segments: Vec<&str> = mod_path.rsplitn(2, '.').collect();
-
-    if mod_path_segments.len() == 1 {
-        // If there's no '.' in the path, compare the whole path with the module's full path.
-        mod_path_segments[0] == module.full_path
-    } else {
-        // If there's a '.', split into package path and member name.
-        let mod_pkg_path = mod_path_segments[1];
-        let mod_member_name = mod_path_segments[0];
-
-        mod_pkg_path == module.full_path
-            && module
-                .interface_members
-                .contains(&mod_member_name.to_string())
-    }
-}
-
 fn check_import(
     import_mod_path: &str,
     module_tree: &ModuleTree,
     file_nearest_module: Arc<ModuleNode>,
     root_module_treatment: RootModuleTreatment,
-    interface_checker: &InterfaceChecker,
+    interface_checker: &Option<InterfaceChecker>,
     check_dependencies: bool,
-    check_interfaces: bool,
 ) -> Result<(), ImportCheckError> {
-    if !check_dependencies && !check_interfaces {
+    if !check_dependencies && interface_checker.is_none() {
         return Err(ImportCheckError::NoChecksEnabled());
     }
 
@@ -174,21 +166,32 @@ fn check_import(
         return Ok(());
     }
 
-    if check_interfaces
-        && interface_checker.has_interface(&import_nearest_module.full_path)
-        && import_mod_path != &import_nearest_module.full_path
-    {
+    if let Some(interface_checker) = interface_checker {
+        // When interfaces are enabled, we check whether the import is a valid export
         let import_member = import_mod_path
             .strip_prefix(&import_nearest_module.full_path)
             .and_then(|s| s.strip_prefix('.'))
-            .unwrap_or(import_mod_path);
-
-        if !interface_checker.check(import_member, &import_nearest_module.full_path) {
-            return Err(ImportCheckError::StrictModeImport {
-                import_mod_path: import_mod_path.to_string(),
-                import_nearest_module_path: import_nearest_module.full_path.to_string(),
-                file_nearest_module_path: file_nearest_module.full_path.to_string(),
-            });
+            .unwrap_or("");
+        let check_result =
+            interface_checker.check_member(import_member, &import_nearest_module.full_path);
+        match check_result {
+            InterfaceCheckResult::NotExposed => {
+                return Err(ImportCheckError::PrivateImport {
+                    import_mod_path: import_mod_path.to_string(),
+                    import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                    file_nearest_module_path: file_nearest_module.full_path.to_string(),
+                });
+            }
+            InterfaceCheckResult::Exposed {
+                type_check_result: TypeCheckResult::DidNotMatchInterface { expected },
+            } => {
+                return Err(ImportCheckError::InvalidDataTypeExport {
+                    import_mod_path: import_mod_path.to_string(),
+                    import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                    expected_data_type: expected.to_string(),
+                });
+            }
+            _ => {}
         }
     }
 
@@ -291,7 +294,7 @@ pub fn check(
 
     let module_tree = build_module_tree(
         &source_roots,
-        valid_modules,
+        &valid_modules,
         project_config.forbid_circular_dependencies,
         project_config.root_module.clone(),
     )?;
@@ -302,7 +305,13 @@ pub fn check(
         project_config.use_regex_matching,
     )?;
 
-    let interface_checker = InterfaceChecker::new(&project_config.interfaces);
+    let interface_checker = if interfaces {
+        let interface_checker = InterfaceChecker::new(&project_config.interfaces);
+        // This is expensive
+        Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
+    } else {
+        None
+    };
 
     for source_root in &source_roots {
         for file_path in fs::walk_pyfiles(&source_root.display().to_string()) {
@@ -364,7 +373,6 @@ pub fn check(
                     project_config.root_module.clone(),
                     &interface_checker,
                     dependencies,
-                    interfaces,
                 ) else {
                     continue;
                 };
@@ -380,44 +388,75 @@ pub fn check(
                     boundary_errors.push(boundary_error);
                 }
             }
-
-            if project_config.rules.unused_ignore_directives == RuleSetting::Off {
+            // Skip directive-related checks if both rules are off
+            if project_config.rules.unused_ignore_directives == RuleSetting::Off
+                && project_config.rules.require_ignore_directive_reasons == RuleSetting::Off
+            {
                 continue;
             }
+
             for directive_ignored_import in project_imports.directive_ignored_imports {
-                if check_import(
-                    &directive_ignored_import.module_path,
-                    &module_tree,
-                    Arc::clone(&nearest_module),
-                    project_config.root_module.clone(),
-                    &interface_checker,
-                    dependencies,
-                    interfaces,
-                )
-                .is_ok()
+                // Check for missing ignore directive reasons
+                if project_config.rules.require_ignore_directive_reasons != RuleSetting::Off
+                    && directive_ignored_import.reason.is_empty()
                 {
-                    let message = format!(
-                        "Import '{}' is unnecessarily ignored by a directive.",
-                        directive_ignored_import.module_path
-                    );
-                    match project_config.rules.unused_ignore_directives {
-                        RuleSetting::Error => {
+                    let error = BoundaryError {
+                        file_path: file_path.clone(),
+                        line_number: directive_ignored_import.import.line_no,
+                        import_mod_path: directive_ignored_import.import.module_path.to_string(),
+                        error_info: ImportCheckError::MissingIgnoreDirectiveReason {
+                            import_mod_path: directive_ignored_import
+                                .import
+                                .module_path
+                                .to_string(),
+                        },
+                    };
+                    if project_config.rules.require_ignore_directive_reasons == RuleSetting::Error {
+                        boundary_errors.push(error);
+                    } else {
+                        warnings.push(format!(
+                            "Import '{}' is ignored without providing a reason",
+                            directive_ignored_import.import.module_path
+                        ));
+                    }
+                }
+
+                // Check for unnecessary ignore directives
+                if project_config.rules.unused_ignore_directives != RuleSetting::Off {
+                    let is_unnecessary = check_import(
+                        &directive_ignored_import.import.module_path,
+                        &module_tree,
+                        Arc::clone(&nearest_module),
+                        project_config.root_module.clone(),
+                        &interface_checker,
+                        dependencies,
+                    )
+                    .is_ok();
+
+                    if is_unnecessary {
+                        let message = format!(
+                            "Import '{}' is unnecessarily ignored by a directive.",
+                            directive_ignored_import.import.module_path
+                        );
+
+                        if project_config.rules.unused_ignore_directives == RuleSetting::Error {
                             boundary_errors.push(BoundaryError {
                                 file_path: file_path.clone(),
-                                line_number: directive_ignored_import.line_no,
-                                import_mod_path: directive_ignored_import.module_path.to_string(),
+                                line_number: directive_ignored_import.import.line_no,
+                                import_mod_path: directive_ignored_import
+                                    .import
+                                    .module_path
+                                    .to_string(),
                                 error_info: ImportCheckError::UnusedIgnoreDirective {
                                     import_mod_path: directive_ignored_import
+                                        .import
                                         .module_path
                                         .to_string(),
                                 },
                             });
-                        }
-                        RuleSetting::Warn => {
+                        } else {
                             warnings.push(message);
                         }
-                        // Should never be reached
-                        RuleSetting::Off => {}
                     }
                 }
             }
@@ -441,9 +480,9 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::config::InterfaceConfig;
-    use crate::core::module::ModuleTree;
-    use crate::tests::check_int::fixtures::{interface_config, module_tree};
+    use crate::core::config::{InterfaceConfig, ModuleConfig};
+    use crate::modules::ModuleTree;
+    use crate::tests::check_internal::fixtures::{interface_config, module_config, module_tree};
 
     use rstest::rstest;
 
@@ -462,13 +501,18 @@ mod tests {
     #[case("domain_two", "domain_two.subdomain", false)]
     fn test_check_import(
         module_tree: ModuleTree,
+        module_config: Vec<ModuleConfig>,
         interface_config: Vec<InterfaceConfig>,
         #[case] file_mod_path: &str,
         #[case] import_mod_path: &str,
         #[case] expected_result: bool,
     ) {
         let file_module = module_tree.find_nearest(file_mod_path).unwrap();
-        let interface_checker = InterfaceChecker::new(&interface_config);
+        let interface_checker = Some(
+            InterfaceChecker::new(&interface_config)
+                .with_type_check_cache(&module_config, &[PathBuf::from(".")])
+                .unwrap(),
+        );
 
         let check_error = check_import(
             import_mod_path,
@@ -476,7 +520,6 @@ mod tests {
             file_module.clone(),
             RootModuleTreatment::Allow,
             &interface_checker,
-            true,
             true,
         );
         let result = check_error.is_ok();
@@ -486,10 +529,15 @@ mod tests {
     #[rstest]
     fn test_check_deprecated_import(
         module_tree: ModuleTree,
+        module_config: Vec<ModuleConfig>,
         interface_config: Vec<InterfaceConfig>,
     ) {
         let file_module = module_tree.find_nearest("domain_one").unwrap();
-        let interface_checker = InterfaceChecker::new(&interface_config);
+        let interface_checker = Some(
+            InterfaceChecker::new(&interface_config)
+                .with_type_check_cache(&module_config, &[PathBuf::from(".")])
+                .unwrap(),
+        );
 
         let check_error = check_import(
             "domain_one.subdomain",
@@ -497,7 +545,6 @@ mod tests {
             file_module.clone(),
             RootModuleTreatment::Allow,
             &interface_checker,
-            true,
             true,
         );
         assert!(check_error.is_err());

@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::filesystem::{self, ROOT_MODULE_SENTINEL_TAG};
+pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
+pub const DEFAULT_EXCLUDE_PATHS: [&str; 4] = ["tests", "docs", ".*__pycache__", ".*egg-info"];
 
 // for serde
 fn default_true() -> bool {
@@ -14,7 +15,7 @@ fn default_source_roots() -> Vec<PathBuf> {
 }
 
 fn default_excludes() -> Vec<String> {
-    filesystem::DEFAULT_EXCLUDE_PATHS
+    DEFAULT_EXCLUDE_PATHS
         .iter()
         .map(|s| s.to_string())
         .collect()
@@ -132,6 +133,35 @@ impl ModuleConfig {
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum InterfaceDataTypes {
+    #[default]
+    All,
+    Primitive,
+}
+
+impl ToString for InterfaceDataTypes {
+    fn to_string(&self) -> String {
+        match self {
+            Self::All => "all".to_string(),
+            Self::Primitive => "primitive".to_string(),
+        }
+    }
+}
+
+impl InterfaceDataTypes {
+    fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+impl IntoPy<PyObject> for InterfaceDataTypes {
+    fn into_py(self, py: Python) -> PyObject {
+        self.to_string().to_object(py)
+    }
+}
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct InterfaceConfig {
     pub expose: Vec<String>,
@@ -141,6 +171,8 @@ pub struct InterfaceConfig {
         skip_serializing_if = "is_default_from_modules"
     )]
     pub from_modules: Vec<String>,
+    #[serde(default, skip_serializing_if = "InterfaceDataTypes::is_default")]
+    pub data_types: InterfaceDataTypes,
 }
 
 fn default_from_modules() -> Vec<String> {
@@ -291,12 +323,18 @@ pub struct RulesConfig {
         skip_serializing_if = "RuleSetting::is_warn"
     )]
     pub unused_ignore_directives: RuleSetting,
+    #[serde(
+        default = "RuleSetting::off",
+        skip_serializing_if = "RuleSetting::is_off"
+    )]
+    pub require_ignore_directive_reasons: RuleSetting,
 }
 
 impl Default for RulesConfig {
     fn default() -> Self {
         Self {
             unused_ignore_directives: RuleSetting::warn(),
+            require_ignore_directive_reasons: RuleSetting::off(),
         }
     }
 }

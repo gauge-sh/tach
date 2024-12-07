@@ -39,8 +39,8 @@ install: ##  Install the crate as module in the current virtualenv
 
 .PHONY: test
 test: ## Run tests
-	cd python/tests && \
-	../../$(VENV_BIN)/pytest
+	$(VENV_BIN)/pytest
+	cargo test
 
 
 .PHONY: lint fmt lint-rust lint-python fmt-rust fmt-python

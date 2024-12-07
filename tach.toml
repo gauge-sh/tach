@@ -184,7 +184,6 @@ from = [
     "tach.modularity",
 ]
 
-
 [[interfaces]]
 expose = [
     "__version__",
@@ -192,6 +191,7 @@ expose = [
 from = [
     "tach",
 ]
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -221,6 +221,7 @@ expose = [
 from = [
     "tach.constants",
 ]
+data_types = "primitive"
 
 [[interfaces]]
 expose = [
@@ -333,3 +334,4 @@ exclude = [
 
 [rules]
 unused_ignore_directives = "error"
+require_ignore_directive_reasons = "error"
