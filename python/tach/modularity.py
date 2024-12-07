@@ -265,7 +265,7 @@ def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
     return CheckResult(
         errors=[
             BoundaryError(
-                file_path=error.file_path,
+                file_path=str(error.file_path),
                 line_number=error.line_number,
                 import_mod_path=error.import_mod_path,
                 error_info=ErrorInfo(
@@ -277,7 +277,7 @@ def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
         ],
         deprecated_warnings=[
             BoundaryError(
-                file_path=warning.file_path,
+                file_path=str(warning.file_path),
                 line_number=warning.line_number,
                 import_mod_path=warning.import_mod_path,
                 error_info=ErrorInfo(
