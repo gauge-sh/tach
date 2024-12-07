@@ -5,8 +5,7 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib import parse
 
 from tach import filesystem as fs
@@ -20,6 +19,9 @@ from tach.extension import (
 )
 from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing import extend_and_validate
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def export_report(
@@ -142,7 +144,7 @@ class ErrorInfo:
 
 @dataclass
 class BoundaryError:
-    file_path: Path
+    file_path: str
     line_number: int
     import_mod_path: str
     error_info: ErrorInfo
@@ -263,7 +265,7 @@ def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
     return CheckResult(
         errors=[
             BoundaryError(
-                file_path=error.file_path,
+                file_path=str(error.file_path),
                 line_number=error.line_number,
                 import_mod_path=error.import_mod_path,
                 error_info=ErrorInfo(
@@ -275,7 +277,7 @@ def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
         ],
         deprecated_warnings=[
             BoundaryError(
-                file_path=Path(warning.file_path),
+                file_path=str(warning.file_path),
                 line_number=warning.line_number,
                 import_mod_path=warning.import_mod_path,
                 error_info=ErrorInfo(
