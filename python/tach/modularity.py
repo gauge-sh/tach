@@ -5,8 +5,7 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib import parse
 
 from tach import filesystem as fs
@@ -20,6 +19,9 @@ from tach.extension import (
 )
 from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing import extend_and_validate
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def export_report(

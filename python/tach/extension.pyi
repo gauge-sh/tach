@@ -89,7 +89,7 @@ class ErrorInfo:
     def is_deprecated(self) -> bool: ...
 
 class BoundaryError:
-    file_path: Path
+    file_path: str
     line_number: int
     import_mod_path: str
     error_info: ErrorInfo
