@@ -2,10 +2,8 @@
 pub mod fixtures {
     use std::{collections::HashMap, sync::Arc};
 
-    use crate::core::{
-        config::{DependencyConfig, ModuleConfig},
-        module::{ModuleNode, ModuleTree},
-    };
+    use crate::core::config::{DependencyConfig, ModuleConfig};
+    use crate::modules::{ModuleNode, ModuleTree};
     use rstest::fixture;
 
     #[fixture]
@@ -181,14 +179,12 @@ pub mod fixtures {
                 is_end_of_path: true,
                 full_path: ".".to_string(),
                 config: Some(ModuleConfig::new_root_config()),
-                interface_members: vec![],
                 children: HashMap::from([(
                     "tach".to_string(),
                     Arc::new(ModuleNode {
                         is_end_of_path: true,
                         full_path: "tach".to_string(),
                         config: Some(ModuleConfig::new("tach", true)),
-                        interface_members: vec!["__version__".to_string()],
                         children: HashMap::from([
                             (
                                 "__main__".to_string(),
@@ -201,7 +197,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec![],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -218,11 +213,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec![
-                                        "get_uid".to_string(),
-                                        "update_latest_version".to_string(),
-                                        "get_latest_version".to_string(),
-                                    ],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -243,10 +233,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec![
-                                        "BoundaryError".to_string(),
-                                        "check".to_string(),
-                                    ],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -279,7 +265,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec!["main".to_string()],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -289,7 +274,6 @@ pub mod fixtures {
                                     is_end_of_path: true,
                                     full_path: "tach.colors".to_string(),
                                     config: Some(ModuleConfig::new("tach.colors", true)),
-                                    interface_members: vec!["BCOLORS".to_string()],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -299,16 +283,6 @@ pub mod fixtures {
                                     is_end_of_path: true,
                                     full_path: "tach.constants".to_string(),
                                     config: Some(ModuleConfig::new("tach.constants", true)),
-                                    interface_members: [
-                                        "PACKAGE_NAME",
-                                        "TOOL_NAME",
-                                        "CONFIG_FILE_NAME",
-                                        "PACKAGE_FILE_NAME",
-                                        "ROOT_MODULE_SENTINEL_TAG",
-                                        "DEFAULT_EXCLUDE_PATHS",
-                                    ]
-                                    .map(str::to_string)
-                                    .into(),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -325,15 +299,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: [
-                                        "ProjectConfig",
-                                        "ModuleConfig",
-                                        "ModuleNode",
-                                        "ModuleTree",
-                                        "UnusedDependencies",
-                                    ]
-                                    .map(str::to_string)
-                                    .into(),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -343,13 +308,6 @@ pub mod fixtures {
                                     is_end_of_path: true,
                                     full_path: "tach.errors".to_string(),
                                     config: Some(ModuleConfig::new("tach.errors", true)),
-                                    interface_members: [
-                                        "TachError",
-                                        "TachParseError",
-                                        "TachSetupError",
-                                    ]
-                                    .map(str::to_string)
-                                    .into(),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -372,27 +330,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: [
-                                        "get_cwd",
-                                        "chdir",
-                                        "canonical",
-                                        "read_file",
-                                        "write_file",
-                                        "delete_file",
-                                        "parse_ast",
-                                        "walk",
-                                        "walk_pyfiles",
-                                        "file_to_module_path",
-                                        "module_to_file_path_no_members",
-                                        "module_to_pyfile_or_dir_path",
-                                        "get_project_config_path",
-                                        "find_project_config_root",
-                                        "install_pre_commit",
-                                        "validate_project_modules",
-                                        "ProjectModuleValidationResult",
-                                    ]
-                                    .map(str::to_string)
-                                    .into(),
                                     children: HashMap::from([(
                                         "git_ops".to_string(),
                                         Arc::new(ModuleNode {
@@ -406,7 +343,6 @@ pub mod fixtures {
                                                 strict: true,
                                                 ..Default::default()
                                             }),
-                                            interface_members: vec!["get_changed_files".to_string()],
                                             children: HashMap::new(),
                                         }),
                                     )]),
@@ -425,9 +361,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec![
-                                        "build_pre_commit_hook_content".to_string()
-                                    ],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -444,12 +377,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: [
-                                        "get_selected_modules_interactive",
-                                        "InteractiveModuleConfiguration",
-                                    ]
-                                    .map(str::to_string)
-                                    .into(),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -466,11 +393,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: [
-                                        "logger".to_string(),
-                                        "LogDataModel".to_string(),
-                                    ]
-                                    .into(),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -494,7 +416,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec!["mod_edit_interactive".to_string()],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -515,14 +436,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: [
-                                        "parse_project_config",
-                                        "dump_project_config_to_yaml",
-                                        "parse_interface_members",
-                                        "build_module_tree",
-                                    ]
-                                    .map(str::to_string)
-                                    .into(),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -539,7 +452,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec!["report".to_string()],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -549,7 +461,6 @@ pub mod fixtures {
                                     is_end_of_path: true,
                                     full_path: "tach.show".to_string(),
                                     config: Some(ModuleConfig::new("tach.show", true)),
-                                    interface_members: vec!["generate_show_url".to_string()],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -564,7 +475,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec!["start".to_string()],
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -586,12 +496,6 @@ pub mod fixtures {
                                         strict: true,
                                         ..Default::default()
                                     }),
-                                    interface_members: [
-                                        "sync_project",
-                                        "prune_dependency_constraints",
-                                    ]
-                                    .map(str::to_string)
-                                    .into(),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -613,7 +517,6 @@ pub mod fixtures {
                                         strict: false,
                                         ..Default::default()
                                     }),
-                                    interface_members: vec![],
                                     children: HashMap::new(),
                                 }),
                             ),

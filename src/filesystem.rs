@@ -9,11 +9,8 @@ use globset::GlobSetBuilder;
 use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
-use crate::core::config::ModuleConfig;
+use crate::core::config::{ModuleConfig, ROOT_MODULE_SENTINEL_TAG};
 use crate::exclusion::is_path_excluded;
-
-pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
-pub const DEFAULT_EXCLUDE_PATHS: [&str; 4] = ["tests", "docs", ".*__pycache__", ".*egg-info"];
 
 #[derive(Error, Debug)]
 pub enum FileSystemError {

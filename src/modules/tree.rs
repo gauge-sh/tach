@@ -3,9 +3,8 @@ use std::{
     sync::Arc,
 };
 
-use crate::parsing::error::ModuleTreeError;
-
-use super::config::ModuleConfig;
+use super::error::ModuleTreeError;
+use crate::core::config::ModuleConfig;
 
 /// A node in the module tree.
 ///
@@ -20,7 +19,6 @@ pub struct ModuleNode {
     pub is_end_of_path: bool,
     pub full_path: String,
     pub config: Option<ModuleConfig>,
-    pub interface_members: Vec<String>,
     pub children: HashMap<String, Arc<ModuleNode>>,
 }
 
@@ -30,7 +28,6 @@ impl ModuleNode {
             is_end_of_path: false,
             full_path: String::new(),
             config: None,
-            interface_members: vec![],
             children: HashMap::new(),
         }
     }
@@ -41,7 +38,6 @@ impl ModuleNode {
             is_end_of_path: true,
             full_path: ".".to_string(),
             config: Some(config),
-            interface_members: vec![],
             children: HashMap::new(),
         }
     }
@@ -54,16 +50,10 @@ impl ModuleNode {
         self.config.as_ref().map_or(false, |c| c.unchecked)
     }
 
-    pub fn fill(
-        &mut self,
-        config: ModuleConfig,
-        full_path: String,
-        interface_members: Vec<String>,
-    ) {
+    pub fn fill(&mut self, config: ModuleConfig, full_path: String) {
         self.is_end_of_path = true;
         self.config = Some(config);
         self.full_path = full_path;
-        self.interface_members = interface_members;
     }
 }
 
@@ -116,12 +106,7 @@ impl ModuleTree {
         }
     }
 
-    pub fn insert(
-        &mut self,
-        config: ModuleConfig,
-        path: String,
-        interface_members: Vec<String>,
-    ) -> Result<(), ModuleTreeError> {
+    pub fn insert(&mut self, config: ModuleConfig, path: String) -> Result<(), ModuleTreeError> {
         if path.is_empty() {
             return Err(ModuleTreeError::InsertNodeError);
         }
@@ -136,7 +121,7 @@ impl ModuleTree {
             .unwrap();
         }
 
-        node.fill(config, path, interface_members);
+        node.fill(config, path);
         Ok(())
     }
 
@@ -254,7 +239,7 @@ mod tests {
     #[rstest]
     fn test_insert_empty_path(test_config: ModuleConfig) {
         let mut tree = ModuleTree::new();
-        let result = tree.insert(test_config, "".to_string(), vec![]);
+        let result = tree.insert(test_config, "".to_string());
         assert!(matches!(
             result.unwrap_err(),
             ModuleTreeError::InsertNodeError
@@ -264,7 +249,7 @@ mod tests {
     #[rstest]
     fn test_insert_single_level_path(test_config: ModuleConfig) {
         let mut tree = ModuleTree::new();
-        let result = tree.insert(test_config, "domain".to_string(), vec![]);
+        let result = tree.insert(test_config, "domain".to_string());
         assert!(result.is_ok());
         let paths: Vec<String> = tree.iter().map(|node| node.full_path.clone()).collect();
         assert_eq!(paths, [".", "domain"]);
@@ -273,7 +258,7 @@ mod tests {
     #[rstest]
     fn test_insert_multi_level_path(test_config: ModuleConfig) {
         let mut tree = ModuleTree::new();
-        let result = tree.insert(test_config, "domain.subdomain".to_string(), vec![]);
+        let result = tree.insert(test_config, "domain.subdomain".to_string());
         assert!(result.is_ok());
         let paths: Vec<String> = tree.iter().map(|node| node.full_path.clone()).collect();
         assert_eq!(paths, [".", "domain.subdomain"]);

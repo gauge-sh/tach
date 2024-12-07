@@ -1,6 +1,6 @@
 [package]
 name = "tach"
-version = "0.16.1"
+version = "0.16.3"
 edition = "2021"
 
 [lib]
@@ -24,6 +24,7 @@ serde = { version = "1.0.215", features = ["derive"] }
 glob = "0.3.1"
 petgraph = "0.6.5"
 serde_json = "1.0.133"
+tempfile = "3.14.0"
 
 [features]
 extension-module = ["pyo3/extension-module"]

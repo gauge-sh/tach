@@ -6,14 +6,16 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
+use crate::external::{
+    error::ParsingError, parsing::normalize_package_name, parsing::parse_pyproject_toml,
+};
 use crate::filesystem::relative_to;
-use crate::parsing::external::{normalize_package_name, parse_pyproject_toml};
-use crate::{filesystem, imports, parsing};
+use crate::{filesystem, imports};
 
 #[derive(Error, Debug)]
 pub enum ExternalCheckError {
     #[error("Parsing error: {0}")]
-    Parse(#[from] parsing::error::ParsingError),
+    Parse(#[from] ParsingError),
     #[error("Import parsing error: {0}")]
     ImportParse(#[from] imports::ImportParseError),
     #[error("IO error: {0}")]

@@ -5,14 +5,18 @@ use std::{
 
 use crate::{
     colors::BColors,
-    core::config::{InterfaceConfig, ProjectConfig},
-    filesystem::{read_file_content, ROOT_MODULE_SENTINEL_TAG},
-    parsing::py_ast::parse_interface_members,
+    core::config::{InterfaceConfig, InterfaceDataTypes, ProjectConfig, ROOT_MODULE_SENTINEL_TAG},
+    filesystem::read_file_content,
+    python::parsing::parse_interface_members,
 };
 
 use super::error;
 
-pub fn dump_project_config_to_toml(config: &mut ProjectConfig) -> Result<String, toml::ser::Error> {
+pub type Result<T> = std::result::Result<T, error::ParsingError>;
+
+pub fn dump_project_config_to_toml(
+    config: &mut ProjectConfig,
+) -> std::result::Result<String, toml::ser::Error> {
     config.modules.sort_by(|a, b| {
         if a.path == ROOT_MODULE_SENTINEL_TAG {
             Ordering::Less
@@ -58,6 +62,7 @@ fn migrate_strict_mode_to_interfaces(filepath: &Path, config: &mut ProjectConfig
             interfaces.push(InterfaceConfig {
                 expose: interface_members,
                 from_modules: vec![module.path.clone()],
+                data_types: InterfaceDataTypes::All,
             });
         }
     }
@@ -65,7 +70,7 @@ fn migrate_strict_mode_to_interfaces(filepath: &Path, config: &mut ProjectConfig
     true
 }
 
-pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> error::Result<(ProjectConfig, bool)> {
+pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
     let content = read_file_content(filepath.as_ref())?;
     let mut config: ProjectConfig = toml::from_str(&content)?;
     let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config);
@@ -77,9 +82,10 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
-    use crate::filesystem::DEFAULT_EXCLUDE_PATHS;
     use crate::{
-        core::config::{DependencyConfig, ModuleConfig},
+        core::config::{
+            DependencyConfig, ModuleConfig, DEFAULT_EXCLUDE_PATHS, ROOT_MODULE_SENTINEL_TAG,
+        },
         tests::fixtures::example_dir,
     };
     use rstest::rstest;

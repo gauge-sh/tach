@@ -13,7 +13,7 @@ use crate::filesystem::{
     file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
 };
 use crate::imports::{get_project_imports, ImportParseError, NormalizedImport};
-use crate::parsing::{error::ModuleTreeError, module::build_module_tree};
+use crate::modules::{build_module_tree, error::ModuleTreeError};
 
 struct Dependency {
     file_path: PathBuf,
@@ -216,7 +216,7 @@ pub fn create_dependency_report(
         validate_project_modules(&source_roots, project_config.modules.clone());
     let module_tree = build_module_tree(
         &source_roots,
-        valid_modules,
+        &valid_modules,
         false,                      // skip circular dependency check in report
         RootModuleTreatment::Allow, // skip root module check in report
     )?;
