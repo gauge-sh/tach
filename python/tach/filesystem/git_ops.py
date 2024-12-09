@@ -28,9 +28,7 @@ def _get_branch_name(repo: Repo) -> str:
     except TypeError as e:
         # GHA uses a detached HEAD / shallow clone in actions/checkout@v4, get the branch name from env
         if is_github_actions():
-            repo_name = os.environ.get("GITHUB_HEAD_REF") or os.environ.get(
-                "GITHUB_REF_NAME"
-            )
+            repo_name = os.environ.get("GITHUB_HEAD_REF")
             if not repo_name:
                 raise e
         else:
