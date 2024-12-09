@@ -51,6 +51,7 @@ def upload_report_to_gauge(
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
 GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
+GAUGE_API_TIMEOUT = int(os.getenv("GAUGE_API_TIMEOUT", "10"))
 
 
 def build_modularity_upload_path(repo: str) -> str:
@@ -74,9 +75,9 @@ def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> None:
     try:
         url_parts: parse.ParseResult = parse.urlparse(full_url)
         if full_url.startswith("https://"):
-            conn = HTTPSConnection(url_parts.netloc, timeout=10)
+            conn = HTTPSConnection(url_parts.netloc, timeout=GAUGE_API_TIMEOUT)
         else:
-            conn = HTTPConnection(url_parts.netloc, timeout=10)
+            conn = HTTPConnection(url_parts.netloc, timeout=GAUGE_API_TIMEOUT)
         conn.request("POST", path, body=json_data, headers=headers)
         response = conn.getresponse()
 
