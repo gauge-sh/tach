@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tach.errors import TachError, TachSetupError
+
+if TYPE_CHECKING:
+    from git import Repo
 
 
 @dataclass
@@ -11,6 +16,24 @@ class GitBranchInfo:
     repo: str
     name: str
     commit: str
+
+
+def is_github_actions():
+    return os.environ.get("GITHUB_ACTIONS") == "true"
+
+
+def _get_branch_name(repo: Repo) -> str:
+    try:
+        repo_name = repo.active_branch.name
+    except TypeError as e:
+        # GHA uses a detached HEAD / shallow clone in actions/checkout@v4, get the branch name from env
+        if is_github_actions():
+            repo_name = os.environ.get("GITHUB_HEAD_REF")
+            if not repo_name:
+                raise e
+        else:
+            raise e
+    return repo_name
 
 
 def get_current_branch_info(
@@ -33,7 +56,7 @@ def get_current_branch_info(
     try:
         # TODO: support slashes or org names
         repo_name = repo.remotes.origin.url.split("/")[-1].replace(".git", "")
-        branch = repo.active_branch.name
+        branch = _get_branch_name(repo)
         commit = repo.head.commit.hexsha
     except Exception as e:
         raise TachError(f"Failed to determine current branch information!\nError: {e}")
