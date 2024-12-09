@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,17 +24,22 @@ def is_github_actions():
 
 
 def _get_branch_name(repo: Repo) -> str:
-    try:
-        repo_name = repo.active_branch.name
-    except TypeError as e:
-        # GHA uses a detached HEAD / shallow clone in actions/checkout@v4, get the branch name from env
-        if is_github_actions():
-            repo_name = os.environ.get("GITHUB_HEAD_REF")
-            if not repo_name:
-                raise e
-        else:
-            raise e
-    return repo_name
+    # GHA uses a detached HEAD / shallow clone in actions/checkout@v4, get the branch name from env
+    if is_github_actions():
+        return os.environ["GITHUB_HEAD_REF"]
+    else:
+        return repo.active_branch.name
+
+
+def _get_commit(repo: Repo) -> str:
+    # GHA uses a detached HEAD in actions/checkout@v4, get the commit from the event file
+    if is_github_actions():
+        event_path = os.environ["GITHUB_EVENT_PATH"]
+        with open(event_path) as f:
+            event_info = json.load(f)
+        return event_info["pull_request"]["head"]["sha"]
+    else:
+        return repo.head.commit.hexsha
 
 
 def get_current_branch_info(
@@ -57,7 +63,7 @@ def get_current_branch_info(
         # TODO: support slashes or org names
         repo_name = repo.remotes.origin.url.split("/")[-1].replace(".git", "")
         branch = _get_branch_name(repo)
-        commit = repo.head.commit.hexsha
+        commit = _get_commit(repo)
     except Exception as e:
         raise TachError(f"Failed to determine current branch information!\nError: {e}")
 
