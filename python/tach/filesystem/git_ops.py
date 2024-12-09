@@ -35,7 +35,7 @@ def _get_branch_name(repo: Repo) -> str:
                 raise e
         else:
             raise e
-        return repo_name
+    return repo_name
 
 
 def get_current_branch_info(
