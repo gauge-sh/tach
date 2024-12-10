@@ -31,7 +31,7 @@ def _get_branch_name(repo: Repo) -> str:
         return repo.active_branch.name
 
 
-def d(repo: Repo) -> str:
+def _get_commit(repo: Repo) -> str:
     # GHA uses a detached HEAD in actions/checkout@v4 pull requests, get the commit from the event file
     if is_github_actions():
         event_path = os.environ.get("GITHUB_EVENT_PATH")
