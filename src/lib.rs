@@ -22,6 +22,11 @@ use std::path::PathBuf;
 use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
 
+mod errors {
+    pyo3::import_exception!(tach.errors, TachCircularDependencyError);
+    pyo3::import_exception!(tach.errors, TachVisibilityError);
+}
+
 impl From<imports::ImportParseError> for PyErr {
     fn from(err: imports::ImportParseError) -> Self {
         match err {
@@ -66,12 +71,12 @@ impl From<check_internal::CheckError> for PyErr {
             modules::error::ModuleTreeError::CircularDependency(c),
         ) = err
         {
-            PyErr::new::<TachCircularDependencyError, _>(c)
+            errors::TachCircularDependencyError::new_err(c)
         } else if let check_internal::CheckError::ModuleTree(
             modules::error::ModuleTreeError::VisibilityViolation(v),
         ) = err
         {
-            PyErr::new::<TachVisibilityError, _>(v)
+            errors::TachVisibilityError::new_err(v)
         } else {
             PyValueError::new_err(err.to_string())
         }
@@ -380,41 +385,5 @@ fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(check, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_dependency_constraints, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
-    m.add(
-        "TachCircularDependencyError",
-        py.get_type_bound::<TachCircularDependencyError>(),
-    )?;
-    m.add(
-        "TachVisibilityError",
-        py.get_type_bound::<TachVisibilityError>(),
-    )?;
     Ok(())
-}
-
-#[pyclass(extends=PyValueError)]
-struct TachCircularDependencyError {
-    #[pyo3(get)]
-    dependencies: Vec<String>,
-}
-
-#[pymethods]
-impl TachCircularDependencyError {
-    #[new]
-    fn new(dependencies: Vec<String>) -> Self {
-        Self { dependencies }
-    }
-}
-
-#[pyclass(extends=PyValueError)]
-struct TachVisibilityError {
-    #[pyo3(get)]
-    visibility_errors: Vec<PyObject>,
-}
-
-#[pymethods]
-impl TachVisibilityError {
-    #[new]
-    fn new(visibility_errors: Vec<PyObject>) -> Self {
-        Self { visibility_errors }
-    }
 }
