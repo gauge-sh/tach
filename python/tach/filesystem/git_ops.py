@@ -24,22 +24,28 @@ def is_github_actions():
 
 
 def _get_branch_name(repo: Repo) -> str:
-    # GHA uses a detached HEAD / shallow clone in actions/checkout@v4, get the branch name from env
+    # GHA uses a detached HEAD / shallow clone in actions/checkout@v4
     if is_github_actions():
-        return os.environ["GITHUB_HEAD_REF"]
+        event_name = os.environ.get("GITHUB_EVENT_NAME")
+        # Different environment variables are used for PRs and pushes
+        if event_name == "pull_request":
+            return os.environ["GITHUB_HEAD_REF"]
+        return os.environ["GITHUB_REF_NAME"]
     else:
         return repo.active_branch.name
 
 
 def _get_commit(repo: Repo) -> str:
-    # GHA uses a detached HEAD in actions/checkout@v4, get the commit from the event file
+    # GHA uses a detached HEAD / shallow clone in actions/checkout@v4
     if is_github_actions():
-        event_path = os.environ["GITHUB_EVENT_PATH"]
-        with open(event_path) as f:
-            event_info = json.load(f)
-        return event_info["pull_request"]["head"]["sha"]
-    else:
-        return repo.head.commit.hexsha
+        event_name = os.environ.get("GITHUB_EVENT_NAME")
+        event_path = os.environ.get("GITHUB_EVENT_PATH")
+        if event_path and event_name == "pull_request":
+            with open(event_path) as f:
+                event_info = json.load(f)
+                # Pull commit from the PR event in GHA
+                return event_info["pull_request"]["head"]["sha"]
+    return repo.head.commit.hexsha
 
 
 def get_current_branch_info(
