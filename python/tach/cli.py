@@ -12,11 +12,14 @@ from tach import filesystem as fs
 from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
-from tach.errors import TachClosedBetaError, TachError
+from tach.errors import (
+    TachCircularDependencyError,
+    TachClosedBetaError,
+    TachError,
+    TachVisibilityError,
+)
 from tach.extension import (
     ProjectConfig,
-    TachCircularDependencyError,
-    TachVisibilityError,
     check,
     check_computation_cache,
     create_computation_cache_key,
