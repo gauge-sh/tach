@@ -484,6 +484,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Ignore warnings and force the report to be generated.",
     )
 
+    ## tach server
+    subparsers.add_parser(
+        "server",
+        prog=f"{TOOL_NAME} server",
+        help="Start the Language Server Protocol (LSP) server",
+        description="Start the Language Server Protocol (LSP) server",
+    )
+
     return parser
 
 
@@ -1167,6 +1175,10 @@ def main() -> None:
             project_root=project_root,
             force=args.force,
         )
+    elif args.command == "server":
+        # Placeholder for future LSP server implementation
+        print(f"{BCOLORS.WARNING}LSP server functionality coming soon!{BCOLORS.ENDC}")
+        sys.exit(0)
     else:
         print("Unrecognized command")
         parser.print_help()
