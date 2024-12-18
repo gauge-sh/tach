@@ -25,6 +25,9 @@ glob = "0.3.1"
 petgraph = "0.6.5"
 serde_json = "1.0.133"
 tempfile = "3.14.0"
+lsp-server = "0.7.7"
+lsp-types = "0.97.0"
+crossbeam-channel = "0.5.14"
 
 [features]
 extension-module = ["pyo3/extension-module"]
