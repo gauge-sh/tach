@@ -15,4 +15,10 @@ pub enum ServerError {
     Protocol(#[from] ProtocolError),
     #[error("Channel error: {0}")]
     Channel(#[from] SendError<Message>),
+    #[error("Channel error: {0}")]
+    ChannelFlag(#[from] crossbeam_channel::SendError<()>),
+    #[error("Encountered error while handling shutdown")]
+    Shutdown(#[from] ctrlc::Error),
+    #[error("Thread panicked")]
+    ThreadPanic,
 }

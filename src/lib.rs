@@ -8,7 +8,7 @@ pub mod external;
 pub mod filesystem;
 pub mod imports;
 pub mod interfaces;
-pub mod lsp_server;
+pub mod lsp;
 pub mod modules;
 pub mod parsing;
 pub mod pattern;
@@ -117,8 +117,8 @@ impl From<sync::SyncError> for PyErr {
     }
 }
 
-impl From<lsp_server::error::ServerError> for PyErr {
-    fn from(err: lsp_server::error::ServerError) -> Self {
+impl From<lsp::error::ServerError> for PyErr {
+    fn from(err: lsp::error::ServerError) -> Self {
         PyOSError::new_err(err.to_string())
     }
 }
@@ -374,7 +374,7 @@ pub fn sync_project(
 fn run_server(
     project_root: PathBuf,
     project_config: config::ProjectConfig,
-) -> Result<(), lsp_server::error::ServerError> {
+) -> Result<(), lsp::error::ServerError> {
     server::run_server(project_root, project_config)
 }
 
