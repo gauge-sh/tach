@@ -23,6 +23,7 @@ from tach.extension import (
     check,
     check_computation_cache,
     create_computation_cache_key,
+    run_server,
     sync_dependency_constraints,
     update_computation_cache,
 )
@@ -1080,6 +1081,21 @@ def tach_upload(
         sys.exit(1)
 
 
+def tach_server(project_root: Path):
+    logger.info(
+        "tach server called",
+        extra={
+            "data": LogDataModel(function="tach_server"),
+        },
+    )
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_found()
+        sys.exit(1)
+
+    run_server(project_root, project_config)
+
+
 def current_version_is_behind(latest_version: str) -> bool:
     try:
         current_version_parts = list(map(int, __version__.split(".")[:3]))
@@ -1176,9 +1192,7 @@ def main() -> None:
             force=args.force,
         )
     elif args.command == "server":
-        # Placeholder for future LSP server implementation
-        print(f"{BCOLORS.WARNING}LSP server functionality coming soon!{BCOLORS.ENDC}")
-        sys.exit(0)
+        tach_server(project_root=project_root)
     else:
         print("Unrecognized command")
         parser.print_help()

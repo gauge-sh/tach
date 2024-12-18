@@ -14,7 +14,7 @@ pub mod pattern;
 pub mod python;
 pub mod tests;
 
-use commands::{check_external, check_internal, report, sync, test};
+use commands::{check_external, check_internal, report, server, sync, test};
 use core::config;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -113,6 +113,12 @@ impl From<sync::SyncError> for PyErr {
             sync::SyncError::CheckError(err) => err.into(),
             sync::SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
         }
+    }
+}
+
+impl From<server::ServerError> for PyErr {
+    fn from(err: server::ServerError) -> Self {
+        PyOSError::new_err(err.to_string())
     }
 }
 
@@ -362,6 +368,15 @@ pub fn sync_project(
     sync::sync_project(project_root, project_config, exclude_paths, add)
 }
 
+#[pyfunction]
+#[pyo3(signature = (project_root, project_config))]
+fn run_server(
+    project_root: PathBuf,
+    project_config: config::ProjectConfig,
+) -> Result<(), server::ServerError> {
+    server::run_server(project_root, project_config)
+}
+
 #[pymodule]
 fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::ProjectConfig>()?;
@@ -385,5 +400,6 @@ fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(check, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_dependency_constraints, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
     Ok(())
 }
