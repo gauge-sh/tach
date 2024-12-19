@@ -140,6 +140,9 @@ impl LSPServer {
                             eprintln!("Received message: {msg:?}");
                             match msg {
                                 Message::Request(req) => {
+                                    if connection.handle_shutdown(&req)? {
+                                        return Ok(());
+                                    }
                                     eprintln!("[Ignored] Received request: {req:?}");
                                 }
                                 Message::Response(resp) => {
