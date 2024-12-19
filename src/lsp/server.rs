@@ -1,14 +1,12 @@
 use lsp_types::notification::Notification;
 use lsp_types::request::Request;
-use lsp_types::InitializeParams;
+use lsp_types::{InitializeParams, Uri};
 use std::path::PathBuf;
 use std::thread::{self, JoinHandle};
 
-use lsp_server::{
-    Connection, ExtractError, Message, Notification as NotificationMessage,
-    Request as RequestMessage, RequestId,
-};
+use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
 
+use crate::check_internal::check;
 use crate::core::config;
 
 use super::error::ServerError;
@@ -126,6 +124,58 @@ impl LSPServer {
         Ok(())
     }
 
+    fn lint_for_diagnostics(
+        &self,
+        uri: Uri,
+    ) -> Result<lsp_types::PublishDiagnosticsParams, ServerError> {
+        let uri_path = uri.as_str().trim_start_matches("file://");
+        let uri_pathbuf = PathBuf::from(uri_path);
+
+        let check_result = check(
+            self.project_root.clone(),
+            &self.project_config,
+            true,
+            true,
+            self.project_config.exclude.clone(),
+        )?;
+        eprintln!("uri: {}", uri_pathbuf.to_str().unwrap());
+        let diagnostics = check_result
+            .errors
+            .into_iter()
+            .filter_map(|e| {
+                if self.project_config.source_roots.iter().any(|source_root| {
+                    let full_path = self.project_root.join(source_root).join(&e.file_path);
+                    eprintln!("err full_path: {}", full_path.to_str().unwrap());
+                    uri_pathbuf == full_path
+                }) {
+                    Some(lsp_types::Diagnostic {
+                        range: lsp_types::Range {
+                            start: lsp_types::Position {
+                                line: (e.line_number - 1) as u32,
+                                character: 0,
+                            },
+                            end: lsp_types::Position {
+                                line: (e.line_number - 1) as u32,
+                                character: 99999,
+                            },
+                        },
+                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                        source: Some("tach".to_string()),
+                        message: e.error_info.to_string(),
+                        ..Default::default()
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Ok(lsp_types::PublishDiagnosticsParams {
+            uri,
+            diagnostics,
+            version: None,
+        })
+    }
+
     fn publish_diagnostics(
         &self,
         connection: &Connection,
@@ -165,11 +215,7 @@ impl LSPServer {
                                         lsp_types::request::DocumentDiagnosticRequest::METHOD => {
                                             eprintln!("Received Diagnostic request");
                                             let (_, data): (RequestId, lsp_types::DocumentDiagnosticParams) = req.extract(lsp_types::request::DocumentDiagnosticRequest::METHOD).unwrap();
-                                            let diagnostics = lsp_types::PublishDiagnosticsParams {
-                                                uri: data.text_document.uri.clone(),
-                                                diagnostics: vec![],
-                                                version: None,
-                                            };
+                                            let diagnostics = self.lint_for_diagnostics(data.text_document.uri.clone())?;
                                             self.publish_diagnostics(&connection, &diagnostics)?;
                                         }
                                         _ => {
@@ -186,21 +232,13 @@ impl LSPServer {
                                         lsp_types::notification::DidOpenTextDocument::METHOD => {
                                             eprintln!("Received DidOpen notification");
                                             let data: lsp_types::DidOpenTextDocumentParams = notification.extract(lsp_types::notification::DidOpenTextDocument::METHOD).unwrap();
-                                            let diagnostics = lsp_types::PublishDiagnosticsParams {
-                                                uri: data.text_document.uri.clone(),
-                                                diagnostics: vec![],
-                                                version: Some(data.text_document.version),
-                                            };
+                                            let diagnostics = self.lint_for_diagnostics(data.text_document.uri.clone())?;
                                             self.publish_diagnostics(&connection, &diagnostics)?;
                                         }
                                         lsp_types::notification::DidSaveTextDocument::METHOD => {
                                             eprintln!("Received DidSave notification");
                                             let data: lsp_types::DidSaveTextDocumentParams = notification.extract(lsp_types::notification::DidSaveTextDocument::METHOD).unwrap();
-                                            let diagnostics = lsp_types::PublishDiagnosticsParams {
-                                                uri: data.text_document.uri.clone(),
-                                                diagnostics: vec![],
-                                                version: None,
-                                            };
+                                            let diagnostics = self.lint_for_diagnostics(data.text_document.uri.clone())?;
                                             self.publish_diagnostics(&connection, &diagnostics)?;
                                         }
                                         lsp_types::notification::DidCloseTextDocument::METHOD => {

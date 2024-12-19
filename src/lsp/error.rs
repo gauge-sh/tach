@@ -3,6 +3,7 @@ use lsp_server::{Message, ProtocolError};
 use std::io;
 use thiserror::Error;
 
+use crate::check_internal::CheckError;
 use crate::filesystem::FileSystemError;
 
 #[derive(Error, Debug)]
@@ -21,4 +22,6 @@ pub enum ServerError {
     Shutdown(#[from] ctrlc::Error),
     #[error("Thread panicked")]
     ThreadPanic,
+    #[error("Failed to lint files: {0}")]
+    Lint(#[from] CheckError),
 }
