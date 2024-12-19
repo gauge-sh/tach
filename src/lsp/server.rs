@@ -138,14 +138,12 @@ impl LSPServer {
             true,
             self.project_config.exclude.clone(),
         )?;
-        eprintln!("uri: {}", uri_pathbuf.to_str().unwrap());
         let diagnostics = check_result
             .errors
             .into_iter()
             .filter_map(|e| {
                 if self.project_config.source_roots.iter().any(|source_root| {
                     let full_path = self.project_root.join(source_root).join(&e.file_path);
-                    eprintln!("err full_path: {}", full_path.to_str().unwrap());
                     uri_pathbuf == full_path
                 }) {
                     Some(lsp_types::Diagnostic {
