@@ -3,7 +3,9 @@ use lsp_types::InitializeParams;
 use std::path::PathBuf;
 use std::thread::{self, JoinHandle};
 
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
+use lsp_server::{
+    Connection, ExtractError, Message, Notification as NotificationMessage, Request, RequestId,
+};
 
 use crate::core::config;
 
@@ -122,6 +124,20 @@ impl LSPServer {
         Ok(())
     }
 
+    fn publish_diagnostics(
+        &self,
+        connection: &Connection,
+        params: &lsp_types::PublishDiagnosticsParams,
+    ) -> Result<(), ServerError> {
+        connection
+            .sender
+            .send(Message::Notification(NotificationMessage {
+                method: lsp_types::notification::PublishDiagnostics::METHOD.to_string(),
+                params: serde_json::to_value(params).unwrap(),
+            }))?;
+        Ok(())
+    }
+
     fn main_loop(
         &self,
         connection: Connection,
@@ -143,29 +159,43 @@ impl LSPServer {
                                     if connection.handle_shutdown(&req)? {
                                         return Ok(());
                                     }
-                                    eprintln!("[Ignored] Received request: {req:?}");
+                                    eprintln!("[Ignored] Received request: {:?}", req.method);
                                 }
                                 Message::Response(resp) => {
-                                    eprintln!("[Ignored] Got response: {resp:?}");
+                                    eprintln!("[Ignored] Got response: {:?}", resp.id);
                                 }
                                 Message::Notification(notification) => {
-                                    eprintln!("Received notification: {notification:?}");
+                                    eprintln!("Received notification: {:?}", notification.method);
                                     match notification.method.as_str() {
                                         lsp_types::notification::DidOpenTextDocument::METHOD => {
                                             eprintln!("Received DidOpen notification");
                                             let data: lsp_types::DidOpenTextDocumentParams = notification.extract(lsp_types::notification::DidOpenTextDocument::METHOD).unwrap();
-                                            eprintln!("DidOpen notification data: {data:?}");
-                                            // how to actually read the text document
+                                            let diagnostics = lsp_types::PublishDiagnosticsParams {
+                                                uri: data.text_document.uri.clone(),
+                                                diagnostics: vec![],
+                                                version: Some(data.text_document.version),
+                                            };
+                                            self.publish_diagnostics(&connection, &diagnostics)?;
                                         }
                                         lsp_types::notification::DidSaveTextDocument::METHOD => {
                                             eprintln!("Received DidSave notification");
                                             let data: lsp_types::DidSaveTextDocumentParams = notification.extract(lsp_types::notification::DidSaveTextDocument::METHOD).unwrap();
-                                            eprintln!("DidSave notification data: {data:?}");
+                                            let diagnostics = lsp_types::PublishDiagnosticsParams {
+                                                uri: data.text_document.uri.clone(),
+                                                diagnostics: vec![],
+                                                version: None,
+                                            };
+                                            self.publish_diagnostics(&connection, &diagnostics)?;
                                         }
                                         lsp_types::notification::DidCloseTextDocument::METHOD => {
                                             eprintln!("Received DidClose notification");
                                             let data: lsp_types::DidCloseTextDocumentParams = notification.extract(lsp_types::notification::DidCloseTextDocument::METHOD).unwrap();
-                                            eprintln!("DidClose notification data: {data:?}");
+                                            let diagnostics = lsp_types::PublishDiagnosticsParams {
+                                                uri: data.text_document.uri.clone(),
+                                                diagnostics: vec![],
+                                                version: None,
+                                            };
+                                            self.publish_diagnostics(&connection, &diagnostics)?;
                                         }
                                         _ => {
                                             eprintln!("Received unknown notification: {}", notification.method);
