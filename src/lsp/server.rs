@@ -1,10 +1,9 @@
 use lsp_types::notification::Notification;
-use lsp_types::OneOf;
-use lsp_types::{InitializeParams, ServerCapabilities};
+use lsp_types::InitializeParams;
 use std::path::PathBuf;
 use std::thread::{self, JoinHandle};
 
-use lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response};
+use lsp_server::{Connection, ExtractError, Message, Request, RequestId};
 
 use crate::core::config;
 
@@ -67,6 +66,32 @@ impl LSPServer {
         })
     }
 
+    fn server_capabilities(&self) -> lsp_types::ServerCapabilities {
+        lsp_types::ServerCapabilities {
+            diagnostic_provider: Some(lsp_types::DiagnosticServerCapabilities::Options(
+                lsp_types::DiagnosticOptions {
+                    identifier: Some("tach".into()),
+                    inter_file_dependencies: false,
+                    workspace_diagnostics: false,
+                    work_done_progress_options: lsp_types::WorkDoneProgressOptions {
+                        work_done_progress: Some(false),
+                    },
+                },
+            )),
+            text_document_sync: Some(lsp_types::TextDocumentSyncCapability::Options(
+                lsp_types::TextDocumentSyncOptions {
+                    open_close: Some(true),
+                    change: Some(lsp_types::TextDocumentSyncKind::INCREMENTAL),
+                    save: Some(lsp_types::TextDocumentSyncSaveOptions::Supported(true)),
+                    will_save: Some(false),
+                    will_save_wait_until: Some(false),
+                    ..Default::default()
+                },
+            )),
+            ..Default::default()
+        }
+    }
+
     fn do_run(&self, shutdown_rx: crossbeam_channel::Receiver<()>) -> Result<(), ServerError> {
         eprintln!(
             "Starting LSP server @ project root: {}",
@@ -76,11 +101,7 @@ impl LSPServer {
         let (connection, io_threads) = Connection::stdio();
         eprintln!("StdIO connection started");
 
-        let server_capabilities = serde_json::to_value(&ServerCapabilities {
-            definition_provider: Some(OneOf::Left(true)),
-            ..Default::default()
-        })
-        .unwrap();
+        let server_capabilities = serde_json::to_value(self.server_capabilities()).unwrap();
         eprintln!("Server capabilities: {server_capabilities:?}");
 
         let initialization_params = match connection.initialize(server_capabilities) {
