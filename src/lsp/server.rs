@@ -108,7 +108,9 @@ impl LSPServer {
             .map_err(|_| ServerError::Initialize)?;
         eprintln!("Initialization started with params: {params:?}");
 
-        let server_capabilities = serde_json::to_value(self.server_capabilities()).unwrap();
+        let server_capabilities = serde_json::json!({
+            "capabilities": serde_json::to_value(self.server_capabilities()).unwrap(),
+        });
         eprintln!("Server capabilities: {server_capabilities:?}");
 
         match connection.initialize_finish(id, server_capabilities) {
