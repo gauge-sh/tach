@@ -16,6 +16,7 @@ from tach.errors import (
     TachCircularDependencyError,
     TachClosedBetaError,
     TachError,
+    TachSetupError,
     TachVisibilityError,
 )
 from tach.extension import (
@@ -23,6 +24,7 @@ from tach.extension import (
     check,
     check_computation_cache,
     create_computation_cache_key,
+    run_server,
     sync_dependency_constraints,
     update_computation_cache,
 )
@@ -482,6 +484,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         help="Ignore warnings and force the report to be generated.",
+    )
+
+    ## tach server
+    subparsers.add_parser(
+        "server",
+        prog=f"{TOOL_NAME} server",
+        help="Start the Language Server Protocol (LSP) server",
+        description="Start the Language Server Protocol (LSP) server",
     )
 
     return parser
@@ -1072,6 +1082,25 @@ def tach_upload(
         sys.exit(1)
 
 
+def tach_server(project_root: Path):
+    logger.info(
+        "tach server called",
+        extra={
+            "data": LogDataModel(function="tach_server"),
+        },
+    )
+    project_config = parse_project_config(root=project_root)
+    if project_config is None:
+        print_no_config_found()
+        sys.exit(1)
+
+    try:
+        run_server(project_root, project_config)
+    except TachSetupError as e:
+        print(f"Failed to setup LSP server: {e}")
+        sys.exit(1)
+
+
 def current_version_is_behind(latest_version: str) -> bool:
     try:
         current_version_parts = list(map(int, __version__.split(".")[:3]))
@@ -1167,6 +1196,8 @@ def main() -> None:
             project_root=project_root,
             force=args.force,
         )
+    elif args.command == "server":
+        tach_server(project_root=project_root)
     else:
         print("Unrecognized command")
         parser.print_help()

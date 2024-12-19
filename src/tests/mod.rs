@@ -1,4 +1,5 @@
 pub mod check_internal;
+pub mod lsp_server;
 pub mod module;
 pub mod test;
 #[cfg(test)]

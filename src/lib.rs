@@ -8,13 +8,14 @@ pub mod external;
 pub mod filesystem;
 pub mod imports;
 pub mod interfaces;
+pub mod lsp;
 pub mod modules;
 pub mod parsing;
 pub mod pattern;
 pub mod python;
 pub mod tests;
 
-use commands::{check_external, check_internal, report, sync, test};
+use commands::{check_external, check_internal, report, server, sync, test};
 use core::config;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -25,6 +26,7 @@ use pyo3::prelude::*;
 mod errors {
     pyo3::import_exception!(tach.errors, TachCircularDependencyError);
     pyo3::import_exception!(tach.errors, TachVisibilityError);
+    pyo3::import_exception!(tach.errors, TachSetupError);
 }
 
 impl From<imports::ImportParseError> for PyErr {
@@ -112,6 +114,15 @@ impl From<sync::SyncError> for PyErr {
             sync::SyncError::TomlSerialize(err) => PyOSError::new_err(err.to_string()),
             sync::SyncError::CheckError(err) => err.into(),
             sync::SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
+        }
+    }
+}
+
+impl From<lsp::error::ServerError> for PyErr {
+    fn from(err: lsp::error::ServerError) -> Self {
+        match err {
+            lsp::error::ServerError::Initialize => errors::TachSetupError::new_err(err.to_string()),
+            _ => PyOSError::new_err(err.to_string()),
         }
     }
 }
@@ -362,6 +373,15 @@ pub fn sync_project(
     sync::sync_project(project_root, project_config, exclude_paths, add)
 }
 
+#[pyfunction]
+#[pyo3(signature = (project_root, project_config))]
+fn run_server(
+    project_root: PathBuf,
+    project_config: config::ProjectConfig,
+) -> Result<(), lsp::error::ServerError> {
+    server::run_server(project_root, project_config)
+}
+
 #[pymodule]
 fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::ProjectConfig>()?;
@@ -385,5 +405,6 @@ fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(check, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_dependency_constraints, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
     Ok(())
 }
