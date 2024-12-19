@@ -24,4 +24,6 @@ pub enum ServerError {
     ThreadPanic,
     #[error("Failed to lint files: {0}")]
     Lint(#[from] CheckError),
+    #[error("Failed to initialize LSP server")]
+    Initialize,
 }

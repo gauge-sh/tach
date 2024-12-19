@@ -16,6 +16,7 @@ from tach.errors import (
     TachCircularDependencyError,
     TachClosedBetaError,
     TachError,
+    TachSetupError,
     TachVisibilityError,
 )
 from tach.extension import (
@@ -1093,7 +1094,11 @@ def tach_server(project_root: Path):
         print_no_config_found()
         sys.exit(1)
 
-    run_server(project_root, project_config)
+    try:
+        run_server(project_root, project_config)
+    except TachSetupError as e:
+        print(f"Failed to setup LSP server: {e}")
+        sys.exit(1)
 
 
 def current_version_is_behind(latest_version: str) -> bool:

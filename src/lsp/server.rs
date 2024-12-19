@@ -103,21 +103,25 @@ impl LSPServer {
         let (connection, io_threads) = Connection::stdio();
         eprintln!("StdIO connection started");
 
+        let (id, params) = connection
+            .initialize_start_while(|| shutdown_rx.is_empty())
+            .map_err(|_| ServerError::Initialize)?;
+        eprintln!("Initialization started with params: {params:?}");
+
         let server_capabilities = serde_json::to_value(self.server_capabilities()).unwrap();
         eprintln!("Server capabilities: {server_capabilities:?}");
 
-        let initialization_params = match connection.initialize(server_capabilities) {
-            Ok(it) => it,
+        match connection.initialize_finish(id, server_capabilities) {
+            Ok(()) => (),
             Err(e) => {
                 if e.channel_is_disconnected() {
                     io_threads.join()?;
                 }
-                return Err(e.into());
+                return Err(ServerError::Initialize);
             }
         };
-        eprintln!("Initialization params: {initialization_params:?}");
 
-        self.main_loop(connection, initialization_params, shutdown_rx)?;
+        self.main_loop(connection, params, shutdown_rx)?;
         io_threads.join()?;
 
         eprintln!("LSP server shutting down");
@@ -128,6 +132,7 @@ impl LSPServer {
         &self,
         uri: Uri,
     ) -> Result<lsp_types::PublishDiagnosticsParams, ServerError> {
+        // TODO: This is probably not a robust translation
         let uri_path = uri.as_str().trim_start_matches("file://");
         let uri_pathbuf = PathBuf::from(uri_path);
 

@@ -26,6 +26,7 @@ use pyo3::prelude::*;
 mod errors {
     pyo3::import_exception!(tach.errors, TachCircularDependencyError);
     pyo3::import_exception!(tach.errors, TachVisibilityError);
+    pyo3::import_exception!(tach.errors, TachSetupError);
 }
 
 impl From<imports::ImportParseError> for PyErr {
@@ -119,7 +120,10 @@ impl From<sync::SyncError> for PyErr {
 
 impl From<lsp::error::ServerError> for PyErr {
     fn from(err: lsp::error::ServerError) -> Self {
-        PyOSError::new_err(err.to_string())
+        match err {
+            lsp::error::ServerError::Initialize => errors::TachSetupError::new_err(err.to_string()),
+            _ => PyOSError::new_err(err.to_string()),
+        }
     }
 }
 
