@@ -1,10 +1,12 @@
 use lsp_types::notification::Notification;
+use lsp_types::request::Request;
 use lsp_types::InitializeParams;
 use std::path::PathBuf;
 use std::thread::{self, JoinHandle};
 
 use lsp_server::{
-    Connection, ExtractError, Message, Notification as NotificationMessage, Request, RequestId,
+    Connection, ExtractError, Message, Notification as NotificationMessage,
+    Request as RequestMessage, RequestId,
 };
 
 use crate::core::config;
@@ -153,13 +155,27 @@ impl LSPServer {
                 recv(connection.receiver) -> msg => {
                     match msg {
                         Ok(msg) => {
-                            eprintln!("Received message: {msg:?}");
+                            eprintln!("Received message");
                             match msg {
                                 Message::Request(req) => {
                                     if connection.handle_shutdown(&req)? {
                                         return Ok(());
                                     }
-                                    eprintln!("[Ignored] Received request: {:?}", req.method);
+                                    match req.method.as_str() {
+                                        lsp_types::request::DocumentDiagnosticRequest::METHOD => {
+                                            eprintln!("Received Diagnostic request");
+                                            let (_, data): (RequestId, lsp_types::DocumentDiagnosticParams) = req.extract(lsp_types::request::DocumentDiagnosticRequest::METHOD).unwrap();
+                                            let diagnostics = lsp_types::PublishDiagnosticsParams {
+                                                uri: data.text_document.uri.clone(),
+                                                diagnostics: vec![],
+                                                version: None,
+                                            };
+                                            self.publish_diagnostics(&connection, &diagnostics)?;
+                                        }
+                                        _ => {
+                                            eprintln!("[Ignored] Received request: {:?}", req.method);
+                                        }
+                                    }
                                 }
                                 Message::Response(resp) => {
                                     eprintln!("[Ignored] Got response: {:?}", resp.id);
@@ -219,12 +235,4 @@ impl LSPServer {
         }
         Ok(())
     }
-}
-
-fn cast<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
-where
-    R: lsp_types::request::Request,
-    R::Params: serde::de::DeserializeOwned,
-{
-    req.extract(R::METHOD)
 }
