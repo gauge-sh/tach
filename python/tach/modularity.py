@@ -44,8 +44,7 @@ def upload_report_to_gauge(
     """Upload a modularity report to Gauge."""
     report = generate_modularity_report(project_root, project_config, force=force)
     print(f"{BCOLORS.OKCYAN} > Uploading report...{BCOLORS.ENDC}")
-    path = build_modularity_upload_path(repo=report.repo, owner=report.owner)
-    response_data = post_json_to_gauge_api(path, asdict(report))
+    response_data = post_json_to_gauge_api(asdict(report))
     print(f"{BCOLORS.OKGREEN} > Report uploaded!{BCOLORS.ENDC}")
     if response_data.get("url"):
         print(
@@ -55,13 +54,10 @@ def upload_report_to_gauge(
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
 GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
+GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.3"
 
 
-def build_modularity_upload_path(owner: str, repo: str) -> str:
-    return f"/api/client/repos/{owner}/{repo}/modularity"
-
-
-def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> dict[str, str]:
+def post_json_to_gauge_api(data: dict[str, Any]) -> dict[str, str]:
     if not GAUGE_API_KEY:
         raise TachClosedBetaError(
             f"{BCOLORS.WARNING}Modularity is currently in closed beta. Visit {GAUGE_API_BASE_URL}/closed-beta to request access.{BCOLORS.ENDC}"
@@ -74,14 +70,13 @@ def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> dict[str, str]:
     }
     json_data = json.dumps(data)
     conn = None
-    full_url = f"{GAUGE_API_BASE_URL}{path}"
     try:
-        url_parts: parse.ParseResult = parse.urlparse(full_url)
-        if full_url.startswith("https://"):
+        url_parts: parse.ParseResult = parse.urlparse(GAUGE_UPLOAD_URL)
+        if GAUGE_UPLOAD_URL.startswith("https://"):
             conn = HTTPSConnection(url_parts.netloc, timeout=10)
         else:
             conn = HTTPConnection(url_parts.netloc, timeout=10)
-        conn.request("POST", path, body=json_data, headers=headers)
+        conn.request("POST", url_parts.path, body=json_data, headers=headers)
         response = conn.getresponse()
         response_data = response.read().decode("utf-8")
         # Check for non-200 status codes
