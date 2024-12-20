@@ -44,20 +44,20 @@ def upload_report_to_gauge(
     """Upload a modularity report to Gauge."""
     report = generate_modularity_report(project_root, project_config, force=force)
     print(f"{BCOLORS.OKCYAN} > Uploading report...{BCOLORS.ENDC}")
-    path = build_modularity_upload_path(report.repo)
-    post_json_to_gauge_api(path, asdict(report))
+    response_data = post_json_to_gauge_api(asdict(report))
     print(f"{BCOLORS.OKGREEN} > Report uploaded!{BCOLORS.ENDC}")
+    if response_data.get("url"):
+        print(
+            f"{BCOLORS.OKBLUE} > {GAUGE_API_BASE_URL}{response_data['url']}{BCOLORS.ENDC}"
+        )
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
 GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
+GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.3"
 
 
-def build_modularity_upload_path(repo: str) -> str:
-    return f"/api/client/repos/{repo}/modularity"
-
-
-def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> None:
+def post_json_to_gauge_api(data: dict[str, Any]) -> dict[str, str]:
     if not GAUGE_API_KEY:
         raise TachClosedBetaError(
             f"{BCOLORS.WARNING}Modularity is currently in closed beta. Visit {GAUGE_API_BASE_URL}/closed-beta to request access.{BCOLORS.ENDC}"
@@ -70,28 +70,26 @@ def post_json_to_gauge_api(path: str, data: dict[str, Any]) -> None:
     }
     json_data = json.dumps(data)
     conn = None
-    full_url = f"{GAUGE_API_BASE_URL}{path}"
     try:
-        url_parts: parse.ParseResult = parse.urlparse(full_url)
-        if full_url.startswith("https://"):
+        url_parts: parse.ParseResult = parse.urlparse(GAUGE_UPLOAD_URL)
+        if GAUGE_UPLOAD_URL.startswith("https://"):
             conn = HTTPSConnection(url_parts.netloc, timeout=10)
         else:
             conn = HTTPConnection(url_parts.netloc, timeout=10)
-        conn.request("POST", path, body=json_data, headers=headers)
+        conn.request("POST", url_parts.path, body=json_data, headers=headers)
         response = conn.getresponse()
-
+        response_data = response.read().decode("utf-8")
         # Check for non-200 status codes
         if response.status != 200:
-            error_message = response.read().decode("utf-8")
             raise TachError(
-                f"API request failed with status {response.status}: {error_message}"
+                f"API request failed with status {response.status}: {response_data}"
             )
-
     except Exception as e:
         raise TachError(f"Failed to upload modularity report: {str(e)}")
     finally:
         if conn is not None:
             conn.close()
+    return json.loads(response_data)
 
 
 # NOTE: these usages are all imports
@@ -159,6 +157,9 @@ class CheckResult:
 
 @dataclass
 class Report:
+    email: str
+    user_name: str
+    owner: str
     repo: str
     branch: str
     commit: str
@@ -166,6 +167,7 @@ class Report:
     full_configuration: str
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
+    # [1.3] Check result for dependency errors
     check_result: CheckResult = field(default_factory=CheckResult)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
     # [1.2] Deprecated
@@ -297,6 +299,9 @@ def generate_modularity_report(
     print(f"{BCOLORS.OKCYAN} > Generating report...{BCOLORS.ENDC}")
     branch_info = get_current_branch_info(project_root, allow_dirty=force)
     report = Report(
+        user_name=branch_info.user_name,
+        email=branch_info.email,
+        owner=branch_info.owner,
         repo=branch_info.repo,
         branch=branch_info.name,
         commit=branch_info.commit,

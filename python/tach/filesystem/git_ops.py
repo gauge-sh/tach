@@ -17,6 +17,9 @@ class GitBranchInfo:
     repo: str
     name: str
     commit: str
+    owner: str
+    user_name: str
+    email: str
 
 
 def is_github_actions():
@@ -67,13 +70,25 @@ def get_current_branch_info(
 
     try:
         # TODO: support slashes or org names
-        repo_name = repo.remotes.origin.url.split("/")[-1].replace(".git", "")
+        url_parts = repo.remotes.origin.url.split("/")
+        repo_name = url_parts[-1].replace(".git", "")
+        owner_name = url_parts[0].split(":")[-1]
+        config_reader = repo.config_reader()
+        user_name = str(config_reader.get_value("user", "name", default=""))
+        email = str(config_reader.get_value("user", "email", default=""))
         branch = _get_branch_name(repo)
         commit = _get_commit(repo)
     except Exception as e:
         raise TachError(f"Failed to determine current branch information!\nError: {e}")
 
-    return GitBranchInfo(repo=repo_name, name=branch, commit=commit)
+    return GitBranchInfo(
+        repo=repo_name,
+        owner=owner_name,
+        name=branch,
+        commit=commit,
+        user_name=user_name,
+        email=email,
+    )
 
 
 def get_changed_files(
