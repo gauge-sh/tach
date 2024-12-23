@@ -1,7 +1,7 @@
 use lsp_types::notification::Notification;
 use lsp_types::request::Request;
 use lsp_types::{InitializeParams, Uri};
-use std::path::PathBuf;
+use std::path::{PathBuf, MAIN_SEPARATOR_STR};
 use std::thread::{self, JoinHandle};
 
 use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
@@ -31,6 +31,23 @@ impl ServerHandle {
             .join()
             .map_err(|_| ServerError::ThreadPanic)?;
         Ok(())
+    }
+}
+
+fn uri_to_path(uri: &Uri) -> PathBuf {
+    // This assumes that the URI has an absolute file path
+    let segments: Vec<_> = uri
+        .path()
+        .segments()
+        .map(|estr| estr.decode().into_string_lossy().into_owned())
+        .collect();
+
+    if cfg!(windows) {
+        // On Windows, join segments directly (first segment will be like "c:")
+        segments.join(MAIN_SEPARATOR_STR).into()
+    } else {
+        // On POSIX, ensure path starts with /
+        format!("/{}", segments.join(MAIN_SEPARATOR_STR)).into()
     }
 }
 
@@ -134,9 +151,9 @@ impl LSPServer {
         &self,
         uri: Uri,
     ) -> Result<lsp_types::PublishDiagnosticsParams, ServerError> {
-        // TODO: This is probably not a robust translation
-        let uri_path = uri.as_str().trim_start_matches("file://");
-        let uri_pathbuf = PathBuf::from(uri_path);
+        let uri_pathbuf = uri_to_path(&uri);
+        eprintln!("Linting for diagnostics: {uri_pathbuf:?}");
+        eprintln!("Project root: {}", self.project_root.display());
 
         let check_result = check(
             self.project_root.clone(),
