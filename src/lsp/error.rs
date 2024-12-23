@@ -26,6 +26,4 @@ pub enum ServerError {
     Lint(#[from] CheckError),
     #[error("Failed to initialize LSP server")]
     Initialize,
-    #[error("Internal error: {0}")]
-    Internal(String),
 }
