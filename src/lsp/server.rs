@@ -35,13 +35,20 @@ impl ServerHandle {
 }
 
 fn uri_to_path(uri: &Uri) -> PathBuf {
-    PathBuf::from(
-        uri.path()
-            .segments()
-            .map(|estr| estr.decode().into_string_lossy().into_owned())
-            .collect::<Vec<_>>()
-            .join(MAIN_SEPARATOR_STR),
-    )
+    // This assumes that the URI has an absolute file path
+    let segments: Vec<_> = uri
+        .path()
+        .segments()
+        .map(|estr| estr.decode().into_string_lossy().into_owned())
+        .collect();
+
+    if cfg!(windows) {
+        // On Windows, join segments directly (first segment will be like "c:")
+        segments.join(MAIN_SEPARATOR_STR).into()
+    } else {
+        // On POSIX, ensure path starts with /
+        format!("/{}", segments.join(MAIN_SEPARATOR_STR)).into()
+    }
 }
 
 impl LSPServer {
@@ -145,6 +152,8 @@ impl LSPServer {
         uri: Uri,
     ) -> Result<lsp_types::PublishDiagnosticsParams, ServerError> {
         let uri_pathbuf = uri_to_path(&uri);
+        eprintln!("Linting for diagnostics: {uri_pathbuf:?}");
+        eprintln!("Project root: {}", self.project_root.display());
 
         let check_result = check(
             self.project_root.clone(),
