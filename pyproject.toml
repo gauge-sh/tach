@@ -60,7 +60,7 @@ dev = [
     # Setup
     "pip==24.0",
     # Code Quality
-    "pyright==1.1.389",
+    "pyright==1.1.391",
     "ruff==0.8.3",
     # Build/Release
     "setuptools==69.5.1; python_version > '3.7'",
