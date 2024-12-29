@@ -7,15 +7,13 @@ from typing import TYPE_CHECKING
 from urllib import error, request
 
 from tach import filesystem as fs
+from tach.constants import GAUGE_API_BASE_URL
 from tach.extension import DependencyConfig, ModuleConfig, ProjectConfig
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     import pydot  # type: ignore
-
-
-TACH_SHOW_URL = "https://show.gauge.sh"
 
 
 def generate_show_url(
@@ -30,7 +28,7 @@ def generate_show_url(
     json_data = project_config.model_dump_json()
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
-        f"{TACH_SHOW_URL}/api/core/0.6.5/graph/",
+        f"{GAUGE_API_BASE_URL}/api/show/graph/1.3",
         data=json_bytes,
         headers={"Content-Type": "application/json"},
     )
@@ -40,8 +38,8 @@ def generate_show_url(
         with request.urlopen(req) as response:
             response_data = response.read().decode("utf-8")
             response_json = json.loads(response_data)
-            url = response_json.get("uid")
-            return f"{TACH_SHOW_URL}?uid={url}"
+            uid = response_json.get("uid")
+            return f"{GAUGE_API_BASE_URL}/show?uid={uid}"
     except (UnicodeDecodeError, JSONDecodeError, error.URLError) as e:
         print(f"Error: {e}")
         return None
