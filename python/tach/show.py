@@ -38,8 +38,8 @@ def generate_show_url(
         with request.urlopen(req) as response:
             response_data = response.read().decode("utf-8")
             response_json = json.loads(response_data)
-            url = response_json.get("uid")
-            return f"{GAUGE_API_BASE_URL}/show?uid={url}"
+            uid = response_json.get("uid")
+            return f"{GAUGE_API_BASE_URL}/show?uid={uid}"
     except (UnicodeDecodeError, JSONDecodeError, error.URLError) as e:
         print(f"Error: {e}")
         return None
