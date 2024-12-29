@@ -28,7 +28,7 @@ def generate_show_url(
     json_data = project_config.model_dump_json()
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
-        f"{GAUGE_API_BASE_URL}/api/show/version/",
+        f"{GAUGE_API_BASE_URL}/api/show/graph/1.3",
         data=json_bytes,
         headers={"Content-Type": "application/json"},
     )
@@ -39,7 +39,7 @@ def generate_show_url(
             response_data = response.read().decode("utf-8")
             response_json = json.loads(response_data)
             url = response_json.get("uid")
-            return f"{GAUGE_API_BASE_URL}?uid={url}"
+            return f"{GAUGE_API_BASE_URL}/show?uid={url}"
     except (UnicodeDecodeError, JSONDecodeError, error.URLError) as e:
         print(f"Error: {e}")
         return None
