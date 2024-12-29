@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from urllib import error, request
 
 from tach import filesystem as fs
+from tach.constants import GAUGE_API_BASE_URL
 from tach.extension import DependencyConfig, ModuleConfig, ProjectConfig
-from tach.modularity import GAUGE_API_BASE_URL
 
 if TYPE_CHECKING:
     from pathlib import Path

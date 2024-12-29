@@ -10,6 +10,7 @@ from urllib import parse
 
 from tach import filesystem as fs
 from tach.colors import BCOLORS
+from tach.constants import GAUGE_API_BASE_URL
 from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
     CheckDiagnostics,
@@ -53,7 +54,6 @@ def upload_report_to_gauge(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_API_BASE_URL = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
 GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.3"
 
 
