@@ -71,7 +71,7 @@ dev = [
     "pytest-mock==3.14.0; python_version > '3.7'",
     "coverage==7.6.0; python_version > '3.7'",
     # Rust
-    "maturin==1.7.1",
+    "maturin==1.8.0",
 
     # python version 3.7 pinned dependencies
     "setuptools==47.1.0; python_version == '3.7'",
