@@ -37,4 +37,4 @@ default = ["extension-module"]
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
-rstest = "0.22.0"
+rstest = "0.24.0"
