@@ -1,10 +1,10 @@
 use pyo3::prelude::*;
 use serde::de::{self, MapAccess, Visitor};
-use serde::ser::SerializeSeq;
+use serde::ser::{Error, SerializeSeq, SerializeStruct};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::path::PathBuf;
+use std::fmt::{self, Display};
+use std::path::{Path, PathBuf};
 
 pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
 pub const DEFAULT_EXCLUDE_PATHS: [&str; 4] = ["tests", "docs", ".*__pycache__", ".*egg-info"];
@@ -15,6 +15,13 @@ fn default_true() -> bool {
 }
 fn default_source_roots() -> Vec<PathBuf> {
     vec![PathBuf::from(".")]
+}
+
+fn default_excludes() -> Vec<String> {
+    DEFAULT_EXCLUDE_PATHS
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
 }
 
 pub fn global_visibility() -> Vec<String> {
@@ -52,7 +59,6 @@ impl Serialize for DependencyConfig {
         if !self.deprecated {
             serializer.serialize_str(&self.path)
         } else {
-            use serde::ser::SerializeStruct;
             let mut state = serializer.serialize_struct("DependencyConfig", 2)?;
             state.serialize_field("path", &self.path)?;
             state.serialize_field("deprecated", &self.deprecated)?;
@@ -288,9 +294,6 @@ fn serialize_modules<S>(modules: &Vec<ModuleConfig>, serializer: S) -> Result<S:
 where
     S: Serializer,
 {
-    use serde::ser::Error;
-    use std::collections::HashMap;
-
     let mut grouped: HashMap<Option<usize>, Vec<&ModuleConfig>> = HashMap::new();
 
     for module in modules {
@@ -364,11 +367,11 @@ pub enum InterfaceDataTypes {
     Primitive,
 }
 
-impl ToString for InterfaceDataTypes {
-    fn to_string(&self) -> String {
+impl Display for InterfaceDataTypes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::All => "all".to_string(),
-            Self::Primitive => "primitive".to_string(),
+            Self::All => write!(f, "all"),
+            Self::Primitive => write!(f, "primitive"),
         }
     }
 }
@@ -512,11 +515,11 @@ impl RuleSetting {
         *self == Self::Warn
     }
 
-    fn error() -> Self {
+    fn _error() -> Self {
         Self::Error
     }
 
-    fn is_error(&self) -> bool {
+    fn _is_error(&self) -> bool {
         *self == Self::Error
     }
 
@@ -569,7 +572,7 @@ impl RulesConfig {
     }
 }
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
@@ -609,6 +612,27 @@ pub struct ProjectConfig {
     pub rules: RulesConfig,
 }
 
+impl Default for ProjectConfig {
+    fn default() -> Self {
+        Self {
+            modules: Default::default(),
+            interfaces: Default::default(),
+            cache: Default::default(),
+            external: Default::default(),
+            exclude: default_excludes(),
+            source_roots: default_source_roots(),
+            exact: Default::default(),
+            disable_logging: Default::default(),
+            ignore_type_checking_imports: default_true(),
+            include_string_imports: Default::default(),
+            forbid_circular_dependencies: Default::default(),
+            use_regex_matching: default_true(),
+            root_module: Default::default(),
+            rules: Default::default(),
+        }
+    }
+}
+
 impl ProjectConfig {
     fn dependencies_for_module(&self, module: &str) -> Option<&Vec<DependencyConfig>> {
         self.modules
@@ -616,13 +640,13 @@ impl ProjectConfig {
             .find(|mod_config| mod_config.path == module)
             .map(|mod_config| &mod_config.depends_on)
     }
-    pub fn prepend_roots(&self, project_root: &PathBuf) -> Vec<PathBuf> {
+    pub fn prepend_roots(&self, project_root: &Path) -> Vec<PathBuf> {
         // don't prepend if root is "."
         self.source_roots
             .iter()
             .map(|root| {
                 if root.display().to_string() == "." {
-                    project_root.clone()
+                    project_root.to_path_buf()
                 } else {
                     project_root.join(root)
                 }

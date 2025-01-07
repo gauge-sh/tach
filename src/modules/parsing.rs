@@ -167,7 +167,7 @@ fn validate_root_module_treatment(
 }
 
 pub fn build_module_tree(
-    source_roots: &[PathBuf],
+    _source_roots: &[PathBuf],
     modules: &[ModuleConfig],
     forbid_circular_dependencies: bool,
     root_module_treatment: RootModuleTreatment,
