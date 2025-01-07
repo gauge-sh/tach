@@ -20,39 +20,39 @@ depends_on = []
 [[modules]]
 path = "tach.__main__"
 depends_on = [
-    { path = "tach.start" },
+    "tach.start",
 ]
 
 [[modules]]
 path = "tach.cache"
 depends_on = [
-    { path = "tach" },
-    { path = "tach.filesystem" },
+    "tach",
+    "tach.filesystem",
 ]
 
 [[modules]]
 path = "tach.check_external"
 depends_on = [
-    { path = "tach.extension" },
+    "tach.extension",
 ]
 
 [[modules]]
 path = "tach.cli"
 depends_on = [
-    { path = "tach" },
-    { path = "tach.cache" },
-    { path = "tach.check_external" },
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.icons" },
-    { path = "tach.logging" },
-    { path = "tach.mod" },
-    { path = "tach.modularity" },
-    { path = "tach.parsing" },
-    { path = "tach.report" },
-    { path = "tach.show" },
-    { path = "tach.sync" },
-    { path = "tach.test" },
+    "tach",
+    "tach.cache",
+    "tach.check_external",
+    "tach.extension",
+    "tach.filesystem",
+    "tach.icons",
+    "tach.logging",
+    "tach.mod",
+    "tach.modularity",
+    "tach.parsing",
+    "tach.report",
+    "tach.show",
+    "tach.sync",
+    "tach.test",
 ]
 
 [[modules]]
@@ -77,7 +77,7 @@ depends_on = []
 [[modules]]
 path = "tach.filesystem"
 depends_on = [
-    { path = "tach.hooks" },
+    "tach.hooks",
 ]
 
 [[modules]]
@@ -95,75 +95,75 @@ depends_on = []
 [[modules]]
 path = "tach.interactive"
 depends_on = [
-    { path = "tach.filesystem" },
+    "tach.filesystem",
 ]
 
 [[modules]]
 path = "tach.logging"
 depends_on = [
-    { path = "tach" },
-    { path = "tach.cache" },
-    { path = "tach.parsing" },
+    "tach",
+    "tach.cache",
+    "tach.parsing",
 ]
 
 [[modules]]
 path = "tach.mod"
 depends_on = [
-    { path = "tach.filesystem" },
-    { path = "tach.interactive" },
-    { path = "tach.parsing" },
+    "tach.filesystem",
+    "tach.interactive",
+    "tach.parsing",
 ]
 
 [[modules]]
 path = "tach.modularity"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.filesystem.git_ops" },
-    { path = "tach.parsing" },
+    "tach.extension",
+    "tach.filesystem",
+    "tach.filesystem.git_ops",
+    "tach.parsing",
 ]
 
 [[modules]]
 path = "tach.parsing"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
+    "tach.extension",
+    "tach.filesystem",
 ]
 
 [[modules]]
 path = "tach.pytest_plugin"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.filesystem.git_ops" },
-    { path = "tach.parsing" },
+    "tach.extension",
+    "tach.filesystem",
+    "tach.filesystem.git_ops",
+    "tach.parsing",
 ]
 
 [[modules]]
 path = "tach.report"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
+    "tach.extension",
+    "tach.filesystem",
 ]
 
 [[modules]]
 path = "tach.show"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
+    "tach.extension",
+    "tach.filesystem",
 ]
 
 [[modules]]
 path = "tach.start"
 depends_on = [
-    { path = "tach.cli" },
+    "tach.cli",
 ]
 
 [[modules]]
 path = "tach.sync"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
+    "tach.extension",
+    "tach.filesystem",
 ]
 
 [[modules]]

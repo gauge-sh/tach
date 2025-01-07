@@ -1,6 +1,8 @@
 use pyo3::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::path::PathBuf;
 
 pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
@@ -12,13 +14,6 @@ fn default_true() -> bool {
 }
 fn default_source_roots() -> Vec<PathBuf> {
     vec![PathBuf::from(".")]
-}
-
-fn default_excludes() -> Vec<String> {
-    DEFAULT_EXCLUDE_PATHS
-        .iter()
-        .map(|s| s.to_string())
-        .collect()
 }
 
 pub fn global_visibility() -> Vec<String> {
@@ -40,7 +35,7 @@ fn is_false(value: &bool) -> bool {
     !*value
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Serialize, Clone, PartialEq, Eq, Hash, Debug, Default)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct DependencyConfig {
     pub path: String,
@@ -60,6 +55,69 @@ impl DependencyConfig {
             path: path.into(),
             deprecated: false,
         }
+    }
+}
+struct DependencyConfigVisitor;
+
+impl<'de> Visitor<'de> for DependencyConfigVisitor {
+    type Value = DependencyConfig;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("string or map")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<DependencyConfig, E>
+    where
+        E: de::Error,
+    {
+        Ok(DependencyConfig {
+            path: value.to_string(),
+            ..Default::default()
+        })
+    }
+
+    // Unfortunately don't have the derived Deserialize for this
+    fn visit_map<M>(self, mut map: M) -> Result<DependencyConfig, M::Error>
+    where
+        M: MapAccess<'de>,
+    {
+        let mut path = None;
+        let mut deprecated = false;
+
+        while let Some(key) = map.next_key::<String>()? {
+            match key.as_str() {
+                "path" => {
+                    path = {
+                        if path.is_some() {
+                            return Err(de::Error::duplicate_field("path"));
+                        }
+                        Some(map.next_value()?)
+                    }
+                }
+                "deprecated" => {
+                    if deprecated {
+                        return Err(de::Error::duplicate_field("deprecated"));
+                    }
+                    deprecated = map.next_value()?;
+                }
+                _ => {
+                    return Err(de::Error::unknown_field(&key, &["path", "deprecated"]));
+                }
+            }
+        }
+
+        let path = path.ok_or_else(|| de::Error::missing_field("path"))?;
+
+        Ok(DependencyConfig { path, deprecated })
+    }
+}
+
+impl<'de> Deserialize<'de> for DependencyConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(DependencyConfigVisitor)
     }
 }
 
@@ -345,7 +403,7 @@ impl RulesConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
@@ -379,27 +437,6 @@ pub struct ProjectConfig {
     pub root_module: RootModuleTreatment,
     #[serde(default, skip_serializing_if = "RulesConfig::is_default")]
     pub rules: RulesConfig,
-}
-
-impl Default for ProjectConfig {
-    fn default() -> Self {
-        Self {
-            modules: Default::default(),
-            interfaces: Default::default(),
-            cache: Default::default(),
-            external: Default::default(),
-            exclude: default_excludes(),
-            source_roots: default_source_roots(),
-            exact: Default::default(),
-            disable_logging: Default::default(),
-            ignore_type_checking_imports: default_true(),
-            include_string_imports: Default::default(),
-            forbid_circular_dependencies: Default::default(),
-            use_regex_matching: default_true(),
-            root_module: Default::default(),
-            rules: Default::default(),
-        }
-    }
 }
 
 impl ProjectConfig {
