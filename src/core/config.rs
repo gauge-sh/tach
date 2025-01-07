@@ -227,10 +227,133 @@ struct BulkModule {
     visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
     utility: bool,
-    #[serde(default)]
-    strict: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     unchecked: bool,
+}
+
+impl TryFrom<&[&ModuleConfig]> for BulkModule {
+    type Error = String;
+
+    fn try_from(modules: &[&ModuleConfig]) -> Result<Self, Self::Error> {
+        if modules.is_empty() {
+            return Err("Cannot create BulkModule from empty slice".to_string());
+        }
+
+        let first = modules[0];
+        let mut bulk = BulkModule {
+            paths: modules.iter().map(|m| m.path.clone()).collect(),
+            depends_on: Vec::new(),
+            visibility: first.visibility.clone(),
+            utility: first.utility,
+            unchecked: first.unchecked,
+        };
+
+        let mut unique_deps: HashSet<DependencyConfig> = HashSet::new();
+        for module in modules {
+            unique_deps.extend(module.depends_on.clone());
+
+            // Validate that other fields match the first module
+            if module.visibility != first.visibility {
+                return Err(format!(
+                    "Inconsistent visibility in bulk module group for path {}",
+                    module.path
+                ));
+            }
+            if module.utility != first.utility {
+                return Err(format!(
+                    "Inconsistent utility setting in bulk module group for path {}",
+                    module.path
+                ));
+            }
+            if module.strict != first.strict {
+                return Err(format!(
+                    "Inconsistent strict setting in bulk module group for path {}",
+                    module.path
+                ));
+            }
+            if module.unchecked != first.unchecked {
+                return Err(format!(
+                    "Inconsistent unchecked setting in bulk module group for path {}",
+                    module.path
+                ));
+            }
+        }
+
+        bulk.depends_on = unique_deps.into_iter().collect();
+        Ok(bulk)
+    }
+}
+
+fn serialize_modules<S>(modules: &Vec<ModuleConfig>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    use serde::ser::Error;
+    use std::collections::HashMap;
+
+    let mut grouped: HashMap<Option<usize>, Vec<&ModuleConfig>> = HashMap::new();
+
+    for module in modules {
+        grouped.entry(module.group_id).or_default().push(module);
+    }
+
+    let mut seq = serializer.serialize_seq(Some(grouped.len()))?;
+
+    for (group_key, group_modules) in grouped {
+        match group_key {
+            // Single modules (no group)
+            None => {
+                for module in group_modules {
+                    seq.serialize_element(module)?;
+                }
+            }
+            // Grouped modules
+            Some(_) => {
+                if !group_modules.is_empty() {
+                    let bulk =
+                        BulkModule::try_from(group_modules.as_slice()).map_err(S::Error::custom)?;
+                    seq.serialize_element(&bulk)?;
+                }
+            }
+        }
+    }
+
+    seq.end()
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum ModuleConfigOrBulk {
+    Single(ModuleConfig),
+    Bulk(BulkModule),
+}
+
+fn deserialize_modules<'de, D>(deserializer: D) -> Result<Vec<ModuleConfig>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let configs: Vec<ModuleConfigOrBulk> = Vec::deserialize(deserializer)?;
+
+    Ok(configs
+        .into_iter()
+        .enumerate()
+        .flat_map(|(i, config)| match config {
+            ModuleConfigOrBulk::Single(module) => vec![module],
+            ModuleConfigOrBulk::Bulk(bulk) => bulk
+                .paths
+                .into_iter()
+                .map(|path| ModuleConfig {
+                    path,
+                    depends_on: bulk.depends_on.clone(),
+                    visibility: bulk.visibility.clone(),
+                    utility: bulk.utility,
+                    strict: false,
+                    unchecked: bulk.unchecked,
+                    group_id: Some(i),
+                })
+                .collect(),
+        })
+        .collect())
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
@@ -444,83 +567,6 @@ impl RulesConfig {
     fn is_default(&self) -> bool {
         *self == Self::default()
     }
-}
-
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum ModuleConfigOrBulk {
-    Single(ModuleConfig),
-    Bulk(BulkModule),
-}
-
-fn deserialize_modules<'de, D>(deserializer: D) -> Result<Vec<ModuleConfig>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let configs: Vec<ModuleConfigOrBulk> = Vec::deserialize(deserializer)?;
-
-    Ok(configs
-        .into_iter()
-        .enumerate()
-        .flat_map(|(i, config)| match config {
-            ModuleConfigOrBulk::Single(module) => vec![module],
-            ModuleConfigOrBulk::Bulk(bulk) => bulk
-                .paths
-                .into_iter()
-                .map(|path| ModuleConfig {
-                    path,
-                    depends_on: bulk.depends_on.clone(),
-                    visibility: bulk.visibility.clone(),
-                    utility: bulk.utility,
-                    strict: bulk.strict,
-                    unchecked: bulk.unchecked,
-                    group_id: Some(i),
-                })
-                .collect(),
-        })
-        .collect())
-}
-
-fn serialize_modules<S>(modules: &Vec<ModuleConfig>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    use std::collections::HashMap;
-
-    let mut grouped: HashMap<Option<usize>, Vec<&ModuleConfig>> = HashMap::new();
-
-    for module in modules {
-        grouped.entry(module.group_id).or_default().push(module);
-    }
-
-    let mut seq = serializer.serialize_seq(Some(grouped.len()))?;
-
-    for (group_key, group_modules) in grouped {
-        match group_key {
-            // Single modules (no group)
-            None => {
-                for module in group_modules {
-                    seq.serialize_element(module)?;
-                }
-            }
-            // Grouped modules
-            Some(_) => {
-                if let Some(first) = group_modules.first() {
-                    let bulk = BulkModule {
-                        paths: group_modules.iter().map(|m| m.path.clone()).collect(),
-                        depends_on: first.depends_on.clone(),
-                        visibility: first.visibility.clone(),
-                        utility: first.utility,
-                        strict: first.strict,
-                        unchecked: first.unchecked,
-                    };
-                    seq.serialize_element(&bulk)?;
-                }
-            }
-        }
-    }
-
-    seq.end()
 }
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq)]

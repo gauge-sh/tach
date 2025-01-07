@@ -168,12 +168,7 @@ impl<'a> ImportVisitor<'a> {
                         .map(|alias| DirectiveIgnoredImport {
                             import: NormalizedImport {
                                 module_path: alias.name.to_string(),
-                                line_no: self
-                                    .locator
-                                    .compute_line_index(alias.range.start())
-                                    .get()
-                                    .try_into()
-                                    .unwrap(),
+                                line_no: self.locator.compute_line_index(alias.range.start()).get(),
                             },
                             reason: ignored.reason.clone(),
                         }),
@@ -185,12 +180,7 @@ impl<'a> ImportVisitor<'a> {
         for alias in &import_statement.names {
             let import = NormalizedImport {
                 module_path: alias.name.to_string(),
-                line_no: self
-                    .locator
-                    .compute_line_index(alias.range.start())
-                    .get()
-                    .try_into()
-                    .unwrap(),
+                line_no: self.locator.compute_line_index(alias.range.start()).get(),
             };
 
             if let Some(ignored) = ignored_directive {
@@ -280,12 +270,7 @@ impl<'a> ImportVisitor<'a> {
                         .push(DirectiveIgnoredImport {
                             import: NormalizedImport {
                                 module_path: global_mod_path,
-                                line_no: self
-                                    .locator
-                                    .compute_line_index(name.range.start())
-                                    .get()
-                                    .try_into()
-                                    .unwrap(),
+                                line_no: self.locator.compute_line_index(name.range.start()).get(),
                             },
                             reason: ignored.reason.clone(),
                         });
@@ -298,12 +283,7 @@ impl<'a> ImportVisitor<'a> {
             let global_mod_path = format!("{}.{}", base_mod_path, name.name.as_str());
             let import = NormalizedImport {
                 module_path: global_mod_path,
-                line_no: self
-                    .locator
-                    .compute_line_index(name.range.start())
-                    .get()
-                    .try_into()
-                    .unwrap(),
+                line_no: self.locator.compute_line_index(name.range.start()).get(),
             };
 
             if let Some(ignored) = ignored_directive {
