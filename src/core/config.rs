@@ -35,12 +35,29 @@ fn is_false(value: &bool) -> bool {
     !*value
 }
 
-#[derive(Serialize, Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct DependencyConfig {
     pub path: String,
-    #[serde(default, skip_serializing_if = "is_false")]
     pub deprecated: bool,
+}
+
+impl Serialize for DependencyConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Should actually express that all fields are default except for path
+        if !self.deprecated {
+            serializer.serialize_str(&self.path)
+        } else {
+            use serde::ser::SerializeStruct;
+            let mut state = serializer.serialize_struct("DependencyConfig", 2)?;
+            state.serialize_field("path", &self.path)?;
+            state.serialize_field("deprecated", &self.deprecated)?;
+            state.end()
+        }
+    }
 }
 
 impl DependencyConfig {
