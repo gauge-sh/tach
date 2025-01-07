@@ -73,8 +73,11 @@ def _get_owner_and_repo_name(repo_url: str) -> tuple[str, str]:
         >>> _get_owner_and_repo_name("git@github.com:facebook/react-native/docs.git")
         ('facebook/react-native', 'docs')
     """
-    # Remove .git suffix and trailing slashes
-    url = repo_url.rstrip(".git").rstrip("/")
+    # Remove .git suffix and slashes
+    url = repo_url.strip("/")
+
+    if url.endswith(".git"):
+        url = url[:-4].strip("/")
 
     if url.startswith("https://"):
         # HTTPS URL format
