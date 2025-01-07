@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use serde::de::{self, MapAccess, Visitor};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::ser::SerializeSeq;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::path::PathBuf;
@@ -160,6 +161,10 @@ pub struct ModuleConfig {
     pub strict: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub unchecked: bool,
+    // Hidden field to track grouping
+    // Unfortunately marked as public due to test fixtures constructing struct literals
+    #[doc(hidden)]
+    pub group_id: Option<usize>,
 }
 
 impl Default for ModuleConfig {
@@ -171,6 +176,7 @@ impl Default for ModuleConfig {
             utility: Default::default(),
             strict: Default::default(),
             unchecked: Default::default(),
+            group_id: Default::default(),
         }
     }
 }
@@ -186,6 +192,7 @@ impl ModuleConfig {
             utility: false,
             strict,
             unchecked: false,
+            group_id: None,
         }
     }
 
@@ -205,6 +212,25 @@ impl ModuleConfig {
         }
         self.path.clone()
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct BulkModule {
+    paths: Vec<String>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    depends_on: Vec<DependencyConfig>,
+    #[serde(
+        default = "default_visibility",
+        skip_serializing_if = "is_default_visibility"
+    )]
+    visibility: Vec<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    utility: bool,
+    #[serde(default)]
+    strict: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    unchecked: bool,
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
@@ -424,22 +450,7 @@ impl RulesConfig {
 #[serde(untagged)]
 enum ModuleConfigOrBulk {
     Single(ModuleConfig),
-    Bulk {
-        paths: Vec<String>,
-        #[serde(default)]
-        depends_on: Vec<DependencyConfig>,
-        #[serde(
-            default = "default_visibility",
-            skip_serializing_if = "is_default_visibility"
-        )]
-        visibility: Vec<String>,
-        #[serde(default, skip_serializing_if = "is_false")]
-        utility: bool,
-        #[serde(default)]
-        strict: bool,
-        #[serde(default, skip_serializing_if = "is_false")]
-        unchecked: bool,
-    },
+    Bulk(BulkModule),
 }
 
 fn deserialize_modules<'de, D>(deserializer: D) -> Result<Vec<ModuleConfig>, D::Error>
@@ -450,35 +461,77 @@ where
 
     Ok(configs
         .into_iter()
-        .flat_map(|config| match config {
+        .enumerate()
+        .flat_map(|(i, config)| match config {
             ModuleConfigOrBulk::Single(module) => vec![module],
-            ModuleConfigOrBulk::Bulk {
-                paths,
-                depends_on,
-                visibility,
-                utility,
-                strict,
-                unchecked,
-            } => paths
+            ModuleConfigOrBulk::Bulk(bulk) => bulk
+                .paths
                 .into_iter()
                 .map(|path| ModuleConfig {
                     path,
-                    depends_on: depends_on.clone(),
-                    visibility: visibility.clone(),
-                    utility,
-                    strict,
-                    unchecked,
+                    depends_on: bulk.depends_on.clone(),
+                    visibility: bulk.visibility.clone(),
+                    utility: bulk.utility,
+                    strict: bulk.strict,
+                    unchecked: bulk.unchecked,
+                    group_id: Some(i),
                 })
                 .collect(),
         })
         .collect())
 }
 
+fn serialize_modules<S>(modules: &Vec<ModuleConfig>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    use std::collections::HashMap;
+
+    let mut grouped: HashMap<Option<usize>, Vec<&ModuleConfig>> = HashMap::new();
+
+    for module in modules {
+        grouped.entry(module.group_id).or_default().push(module);
+    }
+
+    let mut seq = serializer.serialize_seq(Some(grouped.len()))?;
+
+    for (group_key, group_modules) in grouped {
+        match group_key {
+            // Single modules (no group)
+            None => {
+                for module in group_modules {
+                    seq.serialize_element(module)?;
+                }
+            }
+            // Grouped modules
+            Some(_) => {
+                if let Some(first) = group_modules.first() {
+                    let bulk = BulkModule {
+                        paths: group_modules.iter().map(|m| m.path.clone()).collect(),
+                        depends_on: first.depends_on.clone(),
+                        visibility: first.visibility.clone(),
+                        utility: first.utility,
+                        strict: first.strict,
+                        unchecked: first.unchecked,
+                    };
+                    seq.serialize_element(&bulk)?;
+                }
+            }
+        }
+    }
+
+    seq.end()
+}
+
 #[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
-    #[serde(default, deserialize_with = "deserialize_modules")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_modules",
+        serialize_with = "serialize_modules"
+    )]
     pub modules: Vec<ModuleConfig>,
     #[serde(default)]
     pub interfaces: Vec<InterfaceConfig>,
