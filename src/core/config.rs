@@ -420,11 +420,65 @@ impl RulesConfig {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum ModuleConfigOrBulk {
+    Single(ModuleConfig),
+    Bulk {
+        paths: Vec<String>,
+        #[serde(default)]
+        depends_on: Vec<DependencyConfig>,
+        #[serde(
+            default = "default_visibility",
+            skip_serializing_if = "is_default_visibility"
+        )]
+        visibility: Vec<String>,
+        #[serde(default, skip_serializing_if = "is_false")]
+        utility: bool,
+        #[serde(default)]
+        strict: bool,
+        #[serde(default, skip_serializing_if = "is_false")]
+        unchecked: bool,
+    },
+}
+
+fn deserialize_modules<'de, D>(deserializer: D) -> Result<Vec<ModuleConfig>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let configs: Vec<ModuleConfigOrBulk> = Vec::deserialize(deserializer)?;
+
+    Ok(configs
+        .into_iter()
+        .flat_map(|config| match config {
+            ModuleConfigOrBulk::Single(module) => vec![module],
+            ModuleConfigOrBulk::Bulk {
+                paths,
+                depends_on,
+                visibility,
+                utility,
+                strict,
+                unchecked,
+            } => paths
+                .into_iter()
+                .map(|path| ModuleConfig {
+                    path,
+                    depends_on: depends_on.clone(),
+                    visibility: visibility.clone(),
+                    utility,
+                    strict,
+                    unchecked,
+                })
+                .collect(),
+        })
+        .collect())
+}
+
 #[derive(Default, Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct ProjectConfig {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_modules")]
     pub modules: Vec<ModuleConfig>,
     #[serde(default)]
     pub interfaces: Vec<InterfaceConfig>,
