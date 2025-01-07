@@ -51,6 +51,58 @@ def _get_commit(repo: Repo) -> str:
     return repo.head.commit.hexsha
 
 
+def _get_owner_and_repo_name(repo_url: str) -> tuple[str, str]:
+    """
+    Parse a git URL to extract owner and repo names, handling cases where
+    either might contain slashes.
+
+    Strategy:
+    1. For HTTPS URLs, everything after the domain and before the last segment is the owner
+    2. For SSH URLs, everything after the colon and before the last segment is the owner
+    3. The last segment (minus .git) is always the repo name
+
+    Args:
+        url: Git remote URL (HTTPS or SSH format)
+
+    Returns:
+        Tuple of (owner, repo)
+
+    Examples:
+        >>> _get_owner_and_repo_name("https://github.com/apache/spark/spark-connector.git")
+        ('apache/spark', 'spark-connector')
+        >>> _get_owner_and_repo_name("git@github.com:facebook/react-native/docs.git")
+        ('facebook/react-native', 'docs')
+    """
+    # Remove .git suffix and trailing slashes
+    url = repo_url.rstrip(".git").rstrip("/")
+
+    if url.startswith("https://"):
+        # HTTPS URL format
+        # Remove https:// prefix and split by /
+        parts = url[8:].split("/")
+        # First part is domain (e.g., github.com)
+        # Last part is repo name
+        repo = parts[-1]
+        # Everything between domain and repo is owner
+        owner = "/".join(parts[1:-1])
+    else:
+        # SSH URL format
+        # Split at the colon
+        parts = url.split(":")
+        if len(parts) != 2:
+            raise TachError(f"Invalid SSH URL format: {url}")
+        path_parts = parts[1].split("/")
+        # Last part is repo name
+        repo = path_parts[-1]
+        # Everything else is owner
+        owner = "/".join(path_parts[:-1])
+
+    if not owner or not repo:
+        raise TachError(f"Failed to parse owner or repo from URL: {url}")
+
+    return owner, repo
+
+
 def get_current_branch_info(
     project_root: Path, allow_dirty: bool = False
 ) -> GitBranchInfo:
@@ -69,15 +121,14 @@ def get_current_branch_info(
         )
 
     try:
-        # TODO: support slashes or org names
-        url_parts = repo.remotes.origin.url.split("/")
-        repo_name = url_parts[-1].replace(".git", "")
-        owner_name = url_parts[0].split(":")[-1]
+        url = repo.remotes.origin.url
+        owner_name, repo_name = _get_owner_and_repo_name(url)
         config_reader = repo.config_reader()
         user_name = str(config_reader.get_value("user", "name", default=""))
         email = str(config_reader.get_value("user", "email", default=""))
         branch = _get_branch_name(repo)
         commit = _get_commit(repo)
+
     except Exception as e:
         raise TachError(f"Failed to determine current branch information!\nError: {e}")
 
