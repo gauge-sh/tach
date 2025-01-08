@@ -104,7 +104,6 @@ impl LSPServer {
                     save: Some(lsp_types::TextDocumentSyncSaveOptions::Supported(true)),
                     will_save: Some(false),
                     will_save_wait_until: Some(false),
-                    ..Default::default()
                 },
             )),
             ..Default::default()

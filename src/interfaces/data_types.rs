@@ -56,7 +56,7 @@ impl TypeCheckCache {
 
 #[derive(Debug)]
 struct FunctionParameter {
-    name: String,
+    _name: String,
     annotation: Option<String>,
 }
 
@@ -73,7 +73,7 @@ enum InterfaceMemberNode {
 }
 
 #[derive(Debug)]
-struct InterfaceMember {
+pub struct InterfaceMember {
     name: String,
     node: InterfaceMemberNode,
 }
@@ -165,7 +165,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
                             .parameters
                             .iter_non_variadic_params()
                             .map(|p| FunctionParameter {
-                                name: p.parameter.name.to_string(),
+                                _name: p.parameter.name.to_string(),
                                 annotation: match &p.parameter.annotation {
                                     Some(annotation) => match annotation.as_ref() {
                                         Expr::Name(name) => Some(name.id.clone()),
@@ -369,11 +369,11 @@ mod tests {
         // Test primitive function
         let primitive_func = vec![
             FunctionParameter {
-                name: "a".to_string(),
+                _name: "a".to_string(),
                 annotation: Some("int".to_string()),
             },
             FunctionParameter {
-                name: "b".to_string(),
+                _name: "b".to_string(),
                 annotation: Some("str".to_string()),
             },
         ];
@@ -388,7 +388,7 @@ mod tests {
 
         // Test non-primitive function
         let non_primitive_func = vec![FunctionParameter {
-            name: "a".to_string(),
+            _name: "a".to_string(),
             annotation: Some("CustomType".to_string()),
         }];
         let return_type = Some("bool".to_string());

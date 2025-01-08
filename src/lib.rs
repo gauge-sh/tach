@@ -383,7 +383,7 @@ fn run_server(
 }
 
 #[pymodule]
-fn extension(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::ProjectConfig>()?;
     m.add_class::<config::ModuleConfig>()?;
     m.add_class::<config::InterfaceConfig>()?;

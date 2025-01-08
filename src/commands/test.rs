@@ -195,8 +195,10 @@ mod tests {
         #[case] expected_mod_paths: &[&str],
     ) {
         let project_root = env::temp_dir();
-        let mut project_config = ProjectConfig::default();
-        project_config.source_roots = vec![PathBuf::from(source_root)];
+        let project_config = ProjectConfig {
+            source_roots: vec![PathBuf::from(source_root)],
+            ..Default::default()
+        };
         let changed_files = changed_files
             .iter()
             .map(|filepath| project_root.join(filepath))
