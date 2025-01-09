@@ -30,6 +30,8 @@ pub struct ProjectConfig {
     pub modules: Vec<ModuleConfig>,
     #[serde(default)]
     pub interfaces: Vec<InterfaceConfig>,
+    #[serde(default, skip_serializing_if = "is_empty")]
+    pub layers: Vec<String>,
     #[serde(default, skip_serializing_if = "CacheConfig::is_default")]
     pub cache: CacheConfig,
     #[serde(default, skip_serializing_if = "ExternalDependencyConfig::is_default")]
@@ -58,11 +60,25 @@ pub struct ProjectConfig {
     pub rules: RulesConfig,
 }
 
+pub fn default_source_roots() -> Vec<PathBuf> {
+    vec![PathBuf::from(".")]
+}
+
+pub const DEFAULT_EXCLUDE_PATHS: [&str; 4] = ["tests", "docs", ".*__pycache__", ".*egg-info"];
+
+pub fn default_excludes() -> Vec<String> {
+    DEFAULT_EXCLUDE_PATHS
+        .iter()
+        .map(|s| s.to_string())
+        .collect()
+}
+
 impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
             modules: Default::default(),
             interfaces: Default::default(),
+            layers: Default::default(),
             cache: Default::default(),
             external: Default::default(),
             exclude: default_excludes(),
@@ -134,6 +150,7 @@ impl ProjectConfig {
         Self {
             modules,
             interfaces: self.interfaces.clone(),
+            layers: self.layers.clone(),
             cache: self.cache.clone(),
             external: self.external.clone(),
             exclude: self.exclude.clone(),

@@ -84,8 +84,8 @@ mod tests {
 
     use super::*;
     use crate::{
+        config::project::DEFAULT_EXCLUDE_PATHS,
         config::root_module::ROOT_MODULE_SENTINEL_TAG,
-        config::utils::DEFAULT_EXCLUDE_PATHS,
         config::{DependencyConfig, ModuleConfig},
         tests::fixtures::example_dir,
     };
@@ -126,6 +126,7 @@ mod tests {
                     }
                 ],
                 interfaces: Default::default(),
+                layers: Default::default(),
                 cache: Default::default(),
                 exclude: DEFAULT_EXCLUDE_PATHS
                     .into_iter()

@@ -110,6 +110,14 @@ impl<'de> Deserialize<'de> for DependencyConfig {
     }
 }
 
+pub fn default_visibility() -> Vec<String> {
+    global_visibility()
+}
+
+pub fn is_default_visibility(value: &Vec<String>) -> bool {
+    value == &default_visibility()
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[pyclass(get_all, eq, module = "tach.extension")]
 pub struct ModuleConfig {
