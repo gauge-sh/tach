@@ -8,6 +8,7 @@ pub mod external;
 pub mod filesystem;
 pub mod imports;
 pub mod interfaces;
+pub mod interrupt;
 pub mod lsp;
 pub mod modules;
 pub mod parsing;
@@ -20,7 +21,7 @@ use core::config;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use pyo3::exceptions::{PyOSError, PySyntaxError, PyValueError};
+use pyo3::exceptions::{PyKeyboardInterrupt, PyOSError, PySyntaxError, PyValueError};
 use pyo3::prelude::*;
 
 mod errors {
@@ -69,18 +70,15 @@ impl From<check_external::ExternalCheckError> for PyErr {
 
 impl From<check_internal::CheckError> for PyErr {
     fn from(err: check_internal::CheckError) -> Self {
-        if let check_internal::CheckError::ModuleTree(
-            modules::error::ModuleTreeError::CircularDependency(c),
-        ) = err
-        {
-            errors::TachCircularDependencyError::new_err(c)
-        } else if let check_internal::CheckError::ModuleTree(
-            modules::error::ModuleTreeError::VisibilityViolation(v),
-        ) = err
-        {
-            errors::TachVisibilityError::new_err(v)
-        } else {
-            PyValueError::new_err(err.to_string())
+        match err {
+            check_internal::CheckError::Interrupt => PyKeyboardInterrupt::new_err(err.to_string()),
+            check_internal::CheckError::ModuleTree(
+                modules::error::ModuleTreeError::CircularDependency(c),
+            ) => errors::TachCircularDependencyError::new_err(c),
+            check_internal::CheckError::ModuleTree(
+                modules::error::ModuleTreeError::VisibilityViolation(v),
+            ) => errors::TachVisibilityError::new_err(v),
+            _ => PyValueError::new_err(err.to_string()),
         }
     }
 }
@@ -384,6 +382,7 @@ fn run_server(
 
 #[pymodule]
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    interrupt::setup_interrupt_handler();
     m.add_class::<config::ProjectConfig>()?;
     m.add_class::<config::ModuleConfig>()?;
     m.add_class::<config::InterfaceConfig>()?;
