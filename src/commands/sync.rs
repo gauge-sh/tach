@@ -1,10 +1,9 @@
 use thiserror::Error;
 
 use crate::commands::check_internal::{check, CheckError};
-use crate::core::config::{
-    global_visibility, DependencyConfig, ModuleConfig, ProjectConfig, RootModuleTreatment,
-    ROOT_MODULE_SENTINEL_TAG,
-};
+use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
+use crate::config::utils::global_visibility;
+use crate::config::{DependencyConfig, ModuleConfig, ProjectConfig};
 use crate::filesystem::{self as fs};
 use crate::parsing::config::dump_project_config_to_toml;
 use std::collections::HashMap;

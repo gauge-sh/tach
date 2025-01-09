@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::core::config;
+use crate::config;
 use crate::lsp::{error::ServerError, server::LSPServer};
 
 pub fn run_server(

@@ -5,7 +5,8 @@ use std::{
 
 use crate::{
     colors::BColors,
-    core::config::{InterfaceConfig, InterfaceDataTypes, ProjectConfig, ROOT_MODULE_SENTINEL_TAG},
+    config::root_module::ROOT_MODULE_SENTINEL_TAG,
+    config::{InterfaceConfig, InterfaceDataTypes, ProjectConfig},
     filesystem::read_file_content,
     python::parsing::parse_interface_members,
 };
@@ -83,9 +84,9 @@ mod tests {
 
     use super::*;
     use crate::{
-        core::config::{
-            DependencyConfig, ModuleConfig, DEFAULT_EXCLUDE_PATHS, ROOT_MODULE_SENTINEL_TAG,
-        },
+        config::root_module::ROOT_MODULE_SENTINEL_TAG,
+        config::utils::DEFAULT_EXCLUDE_PATHS,
+        config::{DependencyConfig, ModuleConfig},
         tests::fixtures::example_dir,
     };
     use rstest::rstest;

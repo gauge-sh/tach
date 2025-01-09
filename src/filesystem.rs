@@ -9,7 +9,8 @@ use globset::GlobSetBuilder;
 use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
-use crate::core::config::{ModuleConfig, ROOT_MODULE_SENTINEL_TAG};
+use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
+use crate::config::ModuleConfig;
 use crate::exclusion::is_path_excluded;
 
 #[derive(Error, Debug)]

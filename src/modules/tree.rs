@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::error::ModuleTreeError;
-use crate::core::config::ModuleConfig;
+use crate::config::ModuleConfig;
 
 /// A node in the module tree.
 ///

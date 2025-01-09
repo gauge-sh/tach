@@ -1,4 +1,4 @@
-use crate::core::config::{InterfaceConfig, InterfaceDataTypes};
+use crate::config::{InterfaceConfig, InterfaceDataTypes};
 use regex::Regex;
 
 #[derive(Debug, Clone)]

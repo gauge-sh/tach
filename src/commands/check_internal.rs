@@ -8,7 +8,8 @@ use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::{
-    core::config::{ProjectConfig, RootModuleTreatment, RuleSetting},
+    config::root_module::RootModuleTreatment,
+    config::{ProjectConfig, RuleSetting},
     exclusion::{self, is_path_excluded, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
@@ -485,7 +486,7 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::config::{InterfaceConfig, ModuleConfig};
+    use crate::config::{InterfaceConfig, ModuleConfig};
     use crate::modules::ModuleTree;
     use crate::tests::check_internal::fixtures::{interface_config, module_config, module_tree};
 

@@ -8,7 +8,8 @@ use thiserror::Error;
 use crate::colors::*;
 
 use crate::cli::create_clickable_link;
-use crate::core::config::{ProjectConfig, RootModuleTreatment};
+use crate::config::root_module::RootModuleTreatment;
+use crate::config::ProjectConfig;
 use crate::filesystem::{
     file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
 };

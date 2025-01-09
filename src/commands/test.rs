@@ -4,7 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
-use crate::core::config::{ModuleConfig, ProjectConfig};
+use crate::config::{ModuleConfig, ProjectConfig};
 use crate::filesystem::{self as fs};
 use crate::imports::get_project_imports;
 use crate::modules::{build_module_tree, ModuleTree};
