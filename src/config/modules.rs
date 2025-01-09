@@ -125,6 +125,8 @@ pub struct ModuleConfig {
     #[serde(default)]
     #[pyo3(set)]
     pub depends_on: Vec<DependencyConfig>,
+    #[serde(default)]
+    pub layer: Option<String>,
     #[serde(
         default = "default_visibility",
         skip_serializing_if = "is_default_visibility"
@@ -151,6 +153,7 @@ impl Default for ModuleConfig {
         Self {
             path: Default::default(),
             depends_on: Default::default(),
+            layer: Default::default(),
             visibility: default_visibility(),
             utility: Default::default(),
             strict: Default::default(),
@@ -167,6 +170,7 @@ impl ModuleConfig {
         Self {
             path: path.to_string(),
             depends_on: vec![],
+            layer: None,
             visibility: default_visibility(),
             utility: false,
             strict,
@@ -199,6 +203,8 @@ struct BulkModule {
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     depends_on: Vec<DependencyConfig>,
+    #[serde(default)]
+    layer: Option<String>,
     #[serde(
         default = "default_visibility",
         skip_serializing_if = "is_default_visibility"
@@ -222,6 +228,7 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
         let mut bulk = BulkModule {
             paths: modules.iter().map(|m| m.path.clone()).collect(),
             depends_on: Vec::new(),
+            layer: first.layer.clone(),
             visibility: first.visibility.clone(),
             utility: first.utility,
             unchecked: first.unchecked,
@@ -232,6 +239,12 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
             unique_deps.extend(module.depends_on.clone());
 
             // Validate that other fields match the first module
+            if module.layer != first.layer {
+                return Err(format!(
+                    "Inconsistent layer in bulk module group for path {}",
+                    module.path
+                ));
+            }
             if module.visibility != first.visibility {
                 return Err(format!(
                     "Inconsistent visibility in bulk module group for path {}",
@@ -321,6 +334,7 @@ where
                 .map(|path| ModuleConfig {
                     path,
                     depends_on: bulk.depends_on.clone(),
+                    layer: bulk.layer.clone(),
                     visibility: bulk.visibility.clone(),
                     utility: bulk.utility,
                     strict: false,
