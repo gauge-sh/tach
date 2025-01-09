@@ -16,6 +16,7 @@ use crate::{
         check::CheckResult as InterfaceCheckResult, data_types::TypeCheckResult,
         error::InterfaceError, InterfaceChecker,
     },
+    interrupt::check_interrupt,
     modules::{self, build_module_tree, ModuleNode, ModuleTree},
 };
 
@@ -31,6 +32,8 @@ pub enum CheckError {
     Exclusion(#[from] exclusion::PathExclusionError),
     #[error("Interface error: {0}")]
     Interface(#[from] InterfaceError),
+    #[error("Operation cancelled by user")]
+    Interrupt,
 }
 
 #[derive(Debug, Clone)]
@@ -292,6 +295,7 @@ pub fn check(
         ));
     }
 
+    check_interrupt().map_err(|_| CheckError::Interrupt)?;
     let module_tree = build_module_tree(
         &source_roots,
         &valid_modules,
@@ -315,6 +319,7 @@ pub fn check(
 
     for source_root in &source_roots {
         for file_path in fs::walk_pyfiles(&source_root.display().to_string()) {
+            check_interrupt().map_err(|_| CheckError::Interrupt)?;
             let abs_file_path = &source_root.join(&file_path);
             if is_path_excluded(abs_file_path)? {
                 continue;
