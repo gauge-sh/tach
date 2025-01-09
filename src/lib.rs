@@ -2,7 +2,7 @@ pub mod cache;
 pub mod cli;
 pub mod colors;
 pub mod commands;
-pub mod core;
+pub mod config;
 pub mod exclusion;
 pub mod external;
 pub mod filesystem;
@@ -17,7 +17,6 @@ pub mod python;
 pub mod tests;
 
 use commands::{check_external, check_internal, report, server, sync, test};
-use core::config;
 use std::collections::HashMap;
 use std::path::PathBuf;
 

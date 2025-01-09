@@ -7,7 +7,7 @@ use std::thread::{self, JoinHandle};
 use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
 
 use crate::check_internal::check;
-use crate::core::config;
+use crate::config;
 
 use super::error::ServerError;
 

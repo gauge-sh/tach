@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-use crate::core::config::{
-    global_visibility, ModuleConfig, RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG,
-};
+use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
+use crate::config::utils::global_visibility;
+use crate::config::ModuleConfig;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 

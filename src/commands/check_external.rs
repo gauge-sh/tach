@@ -104,7 +104,7 @@ pub fn check_external_dependencies(
 
 #[cfg(test)]
 mod tests {
-    use crate::core::config::ProjectConfig;
+    use crate::config::ProjectConfig;
     use crate::tests::fixtures::example_dir;
 
     use super::*;

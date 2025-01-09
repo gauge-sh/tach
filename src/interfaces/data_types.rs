@@ -1,6 +1,6 @@
 use super::compiled::{CompiledInterface, CompiledInterfaces};
 use super::error::InterfaceError;
-use crate::core::config::{InterfaceDataTypes, ModuleConfig};
+use crate::config::{InterfaceDataTypes, ModuleConfig};
 use crate::filesystem::module_to_file_path;
 use crate::python::parsing::parse_python_source;
 use std::collections::HashMap;
@@ -318,7 +318,7 @@ pub fn type_check_all_interface_members(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::config::InterfaceConfig;
+    use crate::config::InterfaceConfig;
     use rstest::*;
     use std::fs;
     use tempfile::TempDir;

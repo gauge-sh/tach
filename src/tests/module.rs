@@ -2,7 +2,7 @@
 pub mod fixtures {
     use std::{collections::HashMap, sync::Arc};
 
-    use crate::core::config::ModuleConfig;
+    use crate::config::ModuleConfig;
     use crate::modules::{ModuleNode, ModuleTree};
     use rstest::fixture;
     #[fixture]
