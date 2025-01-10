@@ -29,6 +29,7 @@ lsp-server = "0.7.7"
 lsp-types = "0.97.0"
 crossbeam-channel = "0.5.14"
 ctrlc = "3.4.5"
+rayon = "1.10.0"
 
 [features]
 extension-module = ["pyo3/extension-module"]
