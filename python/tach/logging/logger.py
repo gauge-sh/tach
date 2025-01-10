@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import os
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
@@ -19,6 +20,7 @@ class LogDataModel:
 
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
+    time.sleep(3)
     is_ci = "CI" in os.environ
     is_gauge = "IS_GAUGE" in os.environ
     data: LogDataModel | None = getattr(record, "data", None)
@@ -40,26 +42,29 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
 
 
 def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
-    done = False
+    with open(os.devnull, "w") as devnull:
+        sys.stdout = devnull
+        sys.stderr = devnull
 
-    def timeout_handler():
-        nonlocal done
-        if not done:
-            print("Timeout reached!")
-            os._exit(1)
+        done = False
 
-    # Start timeout timer
-    timer = threading.Timer(3.0, timeout_handler)
-    timer.start()
+        def timeout_handler():
+            nonlocal done
+            if not done:
+                os._exit(1)
 
-    try:
-        send_log_entry(record=record, entry=entry)
-    except Exception:  # noqa
-        pass
-    finally:
-        done = True
-        timer.cancel()
-        print("done!")
+        # Start timeout timer
+        timer = threading.Timer(5.0, timeout_handler)
+        timer.start()
+
+        try:
+            send_log_entry(record=record, entry=entry)
+        except Exception:  # noqa
+            pass
+        finally:
+            done = True
+            timer.cancel()
+            print("done!")
 
 
 def spawn_log_entry(record: logging.LogRecord, entry: str) -> None:
