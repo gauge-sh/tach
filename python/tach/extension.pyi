@@ -93,6 +93,8 @@ class CheckDiagnostics:
     deprecated_warnings: list[BoundaryError]
     warnings: list[str]
 
+    def serialize_json(self, pretty_print: bool = False) -> str: ...
+
 class DependencyConfig:
     path: str
     deprecated: bool
