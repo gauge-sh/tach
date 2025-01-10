@@ -52,7 +52,7 @@ def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
         def timeout_handler():
             nonlocal done
             if not done:
-                os._exit(1)
+                os._exit(1)  # pyright: ignore
 
         # Start timeout timer
         timer = threading.Timer(5.0, timeout_handler)
@@ -73,7 +73,7 @@ def spawn_log_entry(record: logging.LogRecord, entry: str) -> None:
         target=handle_log_entry, args=(record, entry), daemon=False
     )
     process.start()
-    os._exit(0)
+    os._exit(0)  # pyright: ignore
 
 
 class RemoteLoggingHandler(logging.Handler):
