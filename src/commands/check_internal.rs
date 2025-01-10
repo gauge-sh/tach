@@ -338,11 +338,17 @@ fn check_layers(
 ) -> bool {
     match (&source_module_config.layer, &target_module_config.layer) {
         (Some(source_layer), Some(target_layer)) => {
-            // If the 'source' layer comes before the 'target' layer,
-            // this means a higher layer is importing a lower layer.
-            // This direction is allowed.
-            layers.iter().position(|layer| layer == source_layer)
-                <= layers.iter().position(|layer| layer == target_layer)
+            let source_index = layers.iter().position(|layer| layer == source_layer);
+            let target_index = layers.iter().position(|layer| layer == target_layer);
+
+            match (source_index, target_index) {
+                // If the 'source' layer comes before the 'target' layer,
+                // this means a higher layer is importing a lower layer.
+                // This direction is allowed.
+                (Some(source_index), Some(target_index)) => source_index <= target_index,
+                // If either index is not found, the layer is unknown -- ignore for now
+                _ => true,
+            }
         }
         _ => true,
     }

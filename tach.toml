@@ -1,3 +1,8 @@
+layers = [
+    "ui",
+    "commands",
+    "core",
+]
 exclude = [
     "**/__pycache__",
     "**/tests",
@@ -12,12 +17,6 @@ source_roots = [
 exact = true
 forbid_circular_dependencies = true
 use_regex_matching = false
-
-layers = [
-    "ui",
-    "commands",
-    "core"
-]
 
 [[modules]]
 path = "tach"
@@ -68,20 +67,20 @@ layer = "ui"
 [[modules]]
 path = "tach.colors"
 depends_on = []
-utility = true
 layer = "core"
+utility = true
 
 [[modules]]
 path = "tach.constants"
 depends_on = []
-utility = true
 layer = "core"
+utility = true
 
 [[modules]]
 path = "tach.errors"
 depends_on = []
-utility = true
 layer = "core"
+utility = true
 
 [[modules]]
 path = "tach.extension"
@@ -202,8 +201,8 @@ layer = "commands"
 [[modules]]
 path = "tach.utils"
 depends_on = []
-utility = true
 layer = "core"
+utility = true
 
 [[interfaces]]
 expose = [
