@@ -5,7 +5,6 @@ import multiprocessing
 import os
 import sys
 import threading
-import time
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
@@ -21,7 +20,6 @@ class LogDataModel:
 
 
 def send_log_entry(record: logging.LogRecord, entry: str) -> None:
-    time.sleep(3)
     is_ci = "CI" in os.environ
     is_gauge = "IS_GAUGE" in os.environ
     data: LogDataModel | None = getattr(record, "data", None)
@@ -65,7 +63,6 @@ def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
         finally:
             done = True
             timer.cancel()
-            print("done!")
 
 
 def spawn_log_entry(record: logging.LogRecord, entry: str) -> None:
