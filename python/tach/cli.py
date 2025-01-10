@@ -627,7 +627,10 @@ def tach_check(
         )
 
         if output_format == "json":
-            print(check_result.serialize_json(pretty_print=True))
+            try:
+                print(check_result.serialize_json(pretty_print=True))
+            except ValueError as e:
+                print('{"error": "' + str(e) + '"}')
             sys.exit(1 if len(check_result.errors) > 0 else 0)
 
         if check_result.warnings:
