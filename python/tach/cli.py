@@ -148,11 +148,14 @@ def print_unused_dependencies(
     )
 
 
-def print_no_config_found() -> None:
-    print(
-        f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.toml not found. Do you need to run {BCOLORS.ENDC}'tach mod'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
-        file=sys.stderr,
-    )
+def print_no_config_found(output_format: str = "text") -> None:
+    if output_format == "json":
+        print('{"error": "No config file found"}')
+    else:
+        print(
+            f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.toml not found. Do you need to run {BCOLORS.ENDC}'tach mod'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
+            file=sys.stderr,
+        )
 
 
 def print_no_modules_found() -> None:
@@ -193,30 +196,46 @@ def print_generated_module_graph_file(
         )
 
 
-def print_circular_dependency_error(module_paths: list[str]) -> None:
-    print(
-        "\n".join(
-            [
-                f"{icons.FAIL} {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
-                for module_path in module_paths
-            ]
+def print_circular_dependency_error(
+    module_paths: list[str], output_format: str = "text"
+) -> None:
+    if output_format == "json":
+        print(
+            '{"error": "Circular dependency", "dependencies": '
+            + str(module_paths)
+            + "}"
         )
-        + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\n"
-        f"Remove or unset 'forbid_circular_dependencies' from "
-        f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}"
-    )
+    else:
+        print(
+            "\n".join(
+                [
+                    f"{icons.FAIL} {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
+                    for module_path in module_paths
+                ]
+            )
+            + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\n"
+            f"Remove or unset 'forbid_circular_dependencies' from "
+            f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}"
+        )
 
 
 def print_visibility_errors(
-    visibility_errors: list[tuple[str, str, list[str]]],
+    visibility_errors: list[tuple[str, str, list[str]]], output_format: str = "text"
 ) -> None:
-    for dependent_module, dependency_module, visibility in visibility_errors:
+    if output_format == "json":
         print(
-            f"{icons.FAIL} {BCOLORS.FAIL}Module configuration error:{BCOLORS.ENDC} {BCOLORS.WARNING}'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.{BCOLORS.ENDC}"
-            "\n"
-            f"{BCOLORS.WARNING}Adjust 'visibility' for '{dependency_module}' to include '{dependent_module}', or remove the dependency.{BCOLORS.ENDC}"
-            "\n"
+            '{"error": "Visibility error", "visibility_errors": '
+            + str(visibility_errors)
+            + "}"
         )
+    else:
+        for dependent_module, dependency_module, visibility in visibility_errors:
+            print(
+                f"{icons.FAIL} {BCOLORS.FAIL}Module configuration error:{BCOLORS.ENDC} {BCOLORS.WARNING}'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.{BCOLORS.ENDC}"
+                "\n"
+                f"{BCOLORS.WARNING}Adjust 'visibility' for '{dependency_module}' to include '{dependent_module}', or remove the dependency.{BCOLORS.ENDC}"
+                "\n"
+            )
 
 
 def print_undeclared_dependencies(
@@ -311,6 +330,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--interfaces",
         action="store_true",
         help="Check interface implementations. When present, all checks must be explicitly enabled.",
+    )
+    check_parser.add_argument(
+        "--output",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (default: text)",
     )
     add_base_arguments(check_parser)
 
@@ -570,20 +595,21 @@ def tach_check(
     dependencies: bool = True,
     interfaces: bool = True,
     exclude_paths: list[str] | None = None,
+    output_format: str = "text",
 ):
     logger.info(
         "tach check called",
         extra={
             "data": LogDataModel(
                 function="tach_check",
-                parameters={"exact": exact},
+                parameters={"exact": exact, "output_format": output_format},
             ),
         },
     )
     try:
         project_config = parse_project_config(project_root)
         if project_config is None:
-            print_no_config_found()
+            print_no_config_found(output_format)
             sys.exit(1)
 
         exact |= project_config.exact
@@ -599,6 +625,10 @@ def tach_check(
             interfaces=interfaces,
             exclude_paths=exclude_paths,
         )
+
+        if output_format == "json":
+            print(check_result.serialize_json(pretty_print=True))
+            sys.exit(1 if len(check_result.errors) > 0 else 0)
 
         if check_result.warnings:
             print_warnings(check_result.warnings)
@@ -625,17 +655,21 @@ def tach_check(
             if unused_dependencies:
                 print_unused_dependencies(unused_dependencies)
                 exit_code = 1
+
     except TachCircularDependencyError as e:
-        print_circular_dependency_error(e.dependencies)
+        print_circular_dependency_error(e.dependencies, output_format)
         sys.exit(1)
     except TachVisibilityError as e:
-        print_visibility_errors(e.visibility_errors)
+        print_visibility_errors(e.visibility_errors, output_format)
         sys.exit(1)
     except Exception as e:
-        print(str(e))
+        if output_format == "json":
+            print('{"error": "' + str(e) + '"}')
+        else:
+            print(str(e))
         sys.exit(1)
 
-    if exit_code == 0:
+    if exit_code == 0 and output_format == "text":
         print(f"{icons.SUCCESS} {BCOLORS.OKGREEN}All modules validated!{BCOLORS.ENDC}")
     sys.exit(exit_code)
 
@@ -1159,10 +1193,14 @@ def main() -> None:
                 interfaces=args.interfaces,
                 exact=args.exact,
                 exclude_paths=exclude_paths,
+                output_format=args.output,
             )
         else:
             tach_check(
-                project_root=project_root, exact=args.exact, exclude_paths=exclude_paths
+                project_root=project_root,
+                exact=args.exact,
+                exclude_paths=exclude_paths,
+                output_format=args.output,
             )
     elif args.command == "check-external":
         tach_check_external(project_root=project_root, exclude_paths=exclude_paths)

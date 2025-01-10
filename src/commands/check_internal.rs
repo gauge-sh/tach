@@ -4,7 +4,9 @@ use std::{
     sync::Arc,
 };
 
-use pyo3::{pyclass, pymethods};
+use pyo3::exceptions::PyValueError;
+use pyo3::{pyclass, pymethods, PyResult};
+use serde::Serialize;
 use thiserror::Error;
 
 use crate::{
@@ -37,7 +39,7 @@ pub enum CheckError {
     Interrupt,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct BoundaryError {
     pub file_path: PathBuf,
@@ -46,7 +48,7 @@ pub struct BoundaryError {
     pub error_info: ImportCheckError,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct CheckDiagnostics {
     pub errors: Vec<BoundaryError>,
@@ -54,7 +56,21 @@ pub struct CheckDiagnostics {
     pub warnings: Vec<String>,
 }
 
-#[derive(Error, Debug, Clone)]
+#[pymethods]
+impl CheckDiagnostics {
+    #[pyo3(signature = (pretty_print = false))]
+    fn serialize_json(&self, pretty_print: bool) -> PyResult<String> {
+        if pretty_print {
+            serde_json::to_string_pretty(&self)
+                .map_err(|_| PyValueError::new_err("Failed to serialize check results."))
+        } else {
+            serde_json::to_string(&self)
+                .map_err(|_| PyValueError::new_err("Failed to serialize check results."))
+        }
+    }
+}
+
+#[derive(Error, Debug, Clone, Serialize)]
 #[pyclass(module = "tach.extension")]
 pub enum ImportCheckError {
     #[error("Module containing '{file_mod_path}' not found in project.")]
