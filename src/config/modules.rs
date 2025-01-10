@@ -163,6 +163,21 @@ impl Default for ModuleConfig {
     }
 }
 
+impl ModuleConfig {
+    pub fn new_with_layer(path: &str, layer: &str) -> Self {
+        Self {
+            path: path.to_string(),
+            depends_on: vec![],
+            layer: Some(layer.to_string()),
+            visibility: default_visibility(),
+            utility: false,
+            strict: false,
+            unchecked: false,
+            group_id: None,
+        }
+    }
+}
+
 #[pymethods]
 impl ModuleConfig {
     #[new]

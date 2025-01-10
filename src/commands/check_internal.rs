@@ -593,7 +593,9 @@ mod tests {
     use super::*;
     use crate::config::{InterfaceConfig, ModuleConfig};
     use crate::modules::ModuleTree;
-    use crate::tests::check_internal::fixtures::{interface_config, module_config, module_tree};
+    use crate::tests::check_internal::fixtures::{
+        interface_config, layers, module_config, module_tree,
+    };
 
     use rstest::rstest;
 
@@ -662,5 +664,72 @@ mod tests {
         );
         assert!(check_error.is_err());
         assert!(check_error.unwrap_err().is_deprecated());
+    }
+
+    #[rstest]
+    #[case("top", "top", true)]
+    #[case("top", "middle", true)]
+    #[case("top", "bottom", true)]
+    #[case("middle", "bottom", true)]
+    #[case("bottom", "top", false)]
+    #[case("middle", "top", false)]
+    #[case("bottom", "middle", false)]
+    fn test_check_layers_hierarchy(
+        layers: Vec<String>,
+        #[case] source_layer: &str,
+        #[case] target_layer: &str,
+        #[case] expected_result: bool,
+    ) {
+        let source_config = ModuleConfig::new_with_layer("source", source_layer);
+        let target_config = ModuleConfig::new_with_layer("target", target_layer);
+
+        assert_eq!(
+            check_layers(&layers, &source_config, &target_config),
+            expected_result
+        );
+    }
+
+    #[rstest]
+    fn test_check_layers_missing_layers() {
+        let layers: Vec<String> = vec![];
+        // Note: would validate against this
+        let source_config = ModuleConfig::new_with_layer("source", "any");
+        let target_config = ModuleConfig::new_with_layer("target", "any");
+
+        assert!(check_layers(&layers, &source_config, &target_config));
+    }
+
+    #[rstest]
+    fn test_check_layers_no_layer_specified() {
+        let layers = vec!["top".to_string(), "bottom".to_string()];
+        let source_config = ModuleConfig::default();
+        let target_config = ModuleConfig::default();
+
+        // When modules don't specify layers, they should be allowed
+        assert!(check_layers(&layers, &source_config, &target_config));
+    }
+
+    #[rstest]
+    fn test_layer_violation_in_check_import(module_tree: ModuleTree, layers: Vec<String>) {
+        let file_module = module_tree.find_nearest("domain_three").unwrap(); // bottom layer
+
+        let result = check_import(
+            "domain_one", // trying to import from top layer
+            &module_tree,
+            file_module,
+            &layers,
+            RootModuleTreatment::Allow,
+            &None,
+            true,
+        );
+
+        assert!(matches!(
+            result,
+            Err(ImportCheckError::LayerViolation {
+                source_layer,
+                invalid_layer,
+                ..
+            }) if source_layer == "bottom" && invalid_layer == "top"
+        ));
     }
 }
