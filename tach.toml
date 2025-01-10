@@ -13,6 +13,12 @@ exact = true
 forbid_circular_dependencies = true
 use_regex_matching = false
 
+layers = [
+    "ui",
+    "commands",
+    "core"
+]
+
 [[modules]]
 path = "tach"
 depends_on = []
@@ -22,6 +28,7 @@ path = "tach.__main__"
 depends_on = [
     "tach.start",
 ]
+layer = "ui"
 
 [[modules]]
 path = "tach.cache"
@@ -29,12 +36,14 @@ depends_on = [
     "tach",
     "tach.filesystem",
 ]
+layer = "core"
 
 [[modules]]
 path = "tach.check_external"
 depends_on = [
     "tach.extension",
 ]
+layer = "commands"
 
 [[modules]]
 path = "tach.cli"
@@ -54,49 +63,59 @@ depends_on = [
     "tach.sync",
     "tach.test",
 ]
+layer = "ui"
 
 [[modules]]
 path = "tach.colors"
 depends_on = []
 utility = true
+layer = "core"
 
 [[modules]]
 path = "tach.constants"
 depends_on = []
 utility = true
+layer = "core"
 
 [[modules]]
 path = "tach.errors"
 depends_on = []
 utility = true
+layer = "core"
 
 [[modules]]
 path = "tach.extension"
 depends_on = []
+layer = "core"
 
 [[modules]]
 path = "tach.filesystem"
 depends_on = [
     "tach.hooks",
 ]
+layer = "core"
 
 [[modules]]
 path = "tach.filesystem.git_ops"
 depends_on = []
+layer = "core"
 
 [[modules]]
 path = "tach.hooks"
 depends_on = []
+layer = "core"
 
 [[modules]]
 path = "tach.icons"
 depends_on = []
+layer = "core"
 
 [[modules]]
 path = "tach.interactive"
 depends_on = [
     "tach.filesystem",
 ]
+layer = "core"
 
 [[modules]]
 path = "tach.logging"
@@ -105,6 +124,7 @@ depends_on = [
     "tach.cache",
     "tach.parsing",
 ]
+layer = "core"
 
 [[modules]]
 path = "tach.mod"
@@ -113,6 +133,7 @@ depends_on = [
     "tach.interactive",
     "tach.parsing",
 ]
+layer = "commands"
 
 [[modules]]
 path = "tach.modularity"
@@ -122,6 +143,7 @@ depends_on = [
     "tach.filesystem.git_ops",
     "tach.parsing",
 ]
+layer = "commands"
 
 [[modules]]
 path = "tach.parsing"
@@ -129,6 +151,7 @@ depends_on = [
     "tach.extension",
     "tach.filesystem",
 ]
+layer = "core"
 
 [[modules]]
 path = "tach.pytest_plugin"
@@ -138,6 +161,7 @@ depends_on = [
     "tach.filesystem.git_ops",
     "tach.parsing",
 ]
+layer = "core"
 
 [[modules]]
 path = "tach.report"
@@ -145,6 +169,7 @@ depends_on = [
     "tach.extension",
     "tach.filesystem",
 ]
+layer = "commands"
 
 [[modules]]
 path = "tach.show"
@@ -152,12 +177,14 @@ depends_on = [
     "tach.extension",
     "tach.filesystem",
 ]
+layer = "commands"
 
 [[modules]]
 path = "tach.start"
 depends_on = [
     "tach.cli",
 ]
+layer = "ui"
 
 [[modules]]
 path = "tach.sync"
@@ -165,15 +192,18 @@ depends_on = [
     "tach.extension",
     "tach.filesystem",
 ]
+layer = "commands"
 
 [[modules]]
 path = "tach.test"
 depends_on = []
+layer = "commands"
 
 [[modules]]
 path = "tach.utils"
 depends_on = []
 utility = true
+layer = "core"
 
 [[interfaces]]
 expose = [
