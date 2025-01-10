@@ -162,9 +162,9 @@ def print_no_modules_found() -> None:
     )
 
 
-def print_no_edges_found() -> None:
+def print_no_dependencies_found() -> None:
     print(
-        f"{BCOLORS.FAIL} No dependencies defined in {CONFIG_FILE_NAME}.toml. Do you need to run {BCOLORS.ENDC}'tach sync'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
+        f"{BCOLORS.FAIL} No dependencies defined in {CONFIG_FILE_NAME}.toml. You may need to run {BCOLORS.ENDC}'tach sync'{BCOLORS.FAIL} or check your python source root.{BCOLORS.ENDC}",
         file=sys.stderr,
     )
 
@@ -890,10 +890,11 @@ def tach_show(
 
     if is_web and is_mermaid:
         print(
-            f"{BCOLORS.WARNING}Passing --web always generates a Mermaid graph remotely; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
+            f"{BCOLORS.WARNING}Passing --web generates a remote graph; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
         )
 
     project_config = parse_project_config(root=project_root)
+
     if project_config is None:
         print_no_config_found()
         sys.exit(1)
@@ -901,8 +902,9 @@ def tach_show(
     if not project_config.modules:
         print_no_modules_found()
         sys.exit(1)
+
     if not any([module.depends_on for module in project_config.modules]):
-        print_no_edges_found()
+        print_no_dependencies_found()
         sys.exit(1)
     try:
         if is_web:
