@@ -3,16 +3,13 @@ from __future__ import annotations
 import logging
 import multiprocessing
 import os
-import signal
+import threading
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict
+from typing import Any, Dict
 
 from tach import __version__, cache
 from tach.logging.api import log_record, log_uid
 from tach.parsing import parse_project_config
-
-if TYPE_CHECKING:
-    from types import FrameType
 
 
 @dataclass
@@ -43,41 +40,53 @@ def send_log_entry(record: logging.LogRecord, entry: str) -> None:
 
 
 def handle_log_entry(record: logging.LogRecord, entry: str) -> None:
-    # return on main process
-    try:
-        if os.fork() != 0:
-            return
-    except AttributeError:  # TODO WIN support
-        return
+    done = False
 
-    import sys
+    def timeout_handler():
+        nonlocal done
+        if not done:
+            print("Timeout reached!")
+            os._exit(1)
 
-    devnull = open(os.devnull, "w")
-    sys.stdout = devnull
-    sys.stderr = devnull
+    # Start timeout timer
+    timer = threading.Timer(3.0, timeout_handler)
+    timer.start()
 
-    def handler(signum: int, frame: FrameType | None) -> None:
-        raise TimeoutError()
-
-    signal.signal(signal.SIGALRM, handler)  # ensure logging process always exits
-    signal.alarm(3)  # 3 sec timeout
     try:
         send_log_entry(record=record, entry=entry)
     except Exception:  # noqa
         pass
     finally:
-        signal.alarm(0)
+        done = True
+        timer.cancel()
+        print("done!")
+
+
+def spawn_log_entry(record: logging.LogRecord, entry: str) -> None:
+    process = multiprocessing.Process(
+        target=handle_log_entry, args=(record, entry), daemon=False
+    )
+    process.start()
+    os._exit(0)
 
 
 class RemoteLoggingHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        try:
+            multiprocessing.set_start_method("spawn")
+        except RuntimeError:
+            # Method was already set, ignore
+            pass
+
     def emit(self, record: logging.LogRecord) -> None:
         log_entry = self.format(record)
         # Ensure logs are nonblocking to main process
         process = multiprocessing.Process(
-            target=handle_log_entry, args=(record, log_entry)
+            target=spawn_log_entry,
+            args=(record, log_entry),
         )
         process.start()
-        process.join()
 
 
 logger = logging.getLogger("tach")
