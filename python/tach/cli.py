@@ -1013,7 +1013,7 @@ def tach_test(
 
     if pytest_args and pytest_args[0] != "--":
         print(
-            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: '{TOOL_NAME} test -- -v'"
+            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: '{TOOL_NAME} test -- -v'{BCOLORS.ENDC}"
         )
         sys.exit(1)
 
