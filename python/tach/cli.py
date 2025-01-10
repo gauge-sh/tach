@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from dataclasses import dataclass, field
 from enum import Enum
@@ -150,7 +151,7 @@ def print_unused_dependencies(
 
 def print_no_config_found(output_format: str = "text") -> None:
     if output_format == "json":
-        print('{"error": "No config file found"}')
+        json.dump({"error": "No config file found"}, sys.stdout)
     else:
         print(
             f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.toml not found. Do you need to run {BCOLORS.ENDC}'tach mod'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
@@ -200,10 +201,8 @@ def print_circular_dependency_error(
     module_paths: list[str], output_format: str = "text"
 ) -> None:
     if output_format == "json":
-        print(
-            '{"error": "Circular dependency", "dependencies": '
-            + str(module_paths)
-            + "}"
+        json.dump(
+            {"error": "Circular dependency", "dependencies": module_paths}, sys.stdout
         )
     else:
         print(
@@ -215,7 +214,8 @@ def print_circular_dependency_error(
             )
             + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\n"
             f"Remove or unset 'forbid_circular_dependencies' from "
-            f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}"
+            f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}",
+            file=sys.stderr,
         )
 
 
@@ -223,10 +223,9 @@ def print_visibility_errors(
     visibility_errors: list[tuple[str, str, list[str]]], output_format: str = "text"
 ) -> None:
     if output_format == "json":
-        print(
-            '{"error": "Visibility error", "visibility_errors": '
-            + str(visibility_errors)
-            + "}"
+        json.dump(
+            {"error": "Visibility error", "visibility_errors": visibility_errors},
+            sys.stdout,
         )
     else:
         for dependent_module, dependency_module, visibility in visibility_errors:
@@ -234,7 +233,8 @@ def print_visibility_errors(
                 f"{icons.FAIL} {BCOLORS.FAIL}Module configuration error:{BCOLORS.ENDC} {BCOLORS.WARNING}'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.{BCOLORS.ENDC}"
                 "\n"
                 f"{BCOLORS.WARNING}Adjust 'visibility' for '{dependency_module}' to include '{dependent_module}', or remove the dependency.{BCOLORS.ENDC}"
-                "\n"
+                "\n",
+                file=sys.stderr,
             )
 
 
@@ -250,7 +250,8 @@ def print_undeclared_dependencies(
                 print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
     print(
         f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}"
+        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
+        file=sys.stderr,
     )
 
 
@@ -266,7 +267,8 @@ def print_unused_external_dependencies(
                 print(f"\t{BCOLORS.WARNING}{dependency}{BCOLORS.ENDC}")
     print(
         f"{BCOLORS.OKCYAN}\nRemove the unused dependencies from the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}"
+        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
+        file=sys.stderr,
     )
 
 
@@ -630,7 +632,7 @@ def tach_check(
             try:
                 print(check_result.serialize_json(pretty_print=True))
             except ValueError as e:
-                print('{"error": "' + str(e) + '"}')
+                json.dump({"error": str(e)}, sys.stdout)
             sys.exit(1 if len(check_result.errors) > 0 else 0)
 
         if check_result.warnings:
@@ -667,7 +669,7 @@ def tach_check(
         sys.exit(1)
     except Exception as e:
         if output_format == "json":
-            print('{"error": "' + str(e) + '"}')
+            json.dump({"error": str(e)}, sys.stdout)
         else:
             print(str(e))
         sys.exit(1)
@@ -1011,7 +1013,7 @@ def tach_test(
 
     if pytest_args and pytest_args[0] != "--":
         print(
-            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: '{TOOL_NAME} test -- -v'{BCOLORS.ENDC}"
+            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: '{TOOL_NAME} test -- -v'"
         )
         sys.exit(1)
 
