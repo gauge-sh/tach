@@ -4,6 +4,7 @@ use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 
+use cached::proc_macro::cached;
 use globset::Glob;
 use globset::GlobSetBuilder;
 use thiserror::Error;
@@ -88,7 +89,7 @@ pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Res
     })
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ResolvedModule {
     pub file_path: PathBuf,
     pub member_name: Option<String>,
@@ -104,8 +105,12 @@ fn is_potential_python_module_path(s: &str) -> bool {
         })
 }
 
-pub fn module_to_file_path<P: AsRef<Path>>(
-    roots: &[P],
+#[cached(
+    key = "String",
+    convert = r#"{ format!("{}{}{}", roots.iter().map(|p| p.to_string_lossy()).collect::<Vec<_>>().join(";"), mod_path, check_members) }"#
+)]
+fn cached_module_to_file_path(
+    roots: &[&Path],
     mod_path: &str,
     check_members: bool,
 ) -> Option<ResolvedModule> {
@@ -116,7 +121,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(
 
     let mod_as_file_path = mod_path.replace('.', MAIN_SEPARATOR_STR);
     for root in roots {
-        let fs_path = root.as_ref().join(&mod_as_file_path);
+        let fs_path = root.join(&mod_as_file_path);
 
         // Check for [package with .pyi, .py] file or [.pyi, .py] file itself
         for path in &[
@@ -140,7 +145,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(
 
         if let Some(last_sep_index) = mod_as_file_path.rfind(MAIN_SEPARATOR) {
             let member_name = &mod_as_file_path[last_sep_index + 1..];
-            let base_fs_path = root.as_ref().join(&mod_as_file_path[..last_sep_index]);
+            let base_fs_path = root.join(&mod_as_file_path[..last_sep_index]);
 
             for path in &[
                 base_fs_path.join("__init__.pyi"),
@@ -158,6 +163,22 @@ pub fn module_to_file_path<P: AsRef<Path>>(
         }
     }
     None
+}
+
+pub fn module_to_file_path<P: AsRef<Path>>(
+    roots: &[P],
+    mod_path: &str,
+    check_members: bool,
+) -> Option<ResolvedModule> {
+    cached_module_to_file_path(
+        roots
+            .iter()
+            .map(|p| p.as_ref())
+            .collect::<Vec<_>>()
+            .as_slice(),
+        mod_path,
+        check_members,
+    )
 }
 
 pub fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(
