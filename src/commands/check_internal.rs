@@ -138,7 +138,7 @@ pub enum ImportCheckError {
         invalid_module: String,
     },
 
-    #[error("Cannot import '{import_mod_path}'. Module '{source_module}' is in layer '{source_layer}', while module '{invalid_module}' is in layer '{invalid_layer}'.")]
+    #[error("Cannot import '{import_mod_path}'. Layer '{source_layer}' ('{source_module}') is lower than layer '{invalid_layer}' ('{invalid_module}').")]
     LayerViolation {
         import_mod_path: String,
         source_module: String,
