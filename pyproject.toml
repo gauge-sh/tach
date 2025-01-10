@@ -117,6 +117,7 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [tool.maturin]
+profile = "profiling"
 python-source = "python"
 module-name = "tach.extension"
 features = ["pyo3/extension-module"]

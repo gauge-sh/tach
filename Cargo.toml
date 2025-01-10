@@ -34,7 +34,10 @@ ctrlc = "3.4.5"
 extension-module = ["pyo3/extension-module"]
 default = ["extension-module"]
 
+[profile.profiling]
+inherits = "release"
+debug = true
+
+
 [dev-dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
-pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 rstest = "0.24.0"
