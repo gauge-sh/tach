@@ -10,7 +10,6 @@ source_roots = [
     "python",
 ]
 exact = true
-disable_logging = true
 forbid_circular_dependencies = true
 use_regex_matching = false
 
