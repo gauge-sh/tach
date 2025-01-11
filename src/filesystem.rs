@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 use cached::proc_macro::cached;
 use globset::Glob;
 use globset::GlobSetBuilder;
+use itertools::Itertools;
 use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
@@ -107,7 +108,14 @@ fn is_potential_python_module_path(s: &str) -> bool {
 
 #[cached(
     key = "String",
-    convert = r#"{ format!("{}{}{}", roots.iter().map(|p| p.to_string_lossy()).collect::<Vec<_>>().join(";"), mod_path, check_members) }"#
+    convert = r#"{
+    format!(
+        "{}{}{}",
+        roots.iter().map(|p| p.to_string_lossy()).join(";"),
+        mod_path,
+        check_members
+    )
+}"#
 )]
 fn cached_module_to_file_path(
     roots: &[&Path],
