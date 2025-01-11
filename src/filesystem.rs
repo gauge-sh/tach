@@ -230,7 +230,7 @@ fn direntry_is_excluded(entry: &DirEntry) -> bool {
 }
 
 fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
-    if entry.path().is_dir() {
+    if entry.file_type().is_dir() {
         return true;
     }
     match entry.path().extension() {

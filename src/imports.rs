@@ -92,9 +92,17 @@ static TACH_IGNORE_REGEX: Lazy<regex::Regex> =
     Lazy::new(|| Regex::new(r"# *tach-ignore(?:\(([^)]*)\))?((?:\s+[\w.]+)*)\s*$").unwrap());
 
 fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
+    if !file_content.contains("tach-ignore") {
+        return HashMap::new();
+    }
+
     let mut ignores: IgnoreDirectives = HashMap::new();
 
     for (lineno, line) in file_content.lines().enumerate() {
+        if !line.contains("tach-ignore") {
+            continue;
+        }
+
         let normal_lineno = lineno + 1;
         if let Some(captures) = TACH_IGNORE_REGEX.captures(line) {
             let reason = captures

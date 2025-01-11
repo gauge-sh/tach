@@ -13,7 +13,7 @@ use thiserror::Error;
 use crate::{
     config::root_module::RootModuleTreatment,
     config::{ProjectConfig, RuleSetting},
-    exclusion::{self, is_path_excluded, set_excluded_paths},
+    exclusion::{self, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
     interfaces::{
@@ -367,9 +367,6 @@ pub fn check(
                         return None;
                     }
                     let abs_file_path = &source_root.join(&file_path);
-                    if is_path_excluded(abs_file_path) {
-                        return None;
-                    }
                     let mod_path = fs::file_to_module_path(&source_roots, abs_file_path).ok()?;
                     let nearest_module = module_tree.find_nearest(&mod_path)?;
 
