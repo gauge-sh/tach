@@ -367,7 +367,7 @@ pub fn check(
                         return None;
                     }
                     let abs_file_path = &source_root.join(&file_path);
-                    if is_path_excluded(abs_file_path).is_err() {
+                    if is_path_excluded(abs_file_path) {
                         return None;
                     }
                     let mod_path = fs::file_to_module_path(&source_roots, abs_file_path).ok()?;

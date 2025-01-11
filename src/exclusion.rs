@@ -1,8 +1,6 @@
 use once_cell::sync::Lazy;
-use std::{
-    path::{Path, PathBuf},
-    sync::Mutex,
-};
+use parking_lot::RwLock;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::pattern::PatternMatcher;
@@ -32,17 +30,15 @@ pub struct PathExclusions {
     patterns: Vec<PatternMatcher>,
 }
 
-static PATH_EXCLUSIONS_SINGLETON: Lazy<Mutex<Option<PathExclusions>>> =
-    Lazy::new(|| Mutex::new(None));
+static PATH_EXCLUSIONS_SINGLETON: Lazy<RwLock<Option<PathExclusions>>> =
+    Lazy::new(|| RwLock::new(None));
 
 pub fn set_excluded_paths(
     project_root: &Path,
     exclude_paths: &[PathBuf],
     use_regex_matching: bool,
 ) -> Result<()> {
-    let mut exclusions = PATH_EXCLUSIONS_SINGLETON
-        .lock()
-        .map_err(|_| PathExclusionError::ConcurrencyError)?;
+    let mut exclusions = PATH_EXCLUSIONS_SINGLETON.write();
     *exclusions = Some(PathExclusions::try_from_with_mode(
         project_root,
         exclude_paths.into(),
@@ -92,13 +88,9 @@ impl PathExclusions {
     }
 }
 
-pub fn is_path_excluded<P: AsRef<Path>>(path: P) -> Result<bool> {
+pub fn is_path_excluded<P: AsRef<Path>>(path: P) -> bool {
     PATH_EXCLUSIONS_SINGLETON
-        .lock()
-        .map(|exclusions| {
-            exclusions
-                .as_ref()
-                .is_some_and(|path_exclusions| path_exclusions.is_path_excluded(path))
-        })
-        .map_err(|_| PathExclusionError::ConcurrencyError)
+        .read()
+        .as_ref()
+        .is_some_and(|path_exclusions| path_exclusions.is_path_excluded(path))
 }
