@@ -459,6 +459,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -974,7 +983,7 @@ dependencies = [
  "aho-corasick",
  "bitflags 2.6.0",
  "is-macro",
- "itertools",
+ "itertools 0.12.1",
  "once_cell",
  "ruff_python_trivia",
  "ruff_source_file",
@@ -991,7 +1000,7 @@ dependencies = [
  "bitflags 2.6.0",
  "bstr",
  "is-macro",
- "itertools",
+ "itertools 0.12.1",
  "memchr",
  "ruff_python_ast",
  "ruff_text_size",
@@ -1007,7 +1016,7 @@ name = "ruff_python_trivia"
 version = "0.0.0"
 source = "git+https://github.com/astral-sh/ruff.git?tag=v0.4.5#550aa871d32b53a2f042fb0e7fea1080eadfa11d"
 dependencies = [
- "itertools",
+ "itertools 0.12.1",
  "ruff_source_file",
  "ruff_text_size",
  "unicode-ident",
@@ -1204,6 +1213,7 @@ dependencies = [
  "ctrlc",
  "glob",
  "globset",
+ "itertools 0.14.0",
  "lsp-server",
  "lsp-types",
  "once_cell",

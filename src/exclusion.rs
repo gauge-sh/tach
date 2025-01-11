@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use std::path::{Path, PathBuf};
@@ -59,7 +60,6 @@ impl PathExclusions {
             .unwrap()
             .components()
             .map(|component| component.as_os_str().to_string_lossy())
-            .collect::<Vec<_>>()
             .join("/");
 
         self.patterns
