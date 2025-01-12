@@ -2,16 +2,17 @@ use lsp_types::notification::Notification;
 use lsp_types::request::Request;
 use lsp_types::{InitializeParams, Uri};
 use std::path::{PathBuf, MAIN_SEPARATOR_STR};
-use std::thread::{self, JoinHandle};
+use std::thread::JoinHandle;
 
 use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
 
 use crate::check_internal::check;
 use crate::config;
+use crate::interrupt::{check_interrupt, get_interrupt_channel};
 
 use super::error::ServerError;
 
-use crossbeam_channel::{select, unbounded};
+use crossbeam_channel::select;
 
 pub struct LSPServer {
     project_root: PathBuf,
@@ -60,29 +61,39 @@ impl LSPServer {
     }
 
     pub fn run(&self) -> Result<(), ServerError> {
-        let (shutdown_tx, shutdown_rx) = unbounded();
+        eprintln!(
+            "Starting LSP server @ project root: {}",
+            self.project_root.display()
+        );
 
-        ctrlc::set_handler(move || {
-            eprintln!("Received Ctrl+C, initiating shutdown...");
-            let _ = shutdown_tx.send(());
-        })?;
+        let (connection, io_threads) = Connection::stdio();
+        eprintln!("StdIO connection started");
 
-        self.do_run(shutdown_rx)
-    }
+        let (id, params) = connection
+            .initialize_start_while(|| check_interrupt().is_ok())
+            .map_err(|_| ServerError::Initialize)?;
+        eprintln!("Initialization started with params: {params:?}");
 
-    pub fn run_in_thread(self) -> Result<ServerHandle, ServerError> {
-        let (shutdown_tx, shutdown_rx) = unbounded();
-        let cloned_shutdown_tx = shutdown_tx.clone();
-        ctrlc::set_handler(move || {
-            eprintln!("Received Ctrl+C, initiating shutdown...");
-            let _ = cloned_shutdown_tx.send(());
-        })?;
-        let join_handle = thread::spawn(move || self.do_run(shutdown_rx));
+        let server_capabilities = serde_json::json!({
+            "capabilities": serde_json::to_value(self.server_capabilities()).unwrap(),
+        });
+        eprintln!("Server capabilities: {server_capabilities:?}");
 
-        Ok(ServerHandle {
-            shutdown_sender: shutdown_tx,
-            join_handle,
-        })
+        match connection.initialize_finish(id, server_capabilities) {
+            Ok(()) => (),
+            Err(e) => {
+                if e.channel_is_disconnected() {
+                    io_threads.join()?;
+                }
+                return Err(ServerError::Initialize);
+            }
+        };
+
+        self.main_loop(connection, params)?;
+        io_threads.join()?;
+
+        eprintln!("LSP server shutting down");
+        Ok(())
     }
 
     fn server_capabilities(&self) -> lsp_types::ServerCapabilities {
@@ -108,42 +119,6 @@ impl LSPServer {
             )),
             ..Default::default()
         }
-    }
-
-    fn do_run(&self, shutdown_rx: crossbeam_channel::Receiver<()>) -> Result<(), ServerError> {
-        eprintln!(
-            "Starting LSP server @ project root: {}",
-            self.project_root.display()
-        );
-
-        let (connection, io_threads) = Connection::stdio();
-        eprintln!("StdIO connection started");
-
-        let (id, params) = connection
-            .initialize_start_while(|| shutdown_rx.is_empty())
-            .map_err(|_| ServerError::Initialize)?;
-        eprintln!("Initialization started with params: {params:?}");
-
-        let server_capabilities = serde_json::json!({
-            "capabilities": serde_json::to_value(self.server_capabilities()).unwrap(),
-        });
-        eprintln!("Server capabilities: {server_capabilities:?}");
-
-        match connection.initialize_finish(id, server_capabilities) {
-            Ok(()) => (),
-            Err(e) => {
-                if e.channel_is_disconnected() {
-                    io_threads.join()?;
-                }
-                return Err(ServerError::Initialize);
-            }
-        };
-
-        self.main_loop(connection, params, shutdown_rx)?;
-        io_threads.join()?;
-
-        eprintln!("LSP server shutting down");
-        Ok(())
     }
 
     fn lint_for_diagnostics(
@@ -215,10 +190,10 @@ impl LSPServer {
         &self,
         connection: Connection,
         params: serde_json::Value,
-        shutdown_rx: crossbeam_channel::Receiver<()>,
     ) -> Result<(), ServerError> {
         let _params: InitializeParams = serde_json::from_value(params).unwrap();
         eprintln!("Starting request handler loop");
+        let interrupt_channel = get_interrupt_channel();
 
         loop {
             select! {
@@ -286,7 +261,7 @@ impl LSPServer {
                     }
                 }
                 // Handle shutdown signal
-                recv(shutdown_rx) -> _ => {
+                recv(interrupt_channel) -> _ => {
                     eprintln!("Shutdown signal received, exiting main loop");
                     break;
                 }
