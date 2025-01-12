@@ -49,6 +49,12 @@ pub struct BoundaryError {
     pub error_info: ImportCheckError,
 }
 
+impl BoundaryError {
+    pub fn is_deprecated(&self) -> bool {
+        self.error_info.is_deprecated()
+    }
+}
+
 #[derive(Debug, Default, Serialize)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct CheckDiagnostics {
@@ -361,10 +367,9 @@ fn process_file(
     module_tree: &ModuleTree,
     project_config: &ProjectConfig,
     interface_checker: &Option<InterfaceChecker>,
-    dependencies: bool,
+    check_dependencies: bool,
     found_imports: &AtomicBool,
 ) -> Option<CheckDiagnostics> {
-    let mut diagnostics = CheckDiagnostics::default();
     let abs_file_path = &source_root.join(&file_path);
     let mod_path = fs::file_to_module_path(source_roots, abs_file_path).ok()?;
     let nearest_module = module_tree.find_nearest(&mod_path)?;
@@ -377,6 +382,7 @@ fn process_file(
         return None;
     }
 
+    let mut diagnostics = CheckDiagnostics::default();
     let project_imports = match get_project_imports(
         source_roots,
         abs_file_path,
@@ -393,50 +399,49 @@ fn process_file(
         }
         Err(ImportParseError::Parsing { .. }) => {
             diagnostics.warnings.push(format!(
-                "Skipping '{}' due to a syntax error.",
+                "Skipped '{}' due to a syntax error.",
                 file_path.display()
             ));
-            return None;
+            return Some(diagnostics);
         }
         Err(ImportParseError::Filesystem(_)) => {
             diagnostics.warnings.push(format!(
-                "Skipping '{}' due to an I/O error.",
+                "Skipped '{}' due to an I/O error.",
                 file_path.display()
             ));
-            return None;
+            return Some(diagnostics);
         }
         Err(ImportParseError::Exclusion(_)) => {
             diagnostics.warnings.push(format!(
-                "Skipping '{}'. Failed to check if the path is excluded.",
+                "Skipped '{}'. Failed to check if the path is excluded.",
                 file_path.display(),
             ));
-            return None;
+            return Some(diagnostics);
         }
     };
 
     for import in project_imports.imports {
-        let Err(error_info) = check_import(
+        if let Err(error_info) = check_import(
             &import.module_path,
             module_tree,
             Arc::clone(&nearest_module),
             &project_config.layers,
             project_config.root_module.clone(),
             interface_checker,
-            dependencies,
-        ) else {
-            continue;
+            check_dependencies,
+        ) {
+            let boundary_error = BoundaryError {
+                file_path: file_path.clone(),
+                line_number: import.line_no,
+                import_mod_path: import.module_path.to_string(),
+                error_info,
+            };
+            if boundary_error.is_deprecated() {
+                diagnostics.deprecated_warnings.push(boundary_error);
+            } else {
+                diagnostics.errors.push(boundary_error);
+            }
         };
-        let boundary_error = BoundaryError {
-            file_path: file_path.clone(),
-            line_number: import.line_no,
-            import_mod_path: import.module_path.to_string(),
-            error_info,
-        };
-        if boundary_error.error_info.is_deprecated() {
-            diagnostics.deprecated_warnings.push(boundary_error);
-        } else {
-            diagnostics.errors.push(boundary_error);
-        }
     }
 
     // Process directive-ignored imports
@@ -472,7 +477,7 @@ fn process_file(
                 &project_config.layers,
                 project_config.root_module.clone(),
                 interface_checker,
-                dependencies,
+                check_dependencies,
             )
             .is_ok();
 
@@ -518,15 +523,15 @@ pub fn check(
             warnings: vec!["WARNING: No checks enabled. At least one of dependencies or interfaces must be enabled.".to_string()],
         });
     }
-    let mut diagnostics = CheckDiagnostics::default();
-    let found_imports = AtomicBool::new(false);
-
-    let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     if !project_root.is_dir() {
         return Err(CheckError::InvalidDirectory(
             project_root.display().to_string(),
         ));
     }
+
+    let mut diagnostics = CheckDiagnostics::default();
+    let found_imports = AtomicBool::new(false);
+    let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
     let (valid_modules, invalid_modules) =
         fs::validate_project_modules(&source_roots, project_config.modules.clone());
