@@ -354,6 +354,156 @@ fn check_layers(
     }
 }
 
+fn process_file(
+    file_path: PathBuf,
+    source_root: &Path,
+    source_roots: &[PathBuf],
+    module_tree: &ModuleTree,
+    project_config: &ProjectConfig,
+    interface_checker: &Option<InterfaceChecker>,
+    dependencies: bool,
+    found_imports: &AtomicBool,
+) -> Option<CheckDiagnostics> {
+    let mut diagnostics = CheckDiagnostics::default();
+    let abs_file_path = &source_root.join(&file_path);
+    let mod_path = fs::file_to_module_path(source_roots, abs_file_path).ok()?;
+    let nearest_module = module_tree.find_nearest(&mod_path)?;
+
+    if nearest_module.is_unchecked() {
+        return None;
+    }
+
+    if nearest_module.is_root() && project_config.root_module == RootModuleTreatment::Ignore {
+        return None;
+    }
+
+    let project_imports = match get_project_imports(
+        source_roots,
+        abs_file_path,
+        project_config.ignore_type_checking_imports,
+        project_config.include_string_imports,
+    ) {
+        Ok(project_imports) => {
+            if !project_imports.imports.is_empty() && !found_imports.load(Ordering::Relaxed) {
+                // Only attempt to write if we haven't found imports yet.
+                // This avoids any potential lock contention.
+                found_imports.store(true, Ordering::Relaxed);
+            }
+            project_imports
+        }
+        Err(ImportParseError::Parsing { .. }) => {
+            diagnostics.warnings.push(format!(
+                "Skipping '{}' due to a syntax error.",
+                file_path.display()
+            ));
+            return None;
+        }
+        Err(ImportParseError::Filesystem(_)) => {
+            diagnostics.warnings.push(format!(
+                "Skipping '{}' due to an I/O error.",
+                file_path.display()
+            ));
+            return None;
+        }
+        Err(ImportParseError::Exclusion(_)) => {
+            diagnostics.warnings.push(format!(
+                "Skipping '{}'. Failed to check if the path is excluded.",
+                file_path.display(),
+            ));
+            return None;
+        }
+    };
+
+    for import in project_imports.imports {
+        let Err(error_info) = check_import(
+            &import.module_path,
+            module_tree,
+            Arc::clone(&nearest_module),
+            &project_config.layers,
+            project_config.root_module.clone(),
+            interface_checker,
+            dependencies,
+        ) else {
+            continue;
+        };
+        let boundary_error = BoundaryError {
+            file_path: file_path.clone(),
+            line_number: import.line_no,
+            import_mod_path: import.module_path.to_string(),
+            error_info,
+        };
+        if boundary_error.error_info.is_deprecated() {
+            diagnostics.deprecated_warnings.push(boundary_error);
+        } else {
+            diagnostics.errors.push(boundary_error);
+        }
+    }
+
+    // Process directive-ignored imports
+    for directive_ignored_import in project_imports.directive_ignored_imports {
+        // Check for missing ignore directive reasons
+        if project_config.rules.require_ignore_directive_reasons != RuleSetting::Off
+            && directive_ignored_import.reason.is_empty()
+        {
+            let error = BoundaryError {
+                file_path: file_path.clone(),
+                line_number: directive_ignored_import.import.line_no,
+                import_mod_path: directive_ignored_import.import.module_path.to_string(),
+                error_info: ImportCheckError::MissingIgnoreDirectiveReason {
+                    import_mod_path: directive_ignored_import.import.module_path.to_string(),
+                },
+            };
+            if project_config.rules.require_ignore_directive_reasons == RuleSetting::Error {
+                diagnostics.errors.push(error);
+            } else {
+                diagnostics.warnings.push(format!(
+                    "Import '{}' is ignored without providing a reason",
+                    directive_ignored_import.import.module_path
+                ));
+            }
+        }
+
+        // Check for unnecessary ignore directives
+        if project_config.rules.unused_ignore_directives != RuleSetting::Off {
+            let is_unnecessary = check_import(
+                &directive_ignored_import.import.module_path,
+                module_tree,
+                Arc::clone(&nearest_module),
+                &project_config.layers,
+                project_config.root_module.clone(),
+                interface_checker,
+                dependencies,
+            )
+            .is_ok();
+
+            if is_unnecessary {
+                let message = format!(
+                    "Import '{}' is unnecessarily ignored by a directive.",
+                    directive_ignored_import.import.module_path
+                );
+
+                if project_config.rules.unused_ignore_directives == RuleSetting::Error {
+                    diagnostics.errors.push(BoundaryError {
+                        file_path: file_path.clone(),
+                        line_number: directive_ignored_import.import.line_no,
+                        import_mod_path: directive_ignored_import.import.module_path.to_string(),
+                        error_info: ImportCheckError::UnusedIgnoreDirective {
+                            import_mod_path: directive_ignored_import
+                                .import
+                                .module_path
+                                .to_string(),
+                        },
+                    });
+                } else {
+                    diagnostics.warnings.push(message);
+                }
+            }
+        }
+    }
+
+    Some(diagnostics)
+}
+
 pub fn check(
     project_root: PathBuf,
     project_config: &ProjectConfig,
@@ -420,164 +570,16 @@ pub fn check(
                     // Then, we check for an interrupt right after, and return the Err if it is set
                     return None;
                 }
-                let mut diagnostics = CheckDiagnostics::default();
-                let abs_file_path = &source_root.join(&file_path);
-                let mod_path = fs::file_to_module_path(&source_roots, abs_file_path).ok()?;
-                let nearest_module = module_tree.find_nearest(&mod_path)?;
-
-                if nearest_module.is_unchecked() {
-                    return None;
-                }
-
-                if nearest_module.is_root()
-                    && project_config.root_module == RootModuleTreatment::Ignore
-                {
-                    return None;
-                }
-
-                let project_imports = match get_project_imports(
+                process_file(
+                    file_path,
+                    source_root,
                     &source_roots,
-                    abs_file_path,
-                    project_config.ignore_type_checking_imports,
-                    project_config.include_string_imports,
-                ) {
-                    Ok(project_imports) => {
-                        if !project_imports.imports.is_empty()
-                            && !found_imports.load(Ordering::Relaxed)
-                        {
-                            // Only attempt to write if we haven't found imports yet.
-                            // This avoids any potential lock contention.
-                            found_imports.store(true, Ordering::Relaxed);
-                        }
-                        project_imports
-                    }
-                    Err(ImportParseError::Parsing { .. }) => {
-                        diagnostics.warnings.push(format!(
-                            "Skipping '{}' due to a syntax error.",
-                            file_path.display()
-                        ));
-                        return None;
-                    }
-                    Err(ImportParseError::Filesystem(_)) => {
-                        diagnostics.warnings.push(format!(
-                            "Skipping '{}' due to an I/O error.",
-                            file_path.display()
-                        ));
-                        return None;
-                    }
-                    Err(ImportParseError::Exclusion(_)) => {
-                        diagnostics.warnings.push(format!(
-                            "Skipping '{}'. Failed to check if the path is excluded.",
-                            file_path.display(),
-                        ));
-                        return None;
-                    }
-                };
-
-                for import in project_imports.imports {
-                    let Err(error_info) = check_import(
-                        &import.module_path,
-                        &module_tree,
-                        Arc::clone(&nearest_module),
-                        &project_config.layers,
-                        project_config.root_module.clone(),
-                        &interface_checker,
-                        dependencies,
-                    ) else {
-                        continue;
-                    };
-                    let boundary_error = BoundaryError {
-                        file_path: file_path.clone(),
-                        line_number: import.line_no,
-                        import_mod_path: import.module_path.to_string(),
-                        error_info,
-                    };
-                    if boundary_error.error_info.is_deprecated() {
-                        diagnostics.deprecated_warnings.push(boundary_error);
-                    } else {
-                        diagnostics.errors.push(boundary_error);
-                    }
-                }
-                // Skip directive-related checks if both rules are off
-                if project_config.rules.unused_ignore_directives == RuleSetting::Off
-                    && project_config.rules.require_ignore_directive_reasons == RuleSetting::Off
-                {
-                    return Some(diagnostics);
-                }
-
-                for directive_ignored_import in project_imports.directive_ignored_imports {
-                    // Check for missing ignore directive reasons
-                    if project_config.rules.require_ignore_directive_reasons != RuleSetting::Off
-                        && directive_ignored_import.reason.is_empty()
-                    {
-                        let error = BoundaryError {
-                            file_path: file_path.clone(),
-                            line_number: directive_ignored_import.import.line_no,
-                            import_mod_path: directive_ignored_import
-                                .import
-                                .module_path
-                                .to_string(),
-                            error_info: ImportCheckError::MissingIgnoreDirectiveReason {
-                                import_mod_path: directive_ignored_import
-                                    .import
-                                    .module_path
-                                    .to_string(),
-                            },
-                        };
-                        if project_config.rules.require_ignore_directive_reasons
-                            == RuleSetting::Error
-                        {
-                            diagnostics.errors.push(error);
-                        } else {
-                            diagnostics.warnings.push(format!(
-                                "Import '{}' is ignored without providing a reason",
-                                directive_ignored_import.import.module_path
-                            ));
-                        }
-                    }
-
-                    // Check for unnecessary ignore directives
-                    if project_config.rules.unused_ignore_directives != RuleSetting::Off {
-                        let is_unnecessary = check_import(
-                            &directive_ignored_import.import.module_path,
-                            &module_tree,
-                            Arc::clone(&nearest_module),
-                            &project_config.layers,
-                            project_config.root_module.clone(),
-                            &interface_checker,
-                            dependencies,
-                        )
-                        .is_ok();
-
-                        if is_unnecessary {
-                            let message = format!(
-                                "Import '{}' is unnecessarily ignored by a directive.",
-                                directive_ignored_import.import.module_path
-                            );
-
-                            if project_config.rules.unused_ignore_directives == RuleSetting::Error {
-                                diagnostics.errors.push(BoundaryError {
-                                    file_path: file_path.clone(),
-                                    line_number: directive_ignored_import.import.line_no,
-                                    import_mod_path: directive_ignored_import
-                                        .import
-                                        .module_path
-                                        .to_string(),
-                                    error_info: ImportCheckError::UnusedIgnoreDirective {
-                                        import_mod_path: directive_ignored_import
-                                            .import
-                                            .module_path
-                                            .to_string(),
-                                    },
-                                });
-                            } else {
-                                diagnostics.warnings.push(message);
-                            }
-                        }
-                    }
-                }
-
-                Some(diagnostics)
+                    &module_tree,
+                    project_config,
+                    &interface_checker,
+                    dependencies,
+                    &found_imports,
+                )
             });
         check_interrupt().map_err(|_| CheckError::Interrupt)?;
         diagnostics.par_extend(source_root_diagnostics);
