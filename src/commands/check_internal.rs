@@ -12,8 +12,7 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::{
-    config::root_module::RootModuleTreatment,
-    config::{ProjectConfig, RuleSetting},
+    config::{root_module::RootModuleTreatment, ModuleConfig, ProjectConfig, RuleSetting},
     exclusion::{self, set_excluded_paths},
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
@@ -139,6 +138,15 @@ pub enum ImportCheckError {
         invalid_module: String,
     },
 
+    #[error("Cannot import '{import_mod_path}'. Layer '{source_layer}' ('{source_module}') is lower than layer '{invalid_layer}' ('{invalid_module}').")]
+    LayerViolation {
+        import_mod_path: String,
+        source_module: String,
+        source_layer: String,
+        invalid_module: String,
+        invalid_layer: String,
+    },
+
     #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
     UnusedIgnoreDirective { import_mod_path: String },
 
@@ -154,7 +162,9 @@ impl ImportCheckError {
     pub fn is_dependency_error(&self) -> bool {
         matches!(
             self,
-            Self::InvalidImport { .. } | Self::DeprecatedImport { .. }
+            Self::InvalidImport { .. }
+                | Self::DeprecatedImport { .. }
+                | Self::LayerViolation { .. }
         )
     }
 
@@ -169,6 +179,7 @@ impl ImportCheckError {
         match self {
             Self::InvalidImport { source_module, .. } => Some(source_module),
             Self::DeprecatedImport { source_module, .. } => Some(source_module),
+            Self::LayerViolation { source_module, .. } => Some(source_module),
             _ => None,
         }
     }
@@ -177,6 +188,7 @@ impl ImportCheckError {
         match self {
             Self::InvalidImport { invalid_module, .. } => Some(invalid_module),
             Self::DeprecatedImport { invalid_module, .. } => Some(invalid_module),
+            Self::LayerViolation { invalid_module, .. } => Some(invalid_module),
             _ => None,
         }
     }
@@ -194,6 +206,7 @@ fn check_import(
     import_mod_path: &str,
     module_tree: &ModuleTree,
     file_nearest_module: Arc<ModuleNode>,
+    layers: &[String],
     root_module_treatment: RootModuleTreatment,
     interface_checker: &Option<InterfaceChecker>,
     check_dependencies: bool,
@@ -218,6 +231,16 @@ fn check_import(
         return Ok(());
     }
 
+    let file_module_config = file_nearest_module
+        .config
+        .as_ref()
+        .ok_or(ImportCheckError::ModuleConfigNotFound())?;
+    let import_module_config = import_nearest_module
+        .config
+        .as_ref()
+        .ok_or(ImportCheckError::ModuleConfigNotFound())?;
+
+    // -- START INTERFACE CHECKS
     if let Some(interface_checker) = interface_checker {
         // When interfaces are enabled, we check whether the import is a valid export
         let import_member = import_mod_path
@@ -246,32 +269,32 @@ fn check_import(
             _ => {}
         }
     }
+    // -- END INTERFACE CHECKS
 
+    // -- START DEPENDENCY CHECKS
     if !check_dependencies {
         return Ok(());
     }
 
-    if let Some(true) = import_nearest_module
-        .config
-        .as_ref()
-        .map(|config| config.utility)
-    {
+    if !check_layers(layers, file_module_config, import_module_config) {
+        return Err(ImportCheckError::LayerViolation {
+            import_mod_path: import_mod_path.to_string(),
+            source_module: file_nearest_module.full_path.to_string(),
+            source_layer: file_module_config.layer.clone().unwrap_or("".to_string()),
+            invalid_module: import_nearest_module.full_path.to_string(),
+            invalid_layer: import_module_config.layer.clone().unwrap_or("".to_string()),
+        });
+    }
+
+    if import_module_config.utility {
         return Ok(());
     }
 
-    let file_config = file_nearest_module
-        .config
-        .as_ref()
-        .ok_or(ImportCheckError::ModuleConfigNotFound())?;
-    let file_nearest_module_path = &file_config.path;
-    let import_nearest_module_path = &import_nearest_module
-        .config
-        .as_ref()
-        .ok_or(ImportCheckError::ModuleConfigNotFound())?
-        .path;
+    let file_nearest_module_path = &file_module_config.path;
+    let import_nearest_module_path = &import_module_config.path;
 
     // The import must be explicitly allowed in the file's config
-    let allowed_dependencies: HashSet<_> = file_config
+    let allowed_dependencies: HashSet<_> = file_module_config
         .depends_on
         .iter()
         .filter(|dep| !dep.deprecated)
@@ -283,7 +306,7 @@ fn check_import(
         return Ok(());
     }
 
-    let deprecated_dependencies: HashSet<_> = file_config
+    let deprecated_dependencies: HashSet<_> = file_module_config
         .depends_on
         .iter()
         .filter(|dep| dep.deprecated)
@@ -305,6 +328,30 @@ fn check_import(
         source_module: file_nearest_module_path.to_string(),
         invalid_module: import_nearest_module_path.to_string(),
     })
+    // -- END DEPENDENCY CHECKS
+}
+
+fn check_layers(
+    layers: &[String],
+    source_module_config: &ModuleConfig,
+    target_module_config: &ModuleConfig,
+) -> bool {
+    match (&source_module_config.layer, &target_module_config.layer) {
+        (Some(source_layer), Some(target_layer)) => {
+            let source_index = layers.iter().position(|layer| layer == source_layer);
+            let target_index = layers.iter().position(|layer| layer == target_layer);
+
+            match (source_index, target_index) {
+                // If the 'source' layer comes before the 'target' layer,
+                // this means a higher layer is importing a lower layer.
+                // This direction is allowed.
+                (Some(source_index), Some(target_index)) => source_index <= target_index,
+                // If either index is not found, the layer is unknown -- ignore for now
+                _ => true,
+            }
+        }
+        _ => true,
+    }
 }
 
 pub fn check(
@@ -432,6 +479,7 @@ pub fn check(
                         &import.module_path,
                         &module_tree,
                         Arc::clone(&nearest_module),
+                        &project_config.layers,
                         project_config.root_module.clone(),
                         &interface_checker,
                         dependencies,
@@ -454,7 +502,7 @@ pub fn check(
                 if project_config.rules.unused_ignore_directives == RuleSetting::Off
                     && project_config.rules.require_ignore_directive_reasons == RuleSetting::Off
                 {
-                    return None;
+                    return Some(diagnostics);
                 }
 
                 for directive_ignored_import in project_imports.directive_ignored_imports {
@@ -494,6 +542,7 @@ pub fn check(
                             &directive_ignored_import.import.module_path,
                             &module_tree,
                             Arc::clone(&nearest_module),
+                            &project_config.layers,
                             project_config.root_module.clone(),
                             &interface_checker,
                             dependencies,
@@ -550,7 +599,9 @@ mod tests {
     use super::*;
     use crate::config::{InterfaceConfig, ModuleConfig};
     use crate::modules::ModuleTree;
-    use crate::tests::check_internal::fixtures::{interface_config, module_config, module_tree};
+    use crate::tests::check_internal::fixtures::{
+        interface_config, layers, module_config, module_tree,
+    };
 
     use rstest::rstest;
 
@@ -586,6 +637,7 @@ mod tests {
             import_mod_path,
             &module_tree,
             file_module.clone(),
+            &[],
             RootModuleTreatment::Allow,
             &interface_checker,
             true,
@@ -611,11 +663,79 @@ mod tests {
             "domain_one.subdomain",
             &module_tree,
             file_module.clone(),
+            &[],
             RootModuleTreatment::Allow,
             &interface_checker,
             true,
         );
         assert!(check_error.is_err());
         assert!(check_error.unwrap_err().is_deprecated());
+    }
+
+    #[rstest]
+    #[case("top", "top", true)]
+    #[case("top", "middle", true)]
+    #[case("top", "bottom", true)]
+    #[case("middle", "bottom", true)]
+    #[case("bottom", "top", false)]
+    #[case("middle", "top", false)]
+    #[case("bottom", "middle", false)]
+    fn test_check_layers_hierarchy(
+        layers: Vec<String>,
+        #[case] source_layer: &str,
+        #[case] target_layer: &str,
+        #[case] expected_result: bool,
+    ) {
+        let source_config = ModuleConfig::new_with_layer("source", source_layer);
+        let target_config = ModuleConfig::new_with_layer("target", target_layer);
+
+        assert_eq!(
+            check_layers(&layers, &source_config, &target_config),
+            expected_result
+        );
+    }
+
+    #[rstest]
+    fn test_check_layers_missing_layers() {
+        let layers: Vec<String> = vec![];
+        // Note: would validate against this
+        let source_config = ModuleConfig::new_with_layer("source", "any");
+        let target_config = ModuleConfig::new_with_layer("target", "any");
+
+        assert!(check_layers(&layers, &source_config, &target_config));
+    }
+
+    #[rstest]
+    fn test_check_layers_no_layer_specified() {
+        let layers = vec!["top".to_string(), "bottom".to_string()];
+        let source_config = ModuleConfig::default();
+        let target_config = ModuleConfig::default();
+
+        // When modules don't specify layers, they should be allowed
+        assert!(check_layers(&layers, &source_config, &target_config));
+    }
+
+    #[rstest]
+    fn test_layer_violation_in_check_import(module_tree: ModuleTree, layers: Vec<String>) {
+        let file_module = module_tree.find_nearest("domain_three").unwrap(); // bottom layer
+
+        let result = check_import(
+            "domain_one", // trying to import from top layer
+            &module_tree,
+            file_module,
+            &layers,
+            RootModuleTreatment::Allow,
+            &None,
+            true,
+        );
+
+        assert!(matches!(
+            result,
+            Err(ImportCheckError::LayerViolation {
+                source_layer,
+                invalid_layer,
+                ..
+            }) if source_layer == "bottom" && invalid_layer == "top"
+        ));
     }
 }

@@ -16,6 +16,15 @@ pub mod fixtures {
     }
 
     #[fixture]
+    pub fn layers() -> Vec<String> {
+        vec![
+            "top".to_string(),
+            "middle".to_string(),
+            "bottom".to_string(),
+        ]
+    }
+
+    #[fixture]
     pub fn module_tree() -> ModuleTree {
         ModuleTree {
             root: Arc::new(ModuleNode {
@@ -35,6 +44,7 @@ pub mod fixtures {
                                     DependencyConfig::from_path("domain_three"),
                                 ],
                                 strict: false,
+                                layer: Some("top".to_string()),
                                 ..Default::default()
                             }),
                             children: HashMap::from([(
@@ -42,7 +52,10 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_one.subdomain".to_string(),
-                                    config: Some(ModuleConfig::new("domain_one.subdomain", false)),
+                                    config: Some(ModuleConfig::new_with_layer(
+                                        "domain_one.subdomain",
+                                        "middle",
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             )]),
@@ -57,6 +70,7 @@ pub mod fixtures {
                                 path: "domain_two".to_string(),
                                 depends_on: vec![DependencyConfig::from_path("domain_one")],
                                 strict: false,
+                                layer: Some("top".to_string()),
                                 ..Default::default()
                             }),
                             children: HashMap::from([(
@@ -68,6 +82,7 @@ pub mod fixtures {
                                         path: "domain_two".to_string(),
                                         depends_on: vec![DependencyConfig::from_path("domain_one")],
                                         strict: false,
+                                        layer: Some("top".to_string()),
                                         ..Default::default()
                                     }),
                                     children: HashMap::new(),
@@ -80,7 +95,7 @@ pub mod fixtures {
                         Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_three".to_string(),
-                            config: Some(ModuleConfig::new("domain_three", false)),
+                            config: Some(ModuleConfig::new_with_layer("domain_three", "bottom")),
                             children: HashMap::new(),
                         }),
                     ),
@@ -99,16 +114,18 @@ pub mod fixtures {
                     DependencyConfig::from_path("domain_three"),
                 ],
                 strict: false,
+                layer: Some("top".to_string()),
                 ..Default::default()
             },
-            ModuleConfig::new("domain_one.subdomain", false),
+            ModuleConfig::new_with_layer("domain_one.subdomain", "middle"),
             ModuleConfig {
                 path: "domain_two".to_string(),
                 depends_on: vec![DependencyConfig::from_path("domain_one")],
                 strict: false,
+                layer: Some("top".to_string()),
                 ..Default::default()
             },
-            ModuleConfig::new("domain_three", false),
+            ModuleConfig::new_with_layer("domain_three", "bottom"),
         ]
     }
 
