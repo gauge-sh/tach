@@ -29,12 +29,18 @@ lsp-server = "0.7.7"
 lsp-types = "0.97.0"
 crossbeam-channel = "0.5.14"
 ctrlc = "3.4.5"
+rayon = "1.10.0"
+parking_lot = "0.12.3"
+itertools = "0.14.0"
 
 [features]
 extension-module = ["pyo3/extension-module"]
 default = ["extension-module"]
 
+[profile.profiling]
+inherits = "release"
+debug = true
+
+
 [dev-dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
-pprof = { version = "0.14", features = ["flamegraph", "criterion"] }
 rstest = "0.24.0"

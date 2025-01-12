@@ -92,9 +92,17 @@ static TACH_IGNORE_REGEX: Lazy<regex::Regex> =
     Lazy::new(|| Regex::new(r"# *tach-ignore(?:\(([^)]*)\))?((?:\s+[\w.]+)*)\s*$").unwrap());
 
 fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
+    if !file_content.contains("tach-ignore") {
+        return HashMap::new();
+    }
+
     let mut ignores: IgnoreDirectives = HashMap::new();
 
     for (lineno, line) in file_content.lines().enumerate() {
+        if !line.contains("tach-ignore") {
+            continue;
+        }
+
         let normal_lineno = lineno + 1;
         if let Some(captures) = TACH_IGNORE_REGEX.captures(line) {
             let reason = captures
@@ -390,7 +398,7 @@ pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> 
     let resolved_module = filesystem::module_to_file_path(source_roots, mod_path, true);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
-        Ok(!exclusion::is_path_excluded(module.file_path)?)
+        Ok(!exclusion::is_path_excluded(module.file_path))
     } else {
         // This is not a project import
         Ok(false)
