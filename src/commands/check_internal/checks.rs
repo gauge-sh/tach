@@ -1,9 +1,8 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use super::diagnostics::ImportCheckError;
 use crate::{
-    config::{root_module::RootModuleTreatment, ModuleConfig, ProjectConfig},
+    config::{root_module::RootModuleTreatment, DependencyConfig, ModuleConfig, ProjectConfig},
     imports::DirectiveIgnoredImport,
     interfaces::{
         check::CheckResult as InterfaceCheckResult, data_types::TypeCheckResult, InterfaceChecker,
@@ -23,45 +22,28 @@ fn check_dependencies(
     if import_module_config.utility {
         return Ok(());
     }
-
     let file_nearest_module_path = &file_module_config.path;
     let import_nearest_module_path = &import_module_config.path;
 
-    // The import must be explicitly allowed in the file's config
-    let allowed_dependencies: HashSet<_> = file_module_config
+    match file_module_config
         .depends_on
         .iter()
-        .filter(|dep| !dep.deprecated)
-        .map(|dep| &dep.path)
-        .collect();
-
-    if allowed_dependencies.contains(import_nearest_module_path) {
-        // The import matches at least one expected dependency
-        return Ok(());
-    }
-
-    let deprecated_dependencies: HashSet<_> = file_module_config
-        .depends_on
-        .iter()
-        .filter(|dep| dep.deprecated)
-        .map(|dep| &dep.path)
-        .collect();
-
-    if deprecated_dependencies.contains(import_nearest_module_path) {
-        // Dependency exists but is deprecated
-        return Err(ImportCheckError::DeprecatedImport {
+        .find(|dep| &dep.path == import_nearest_module_path)
+    {
+        Some(DependencyConfig {
+            deprecated: true, ..
+        }) => Err(ImportCheckError::DeprecatedImport {
             import_mod_path: import_mod_path.to_string(),
             source_module: file_nearest_module_path.to_string(),
             invalid_module: import_nearest_module_path.to_string(),
-        });
+        }),
+        Some(_) => Ok(()),
+        None => Err(ImportCheckError::InvalidImport {
+            import_mod_path: import_mod_path.to_string(),
+            source_module: file_nearest_module_path.to_string(),
+            invalid_module: import_nearest_module_path.to_string(),
+        }),
     }
-
-    // This means the import is not declared as a dependency of the file
-    Err(ImportCheckError::InvalidImport {
-        import_mod_path: import_mod_path.to_string(),
-        source_module: file_nearest_module_path.to_string(),
-        invalid_module: import_nearest_module_path.to_string(),
-    })
 }
 
 fn check_interfaces(
