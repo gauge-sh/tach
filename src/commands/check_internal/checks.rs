@@ -13,22 +13,12 @@ use crate::{
 
 fn check_dependencies(
     import_mod_path: &str,
-    import_nearest_module: &ModuleNode,
-    file_nearest_module: &ModuleNode,
     file_module_config: &ModuleConfig,
     import_module_config: &ModuleConfig,
     layers: &[String],
 ) -> Result<(), ImportCheckError> {
     // Layer check should take precedence over other dependency checks
-    if !check_layers(layers, file_module_config, import_module_config) {
-        return Err(ImportCheckError::LayerViolation {
-            import_mod_path: import_mod_path.to_string(),
-            source_module: file_nearest_module.full_path.to_string(),
-            source_layer: file_module_config.layer.clone().unwrap_or("".to_string()),
-            invalid_module: import_nearest_module.full_path.to_string(),
-            invalid_layer: import_module_config.layer.clone().unwrap_or("".to_string()),
-        });
-    }
+    check_layers(layers, file_module_config, import_module_config)?;
 
     if import_module_config.utility {
         return Ok(());
@@ -142,29 +132,21 @@ pub(super) fn check_import(
         .ok_or(ImportCheckError::ModuleConfigNotFound())?;
 
     if let Some(interface_checker) = interface_checker {
-        match check_interfaces(
+        check_interfaces(
             import_mod_path,
             &import_nearest_module,
             &file_nearest_module,
             interface_checker,
-        ) {
-            Ok(()) => {}
-            Err(e) => return Err(e),
-        }
+        )?
     }
 
     if should_check_dependencies {
-        match check_dependencies(
+        check_dependencies(
             import_mod_path,
-            &import_nearest_module,
-            &file_nearest_module,
             file_module_config,
             import_module_config,
             layers,
-        ) {
-            Ok(()) => {}
-            Err(e) => return Err(e),
-        }
+        )?
     }
 
     Ok(())
@@ -210,22 +192,31 @@ pub(super) fn check_layers(
     layers: &[String],
     source_module_config: &ModuleConfig,
     target_module_config: &ModuleConfig,
-) -> bool {
+) -> Result<(), ImportCheckError> {
     match (&source_module_config.layer, &target_module_config.layer) {
         (Some(source_layer), Some(target_layer)) => {
             let source_index = layers.iter().position(|layer| layer == source_layer);
             let target_index = layers.iter().position(|layer| layer == target_layer);
 
             match (source_index, target_index) {
-                // If the 'source' layer comes before the 'target' layer,
-                // this means a higher layer is importing a lower layer.
-                // This direction is allowed.
-                (Some(source_index), Some(target_index)) => source_index <= target_index,
+                (Some(source_index), Some(target_index)) => {
+                    if source_index <= target_index {
+                        Ok(())
+                    } else {
+                        Err(ImportCheckError::LayerViolation {
+                            import_mod_path: target_module_config.path.clone(),
+                            source_module: source_module_config.path.clone(),
+                            source_layer: source_layer.clone(),
+                            invalid_module: target_module_config.path.clone(),
+                            invalid_layer: target_layer.clone(),
+                        })
+                    }
+                }
                 // If either index is not found, the layer is unknown -- ignore for now
-                _ => true,
+                _ => Ok(()),
             }
         }
-        _ => true,
+        _ => Ok(()),
     }
 }
 
@@ -325,20 +316,17 @@ mod tests {
         let source_config = ModuleConfig::new_with_layer("source", source_layer);
         let target_config = ModuleConfig::new_with_layer("target", target_layer);
 
-        assert_eq!(
-            check_layers(&layers, &source_config, &target_config),
-            expected_result
-        );
+        let result = check_layers(&layers, &source_config, &target_config);
+        assert_eq!(result.is_ok(), expected_result);
     }
 
     #[rstest]
     fn test_check_layers_missing_layers() {
         let layers: Vec<String> = vec![];
-        // Note: would validate against this
         let source_config = ModuleConfig::new_with_layer("source", "any");
         let target_config = ModuleConfig::new_with_layer("target", "any");
 
-        assert!(check_layers(&layers, &source_config, &target_config));
+        assert!(check_layers(&layers, &source_config, &target_config).is_ok());
     }
 
     #[rstest]
@@ -348,7 +336,7 @@ mod tests {
         let target_config = ModuleConfig::default();
 
         // When modules don't specify layers, they should be allowed
-        assert!(check_layers(&layers, &source_config, &target_config));
+        assert!(check_layers(&layers, &source_config, &target_config).is_ok());
     }
 
     #[rstest]
