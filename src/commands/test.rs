@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::path::Path;
 use std::{collections::HashMap, path::PathBuf};
 
 use pyo3::{pyclass, pymethods};
@@ -114,7 +115,7 @@ fn build_module_consumer_map(modules: &Vec<ModuleConfig>) -> HashMap<&String, Ve
 }
 
 fn get_changed_module_paths(
-    project_root: &PathBuf,
+    project_root: &Path,
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
 ) -> Result<Vec<String>> {

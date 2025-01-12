@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
@@ -199,7 +199,7 @@ fn is_module_prefix(prefix: &str, full_path: &str) -> bool {
 }
 
 pub fn create_dependency_report(
-    project_root: &PathBuf,
+    project_root: &Path,
     project_config: &ProjectConfig,
     path: &PathBuf,
     include_dependency_modules: Option<Vec<String>>,
