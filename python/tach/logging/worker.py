@@ -99,55 +99,65 @@ def process_message(message: dict[str, Any]) -> None:
     send_log_entry(version, uid, function, parameters, level, timestamp, entry)
 
 
-def subprocess_worker(fifo_path: Path, timeout: int = 5) -> None:
+def subprocess_worker(file_path: Path, timeout: int = 5) -> None:
     try:
-        with open(fifo_path) as pipe:
-            last_message_time = time.time()
-            while True:
-                try:
-                    line = pipe.readline()
-                    if line:
-                        message = json.loads(line)
-                        process_message(message)
+        last_position = 0
+        last_message_time = time.time()
+
+        while True:
+            try:
+                with open(file_path) as f:
+                    f.seek(last_position)
+                    lines = f.readlines()
+
+                    if lines:
                         last_message_time = time.time()
-                except json.JSONDecodeError:
-                    continue
-                except Exception:
-                    pass
+                        last_position = f.tell()
 
-                time.sleep(0.1)
-                if time.time() - last_message_time > timeout:
-                    break
+                        for line in lines:
+                            try:
+                                message = json.loads(line)
+                                process_message(message)
+                            except json.JSONDecodeError:
+                                continue
+                            except Exception:
+                                pass
 
-    except Exception:
-        pass
+            except Exception:
+                pass
+
+            time.sleep(0.1)
+            if time.time() - last_message_time > timeout:
+                break
+
     finally:
-        if fifo_path.exists():
-            fifo_path.unlink()
+        if file_path.exists():
+            file_path.unlink()
 
 
 def create_managed_subprocess(project_root: Path, timeout: int = 5) -> Path:
     """
     Launches the worker as a completely separate process using subprocess.Popen.
-    Returns the path to the named pipe for message passing.
+    Returns the path to the temporary file for message passing.
     """
     tach_dir = project_root / ".tach"
     tach_dir.mkdir(parents=True, exist_ok=True)
 
-    fifo_path = tach_dir / "log_pipe"
-    if fifo_path.exists():
-        fifo_path.unlink()
-    os.mkfifo(fifo_path)
+    # Cannot use FIFO because it is not supported on Windows
+    log_file = tach_dir / "log_pipe.txt"
+    if log_file.exists():
+        log_file.unlink()
+    log_file.touch()
 
     worker_script = Path(__file__).resolve()
     subprocess.Popen(
-        [sys.executable, str(worker_script), "--worker", str(fifo_path), str(timeout)],
+        [sys.executable, str(worker_script), "--worker", str(log_file), str(timeout)],
         start_new_session=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
 
-    return fifo_path
+    return log_file
 
 
 # This is the entrypoint from subprocess.Popen in create_managed_subprocess

@@ -31,11 +31,11 @@ class RemoteLoggingHandler(logging.Handler):
     def __init__(self, project_root: Path):
         super().__init__()
         self.uid = get_uid()
-        self.fifo_path = create_managed_subprocess(project_root)
+        self.file_path = create_managed_subprocess(project_root)
 
     def emit(self, record: logging.LogRecord) -> None:
         log_entry = self.format(record)
-        with open(self.fifo_path, "w") as fifo:
+        with open(self.file_path, "a") as f:
             json.dump(
                 {
                     "version": __version__,
@@ -47,6 +47,6 @@ class RemoteLoggingHandler(logging.Handler):
                     "timestamp": record.created,
                     "log_entry": log_entry,
                 },
-                fifo,
+                f,
             )
-            fifo.write("\n")
+            f.write("\n")
