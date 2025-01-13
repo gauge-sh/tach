@@ -18,17 +18,17 @@ This is the project-level configuration file which should be in the root of your
   Tach uses forward slashes to match path separators, even on Windows.
 </Note>
 
-`ignore_type_checking_imports` is a boolean which, when enabled, silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block.
+`ignore_type_checking_imports` (default: **true**) is a flag which silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block.
 
-`exact` is a boolean which causes `tach check` to fail if any declared dependencies are found to be unused.
+`exact` (default: **false**) is a flag which causes `tach check` to fail if any declared dependencies are found to be unused.
 
-`forbid_circular_dependencies` is a boolean which, when enabled, causes `tach check` to fail if any circular dependencies are detected.
+`forbid_circular_dependencies` (default: **false**) is a flag which causes `tach check` to fail if any circular dependencies are detected.
 
 `root_module` takes a string enum value, and determines how Tach treats code which lives within the project but is not covered by an explicit module. This is described in detail [below](#the_root_module)
 
 `rules` allows precise configuration of the severity of certain types of issues. See [below](#rules) for more details.
 
-`use_regex_matching` is a boolean which, when enabled, uses regex (default) matching to exclude patterns else uses globs matching.
+`use_regex_matching` (default: **true**) is a flag which controls how exclude patterns are interpreted. When `false`, exclude patterns are interpreted as globs.
 
 ```toml
 exclude = [
