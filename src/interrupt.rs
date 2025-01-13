@@ -76,20 +76,26 @@ pub fn get_interrupt_channel() -> Receiver<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::*;
+    use serial_test::serial;
 
-    #[test]
-    fn test_check_interrupt() {
+    #[fixture]
+    fn reset_interrupt_signal() {
+        INTERRUPT_SIGNAL.store(false, Ordering::SeqCst);
+    }
+
+    #[rstest]
+    #[serial]
+    fn test_check_interrupt(_reset_interrupt_signal: ()) {
         assert!(check_interrupt().is_ok());
 
         INTERRUPT_SIGNAL.store(true, Ordering::SeqCst);
         assert_eq!(check_interrupt(), Err("Operation cancelled by user"));
-
-        // This must be reset for other tests
-        INTERRUPT_SIGNAL.store(false, Ordering::SeqCst);
     }
 
-    #[test]
-    fn test_interrupt_channel() {
+    #[rstest]
+    #[serial]
+    fn test_interrupt_channel(_reset_interrupt_signal: ()) {
         let receiver = get_interrupt_channel();
         // Initially should not receive anything
         assert!(receiver.try_recv().is_err());
@@ -103,13 +109,11 @@ mod tests {
 
         // Should receive notification
         assert!(receiver.recv().is_ok());
-
-        // Reset for other tests
-        INTERRUPT_SIGNAL.store(false, Ordering::SeqCst);
     }
 
-    #[test]
-    fn test_multiple_interrupt_channels() {
+    #[rstest]
+    #[serial]
+    fn test_multiple_interrupt_channels(_reset_interrupt_signal: ()) {
         let receiver1 = get_interrupt_channel();
         let receiver2 = get_interrupt_channel();
         let receiver3 = get_interrupt_channel();
