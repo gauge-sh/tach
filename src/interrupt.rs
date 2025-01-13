@@ -29,6 +29,12 @@ impl InterruptNotifier {
             let mut _guard = notifier.mutex.lock().unwrap();
             // Send a ready signal AFTER acquiring the mutex
             let _ = ready_sender.send(());
+            // Initial check in case we are late
+            if INTERRUPT_SIGNAL.load(Ordering::SeqCst) {
+                let _ = sender.send(());
+                return;
+            }
+
             loop {
                 // Waiting on the condvar will block the thread AND release the mutex
                 // Then when the condvar is notified, it will re-acquire the mutex
@@ -100,7 +106,6 @@ mod tests {
         // Initially should not receive anything
         assert!(receiver.try_recv().is_err());
 
-        // Manually trigger interrupt
         {
             INTERRUPT_SIGNAL.store(true, Ordering::SeqCst);
             let _guard = INTERRUPT_NOTIFIER.mutex.lock().unwrap();
@@ -134,5 +139,54 @@ mod tests {
 
         // Reset for other tests
         INTERRUPT_SIGNAL.store(false, Ordering::SeqCst);
+    }
+
+    #[rstest]
+    #[serial]
+    fn test_channel_closes_after_interrupt(_reset_interrupt_signal: ()) {
+        let receiver = get_interrupt_channel();
+
+        {
+            INTERRUPT_SIGNAL.store(true, Ordering::SeqCst);
+            let _guard = INTERRUPT_NOTIFIER.mutex.lock().unwrap();
+            INTERRUPT_NOTIFIER.condvar.notify_all();
+        }
+
+        // First recv should succeed
+        assert!(receiver.recv().is_ok());
+        // Subsequent recv should indicate channel is closed
+        assert!(receiver.recv().is_err());
+    }
+
+    #[rstest]
+    #[serial]
+    fn test_late_subscription_to_interrupt(_reset_interrupt_signal: ()) {
+        // Set interrupt before creating channel
+        {
+            INTERRUPT_SIGNAL.store(true, Ordering::SeqCst);
+            let _guard = INTERRUPT_NOTIFIER.mutex.lock().unwrap();
+            INTERRUPT_NOTIFIER.condvar.notify_all();
+        }
+
+        // New channel should still receive the interrupt
+        let receiver = get_interrupt_channel();
+        assert!(receiver.recv().is_ok());
+    }
+
+    #[rstest]
+    #[serial]
+    fn test_spurious_wakeup_handling(_reset_interrupt_signal: ()) {
+        let receiver = get_interrupt_channel();
+
+        // Manually notify without setting the interrupt signal
+        {
+            let _guard = INTERRUPT_NOTIFIER.mutex.lock().unwrap();
+            INTERRUPT_NOTIFIER.condvar.notify_all();
+        }
+
+        // Should not receive anything (timeout after 100ms)
+        assert!(receiver
+            .recv_timeout(std::time::Duration::from_millis(100))
+            .is_err());
     }
 }
