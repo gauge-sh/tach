@@ -55,11 +55,12 @@ def mock_check(mocker) -> Mock:
 
 
 @pytest.fixture
-def mock_project_config(mocker) -> None:
-    def mock_project_config(root: str = "") -> ProjectConfig:
+def mock_project_config(mocker) -> ProjectConfig:
+    def _mock_project_config(root: str = "") -> ProjectConfig:
         return ProjectConfig()
 
-    mocker.patch("tach.cli.parse_project_config", mock_project_config)
+    mocker.patch("tach.cli.parse_project_config", _mock_project_config)
+    return _mock_project_config()
 
 
 def test_execute_with_config(capfd, mock_check, mock_project_config):
@@ -67,7 +68,11 @@ def test_execute_with_config(capfd, mock_check, mock_project_config):
     args, _ = cli.parse_arguments(["check"])
     assert args.command == "check"
     with pytest.raises(SystemExit) as sys_exit:
-        cli.tach_check(Path())
+        cli.tach_check(
+            project_root=Path(),
+            project_config=mock_project_config,
+            exclude_paths=mock_project_config.exclude,
+        )
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
@@ -93,7 +98,11 @@ def test_execute_with_error(capfd, mock_check, mock_project_config):
         ],
     )
     with pytest.raises(SystemExit) as sys_exit:
-        cli.tach_check(Path())
+        cli.tach_check(
+            project_root=Path(),
+            project_config=mock_project_config,
+            exclude_paths=mock_project_config.exclude,
+        )
     captured = capfd.readouterr()
     assert sys_exit.value.code == 1
     assert str(location) in captured.err
@@ -114,7 +123,11 @@ def test_execute_with_valid_exclude(capfd, mock_check, mock_project_config):
         # Test with a valid path as mocked
         args, _ = cli.parse_arguments(["check", "--exclude", "valid_dir"])
         exclude_paths = args.exclude.split(",")
-        cli.tach_check(Path(), exclude_paths=exclude_paths)
+        cli.tach_check(
+            project_root=Path(),
+            project_config=mock_project_config,
+            exclude_paths=exclude_paths,
+        )
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
