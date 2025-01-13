@@ -30,7 +30,7 @@ from tach.extension import (
     update_computation_cache,
 )
 from tach.filesystem import install_pre_commit
-from tach.logging import LogDataModel, logger
+from tach.logging import CallInfo, init_logging, logger
 from tach.modularity import export_report, upload_report_to_gauge
 from tach.parsing import extend_and_validate, parse_project_config
 from tach.report import external_dependency_report, report
@@ -592,33 +592,25 @@ def check_cache_for_action(
 
 
 def tach_check(
+    project_config: ProjectConfig,
     project_root: Path,
+    exclude_paths: list[str],
     exact: bool = False,
     dependencies: bool = True,
     interfaces: bool = True,
-    exclude_paths: list[str] | None = None,
     output_format: str = "text",
 ):
     logger.info(
         "tach check called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_check",
                 parameters={"exact": exact, "output_format": output_format},
             ),
         },
     )
     try:
-        project_config = parse_project_config(project_root)
-        if project_config is None:
-            print_no_config_found(output_format)
-            sys.exit(1)
-
         exact |= project_config.exact
-
-        exclude_paths = extend_and_validate(
-            exclude_paths, project_config.exclude, project_config.use_regex_matching
-        )
 
         check_result = check(
             project_root=project_root,
@@ -679,25 +671,20 @@ def tach_check(
     sys.exit(exit_code)
 
 
-def tach_check_external(project_root: Path, exclude_paths: list[str] | None = None):
+def tach_check_external(
+    project_config: ProjectConfig,
+    project_root: Path,
+    exclude_paths: list[str],
+):
     logger.info(
         "tach check-external called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_check_external",
             ),
         },
     )
     try:
-        project_config = parse_project_config(project_root)
-        if project_config is None:
-            print_no_config_found()
-            sys.exit(1)
-
-        exclude_paths = extend_and_validate(
-            exclude_paths, project_config.exclude, project_config.use_regex_matching
-        )
-
         result = check_external(
             project_root=project_root,
             project_config=project_config,
@@ -722,12 +709,14 @@ def tach_check_external(project_root: Path, exclude_paths: list[str] | None = No
 
 
 def tach_mod(
-    project_root: Path, depth: int | None = 1, exclude_paths: list[str] | None = None
+    project_root: Path,
+    depth: int | None = 1,
+    exclude_paths: list[str] | None = None,
 ):
     logger.info(
         "tach mod called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_mod",
                 parameters={"depth": depth},
             ),
@@ -762,27 +751,21 @@ def tach_mod(
 
 
 def tach_sync(
-    project_root: Path, add: bool = False, exclude_paths: list[str] | None = None
+    project_config: ProjectConfig,
+    project_root: Path,
+    exclude_paths: list[str],
+    add: bool = False,
 ):
     logger.info(
         "tach sync called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_sync",
                 parameters={"add": add},
             ),
         },
     )
     try:
-        project_config = parse_project_config(root=project_root)
-        if project_config is None:
-            print_no_config_found()
-            sys.exit(1)
-
-        exclude_paths = extend_and_validate(
-            exclude_paths, project_config.exclude, project_config.use_regex_matching
-        )
-
         sync_project(
             project_root=project_root,
             project_config=project_config,
@@ -809,7 +792,7 @@ def tach_install(project_root: Path, target: InstallTarget) -> None:
     logger.info(
         "tach install called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_install",
             ),
         },
@@ -836,6 +819,7 @@ def tach_install(project_root: Path, target: InstallTarget) -> None:
 
 
 def tach_report(
+    project_config: ProjectConfig,
     project_root: Path,
     path: str,
     include_dependency_modules: list[str] | None = None,
@@ -849,7 +833,7 @@ def tach_report(
     logger.info(
         "tach report called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_report",
                 parameters={
                     "dependencies": dependencies,
@@ -859,16 +843,6 @@ def tach_report(
             ),
         },
     )
-    project_config = parse_project_config(root=project_root)
-    if project_config is None:
-        print_no_config_found()
-        sys.exit(1)
-
-    exclude_paths = extend_and_validate(
-        exclude_paths, project_config.exclude, project_config.use_regex_matching
-    )
-
-    report_path = Path(path)
     try:
         # Generate reports based on flags
         generate_all = not (dependencies or usages or external)
@@ -881,7 +855,7 @@ def tach_report(
             reports.append(
                 report(
                     project_root,
-                    report_path,
+                    Path(path),
                     project_config=project_config,
                     include_dependency_modules=include_dependency_modules,
                     include_usage_modules=include_usage_modules,
@@ -896,7 +870,7 @@ def tach_report(
             reports.append(
                 external_dependency_report(
                     project_root,
-                    report_path,
+                    Path(path),
                     raw=raw,
                     project_config=project_config,
                     exclude_paths=exclude_paths,
@@ -911,6 +885,7 @@ def tach_report(
 
 
 def tach_show(
+    project_config: ProjectConfig,
     project_root: Path,
     included_paths: list[Path] | None = None,
     is_web: bool = False,
@@ -920,7 +895,7 @@ def tach_show(
     logger.info(
         "tach show called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_show",
                 parameters={"is_web": is_web, "is_mermaid": is_mermaid},
             ),
@@ -931,12 +906,6 @@ def tach_show(
         print(
             f"{BCOLORS.WARNING}Passing --web generates a remote graph; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
         )
-
-    project_config = parse_project_config(root=project_root)
-
-    if project_config is None:
-        print_no_config_found()
-        sys.exit(1)
 
     if not project_config.modules:
         print_no_modules_found()
@@ -988,6 +957,7 @@ def tach_show(
 
 
 def tach_test(
+    project_config: ProjectConfig,
     project_root: Path,
     head: str,
     base: str,
@@ -997,7 +967,7 @@ def tach_test(
     logger.info(
         "tach test called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_test",
                 parameters={
                     "disable_cache": disable_cache,
@@ -1006,10 +976,6 @@ def tach_test(
             ),
         },
     )
-    project_config = parse_project_config(root=project_root)
-    if project_config is None:
-        print_no_config_found()
-        sys.exit(1)
 
     if pytest_args and pytest_args[0] != "--":
         print(
@@ -1079,6 +1045,7 @@ def tach_test(
 
 
 def tach_export(
+    project_config: ProjectConfig,
     project_root: Path,
     output_path: Path | None = None,
     force: bool = False,
@@ -1086,17 +1053,12 @@ def tach_export(
     logger.info(
         "tach export called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_export",
                 parameters={"force": force},
             ),
         },
     )
-
-    project_config = parse_project_config(root=project_root)
-    if project_config is None:
-        print_no_config_found()
-        sys.exit(1)
 
     try:
         export_report(
@@ -1111,23 +1073,19 @@ def tach_export(
 
 
 def tach_upload(
+    project_config: ProjectConfig,
     project_root: Path,
     force: bool = False,
 ):
     logger.info(
         "tach upload called",
         extra={
-            "data": LogDataModel(
+            "data": CallInfo(
                 function="tach_upload",
                 parameters={"force": force},
             ),
         },
     )
-
-    project_config = parse_project_config(root=project_root)
-    if project_config is None:
-        print_no_config_found()
-        sys.exit(1)
 
     try:
         upload_report_to_gauge(
@@ -1143,18 +1101,13 @@ def tach_upload(
         sys.exit(1)
 
 
-def tach_server(project_root: Path):
+def tach_server(project_config: ProjectConfig, project_root: Path):
     logger.info(
         "tach server called",
         extra={
-            "data": LogDataModel(function="tach_server"),
+            "data": CallInfo(function="tach_server"),
         },
     )
-    project_config = parse_project_config(root=project_root)
-    if project_config is None:
-        print_no_config_found()
-        sys.exit(1)
-
     try:
         run_server(project_root, project_config)
     except TachSetupError as e:
@@ -1171,9 +1124,21 @@ def current_version_is_behind(latest_version: str) -> bool:
         return False
 
 
+def try_parse_project_config(project_root: Path) -> ProjectConfig | None:
+    try:
+        return parse_project_config(project_root)
+    except Exception as e:
+        print(f"Failed to parse project config: {e}")
+        sys.exit(1)
+
+
 def main() -> None:
     args, parser = parse_arguments(sys.argv[1:])
     project_root = fs.find_project_config_root() or Path.cwd()
+    project_config = try_parse_project_config(project_root)
+
+    if project_config is None or not project_config.disable_logging:
+        init_logging(project_root)
 
     latest_version = cache.get_latest_version()
     if latest_version and current_version_is_behind(latest_version):
@@ -1184,15 +1149,44 @@ def main() -> None:
 
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
 
+    # Some commands can run without project config
     if args.command == "mod":
         tach_mod(
-            project_root=project_root, depth=args.depth, exclude_paths=exclude_paths
+            project_root=project_root,
+            depth=args.depth,
+            exclude_paths=exclude_paths,
         )
-    elif args.command == "sync":
-        tach_sync(project_root=project_root, add=args.add, exclude_paths=exclude_paths)
+        return
+    elif args.command == "install":
+        try:
+            install_target = InstallTarget(args.target)
+        except ValueError:
+            print(f"{args.target} is not a valid installation target.")
+            sys.exit(1)
+        tach_install(project_root=project_root, target=install_target)
+        return
+
+    # All other commands require project config
+    if project_config is None:
+        print_no_config_found()
+        sys.exit(1)
+
+    # Exclude paths on the CLI extend those from the project config
+    exclude_paths = extend_and_validate(
+        exclude_paths, project_config.exclude, project_config.use_regex_matching
+    )
+
+    if args.command == "sync":
+        tach_sync(
+            project_config=project_config,
+            project_root=project_root,
+            add=args.add,
+            exclude_paths=exclude_paths,
+        )
     elif args.command == "check":
         if args.dependencies or args.interfaces:
             tach_check(
+                project_config=project_config,
                 project_root=project_root,
                 dependencies=args.dependencies,
                 interfaces=args.interfaces,
@@ -1202,20 +1196,18 @@ def main() -> None:
             )
         else:
             tach_check(
+                project_config=project_config,
                 project_root=project_root,
                 exact=args.exact,
                 exclude_paths=exclude_paths,
                 output_format=args.output,
             )
     elif args.command == "check-external":
-        tach_check_external(project_root=project_root, exclude_paths=exclude_paths)
-    elif args.command == "install":
-        try:
-            install_target = InstallTarget(args.target)
-        except ValueError:
-            print(f"{args.target} is not a valid installation target.")
-            sys.exit(1)
-        tach_install(project_root=project_root, target=install_target)
+        tach_check_external(
+            project_config=project_config,
+            project_root=project_root,
+            exclude_paths=exclude_paths,
+        )
     elif args.command == "report":
         include_dependency_modules = (
             args.dependency_modules.split(",") if args.dependency_modules else None
@@ -1224,6 +1216,7 @@ def main() -> None:
             args.usage_modules.split(",") if args.usage_modules else None
         )
         tach_report(
+            project_config=project_config,
             project_root=project_root,
             path=args.path,
             include_dependency_modules=include_dependency_modules,
@@ -1236,6 +1229,7 @@ def main() -> None:
         )
     elif args.command == "show":
         tach_show(
+            project_config=project_config,
             project_root=project_root,
             included_paths=args.included_paths,
             output_filepath=args.out,
@@ -1244,6 +1238,7 @@ def main() -> None:
         )
     elif args.command == "test":
         tach_test(
+            project_config=project_config,
             project_root=project_root,
             head=args.head,
             base=args.base,
@@ -1252,17 +1247,19 @@ def main() -> None:
         )
     elif args.command == "export":
         tach_export(
+            project_config=project_config,
             project_root=project_root,
             output_path=args.output,
             force=args.force,
         )
     elif args.command == "upload":
         tach_upload(
+            project_config=project_config,
             project_root=project_root,
             force=args.force,
         )
     elif args.command == "server":
-        tach_server(project_root=project_root)
+        tach_server(project_config=project_config, project_root=project_root)
     else:
         print("Unrecognized command")
         parser.print_help()

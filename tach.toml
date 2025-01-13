@@ -121,7 +121,6 @@ path = "tach.logging"
 depends_on = [
     "tach",
     "tach.cache",
-    "tach.parsing",
 ]
 layer = "core"
 
@@ -282,7 +281,8 @@ from = [
 [[interfaces]]
 expose = [
     "logger",
-    "LogDataModel",
+    "CallInfo",
+    "init_logging",
 ]
 from = [
     "tach.logging",

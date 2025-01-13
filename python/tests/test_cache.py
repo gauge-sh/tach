@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import json
 import uuid
-from unittest.mock import MagicMock, patch
-from urllib.error import URLError
+from unittest.mock import patch
 
-from tach.cache.access import get_latest_version, get_uid, update_latest_version
+from tach.cache.access import get_latest_version, get_uid
 from tach.cache.setup import resolve_dot_tach
 
 
@@ -63,41 +61,3 @@ def test_get_latest_version(mock_find_project_config_root, tmp_path):
 
     result = get_latest_version()
     assert result == version
-
-
-@patch("tach.cache.access.find_project_config_root")
-def test_update_latest_version(mock_find_project_config_root, tmp_path):
-    project_path = tmp_path / "project"
-    latest_version_path = project_path / ".tach" / ".latest-version"
-    latest_version_path.parent.mkdir(parents=True, exist_ok=True)
-
-    mock_find_project_config_root.return_value = project_path
-
-    mock_response = MagicMock()
-    mock_response.status = 200
-    mock_response.read.return_value = json.dumps(
-        {"info": {"version": "1.0.1"}}
-    ).encode()
-    mock_urlopen = MagicMock()
-    mock_urlopen.return_value.__enter__.return_value = mock_response
-
-    with patch("tach.cache.access.request.urlopen", mock_urlopen):
-        update_latest_version()
-
-    assert latest_version_path.read_text().strip() == "1.0.1"
-
-
-@patch("tach.cache.access.find_project_config_root")
-@patch("tach.cache.access.request.urlopen")
-def test_update_latest_version_network_error(
-    mock_urlopen, mock_find_project_config_root, tmp_path
-):
-    project_path = tmp_path / "project"
-    latest_version_path = project_path / ".tach" / ".latest-version"
-    latest_version_path.parent.mkdir(parents=True, exist_ok=True)
-
-    mock_find_project_config_root.return_value = project_path
-    mock_urlopen.side_effect = URLError("Network error")
-
-    update_latest_version()
-    assert not latest_version_path.exists()
