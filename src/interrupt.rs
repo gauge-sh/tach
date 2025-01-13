@@ -34,6 +34,8 @@ impl InterruptNotifier {
                 // Then when the condvar is notified, it will re-acquire the mutex
                 // and continue the loop
                 _guard = notifier.condvar.wait(_guard).unwrap();
+                // After waking, check if the interrupt signal is set
+                // Spurious wakeups are possible, so we must check the signal
                 if INTERRUPT_SIGNAL.load(Ordering::SeqCst) {
                     let _ = sender.send(());
                     return;
