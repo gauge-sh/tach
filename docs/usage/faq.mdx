@@ -54,8 +54,9 @@ This is useful when you want to expose a stable API from a module and prevent ot
 ### Are conditional imports checked?
 
 Tach will check all imports in your source files, including those which are called conditionally.
-The only exceptions are imports made within `TYPE_CHECKING` conditional blocks. If you want to disable checks for
-these imports, you can add `ignore_type_checking_imports: true` to your `tach.toml`.
+The only exceptions are imports made within `TYPE_CHECKING` conditional blocks.
+By default, Tach will **not** report errors from `TYPE_CHECKING` blocks. If you want to enable checks for
+these imports, you can add `ignore_type_checking_imports: false` to your `tach.toml`.
 
 [See more information on configuration here.](./configuration)
 
