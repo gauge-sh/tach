@@ -120,7 +120,7 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
 
             let directive = IgnoreDirective { modules, reason };
 
-            if line.starts_with('#') {
+            if line.trim_start().starts_with('#') {
                 ignores.insert(normal_lineno + 1, directive);
             } else {
                 ignores.insert(normal_lineno, directive);
@@ -493,4 +493,62 @@ pub fn get_project_imports(
             })
             .collect(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(
+    "# tach-ignore\nfrom foo import bar",
+    2,  // The import is on line 2
+    vec![]  // Empty vec means blanket ignore
+)]
+    #[case(
+    "# tach-ignore(test reason)\nfrom foo import bar",
+    2,
+    vec![]
+)]
+    #[case(
+    "# tach-ignore foo bar\nfrom foo import bar",
+    2,
+    vec!["foo".to_string(), "bar".to_string()]
+)]
+    #[case(
+    "from foo import bar  # tach-ignore",
+    1,
+    vec![]
+)]
+    #[case(
+    "from foo import bar  # tach-ignore(skip this)\nother code",
+    1,
+    vec![]
+)]
+    #[case(
+    "from foo import bar  # tach-ignore foo baz",
+    1,
+    vec!["foo".to_string(), "baz".to_string()]
+)]
+    fn test_get_ignore_directives(
+        #[case] content: &str,
+        #[case] expected_line: usize,
+        #[case] expected_modules: Vec<String>,
+    ) {
+        let directives = get_ignore_directives(content);
+        assert_eq!(directives.len(), 1);
+
+        let directive = directives
+            .get(&expected_line)
+            .expect("Should have directive");
+        assert_eq!(directive.modules, expected_modules);
+    }
+
+    #[test]
+    fn test_no_directives() {
+        let content = "from foo import bar\nother code";
+        let directives = get_ignore_directives(content);
+        assert!(directives.is_empty());
+    }
 }
