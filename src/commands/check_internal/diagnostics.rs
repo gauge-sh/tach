@@ -121,6 +121,9 @@ pub enum ImportCheckError {
         invalid_layer: String,
     },
 
+    #[error("Layer '{layer}' is not defined in the project.")]
+    UnknownLayer { layer: String },
+
     #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
     UnusedIgnoreDirective { import_mod_path: String },
 

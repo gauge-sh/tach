@@ -17,7 +17,11 @@ fn check_dependencies(
     layers: &[String],
 ) -> Result<(), ImportCheckError> {
     // Layer check should take precedence over other dependency checks
-    check_layers(layers, file_module_config, import_module_config)?;
+    match check_layers(layers, file_module_config, import_module_config) {
+        LayerCheckResult::Ok => return Ok(()),
+        LayerCheckResult::SameLayer | LayerCheckResult::LayerNotSpecified => (), // We need to do further processing to determine if the dependency is allowed
+        LayerCheckResult::LayerViolation(e) | LayerCheckResult::UnknownLayer(e) => return Err(e),
+    };
 
     if import_module_config.utility {
         return Ok(());
@@ -170,11 +174,20 @@ pub(super) fn check_missing_ignore_directive_reason(
     }
 }
 
-pub(super) fn check_layers(
+#[derive(Debug)]
+enum LayerCheckResult {
+    Ok,
+    SameLayer,
+    LayerNotSpecified,
+    LayerViolation(ImportCheckError),
+    UnknownLayer(ImportCheckError),
+}
+
+fn check_layers(
     layers: &[String],
     source_module_config: &ModuleConfig,
     target_module_config: &ModuleConfig,
-) -> Result<(), ImportCheckError> {
+) -> LayerCheckResult {
     match (&source_module_config.layer, &target_module_config.layer) {
         (Some(source_layer), Some(target_layer)) => {
             let source_index = layers.iter().position(|layer| layer == source_layer);
@@ -182,10 +195,12 @@ pub(super) fn check_layers(
 
             match (source_index, target_index) {
                 (Some(source_index), Some(target_index)) => {
-                    if source_index <= target_index {
-                        Ok(())
+                    if source_index == target_index {
+                        LayerCheckResult::SameLayer
+                    } else if source_index < target_index {
+                        LayerCheckResult::Ok
                     } else {
-                        Err(ImportCheckError::LayerViolation {
+                        LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
                             import_mod_path: target_module_config.path.clone(),
                             source_module: source_module_config.path.clone(),
                             source_layer: source_layer.clone(),
@@ -194,17 +209,26 @@ pub(super) fn check_layers(
                         })
                     }
                 }
-                // If either index is not found, the layer is unknown -- ignore for now
-                _ => Ok(()),
+                // If either index is not found, the layer is unknown
+                (Some(_), None) => LayerCheckResult::UnknownLayer(ImportCheckError::UnknownLayer {
+                    layer: target_layer.clone(),
+                }),
+                (None, Some(_)) => LayerCheckResult::UnknownLayer(ImportCheckError::UnknownLayer {
+                    layer: source_layer.clone(),
+                }),
+                _ => LayerCheckResult::UnknownLayer(ImportCheckError::UnknownLayer {
+                    layer: source_layer.clone(),
+                }),
             }
         }
-        _ => Ok(()),
+        _ => LayerCheckResult::LayerNotSpecified, // At least one module does not have a layer
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::check_internal::diagnostics::ImportCheckError;
     use crate::config::{InterfaceConfig, ModuleConfig};
     use crate::modules::ModuleTree;
     use crate::tests::check_internal::fixtures::{
@@ -215,22 +239,21 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[case("domain_one", "domain_one", true)]
-    #[case("domain_one", "domain_one.core", true)]
-    #[case("domain_one", "domain_three", true)]
-    #[case("domain_two", "domain_one", true)]
-    #[case("domain_two", "domain_one.public_fn", true)]
-    #[case("domain_two.subdomain", "domain_one", true)]
-    #[case("domain_two", "domain_one.private_fn", false)]
-    #[case("domain_three", "domain_one", false)]
-    #[case("domain_two", "domain_one.core", false)]
-    #[case("domain_two.subdomain", "domain_one.core", false)]
-    #[case("domain_two", "domain_three", false)]
-    #[case("domain_two", "domain_two.subdomain", false)]
+    #[case("domain_one", "domain_two", true)] // same layer, explicit dependency
+    #[case("domain_one", "domain_one.subdomain", false)] // same layer, parent->child (deprecated)
+    #[case("domain_one.subdomain", "domain_one", false)] // same layer, child->parent not allowed
+    #[case("domain_one", "service_one", true)] // top->middle allowed
+    #[case("domain_one", "data_one", true)] // top->bottom allowed
+    #[case("service_one", "service_one.internal", true)] // same layer, explicit dependency
+    #[case("service_one", "data_one", true)] // middle->bottom allowed
+    #[case("service_one", "domain_one", false)] // middle->top denied
+    #[case("data_one", "service_one", false)] // bottom->middle denied
+    #[case("data_one", "domain_one", false)] // bottom->top denied
     fn test_check_import(
         module_tree: ModuleTree,
         module_config: Vec<ModuleConfig>,
         interface_config: Vec<InterfaceConfig>,
+        layers: Vec<String>,
         #[case] file_mod_path: &str,
         #[case] import_mod_path: &str,
         #[case] expected_result: bool,
@@ -246,7 +269,7 @@ mod tests {
             import_mod_path,
             &module_tree,
             file_module.clone(),
-            &[],
+            &layers,
             RootModuleTreatment::Allow,
             &interface_checker,
             true,
@@ -260,6 +283,7 @@ mod tests {
         module_tree: ModuleTree,
         module_config: Vec<ModuleConfig>,
         interface_config: Vec<InterfaceConfig>,
+        layers: Vec<String>,
     ) {
         let file_module = module_tree.find_nearest("domain_one").unwrap();
         let interface_checker = Some(
@@ -272,7 +296,7 @@ mod tests {
             "domain_one.subdomain",
             &module_tree,
             file_module.clone(),
-            &[],
+            &layers,
             RootModuleTreatment::Allow,
             &interface_checker,
             true,
@@ -282,24 +306,47 @@ mod tests {
     }
 
     #[rstest]
-    #[case("top", "top", true)]
-    #[case("top", "middle", true)]
-    #[case("top", "bottom", true)]
-    #[case("middle", "bottom", true)]
-    #[case("bottom", "top", false)]
-    #[case("middle", "top", false)]
-    #[case("bottom", "middle", false)]
+    #[case("top", "top", LayerCheckResult::SameLayer)]
+    #[case("top", "middle", LayerCheckResult::Ok)]
+    #[case("top", "bottom", LayerCheckResult::Ok)]
+    #[case("middle", "bottom", LayerCheckResult::Ok)]
+    #[case("bottom", "top", LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
+        source_layer: "bottom".to_string(),
+        invalid_layer: "top".to_string(),
+        import_mod_path: "".to_string(),
+        source_module: "".to_string(),
+        invalid_module: "".to_string(),
+    }))]
+    #[case("middle", "top", LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
+        source_layer: "middle".to_string(),
+        invalid_layer: "top".to_string(),
+        import_mod_path: "".to_string(),
+        source_module: "".to_string(),
+        invalid_module: "".to_string(),
+    }))]
+    #[case("bottom", "middle", LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
+        source_layer: "bottom".to_string(),
+        invalid_layer: "middle".to_string(),
+        import_mod_path: "".to_string(),
+        source_module: "".to_string(),
+        invalid_module: "".to_string(),
+    }))]
     fn test_check_layers_hierarchy(
         layers: Vec<String>,
         #[case] source_layer: &str,
         #[case] target_layer: &str,
-        #[case] expected_result: bool,
+        #[case] expected_pattern: LayerCheckResult,
     ) {
         let source_config = ModuleConfig::new_with_layer("source", source_layer);
         let target_config = ModuleConfig::new_with_layer("target", target_layer);
 
         let result = check_layers(&layers, &source_config, &target_config);
-        assert_eq!(result.is_ok(), expected_result);
+        match (result, expected_pattern) {
+            (LayerCheckResult::Ok, LayerCheckResult::Ok) => (),
+            (LayerCheckResult::SameLayer, LayerCheckResult::SameLayer) => (),
+            (LayerCheckResult::LayerViolation(_), LayerCheckResult::LayerViolation(_)) => (),
+            (actual, expected) => panic!("Expected {:?} but got {:?}", expected, actual),
+        }
     }
 
     #[rstest]
@@ -308,7 +355,8 @@ mod tests {
         let source_config = ModuleConfig::new_with_layer("source", "any");
         let target_config = ModuleConfig::new_with_layer("target", "any");
 
-        assert!(check_layers(&layers, &source_config, &target_config).is_ok());
+        let result = check_layers(&layers, &source_config, &target_config);
+        assert!(matches!(result, LayerCheckResult::UnknownLayer(_)));
     }
 
     #[rstest]
@@ -317,31 +365,7 @@ mod tests {
         let source_config = ModuleConfig::default();
         let target_config = ModuleConfig::default();
 
-        // When modules don't specify layers, they should be allowed
-        assert!(check_layers(&layers, &source_config, &target_config).is_ok());
-    }
-
-    #[rstest]
-    fn test_layer_violation_in_check_import(module_tree: ModuleTree, layers: Vec<String>) {
-        let file_module = module_tree.find_nearest("domain_three").unwrap(); // bottom layer
-
-        let result = check_import(
-            "domain_one", // trying to import from top layer
-            &module_tree,
-            file_module,
-            &layers,
-            RootModuleTreatment::Allow,
-            &None,
-            true,
-        );
-
-        assert!(matches!(
-            result,
-            Err(ImportCheckError::LayerViolation {
-                source_layer,
-                invalid_layer,
-                ..
-            }) if source_layer == "bottom" && invalid_layer == "top"
-        ));
+        let result = check_layers(&layers, &source_config, &target_config);
+        assert!(matches!(result, LayerCheckResult::LayerNotSpecified));
     }
 }
