@@ -23,15 +23,19 @@ fn check_dependencies(
         LayerCheckResult::LayerViolation(e) | LayerCheckResult::UnknownLayer(e) => return Err(e),
     };
 
+    if file_module_config.depends_on.is_none() {
+        return Ok(());
+    }
+
     if import_module_config.utility {
         return Ok(());
     }
+
     let file_nearest_module_path = &file_module_config.path;
     let import_nearest_module_path = &import_module_config.path;
 
     match file_module_config
-        .depends_on
-        .iter()
+        .dependencies_iter()
         .find(|dep| &dep.path == import_nearest_module_path)
     {
         Some(DependencyConfig {

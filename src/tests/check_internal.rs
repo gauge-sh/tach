@@ -39,10 +39,10 @@ pub mod fixtures {
                             full_path: "domain_one".to_string(),
                             config: Some(ModuleConfig {
                                 path: "domain_one".to_string(),
-                                depends_on: vec![
+                                depends_on: Some(vec![
                                     DependencyConfig::from_path("domain_two"),
                                     DependencyConfig::from_deprecated_path("domain_one.subdomain"),
-                                ],
+                                ]),
                                 strict: false,
                                 layer: Some("top".to_string()),
                                 ..Default::default()
@@ -77,9 +77,9 @@ pub mod fixtures {
                             full_path: "service_one".to_string(),
                             config: Some(ModuleConfig {
                                 path: "service_one".to_string(),
-                                depends_on: vec![DependencyConfig::from_path(
+                                depends_on: Some(vec![DependencyConfig::from_path(
                                     "service_one.internal",
-                                )],
+                                )]),
                                 strict: false,
                                 layer: Some("middle".to_string()),
                                 ..Default::default()
@@ -117,45 +117,45 @@ pub mod fixtures {
         vec![
             ModuleConfig {
                 path: "domain_one".to_string(),
-                depends_on: vec![
+                depends_on: Some(vec![
                     DependencyConfig::from_path("domain_two"),
                     DependencyConfig::from_deprecated_path("domain_one.subdomain"),
-                ],
+                ]),
                 strict: false,
                 layer: Some("top".to_string()),
                 ..Default::default()
             },
             ModuleConfig {
                 path: "domain_one.subdomain".to_string(),
-                depends_on: vec![],
+                depends_on: Some(vec![]),
                 strict: false,
                 layer: Some("top".to_string()),
                 ..Default::default()
             },
             ModuleConfig {
                 path: "domain_two".to_string(),
-                depends_on: vec![],
+                depends_on: Some(vec![]),
                 strict: false,
                 layer: Some("top".to_string()),
                 ..Default::default()
             },
             ModuleConfig {
                 path: "service_one".to_string(),
-                depends_on: vec![DependencyConfig::from_path("service_one.internal")],
+                depends_on: Some(vec![DependencyConfig::from_path("service_one.internal")]),
                 strict: false,
                 layer: Some("middle".to_string()),
                 ..Default::default()
             },
             ModuleConfig {
                 path: "service_one.internal".to_string(),
-                depends_on: vec![],
+                depends_on: Some(vec![]),
                 strict: false,
                 layer: Some("middle".to_string()),
                 ..Default::default()
             },
             ModuleConfig {
                 path: "data_one".to_string(),
-                depends_on: vec![],
+                depends_on: Some(vec![]),
                 strict: false,
                 layer: Some("bottom".to_string()),
                 ..Default::default()

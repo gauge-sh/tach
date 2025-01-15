@@ -104,7 +104,7 @@ impl TachPytestPluginHandler {
 fn build_module_consumer_map(modules: &Vec<ModuleConfig>) -> HashMap<&String, Vec<String>> {
     let mut consumer_map: HashMap<&String, Vec<String>> = HashMap::new();
     for module in modules {
-        for dependency in &module.depends_on {
+        for dependency in module.dependencies_iter() {
             consumer_map
                 .entry(&dependency.path)
                 .or_default()
@@ -154,7 +154,7 @@ fn find_affected_modules(
 }
 
 pub fn get_affected_modules(
-    project_root: &PathBuf,
+    project_root: &Path,
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
     module_tree: &ModuleTree,

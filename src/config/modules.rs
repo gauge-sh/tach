@@ -124,7 +124,7 @@ pub struct ModuleConfig {
     pub path: String,
     #[serde(default)]
     #[pyo3(set)]
-    pub depends_on: Vec<DependencyConfig>,
+    pub depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
     pub layer: Option<String>,
     #[serde(
@@ -165,9 +165,10 @@ impl Default for ModuleConfig {
 
 impl ModuleConfig {
     pub fn new_with_layer(path: &str, layer: &str) -> Self {
+        // shorthand for test fixtures
         Self {
             path: path.to_string(),
-            depends_on: vec![],
+            depends_on: Some(vec![]),
             layer: Some(layer.to_string()),
             visibility: default_visibility(),
             utility: false,
@@ -175,6 +176,13 @@ impl ModuleConfig {
             unchecked: false,
             group_id: None,
         }
+    }
+
+    pub fn dependencies_iter(&self) -> impl Iterator<Item = &DependencyConfig> {
+        self.depends_on
+            .as_ref()
+            .into_iter()
+            .flat_map(|deps| deps.iter())
     }
 }
 
@@ -184,7 +192,7 @@ impl ModuleConfig {
     pub fn new(path: &str, strict: bool) -> Self {
         Self {
             path: path.to_string(),
-            depends_on: vec![],
+            depends_on: None,
             layer: None,
             visibility: default_visibility(),
             utility: false,
@@ -196,7 +204,7 @@ impl ModuleConfig {
 
     pub fn with_no_dependencies(&self) -> Self {
         let mut new_module = self.clone();
-        new_module.depends_on = vec![];
+        new_module.depends_on = Some(vec![]);
         new_module
     }
 
@@ -216,8 +224,7 @@ impl ModuleConfig {
 struct BulkModule {
     paths: Vec<String>,
     #[serde(default)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    depends_on: Vec<DependencyConfig>,
+    depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
     layer: Option<String>,
     #[serde(
@@ -242,7 +249,7 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
         let first = modules[0];
         let mut bulk = BulkModule {
             paths: modules.iter().map(|m| m.path.clone()).collect(),
-            depends_on: Vec::new(),
+            depends_on: None,
             layer: first.layer.clone(),
             visibility: first.visibility.clone(),
             utility: first.utility,
@@ -251,7 +258,9 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
 
         let mut unique_deps: HashSet<DependencyConfig> = HashSet::new();
         for module in modules {
-            unique_deps.extend(module.depends_on.clone());
+            if let Some(depends_on) = module.depends_on.clone() {
+                unique_deps.extend(depends_on);
+            }
 
             // Validate that other fields match the first module
             if module.layer != first.layer {
@@ -286,7 +295,9 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
             }
         }
 
-        bulk.depends_on = unique_deps.into_iter().collect();
+        if !unique_deps.is_empty() {
+            bulk.depends_on = Some(unique_deps.into_iter().collect());
+        }
         Ok(bulk)
     }
 }
