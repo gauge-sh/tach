@@ -18,7 +18,7 @@ fn check_dependencies(
 ) -> Result<(), ImportCheckError> {
     // Layer check should take precedence over other dependency checks
     match check_layers(layers, file_module_config, import_module_config) {
-        LayerCheckResult::Ok => return Ok(()),
+        LayerCheckResult::Ok => return Ok(()), // Higher layers can unconditionally import lower layers
         LayerCheckResult::SameLayer | LayerCheckResult::LayerNotSpecified => (), // We need to do further processing to determine if the dependency is allowed
         LayerCheckResult::LayerViolation(e) | LayerCheckResult::UnknownLayer(e) => return Err(e),
     };
