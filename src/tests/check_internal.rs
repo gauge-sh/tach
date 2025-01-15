@@ -107,6 +107,21 @@ pub mod fixtures {
                             children: HashMap::new(),
                         }),
                     ),
+                    (
+                        "unrestricted".to_string(),
+                        Arc::new(ModuleNode {
+                            is_end_of_path: true,
+                            full_path: "unrestricted".to_string(),
+                            config: Some(ModuleConfig {
+                                path: "unrestricted".to_string(),
+                                depends_on: None,
+                                strict: false,
+                                layer: Some("middle".to_string()),
+                                ..Default::default()
+                            }),
+                            children: HashMap::new(),
+                        }),
+                    ),
                 ]),
             }),
         }
@@ -158,6 +173,13 @@ pub mod fixtures {
                 depends_on: Some(vec![]),
                 strict: false,
                 layer: Some("bottom".to_string()),
+                ..Default::default()
+            },
+            ModuleConfig {
+                path: "unrestricted".to_string(),
+                depends_on: None,
+                strict: false,
+                layer: Some("middle".to_string()),
                 ..Default::default()
             },
         ]

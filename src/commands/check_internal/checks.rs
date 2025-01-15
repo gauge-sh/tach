@@ -372,4 +372,41 @@ mod tests {
         let result = check_layers(&layers, &source_config, &target_config);
         assert!(matches!(result, LayerCheckResult::LayerNotSpecified));
     }
+
+    #[rstest]
+    #[case("unrestricted", "domain_one", false)] // middle->top denied due to layer check
+    #[case("unrestricted", "service_one", true)] // same layer allowed
+    #[case("unrestricted", "data_one", true)] // middle->bottom allowed
+    fn test_check_import_unrestricted_dependencies(
+        module_tree: ModuleTree,
+        module_config: Vec<ModuleConfig>,
+        interface_config: Vec<InterfaceConfig>,
+        layers: Vec<String>,
+        #[case] file_mod_path: &str,
+        #[case] import_mod_path: &str,
+        #[case] expected_result: bool,
+    ) {
+        let file_module = module_tree.find_nearest(file_mod_path).unwrap();
+        let interface_checker = Some(
+            InterfaceChecker::new(&interface_config)
+                .with_type_check_cache(&module_config, &[PathBuf::from(".")])
+                .unwrap(),
+        );
+
+        let check_error = check_import(
+            import_mod_path,
+            &module_tree,
+            file_module.clone(),
+            &layers,
+            RootModuleTreatment::Allow,
+            &interface_checker,
+            true,
+        );
+        let result = check_error.is_ok();
+        assert_eq!(
+            result, expected_result,
+            "Expected import from '{}' to '{}' to be {}, but got {}",
+            file_mod_path, import_mod_path, expected_result, result
+        );
+    }
 }
