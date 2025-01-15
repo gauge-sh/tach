@@ -121,10 +121,10 @@ layer = "commands"
 
 [[modules]]
 path = "tach.parsing"
-# depends_on = [
-#     # "tach.extension",
-#     "tach.filesystem",
-# ]
+depends_on = [
+    "tach.extension",
+    "tach.filesystem",
+]
 layer = "core"
 
 [[modules]]
