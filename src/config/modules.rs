@@ -152,7 +152,7 @@ impl Default for ModuleConfig {
     fn default() -> Self {
         Self {
             path: Default::default(),
-            depends_on: Default::default(),
+            depends_on: Some(vec![]),
             layer: Default::default(),
             visibility: default_visibility(),
             utility: Default::default(),
@@ -192,7 +192,7 @@ impl ModuleConfig {
     pub fn new(path: &str, strict: bool) -> Self {
         Self {
             path: path.to_string(),
-            depends_on: None,
+            depends_on: Some(vec![]),
             layer: None,
             visibility: default_visibility(),
             utility: false,
