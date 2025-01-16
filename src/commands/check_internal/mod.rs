@@ -1,6 +1,7 @@
 pub mod checks;
 use checks::{check_import, check_missing_ignore_directive_reason, check_unused_ignore_directive};
 pub mod diagnostics;
+use diagnostics::ImportCheckError;
 pub use diagnostics::{BoundaryError, CheckDiagnostics};
 pub mod error;
 pub use error::CheckError;
@@ -83,7 +84,7 @@ fn process_file(
         }
     };
 
-    project_imports.imports.into_iter().for_each(|import| {
+    project_imports.active_imports().for_each(|import| {
         if let Err(error_info) = check_import(
             &import.module_path,
             module_tree,
@@ -108,8 +109,7 @@ fn process_file(
     });
 
     project_imports
-        .directive_ignored_imports
-        .into_iter()
+        .directive_ignored_imports()
         .for_each(|directive_ignored_import| {
             if project_config.rules.unused_ignore_directives != RuleSetting::Off {
                 let check_result = check_unused_ignore_directive(
@@ -162,6 +162,29 @@ fn process_file(
                 }
             }
         });
+
+    project_imports
+        .unused_ignore_directives()
+        .for_each(
+            |ignore_directive| match project_config.rules.unused_ignore_directives {
+                RuleSetting::Error => {
+                    diagnostics.errors.push(BoundaryError {
+                        file_path: file_path.clone(),
+                        line_number: ignore_directive.line_no,
+                        import_mod_path: ignore_directive.modules.join(", "),
+                        error_info: ImportCheckError::UnusedIgnoreDirective(),
+                    });
+                }
+                RuleSetting::Warn => {
+                    diagnostics.warnings.push(format!(
+                        "Unused ignore directive: '{}' in file '{}'",
+                        ignore_directive.modules.join(","),
+                        file_path.display()
+                    ));
+                }
+                RuleSetting::Off => {}
+            },
+        );
 
     Some(diagnostics)
 }

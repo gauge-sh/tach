@@ -60,8 +60,8 @@ fmt-python: ## Format Python code
 
 
 fmt-rust: ## Format Rust code
-	cargo fmt --all
 	cargo clippy --fix --allow-dirty --allow-staged
+	cargo fmt --all
 
 
 lint-python: ## Lint Python code
