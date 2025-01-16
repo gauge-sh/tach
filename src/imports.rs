@@ -100,16 +100,18 @@ impl<State> NormalizedImports<State> {
     }
 
     pub fn directive_ignored_imports(&self) -> impl Iterator<Item = DirectiveIgnoredImport> {
-        self.imports.iter().filter(|&import| self.ignore_directives
-                .is_ignored(import)).map(|import| DirectiveIgnoredImport {
-                    import,
-                    reason: self
-                        .ignore_directives
-                        .get(&import.import_line_no)
-                        .unwrap()
-                        .reason
-                        .clone(),
-                })
+        self.imports
+            .iter()
+            .filter(|&import| self.ignore_directives.is_ignored(import))
+            .map(|import| DirectiveIgnoredImport {
+                import,
+                reason: self
+                    .ignore_directives
+                    .get(&import.import_line_no)
+                    .unwrap()
+                    .reason
+                    .clone(),
+            })
     }
 
     pub fn unused_ignore_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
