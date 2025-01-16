@@ -52,7 +52,7 @@ pub struct ProjectConfig {
     pub include_string_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     pub forbid_circular_dependencies: bool,
-    #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub use_regex_matching: bool,
     #[serde(default, skip_serializing_if = "RootModuleTreatment::is_default")]
     pub root_module: RootModuleTreatment,
@@ -64,7 +64,13 @@ pub fn default_source_roots() -> Vec<PathBuf> {
     vec![PathBuf::from(".")]
 }
 
-pub const DEFAULT_EXCLUDE_PATHS: [&str; 4] = ["tests", "docs", ".*__pycache__", ".*egg-info"];
+pub const DEFAULT_EXCLUDE_PATHS: [&str; 5] = [
+    "**/tests",
+    "**/docs",
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/venv",
+];
 
 pub fn default_excludes() -> Vec<String> {
     DEFAULT_EXCLUDE_PATHS
@@ -85,10 +91,10 @@ impl Default for ProjectConfig {
             source_roots: default_source_roots(),
             exact: Default::default(),
             disable_logging: Default::default(),
-            ignore_type_checking_imports: default_true(),
+            ignore_type_checking_imports: true,
             include_string_imports: Default::default(),
             forbid_circular_dependencies: Default::default(),
-            use_regex_matching: default_true(),
+            use_regex_matching: Default::default(),
             root_module: Default::default(),
             rules: Default::default(),
         }

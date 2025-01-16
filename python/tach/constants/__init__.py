@@ -7,7 +7,13 @@ TOOL_NAME: str = "tach"
 CONFIG_FILE_NAME: str = TOOL_NAME
 PACKAGE_FILE_NAME: str = "package"
 ROOT_MODULE_SENTINEL_TAG: str = "<root>"
-DEFAULT_EXCLUDE_PATHS = ["tests", "docs", ".*__pycache__", ".*egg-info"]
+DEFAULT_EXCLUDE_PATHS = [
+    "**/tests",
+    "**/docs",
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/venv",
+]
 
 GAUGE_API_BASE_URL: str = os.getenv("GAUGE_API_BASE_URL", "https://app.gauge.sh")
 

@@ -129,24 +129,14 @@ mod tests {
                         ..Default::default()
                     }
                 ],
-                interfaces: Default::default(),
-                layers: Default::default(),
-                cache: Default::default(),
                 exclude: DEFAULT_EXCLUDE_PATHS
                     .into_iter()
-                    .chain(["domain_four"].into_iter())
+                    .chain(["domain_four.py"].into_iter())
                     .map(String::from)
                     .collect(),
-                source_roots: vec![PathBuf::from(".")],
                 exact: true,
-                disable_logging: false,
-                ignore_type_checking_imports: true,
-                include_string_imports: false,
                 forbid_circular_dependencies: true,
-                use_regex_matching: true,
-                external: Default::default(),
-                root_module: Default::default(),
-                rules: Default::default(),
+                ..Default::default()
             }
         );
     }

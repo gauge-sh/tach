@@ -16,6 +16,7 @@ from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.errors import (
     TachCircularDependencyError,
     TachClosedBetaError,
+    TachConfigError,
     TachError,
     TachSetupError,
     TachVisibilityError,
@@ -1171,10 +1172,21 @@ def main() -> None:
         print_no_config_found()
         sys.exit(1)
 
+    if project_config.use_regex_matching:
+        print(
+            f"{BCOLORS.WARNING}WARNING: regex matching for exclude paths is deprecated. "
+            + f"Update your exclude paths in {CONFIG_FILE_NAME}.toml to use glob patterns instead, and remove the 'use_regex_matching' setting.{BCOLORS.ENDC}"
+            + "\n"
+        )
+
     # Exclude paths on the CLI extend those from the project config
-    exclude_paths = extend_and_validate(
-        exclude_paths, project_config.exclude, project_config.use_regex_matching
-    )
+    try:
+        exclude_paths = extend_and_validate(
+            exclude_paths, project_config.exclude, project_config.use_regex_matching
+        )
+    except TachConfigError as e:
+        print(f"{BCOLORS.FAIL}Failed to validate exclude paths: {e}{BCOLORS.ENDC}")
+        sys.exit(1)
 
     if args.command == "sync":
         tach_sync(
@@ -1263,7 +1275,7 @@ def main() -> None:
     else:
         print("Unrecognized command")
         parser.print_help()
-        exit(1)
+        sys.exit(1)
 
 
 __all__ = ["main"]
