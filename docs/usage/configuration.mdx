@@ -56,8 +56,6 @@ depends_on = []
 
 [[modules]]
 path = "tach.__main__"
-unchecked = true
-depends_on = [{ path = "tach.start" }]
 
 [[modules]]
 path = "tach.errors"
@@ -66,15 +64,15 @@ utility = true
 
 [[modules]]
 path = "tach.parsing"
-depends_on = [{ path = "tach" }, { path = "tach.filesystem" }]
+depends_on = ["tach", "tach.filesystem"]
 visibility = ["tach.check"]
 
 [[modules]]
 path = "tach.check"
 depends_on = [
-    { path = "tach.extension" },
-    { path = "tach.filesystem" },
-    { path = "tach.parsing" },
+    "tach.extension",
+    "tach.filesystem",
+    "tach.parsing",
 ]
 
 [[interfaces]]
@@ -105,17 +103,19 @@ unused_ignore_directives = "warn"
 
 Each module listed under the `modules` key above can accept the following attributes:
 
-- `path`: the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
+- `path` the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
 <Note>
   A module can also define `paths` as a shorthand for multiple module definitions.
   This allows specifying allowed dependencies and other attributes as a group.
 
   Example: `paths = ["a.b", "a.c"]`
 </Note>
-- `depends_on`: a list of the other modules which this module can import from (default: `[]`)
-- `visibility`: a list of other modules which can import from this module (default: `['*']`)
-- `utility`: marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency (boolean)
-- `unchecked`: marks this module as [**unchecked**](unchecked-modules), meaning Tach will not check its imports (boolean)
+- `depends_on` a list of the other modules which this module can import from
+
+<Note>Omitting the `depends_on` field means the module will be allowed to import from any other module. However, it will still be subject to those modules' [public interfaces](#interfaces).</Note>
+- `visibility` (default: `['*']`) a list of other modules which can import from this module
+- `utility` (default: `false`) marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency
+- `unchecked` (default: `false`) marks this module as [**unchecked**](unchecked-modules), meaning Tach will not check its imports
 
 <Note>
   Tach also supports [deprecating individual dependencies](../usage/deprecate).

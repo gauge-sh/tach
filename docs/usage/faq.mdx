@@ -11,20 +11,24 @@ When you define dependencies in your project-level `tach.toml`, running `tach ch
 
 A 'module' is a Python module with dependencies configured in `tach.toml`. A module can be a python file or a directory.
 The module is identified by its import path from the nearest source root (e.g. `a.b` for `<root>/a/b.py`),
-and its dependencies are listed in the `depends_on` key containing module paths in the same format.
+and its dependencies can be listed in the `depends_on` key containing module paths in the same format.
 
 [See more information on configuration here.](./configuration)
 
 ### Can I declare a module without restricting its dependencies?
 
-Yes, you can mark a module as `unchecked` in your `tach.toml` configuration. This lets you make Tach aware of a module boundary so that it can be referenced in other modules' dependencies,
-even if you don't want to restrict the dependencies of every module.
+Yes, you can remove the `depends_on` key from the module in your `tach.toml` configuration. Tach will then be aware of the module boundary so that it can be referenced in other modules' dependencies,
+even if you don't want to restrict the dependencies of the module itself.
 
-[See an example here.](./unchecked-modules)
+```toml
+[[modules]]
+path = "my.module"
+# no 'depends_on' key here means this module can depend on anything
+```
 
 ### How can I isolate a module from the rest of the code?
 
-To prevent any external usage of a given module, you can set `visibility: []` for the module in `tach.toml`. This means that no other module can declare a dependency on this module.
+To prevent any external usage of a given module, you can set `visibility: []` for the module in `tach.toml`. This means that no other module can declare an explicit dependency on this module.
 
 [See more information on configuration here.](./configuration)
 
@@ -36,9 +40,12 @@ Tach allows marking these modules as **Utilities**, which means they can be used
 
 <Note>
   Marking a module with `utility: true` is different from `visibility: ['*']`.
+
   Even when a module has public visibility, other modules must declare an
   explicit dependency to use it (in fact, modules are publicly visible by
-  default). In contrast, a utility module does not require its dependents to
+  default).
+
+  In contrast, a utility module does not require its dependents to
   list an explicit dependency.
 </Note>
 
