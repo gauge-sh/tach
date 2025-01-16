@@ -154,7 +154,7 @@ fn find_affected_modules(
 }
 
 pub fn get_affected_modules(
-    project_root: &PathBuf,
+    project_root: &Path,
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
     module_tree: &ModuleTree,

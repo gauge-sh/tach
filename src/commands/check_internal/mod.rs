@@ -83,33 +83,34 @@ fn process_file(
         }
     };
 
-    project_imports.imports.into_iter().for_each(|import| {
-        if let Err(error_info) = check_import(
-            &import.module_path,
-            module_tree,
-            Arc::clone(&nearest_module),
-            &project_config.layers,
-            project_config.root_module.clone(),
-            interface_checker,
-            check_dependencies,
-        ) {
-            let boundary_error = BoundaryError {
-                file_path: file_path.clone(),
-                line_number: import.line_no,
-                import_mod_path: import.module_path.to_string(),
-                error_info,
+    project_imports
+        .active_imports()
+        .for_each(|import| {
+            if let Err(error_info) = check_import(
+                &import.module_path,
+                module_tree,
+                Arc::clone(&nearest_module),
+                &project_config.layers,
+                project_config.root_module.clone(),
+                interface_checker,
+                check_dependencies,
+            ) {
+                let boundary_error = BoundaryError {
+                    file_path: file_path.clone(),
+                    line_number: import.line_no,
+                    import_mod_path: import.module_path.to_string(),
+                    error_info,
+                };
+                if boundary_error.is_deprecated() {
+                    diagnostics.deprecated_warnings.push(boundary_error);
+                } else {
+                    diagnostics.errors.push(boundary_error);
+                }
             };
-            if boundary_error.is_deprecated() {
-                diagnostics.deprecated_warnings.push(boundary_error);
-            } else {
-                diagnostics.errors.push(boundary_error);
-            }
-        };
-    });
+        });
 
     project_imports
-        .directive_ignored_imports
-        .into_iter()
+        .directive_ignored_imports()
         .for_each(|directive_ignored_import| {
             if project_config.rules.unused_ignore_directives != RuleSetting::Off {
                 let check_result = check_unused_ignore_directive(
