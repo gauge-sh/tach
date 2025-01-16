@@ -1,7 +1,8 @@
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
+use std::iter;
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
 use pyo3::conversion::IntoPy;
@@ -64,21 +65,11 @@ pub struct AllImports;
 pub struct ProjectImports;
 pub struct ExternalImports;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct NormalizedImports<State = AllImports> {
     pub imports: Vec<NormalizedImport>,
     pub ignore_directives: IgnoreDirectives,
     _state: PhantomData<State>,
-}
-
-impl<State> Default for NormalizedImports<State> {
-    fn default() -> Self {
-        Self {
-            imports: vec![],
-            ignore_directives: IgnoreDirectives::new(),
-            _state: PhantomData,
-        }
-    }
 }
 
 impl<State> NormalizedImports<State> {
@@ -109,33 +100,28 @@ impl<State> NormalizedImports<State> {
     }
 
     pub fn directive_ignored_imports(&self) -> impl Iterator<Item = DirectiveIgnoredImport> {
-        self.imports.iter().filter_map(|import| {
-            self.ignore_directives
-                .get(&import.import_line_no)
-                .map(|directive| {
-                    if directive.modules.is_empty()
-                        || directive.modules.contains(&import.module_path)
-                    {
-                        Some(DirectiveIgnoredImport {
-                            import,
-                            reason: directive.reason.clone(),
-                        })
-                    } else {
-                        None
-                    }
-                })?
-        })
+        self.imports.iter().filter(|&import| self.ignore_directives
+                .is_ignored(import)).map(|import| DirectiveIgnoredImport {
+                    import,
+                    reason: self
+                        .ignore_directives
+                        .get(&import.import_line_no)
+                        .unwrap()
+                        .reason
+                        .clone(),
+                })
     }
 
     pub fn unused_ignore_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
         let mut directive_lines: HashSet<usize> =
-            HashSet::from_iter(self.ignore_directives.keys().cloned());
+            HashSet::from_iter(self.ignore_directives.lines().cloned());
         self.imports.iter().for_each(|import| {
             directive_lines.remove(&import.import_line_no);
         });
         directive_lines
             .into_iter()
             .map(|line| self.ignore_directives.get(&line).unwrap())
+            .chain(self.ignore_directives.redundant_directives())
     }
 }
 
@@ -186,7 +172,7 @@ impl<State> Extend<NormalizedImports<State>> for NormalizedImports<State> {
         for normalized_imports in iter {
             self.imports.extend(normalized_imports.imports);
             self.ignore_directives
-                .extend(normalized_imports.ignore_directives);
+                .extend(iter::once(normalized_imports.ignore_directives));
         }
     }
 }
@@ -204,22 +190,42 @@ pub struct IgnoreDirective {
     pub line_no: usize,
 }
 
-#[derive(Debug)]
-pub struct IgnoreDirectives(HashMap<usize, IgnoreDirective>);
-
-impl Default for IgnoreDirectives {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Debug, Default)]
+pub struct IgnoreDirectives {
+    directives: HashMap<usize, IgnoreDirective>,
+    redundant_directives: Vec<IgnoreDirective>,
 }
 
 impl IgnoreDirectives {
-    pub fn new() -> Self {
-        Self(HashMap::new())
+    pub fn lines(&self) -> impl Iterator<Item = &usize> {
+        self.directives.keys()
+    }
+
+    pub fn len(&self) -> usize {
+        self.directives.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.directives.is_empty()
+    }
+
+    pub fn add_directive(&mut self, directive: IgnoreDirective, ignored_line_no: usize) {
+        match self.directives.entry(ignored_line_no) {
+            Entry::Occupied(_) => {
+                self.redundant_directives.push(directive);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(directive);
+            }
+        }
+    }
+
+    pub fn get(&self, line_no: &usize) -> Option<&IgnoreDirective> {
+        self.directives.get(line_no)
     }
 
     pub fn is_ignored(&self, normalized_import: &NormalizedImport) -> bool {
-        self.0
+        self.directives
             .get(&normalized_import.import_line_no)
             .map_or(false, |directive| {
                 if normalized_import.is_absolute {
@@ -233,34 +239,19 @@ impl IgnoreDirectives {
                 }
             })
     }
-}
 
-impl Deref for IgnoreDirectives {
-    type Target = HashMap<usize, IgnoreDirective>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
+        self.redundant_directives.iter()
     }
 }
 
-impl DerefMut for IgnoreDirectives {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Extend<(usize, IgnoreDirective)> for IgnoreDirectives {
-    fn extend<T: IntoIterator<Item = (usize, IgnoreDirective)>>(&mut self, iter: T) {
-        self.0.extend(iter)
-    }
-}
-
-impl IntoIterator for IgnoreDirectives {
-    type Item = (usize, IgnoreDirective);
-    type IntoIter = std::collections::hash_map::IntoIter<usize, IgnoreDirective>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+impl Extend<IgnoreDirectives> for IgnoreDirectives {
+    fn extend<T: IntoIterator<Item = IgnoreDirectives>>(&mut self, iter: T) {
+        for directives in iter {
+            self.directives.extend(directives.directives);
+            self.redundant_directives
+                .extend(directives.redundant_directives);
+        }
     }
 }
 
@@ -269,10 +260,10 @@ static TACH_IGNORE_REGEX: Lazy<regex::Regex> =
 
 fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
     if !file_content.contains("tach-ignore") {
-        return IgnoreDirectives::new();
+        return IgnoreDirectives::default();
     }
 
-    let mut ignores = IgnoreDirectives::new();
+    let mut ignores = IgnoreDirectives::default();
 
     for (lineno, line) in file_content.lines().enumerate() {
         if !line.contains("tach-ignore") {
@@ -301,9 +292,9 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
             };
 
             if line.trim_start().starts_with('#') {
-                ignores.insert(normal_lineno + 1, directive);
+                ignores.add_directive(directive, normal_lineno + 1);
             } else {
-                ignores.insert(normal_lineno, directive);
+                ignores.add_directive(directive, normal_lineno);
             }
         }
     }
