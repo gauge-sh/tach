@@ -169,6 +169,7 @@ fn get_normalized_imports(
         ignore_type_checking_imports,
         include_string_imports,
     )?
+    .into_active_imports()
     .imports)
 }
 
@@ -189,6 +190,7 @@ fn get_project_imports(
         ignore_type_checking_imports,
         include_string_imports,
     )?
+    .into_active_imports()
     .imports)
 }
 
@@ -209,21 +211,9 @@ fn get_external_imports(
         ignore_type_checking_imports,
         include_string_imports,
     )?
-    .imports
-    .into_iter()
-    .filter_map(|import| {
-        imports::is_project_import(&source_roots, &import.module_path).map_or(
-            None,
-            |is_project_import| {
-                if is_project_import {
-                    None
-                } else {
-                    Some(import)
-                }
-            },
-        )
-    })
-    .collect())
+    .into_active_imports()
+    .into_external_imports(&source_roots)
+    .imports)
 }
 
 /// Set excluded paths globally.

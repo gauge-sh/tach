@@ -83,7 +83,7 @@ fn process_file(
         }
     };
 
-    project_imports.imports.into_iter().for_each(|import| {
+    project_imports.active_imports().for_each(|import| {
         if let Err(error_info) = check_import(
             &import.module_path,
             module_tree,
@@ -108,8 +108,7 @@ fn process_file(
     });
 
     project_imports
-        .directive_ignored_imports
-        .into_iter()
+        .directive_ignored_imports()
         .for_each(|directive_ignored_import| {
             if project_config.rules.unused_ignore_directives != RuleSetting::Off {
                 let check_result = check_unused_ignore_directive(
