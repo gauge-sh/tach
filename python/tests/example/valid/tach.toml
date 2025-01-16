@@ -1,9 +1,10 @@
 exclude = [
-    'tests',
-    'docs',
-    '.*__pycache__',
-    '.*egg-info',
-    'domain_four',
+    '**/tests',
+    '**/docs',
+    '**/*__pycache__',
+    '**/*egg-info',
+    '**/venv',
+    'domain_four.py',
 ]
 
 exact = true

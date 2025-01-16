@@ -16,7 +16,6 @@ source_roots = [
 ]
 exact = true
 forbid_circular_dependencies = true
-use_regex_matching = false
 
 [[modules]]
 path = "tach"

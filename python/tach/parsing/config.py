@@ -8,6 +8,8 @@ import tomli
 import tomli_w
 
 from tach import filesystem as fs
+from tach.constants import CONFIG_FILE_NAME
+from tach.errors import TachConfigError
 from tach.extension import (
     dump_project_config_to_toml as ext_dump_project_config_to_toml,
 )
@@ -118,7 +120,7 @@ def extend_and_validate(
         try:
             re.compile(exclude_path)
         except re.error:
-            raise ValueError(
-                f"Invalid regex pattern: {exclude_path}. If you meant to use glob matching, set 'use_regex_matching' to false in your .toml file."
+            raise TachConfigError(
+                f"Invalid regex pattern: '{exclude_path}'. To use glob matching, remove the 'use_regex_matching' setting from your {CONFIG_FILE_NAME}.toml file."
             )
     return exclude_paths
