@@ -199,8 +199,9 @@ impl IntoPy<PyObject> for NormalizedImport {
 
 #[derive(Debug)]
 pub struct IgnoreDirective {
-    modules: Vec<String>,
-    reason: String,
+    pub modules: Vec<String>,
+    pub reason: String,
+    pub line_no: usize,
 }
 
 #[derive(Debug)]
@@ -293,7 +294,11 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
                     .collect()
             };
 
-            let directive = IgnoreDirective { modules, reason };
+            let directive = IgnoreDirective {
+                modules,
+                reason,
+                line_no: normal_lineno,
+            };
 
             if line.trim_start().starts_with('#') {
                 ignores.insert(normal_lineno + 1, directive);
@@ -533,7 +538,6 @@ pub fn get_normalized_imports(
             source: err,
         })?;
     let is_package = file_path.ends_with("__init__.py");
-    let ignore_directives = get_ignore_directives(file_contents.as_str());
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let file_mod_path: Option<String> =
         filesystem::file_to_module_path(source_roots, file_path).ok();
