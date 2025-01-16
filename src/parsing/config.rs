@@ -73,10 +73,41 @@ fn migrate_strict_mode_to_interfaces(filepath: &Path, config: &mut ProjectConfig
     true
 }
 
+const DEPRECATED_REGEX_EXCLUDE_PATHS: [&str; 2] = [".*__pycache__", ".*egg-info"];
+const REPLACEMENT_GLOB_EXCLUDE_PATHS: [&str; 2] = ["**/*__pycache__", "**/*egg-info"];
+
+fn migrate_deprecated_regex_exclude(config: &mut ProjectConfig) -> bool {
+    if config.use_regex_matching {
+        return false;
+    }
+
+    let mut did_migrate = false;
+    config.exclude.iter_mut().for_each(|exclude_path| {
+        if let Some(index) = DEPRECATED_REGEX_EXCLUDE_PATHS
+            .iter()
+            .position(|&p| p == exclude_path)
+        {
+            did_migrate = true;
+            *exclude_path = REPLACEMENT_GLOB_EXCLUDE_PATHS[index].to_string();
+        }
+    });
+
+    if did_migrate {
+        println!(
+            "{}WARNING: Migrating deprecated regex exclude paths to glob patterns.{}",
+            BColors::WARNING,
+            BColors::ENDC
+        );
+    }
+
+    did_migrate
+}
+
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
     let content = read_file_content(filepath.as_ref())?;
     let mut config: ProjectConfig = toml::from_str(&content)?;
-    let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config);
+    let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
+        || migrate_deprecated_regex_exclude(&mut config);
     Ok((config, did_migrate))
 }
 
