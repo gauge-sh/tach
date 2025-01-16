@@ -18,7 +18,6 @@ class GitBranchInfo:
     name: str
     commit: str
     owner: str
-    user_name: str
     email: str
 
 
@@ -127,7 +126,6 @@ def get_current_branch_info(
         url = repo.remotes.origin.url
         owner_name, repo_name = _get_owner_and_repo_name(url)
         config_reader = repo.config_reader()
-        user_name = str(config_reader.get_value("user", "name", default=""))
         email = str(config_reader.get_value("user", "email", default=""))
         branch = _get_branch_name(repo)
         commit = _get_commit(repo)
@@ -140,7 +138,6 @@ def get_current_branch_info(
         owner=owner_name,
         name=branch,
         commit=commit,
-        user_name=user_name,
         email=email,
     )
 

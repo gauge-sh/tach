@@ -57,7 +57,9 @@ GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
 GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.3"
 
 
-def post_json_to_gauge_api(data: dict[str, Any]) -> dict[str, str]:
+def post_json_to_gauge_api(
+    data: dict[str, Any], user_name: str | None = None
+) -> dict[str, str]:
     if not GAUGE_API_KEY:
         raise TachClosedBetaError(
             f"{BCOLORS.WARNING}Modularity is currently in closed beta. Visit {GAUGE_API_BASE_URL}/closed-beta to request access.{BCOLORS.ENDC}"
@@ -68,6 +70,8 @@ def post_json_to_gauge_api(data: dict[str, Any]) -> dict[str, str]:
         "Content-Type": "application/json",
         "Authorization": GAUGE_API_KEY,
     }
+    if user_name:
+        data["user_name"] = user_name
     json_data = json.dumps(data)
     conn = None
     try:
@@ -79,7 +83,12 @@ def post_json_to_gauge_api(data: dict[str, Any]) -> dict[str, str]:
         conn.request("POST", url_parts.path, body=json_data, headers=headers)
         response = conn.getresponse()
         response_data = response.read().decode("utf-8")
-        # Check for non-200 status codes
+        # If key is unbound, prompt user to provide username to bind key
+        if response.status == 422 and not user_name:
+            # Prompt user to provide username
+            conn.close()
+            user_name = input("Enter your GitHub username: ").strip()
+            return post_json_to_gauge_api(data, user_name)
         if response.status != 200:
             raise TachError(
                 f"API request failed with status {response.status}: {response_data}"
@@ -299,7 +308,7 @@ def generate_modularity_report(
     print(f"{BCOLORS.OKCYAN} > Generating report...{BCOLORS.ENDC}")
     branch_info = get_current_branch_info(project_root, allow_dirty=force)
     report = Report(
-        user_name=branch_info.user_name,
+        user_name="",  # only needed for binding a new api key
         email=branch_info.email,
         owner=branch_info.owner,
         repo=branch_info.repo,
