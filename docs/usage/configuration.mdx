@@ -12,7 +12,7 @@ This is the project-level configuration file which should be in the root of your
 
 `interfaces` defines the interfaces of modules in your project - [see details](#interfaces).
 
-`exclude` accepts a list of directory patterns to exclude from checking. These are treated as regex/glob paths (depending on `use_regex_matching`) which match from the beginning of a given file path. For example: when using glob matching `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
+`exclude` accepts a list of directory patterns to exclude from checking. These should be glob paths which match from the beginning of a given file path. For example: `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
 
 <Note>
   Tach uses forward slashes to match path separators, even on Windows.
@@ -35,7 +35,7 @@ By default, exclude patterns are interpreted as globs. But when this flag is `tr
 
 ```toml
 exclude = [
-    ".*__pycache__",
+    "**/*__pycache__",
     "build/",
     "dist/",
     "docs/",
