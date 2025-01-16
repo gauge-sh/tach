@@ -151,7 +151,7 @@ pub(super) fn check_unused_ignore_directive(
         interface_checker,
         check_dependencies,
     ) {
-        Ok(()) => Err(ImportCheckError::UnusedIgnoreDirective {
+        Ok(()) => Err(ImportCheckError::UnnecessarilyIgnoredImport {
             import_mod_path: directive_ignored_import.import.module_path.to_string(),
         }),
         Err(_) => Ok(()),
