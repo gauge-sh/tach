@@ -100,7 +100,7 @@ impl ProjectConfig {
         self.modules
             .iter()
             .find(|mod_config| mod_config.path == module)
-            .map(|mod_config| &mod_config.depends_on)
+            .map(|mod_config| mod_config.depends_on.as_ref())?
     }
     pub fn prepend_roots(&self, project_root: &Path) -> Vec<PathBuf> {
         // don't prepend if root is "."
@@ -178,9 +178,9 @@ impl ProjectConfig {
 
         for new_module_path in &new_module_paths {
             if let Some(mut original_module) = original_modules_by_path.remove(new_module_path) {
-                original_module
-                    .depends_on
-                    .retain(|dep| new_module_paths.contains(&dep.path));
+                if let Some(deps) = original_module.depends_on.as_mut() {
+                    deps.retain(|dep| new_module_paths.contains(&dep.path))
+                }
                 new_modules.push(original_module);
             } else {
                 new_modules.push(ModuleConfig {
@@ -205,17 +205,18 @@ impl ProjectConfig {
             .iter_mut()
             .find(|mod_config| mod_config.path == module)
         {
-            if !module_config
-                .depends_on
-                .iter()
-                .any(|dep| dep.path == dependency.path)
-            {
-                module_config.depends_on.push(dependency);
+            match &mut module_config.depends_on {
+                Some(depends_on) => {
+                    if !depends_on.iter().any(|dep| dep.path == dependency.path) {
+                        depends_on.push(dependency);
+                    }
+                }
+                None => module_config.depends_on = Some(vec![dependency]),
             }
         } else {
             self.modules.push(ModuleConfig {
                 path: module.to_string(),
-                depends_on: vec![dependency],
+                depends_on: Some(vec![dependency]),
                 ..Default::default()
             });
         }
@@ -230,7 +231,7 @@ impl ProjectConfig {
             if !own_module_paths.contains(&module_config.path) {
                 all_unused_dependencies.push(UnusedDependencies {
                     path: module_config.path.clone(),
-                    dependencies: module_config.depends_on.clone(),
+                    dependencies: module_config.depends_on.clone().unwrap_or_default(),
                 });
                 continue;
             }
@@ -241,8 +242,7 @@ impl ProjectConfig {
                 .unwrap_or_default();
 
             let current_dependency_paths: HashSet<&String> = module_config
-                .depends_on
-                .iter()
+                .dependencies_iter()
                 .map(|dep| &dep.path)
                 .collect();
 
@@ -252,8 +252,7 @@ impl ProjectConfig {
 
             if !extra_dependency_paths.is_empty() {
                 let extra_dependencies: Vec<DependencyConfig> = module_config
-                    .depends_on
-                    .iter()
+                    .dependencies_iter()
                     .filter(|dep| extra_dependency_paths.contains(&&dep.path))
                     .cloned()
                     .collect();

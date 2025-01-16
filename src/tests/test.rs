@@ -12,47 +12,53 @@ pub mod fixtures {
             ModuleConfig::new("tach", true),
             ModuleConfig {
                 path: "tach.__main__".to_string(),
-                depends_on: vec![DependencyConfig::from_path("tach.start")],
+                depends_on: Some(vec![DependencyConfig::from_path("tach.start")]),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.cache".to_string(),
-                depends_on: ["tach", "tach.filesystem"]
-                    .map(DependencyConfig::from_path)
-                    .into(),
+                depends_on: Some(
+                    ["tach", "tach.filesystem"]
+                        .map(DependencyConfig::from_path)
+                        .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.check".to_string(),
-                depends_on: ["tach.errors", "tach.filesystem", "tach.parsing"]
-                    .map(DependencyConfig::from_path)
-                    .into(),
+                depends_on: Some(
+                    ["tach.errors", "tach.filesystem", "tach.parsing"]
+                        .map(DependencyConfig::from_path)
+                        .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.cli".to_string(),
-                depends_on: [
-                    "tach",
-                    "tach.cache",
-                    "tach.check",
-                    "tach.colors",
-                    "tach.constants",
-                    "tach.core",
-                    "tach.errors",
-                    "tach.filesystem",
-                    "tach.logging",
-                    "tach.mod",
-                    "tach.parsing",
-                    "tach.report",
-                    "tach.show",
-                    "tach.sync",
-                    "tach.test",
-                ]
-                .map(DependencyConfig::from_path)
-                .into(),
+                depends_on: Some(
+                    [
+                        "tach",
+                        "tach.cache",
+                        "tach.check",
+                        "tach.colors",
+                        "tach.constants",
+                        "tach.core",
+                        "tach.errors",
+                        "tach.filesystem",
+                        "tach.logging",
+                        "tach.mod",
+                        "tach.parsing",
+                        "tach.report",
+                        "tach.show",
+                        "tach.sync",
+                        "tach.test",
+                    ]
+                    .map(DependencyConfig::from_path)
+                    .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
@@ -60,112 +66,126 @@ pub mod fixtures {
             ModuleConfig::new("tach.constants", true),
             ModuleConfig {
                 path: "tach.core".to_string(),
-                depends_on: vec![DependencyConfig::from_path("tach.constants")],
+                depends_on: Some(vec![DependencyConfig::from_path("tach.constants")]),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig::new("tach.errors", true),
             ModuleConfig {
                 path: "tach.filesystem".to_string(),
-                depends_on: [
-                    "tach.colors",
-                    "tach.constants",
-                    "tach.core",
-                    "tach.errors",
-                    "tach.hooks",
-                ]
-                .map(DependencyConfig::from_path)
-                .into(),
+                depends_on: Some(
+                    [
+                        "tach.colors",
+                        "tach.constants",
+                        "tach.core",
+                        "tach.errors",
+                        "tach.hooks",
+                    ]
+                    .map(DependencyConfig::from_path)
+                    .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.filesystem.git_ops".to_string(),
-                depends_on: vec![DependencyConfig::from_path("tach.errors")],
+                depends_on: Some(vec![DependencyConfig::from_path("tach.errors")]),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.hooks".to_string(),
-                depends_on: vec![DependencyConfig::from_path("tach.constants")],
+                depends_on: Some(vec![DependencyConfig::from_path("tach.constants")]),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.interactive".to_string(),
-                depends_on: ["tach.errors", "tach.filesystem"]
-                    .map(DependencyConfig::from_path)
-                    .into(),
+                depends_on: Some(
+                    ["tach.errors", "tach.filesystem"]
+                        .map(DependencyConfig::from_path)
+                        .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.logging".to_string(),
-                depends_on: ["tach", "tach.cache", "tach.parsing"]
-                    .map(DependencyConfig::from_path)
-                    .into(),
+                depends_on: Some(
+                    ["tach", "tach.cache", "tach.parsing"]
+                        .map(DependencyConfig::from_path)
+                        .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.mod".to_string(),
-                depends_on: [
-                    "tach.colors",
-                    "tach.constants",
-                    "tach.errors",
-                    "tach.filesystem",
-                    "tach.interactive",
-                    "tach.parsing",
-                ]
-                .map(DependencyConfig::from_path)
-                .into(),
+                depends_on: Some(
+                    [
+                        "tach.colors",
+                        "tach.constants",
+                        "tach.errors",
+                        "tach.filesystem",
+                        "tach.interactive",
+                        "tach.parsing",
+                    ]
+                    .map(DependencyConfig::from_path)
+                    .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.parsing".to_string(),
-                depends_on: ["tach.constants", "tach.core", "tach.filesystem"]
-                    .map(DependencyConfig::from_path)
-                    .into(),
+                depends_on: Some(
+                    ["tach.constants", "tach.core", "tach.filesystem"]
+                        .map(DependencyConfig::from_path)
+                        .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.report".to_string(),
-                depends_on: vec![DependencyConfig::from_path("tach.errors")],
+                depends_on: Some(vec![DependencyConfig::from_path("tach.errors")]),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig::new("tach.show", true),
             ModuleConfig {
                 path: "tach.start".to_string(),
-                depends_on: vec![DependencyConfig::from_path("tach.cli")],
+                depends_on: Some(vec![DependencyConfig::from_path("tach.cli")]),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.sync".to_string(),
-                depends_on: [
-                    "tach.check",
-                    "tach.errors",
-                    "tach.filesystem",
-                    "tach.parsing",
-                ]
-                .map(DependencyConfig::from_path)
-                .into(),
+                depends_on: Some(
+                    [
+                        "tach.check",
+                        "tach.errors",
+                        "tach.filesystem",
+                        "tach.parsing",
+                    ]
+                    .map(DependencyConfig::from_path)
+                    .into(),
+                ),
                 strict: true,
                 ..Default::default()
             },
             ModuleConfig {
                 path: "tach.test".to_string(),
-                depends_on: [
-                    "tach.errors",
-                    "tach.filesystem",
-                    "tach.filesystem.git_ops",
-                    "tach.parsing",
-                ]
-                .map(DependencyConfig::from_path)
-                .into(),
+                depends_on: Some(
+                    [
+                        "tach.errors",
+                        "tach.filesystem",
+                        "tach.filesystem.git_ops",
+                        "tach.parsing",
+                    ]
+                    .map(DependencyConfig::from_path)
+                    .into(),
+                ),
                 strict: false,
                 ..Default::default()
             },
@@ -193,7 +213,9 @@ pub mod fixtures {
                                     full_path: "tach.__main__".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.__main__".to_string(),
-                                        depends_on: vec![DependencyConfig::from_path("tach.start")],
+                                        depends_on: Some(vec![DependencyConfig::from_path(
+                                            "tach.start",
+                                        )]),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -207,9 +229,11 @@ pub mod fixtures {
                                     full_path: "tach.cache".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.cache".to_string(),
-                                        depends_on: ["tach", "tach.filesystem"]
-                                            .map(DependencyConfig::from_path)
-                                            .into(),
+                                        depends_on: Some(
+                                            ["tach", "tach.filesystem"]
+                                                .map(DependencyConfig::from_path)
+                                                .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -223,13 +247,11 @@ pub mod fixtures {
                                     full_path: "tach.check".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.check".to_string(),
-                                        depends_on: [
-                                            "tach.errors",
-                                            "tach.filesystem",
-                                            "tach.parsing",
-                                        ]
-                                        .map(DependencyConfig::from_path)
-                                        .into(),
+                                        depends_on: Some(
+                                            ["tach.errors", "tach.filesystem", "tach.parsing"]
+                                                .map(DependencyConfig::from_path)
+                                                .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -243,25 +265,27 @@ pub mod fixtures {
                                     full_path: "tach.cli".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.cli".to_string(),
-                                        depends_on: [
-                                            "tach",
-                                            "tach.cache",
-                                            "tach.check",
-                                            "tach.colors",
-                                            "tach.constants",
-                                            "tach.core",
-                                            "tach.errors",
-                                            "tach.filesystem",
-                                            "tach.logging",
-                                            "tach.mod",
-                                            "tach.parsing",
-                                            "tach.report",
-                                            "tach.show",
-                                            "tach.sync",
-                                            "tach.test",
-                                        ]
-                                        .map(DependencyConfig::from_path)
-                                        .into(),
+                                        depends_on: Some(
+                                            [
+                                                "tach",
+                                                "tach.cache",
+                                                "tach.check",
+                                                "tach.colors",
+                                                "tach.constants",
+                                                "tach.core",
+                                                "tach.errors",
+                                                "tach.filesystem",
+                                                "tach.logging",
+                                                "tach.mod",
+                                                "tach.parsing",
+                                                "tach.report",
+                                                "tach.show",
+                                                "tach.sync",
+                                                "tach.test",
+                                            ]
+                                            .map(DependencyConfig::from_path)
+                                            .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -293,9 +317,9 @@ pub mod fixtures {
                                     full_path: "tach.core".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.core".to_string(),
-                                        depends_on: vec![DependencyConfig::from_path(
+                                        depends_on: Some(vec![DependencyConfig::from_path(
                                             "tach.constants",
-                                        )],
+                                        )]),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -318,15 +342,17 @@ pub mod fixtures {
                                     full_path: "tach.filesystem".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.filesystem".to_string(),
-                                        depends_on: [
-                                            "tach.colors",
-                                            "tach.constants",
-                                            "tach.core",
-                                            "tach.errors",
-                                            "tach.hooks",
-                                        ]
-                                        .map(DependencyConfig::from_path)
-                                        .into(),
+                                        depends_on: Some(
+                                            [
+                                                "tach.colors",
+                                                "tach.constants",
+                                                "tach.core",
+                                                "tach.errors",
+                                                "tach.hooks",
+                                            ]
+                                            .map(DependencyConfig::from_path)
+                                            .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -337,9 +363,9 @@ pub mod fixtures {
                                             full_path: "tach.filesystem.git_ops".to_string(),
                                             config: Some(ModuleConfig {
                                                 path: "tach.filesystem.git_ops".to_string(),
-                                                depends_on: vec![DependencyConfig::from_path(
-                                                    "tach.errors",
-                                                )],
+                                                depends_on: Some(vec![
+                                                    DependencyConfig::from_path("tach.errors"),
+                                                ]),
                                                 strict: true,
                                                 ..Default::default()
                                             }),
@@ -355,9 +381,9 @@ pub mod fixtures {
                                     full_path: "tach.hooks".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.hooks".to_string(),
-                                        depends_on: vec![DependencyConfig::from_path(
+                                        depends_on: Some(vec![DependencyConfig::from_path(
                                             "tach.constants",
-                                        )],
+                                        )]),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -371,9 +397,11 @@ pub mod fixtures {
                                     full_path: "tach.interactive".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.interactive".to_string(),
-                                        depends_on: ["tach.errors", "tach.filesystem"]
-                                            .map(DependencyConfig::from_path)
-                                            .into(),
+                                        depends_on: Some(
+                                            ["tach.errors", "tach.filesystem"]
+                                                .map(DependencyConfig::from_path)
+                                                .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -387,9 +415,11 @@ pub mod fixtures {
                                     full_path: "tach.logging".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.logging".to_string(),
-                                        depends_on: ["tach", "tach.cache", "tach.parsing"]
-                                            .map(DependencyConfig::from_path)
-                                            .into(),
+                                        depends_on: Some(
+                                            ["tach", "tach.cache", "tach.parsing"]
+                                                .map(DependencyConfig::from_path)
+                                                .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -403,16 +433,18 @@ pub mod fixtures {
                                     full_path: "tach.mod".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.mod".to_string(),
-                                        depends_on: [
-                                            "tach.colors",
-                                            "tach.constants",
-                                            "tach.errors",
-                                            "tach.filesystem",
-                                            "tach.interactive",
-                                            "tach.parsing",
-                                        ]
-                                        .map(DependencyConfig::from_path)
-                                        .into(),
+                                        depends_on: Some(
+                                            [
+                                                "tach.colors",
+                                                "tach.constants",
+                                                "tach.errors",
+                                                "tach.filesystem",
+                                                "tach.interactive",
+                                                "tach.parsing",
+                                            ]
+                                            .map(DependencyConfig::from_path)
+                                            .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -426,13 +458,11 @@ pub mod fixtures {
                                     full_path: "tach.parsing".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.parsing".to_string(),
-                                        depends_on: [
-                                            "tach.constants",
-                                            "tach.core",
-                                            "tach.filesystem",
-                                        ]
-                                        .map(DependencyConfig::from_path)
-                                        .into(),
+                                        depends_on: Some(
+                                            ["tach.constants", "tach.core", "tach.filesystem"]
+                                                .map(DependencyConfig::from_path)
+                                                .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -446,9 +476,9 @@ pub mod fixtures {
                                     full_path: "tach.report".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.report".to_string(),
-                                        depends_on: vec![DependencyConfig::from_path(
+                                        depends_on: Some(vec![DependencyConfig::from_path(
                                             "tach.errors",
-                                        )],
+                                        )]),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -471,7 +501,9 @@ pub mod fixtures {
                                     full_path: "tach.start".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.start".to_string(),
-                                        depends_on: vec![DependencyConfig::from_path("tach.cli")],
+                                        depends_on: Some(vec![DependencyConfig::from_path(
+                                            "tach.cli",
+                                        )]),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -485,14 +517,16 @@ pub mod fixtures {
                                     full_path: "tach.sync".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.sync".to_string(),
-                                        depends_on: [
-                                            "tach.check",
-                                            "tach.errors",
-                                            "tach.filesystem",
-                                            "tach.parsing",
-                                        ]
-                                        .map(DependencyConfig::from_path)
-                                        .into(),
+                                        depends_on: Some(
+                                            [
+                                                "tach.check",
+                                                "tach.errors",
+                                                "tach.filesystem",
+                                                "tach.parsing",
+                                            ]
+                                            .map(DependencyConfig::from_path)
+                                            .into(),
+                                        ),
                                         strict: true,
                                         ..Default::default()
                                     }),
@@ -506,14 +540,16 @@ pub mod fixtures {
                                     full_path: "tach.test".to_string(),
                                     config: Some(ModuleConfig {
                                         path: "tach.test".to_string(),
-                                        depends_on: [
-                                            "tach.errors",
-                                            "tach.filesystem",
-                                            "tach.filesystem.git_ops",
-                                            "tach.parsing",
-                                        ]
-                                        .map(DependencyConfig::from_path)
-                                        .into(),
+                                        depends_on: Some(
+                                            [
+                                                "tach.errors",
+                                                "tach.filesystem",
+                                                "tach.filesystem.git_ops",
+                                                "tach.parsing",
+                                            ]
+                                            .map(DependencyConfig::from_path)
+                                            .into(),
+                                        ),
                                         strict: false,
                                         ..Default::default()
                                     }),

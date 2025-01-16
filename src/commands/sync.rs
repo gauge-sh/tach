@@ -88,7 +88,7 @@ pub fn sync_dependency_constraints(
                 new_modules.push(module.with_no_dependencies());
             }
             // Track deprecations for each module
-            for dependency in module.depends_on.iter() {
+            for dependency in module.dependencies_iter() {
                 if dependency.deprecated {
                     deprecation_map
                         .entry(module.path.clone())
