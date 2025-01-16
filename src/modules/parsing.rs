@@ -61,7 +61,7 @@ pub fn find_visibility_violations(modules: &[ModuleConfig]) -> Vec<VisibilityErr
 
     let mut results: Vec<VisibilityErrorInfo> = Vec::new();
     for module in modules.iter() {
-        for dependency_config in module.depends_on.iter() {
+        for dependency_config in module.dependencies_iter() {
             if let Some(visibility) = visibility_by_path.get(&dependency_config.path) {
                 // check if visibility of this dependency doesn't match the current module
                 if !visibility.iter().any(|visibility_pattern| {
@@ -90,7 +90,7 @@ pub fn find_modules_with_cycles(modules: &[ModuleConfig]) -> Vec<&String> {
 
     // Add dependency edges
     for module in modules {
-        for dependency in &module.depends_on {
+        for dependency in module.dependencies_iter() {
             graph.add_edge(&module.path, &dependency.path, None::<()>);
         }
     }
@@ -121,8 +121,7 @@ fn validate_root_module_treatment(
                 .filter_map(|module| {
                     if module.path == ROOT_MODULE_SENTINEL_TAG
                         || module
-                            .depends_on
-                            .iter()
+                            .dependencies_iter()
                             .any(|dep| dep.path == ROOT_MODULE_SENTINEL_TAG)
                     {
                         return Some(module.path.clone());
@@ -144,13 +143,15 @@ fn validate_root_module_treatment(
         RootModuleTreatment::DependenciesOnly => {
             let root_module_violations: Vec<String> = modules
                 .iter()
-                .filter(|module| {
-                    module
-                        .depends_on
-                        .iter()
+                .filter_map(|module| {
+                    if module
+                        .dependencies_iter()
                         .any(|dep| dep.path == ROOT_MODULE_SENTINEL_TAG)
+                    {
+                        return Some(module.path.clone());
+                    }
+                    None
                 })
-                .map(|module| module.path.clone())
                 .collect();
 
             if root_module_violations.is_empty() {

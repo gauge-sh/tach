@@ -29,7 +29,9 @@ pub fn dump_project_config_to_toml(
     });
 
     for module in &mut config.modules {
-        module.depends_on.sort_by(|a, b| a.path.cmp(&b.path));
+        if let Some(depends_on) = &mut module.depends_on {
+            depends_on.sort_by(|a, b| a.path.cmp(&b.path));
+        }
     }
 
     config.exclude.sort();
@@ -102,25 +104,27 @@ mod tests {
                 modules: vec![
                     ModuleConfig {
                         path: "domain_one".to_string(),
-                        depends_on: vec![DependencyConfig::from_deprecated_path("domain_two")],
+                        depends_on: Some(vec![DependencyConfig::from_deprecated_path(
+                            "domain_two"
+                        )]),
                         strict: false,
                         ..Default::default()
                     },
                     ModuleConfig {
                         path: "domain_three".to_string(),
-                        depends_on: vec![],
+                        depends_on: Some(vec![]),
                         strict: false,
                         ..Default::default()
                     },
                     ModuleConfig {
                         path: "domain_two".to_string(),
-                        depends_on: vec![DependencyConfig::from_path("domain_three")],
+                        depends_on: Some(vec![DependencyConfig::from_path("domain_three")]),
                         strict: false,
                         ..Default::default()
                     },
                     ModuleConfig {
                         path: ROOT_MODULE_SENTINEL_TAG.to_string(),
-                        depends_on: vec![DependencyConfig::from_path("domain_one")],
+                        depends_on: Some(vec![DependencyConfig::from_path("domain_one")]),
                         strict: false,
                         ..Default::default()
                     }
