@@ -75,6 +75,13 @@ fn migrate_strict_mode_to_interfaces(filepath: &Path, config: &mut ProjectConfig
 
 const DEPRECATED_REGEX_EXCLUDE_PATHS: [&str; 2] = [".*__pycache__", ".*egg-info"];
 const REPLACEMENT_GLOB_EXCLUDE_PATHS: [&str; 2] = ["**/*__pycache__", "**/*egg-info"];
+const EXPECTED_EXCLUDE_PATHS: [&str; 5] = [
+    "tests",
+    "docs",
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/*venv",
+];
 
 fn migrate_deprecated_regex_exclude(config: &mut ProjectConfig) -> bool {
     if config.use_regex_matching {
@@ -94,10 +101,36 @@ fn migrate_deprecated_regex_exclude(config: &mut ProjectConfig) -> bool {
 
     if did_migrate {
         println!(
-            "{}WARNING: Migrating deprecated regex exclude paths to glob patterns.{}",
+            "{}Migrating default regex exclude paths to glob patterns.{}",
             BColors::WARNING,
             BColors::ENDC
         );
+
+        // If config indicates that the user has added any paths that are not in the expected list,
+        // print a warning and suggest that the user update their exclude paths.
+        if !config
+            .exclude
+            .iter()
+            .all(|path| EXPECTED_EXCLUDE_PATHS.contains(&path.as_str()))
+        {
+            println!("\n");
+            println!(
+                "{}---- WARNING: Your exclude paths may need to be updated. ----{}",
+                BColors::WARNING,
+                BColors::ENDC
+            );
+            println!(
+                "{}Please verify that your exclude patterns are valid glob patterns (not regex).{}",
+                BColors::WARNING,
+                BColors::ENDC
+            );
+            println!(
+                "{}The default configuration has changed from regex to glob matching.{}",
+                BColors::WARNING,
+                BColors::ENDC
+            );
+            println!("\n");
+        }
     }
 
     did_migrate
