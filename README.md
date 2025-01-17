@@ -27,9 +27,9 @@ Here's an example:
 
 Tach can enforce:
 
-- 📋 Imports only come from [declared dependencies](https://docs.gauge.sh/configuration#modules)
-- 🤝 Cross-module calls use the [public interface](https://docs.gauge.sh/configuration#interfaces)
-- ⛓️‍💥 [No cycles](https://docs.gauge.sh/configuration) in the dependency graph
+- 📋 Imports only come from [declared dependencies](https://docs.gauge.sh/usage/configuration#modules)
+- 🤝 Cross-module calls use the [public interface](https://docs.gauge.sh/usage/configuration#interfaces)
+- ⛓️‍💥 [No cycles](https://docs.gauge.sh/usage/configuration) in the dependency graph
 
 
 Tach is:
