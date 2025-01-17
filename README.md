@@ -8,7 +8,9 @@
 [![pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-Tach is a Python tool to enforce dependencies and interfaces, written in Rust. Tach is inspired by the [modular monolith](https://www.milanjovanovic.tech/blog/what-is-a-modular-monolith) architecture.
+Tach is a Python tool to enforce dependencies and interfaces, written in Rust.
+
+Tach is inspired by the [modular monolith](https://www.milanjovanovic.tech/blog/what-is-a-modular-monolith) architecture.
 
 [Docs](https://docs.gauge.sh)
 
