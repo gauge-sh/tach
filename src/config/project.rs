@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use super::cache::CacheConfig;
+use super::domain::LocatedDomainConfig;
 use super::external::ExternalDependencyConfig;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
@@ -58,6 +59,8 @@ pub struct ProjectConfig {
     pub root_module: RootModuleTreatment,
     #[serde(default, skip_serializing_if = "RulesConfig::is_default")]
     pub rules: RulesConfig,
+    #[serde(skip)]
+    pub domains: Vec<LocatedDomainConfig>,
 }
 
 pub fn default_source_roots() -> Vec<PathBuf> {
@@ -97,6 +100,7 @@ impl Default for ProjectConfig {
             use_regex_matching: Default::default(),
             root_module: Default::default(),
             rules: Default::default(),
+            domains: Default::default(),
         }
     }
 }
@@ -108,6 +112,7 @@ impl ProjectConfig {
             .find(|mod_config| mod_config.path == module)
             .map(|mod_config| mod_config.depends_on.as_ref())?
     }
+
     pub fn prepend_roots(&self, project_root: &Path) -> Vec<PathBuf> {
         // don't prepend if root is "."
         self.source_roots
@@ -120,6 +125,22 @@ impl ProjectConfig {
                 }
             })
             .collect()
+    }
+
+    pub fn add_domain(&mut self, domain: LocatedDomainConfig) {
+        self.domains.push(domain);
+    }
+
+    pub fn all_modules(&self) -> impl Iterator<Item = &ModuleConfig> {
+        self.modules
+            .iter()
+            .chain(self.domains.iter().flat_map(|domain| domain.modules()))
+    }
+
+    pub fn all_interfaces(&self) -> impl Iterator<Item = &InterfaceConfig> {
+        self.interfaces
+            .iter()
+            .chain(self.domains.iter().flat_map(|domain| domain.interfaces()))
     }
 }
 
@@ -152,11 +173,13 @@ impl ProjectConfig {
             .collect()
     }
 
+    // TODO: only used in sync, probably should be removed
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
             interfaces: self.interfaces.clone(),
             layers: self.layers.clone(),
+            domains: self.domains.clone(),
             cache: self.cache.clone(),
             external: self.external.clone(),
             exclude: self.exclude.clone(),
@@ -233,7 +256,7 @@ impl ProjectConfig {
         let own_module_paths: HashSet<&String> =
             self.modules.iter().map(|module| &module.path).collect();
 
-        for module_config in &other_config.modules {
+        for module_config in other_config.modules.iter() {
             if !own_module_paths.contains(&module_config.path) {
                 all_unused_dependencies.push(UnusedDependencies {
                     path: module_config.path.clone(),

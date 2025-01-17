@@ -10,7 +10,7 @@ pub mod rules;
 pub mod utils;
 
 pub use cache::{CacheBackend, CacheConfig};
-pub use domain::DomainConfig;
+pub use domain::{ConfigLocation, DomainConfig, LocatedDomainConfig};
 pub use external::ExternalDependencyConfig;
 pub use interfaces::{InterfaceConfig, InterfaceDataTypes};
 pub use modules::{DependencyConfig, ModuleConfig};

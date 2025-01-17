@@ -31,7 +31,7 @@ pub fn relative_to<P: AsRef<Path>, R: AsRef<Path>>(path: P, root: R) -> Result<P
     Ok(diff_path.to_owned())
 }
 
-pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Result<String> {
+pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &Path) -> Result<String> {
     // Find the matching source root
     let matching_root = source_roots
         .iter()
