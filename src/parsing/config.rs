@@ -3,11 +3,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use rayon::prelude::*;
+
 use crate::{
     colors::BColors,
-    config::root_module::ROOT_MODULE_SENTINEL_TAG,
-    config::{InterfaceConfig, InterfaceDataTypes, ProjectConfig},
-    filesystem::read_file_content,
+    config::{
+        root_module::ROOT_MODULE_SENTINEL_TAG, DomainConfig, InterfaceConfig, InterfaceDataTypes,
+        ProjectConfig,
+    },
+    filesystem::{read_file_content, walk_domain_config_files},
     python::parsing::parse_interface_members,
 };
 
@@ -136,11 +140,22 @@ fn migrate_deprecated_regex_exclude(config: &mut ProjectConfig) -> bool {
     did_migrate
 }
 
+pub fn parse_domain_config<P: AsRef<Path>>(filepath: P) -> Result<DomainConfig> {
+    let content = read_file_content(filepath.as_ref())?;
+    toml::from_str(&content).map_err(error::ParsingError::from)
+}
+
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
     let content = read_file_content(filepath.as_ref())?;
     let mut config: ProjectConfig = toml::from_str(&content)?;
     let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
         || migrate_deprecated_regex_exclude(&mut config);
+    let root_dir = filepath.as_ref().parent().unwrap();
+    let domain_configs = walk_domain_config_files(root_dir.as_os_str().to_str().unwrap())
+        .par_bridge()
+        .map(parse_domain_config)
+        .collect::<Result<Vec<_>>>()?;
+    eprintln!("{:?}", domain_configs);
     Ok((config, did_migrate))
 }
 

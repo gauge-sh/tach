@@ -189,10 +189,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(
     )
 }
 
-pub fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(
-    roots: &[P],
-    mod_path: &str,
-) -> Option<PathBuf> {
+fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Option<PathBuf> {
     if mod_path.is_empty() {
         return None;
     }
@@ -293,6 +290,14 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
                     relative_to(path, PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
                 )
         })
+}
+
+pub fn walk_domain_config_files(root: &str) -> impl Iterator<Item = PathBuf> {
+    WalkDir::new(root)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_name() == "domain.toml")
+        .map(|entry| entry.into_path())
 }
 
 /// Returns a tuple of (valid, invalid) modules
