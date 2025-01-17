@@ -20,7 +20,8 @@ Tach is a Python tool to enforce dependencies and interfaces, written in Rust. T
 
 Here's an example:
 
-![tach_demo](https://github.com/gauge-sh/tach/assets/10570340/6fc1e9b4-5a78-4330-a329-9187bd9c374d)
+
+![tach_demo_1_16_25](https://github.com/user-attachments/assets/88770da4-f71b-41a9-9526-27b76a2d49d7)
 
 Tach can enforce:
 
