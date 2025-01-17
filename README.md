@@ -8,7 +8,7 @@
 [![pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
 [![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-a Python tool to enforce dependencies, written in Rust. Inspired by modular monolithic architecture.
+Tach is a Python tool to enforce dependencies and interfaces, written in Rust. Tach is inspired by the [modular monolith](https://www.milanjovanovic.tech/blog/what-is-a-modular-monolith) architecture.
 
 [Docs](https://docs.gauge.sh)
 
@@ -18,13 +18,16 @@ a Python tool to enforce dependencies, written in Rust. Inspired by modular mono
     <img src="docs/assets/light_logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
 </div>
 
-Tach lets you define and enforce dependencies between Python modules within your project.
-
 Here's an example:
 
 ![tach_demo](https://github.com/gauge-sh/tach/assets/10570340/6fc1e9b4-5a78-4330-a329-9187bd9c374d)
 
-If a module tries to import from another module that is not listed as a dependency, Tach can prevent it.
+Tach can enforce:
+
+- 📋 Imports only come from [declared dependencies](https://docs.gauge.sh/configuration#modules)
+- 🤝 Cross-module calls use the [public interface](https://docs.gauge.sh/configuration#interfaces)
+- ⛓️‍💥 [No cycles](https://docs.gauge.sh/configuration) in the dependency graph
+
 
 Tach is:
 
@@ -32,7 +35,7 @@ Tach is:
 - 🐍 Installable via pip
 - 🔧 Able to be adopted incrementally
 - ⚡ Implemented with no runtime impact
-- ♾️ Interoperable with your existing systems (cli, hooks, ci, etc.)
+- ♾️ Interoperable with your existing systems
 
 ## Getting Started
 
@@ -151,7 +154,7 @@ Tach also supports:
 - [Incremental adoption](https://docs.gauge.sh/usage/unchecked-modules)
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
 - [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
-- [Inline exceptions](https://docs.gauge.sh/usage/tach-ignore)
+- [Inline 'ignore' comments](https://docs.gauge.sh/usage/tach-ignore)
 - [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install)
 
 More info in the [docs](https://docs.gauge.sh/). Tach logs anonymized usage statistics which can be [opted out](https://docs.gauge.sh/usage/faq/) of.
