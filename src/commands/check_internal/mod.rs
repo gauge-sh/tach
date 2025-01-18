@@ -213,8 +213,10 @@ pub fn check(
     let found_imports = AtomicBool::new(false);
     let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
-    let (valid_modules, invalid_modules) =
-        fs::validate_project_modules(&source_roots, project_config.modules.clone());
+    let (valid_modules, invalid_modules) = fs::validate_project_modules(
+        &source_roots,
+        project_config.all_modules().cloned().collect(),
+    );
 
     for module in &invalid_modules {
         diagnostics.warnings.push(format!(
@@ -238,7 +240,8 @@ pub fn check(
     )?;
 
     let interface_checker = if interfaces {
-        let interface_checker = InterfaceChecker::new(&project_config.interfaces);
+        let interface_checker =
+            InterfaceChecker::new(&project_config.all_interfaces().cloned().collect::<Vec<_>>());
         // This is expensive
         Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
     } else {

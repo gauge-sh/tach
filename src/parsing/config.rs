@@ -163,11 +163,6 @@ pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfi
     domain_configs.drain(..).for_each(|domain| {
         config.add_domain(domain);
     });
-    eprintln!(
-        "{:?}\n\n{:?}",
-        config.all_modules().collect::<Vec<_>>(),
-        config.all_interfaces().collect::<Vec<_>>()
-    );
     Ok((config, did_migrate))
 }
 

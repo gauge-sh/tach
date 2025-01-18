@@ -74,6 +74,8 @@ impl DomainConfig {
     }
 }
 
+pub const DOMAIN_ROOT_SENTINEL: &str = "<domain_root>";
+
 trait Resolvable<T> {
     fn resolve(&self, location: &ConfigLocation) -> T;
 }
@@ -87,10 +89,17 @@ impl Resolvable<DependencyConfig> for DependencyConfig {
                 deprecated: self.deprecated,
             }
         } else {
-            // Relative path needs to be prefixed with the module path
-            DependencyConfig {
-                path: format!("{}.{}", location.mod_path, self.path),
-                deprecated: self.deprecated,
+            match self.path.as_str() {
+                // Special case for the domain root sentinel, use the module path
+                DOMAIN_ROOT_SENTINEL => DependencyConfig {
+                    path: location.mod_path.clone(),
+                    deprecated: self.deprecated,
+                },
+                // Relative path needs to be prefixed with the module path
+                _ => DependencyConfig {
+                    path: format!("{}.{}", location.mod_path, self.path),
+                    deprecated: self.deprecated,
+                },
             }
         }
     }
@@ -140,7 +149,10 @@ impl Resolvable<InterfaceConfig> for InterfaceConfig {
             from_modules: self
                 .from_modules
                 .iter()
-                .map(|mod_path| format!("{}.{}", location.mod_path, mod_path))
+                .map(|mod_path| match mod_path.as_str() {
+                    DOMAIN_ROOT_SENTINEL => location.mod_path.clone(),
+                    _ => format!("{}.{}", location.mod_path, mod_path),
+                })
                 .collect(),
             data_types: self.data_types.clone(),
         }

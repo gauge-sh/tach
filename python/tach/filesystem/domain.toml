@@ -1,5 +1,4 @@
 [root]
-depends_on = []
 layer = "core"
 
 [[modules]]
@@ -9,7 +8,12 @@ layer = "core"
 
 [[modules]]
 path = "install"
-depends_on = ["//tach.hooks"]
+depends_on = ["service", "//tach.hooks"]
+layer = "core"
+
+[[modules]]
+path = "service"
+depends_on = []
 layer = "core"
 
 [[interfaces]]

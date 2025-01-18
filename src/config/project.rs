@@ -107,8 +107,7 @@ impl Default for ProjectConfig {
 
 impl ProjectConfig {
     fn dependencies_for_module(&self, module: &str) -> Option<&Vec<DependencyConfig>> {
-        self.modules
-            .iter()
+        self.all_modules()
             .find(|mod_config| mod_config.path == module)
             .map(|mod_config| mod_config.depends_on.as_ref())?
     }
@@ -159,15 +158,13 @@ impl ProjectConfig {
     }
 
     pub fn module_paths(&self) -> Vec<String> {
-        self.modules
-            .iter()
+        self.all_modules()
             .map(|module| module.path.clone())
             .collect()
     }
 
     pub fn utility_paths(&self) -> Vec<String> {
-        self.modules
-            .iter()
+        self.all_modules()
             .filter(|module| module.utility)
             .map(|module| module.path.clone())
             .collect()
@@ -254,9 +251,9 @@ impl ProjectConfig {
     pub fn compare_dependencies(&self, other_config: &ProjectConfig) -> Vec<UnusedDependencies> {
         let mut all_unused_dependencies = Vec::new();
         let own_module_paths: HashSet<&String> =
-            self.modules.iter().map(|module| &module.path).collect();
+            self.all_modules().map(|module| &module.path).collect();
 
-        for module_config in other_config.modules.iter() {
+        for module_config in other_config.all_modules() {
             if !own_module_paths.contains(&module_config.path) {
                 all_unused_dependencies.push(UnusedDependencies {
                     path: module_config.path.clone(),
