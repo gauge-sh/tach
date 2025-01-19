@@ -145,7 +145,7 @@ pub struct ModuleConfig {
     pub unchecked: bool,
     // Hidden field to track grouping
     // Unfortunately marked as public due to test fixtures constructing struct literals
-    #[doc(hidden)]
+    #[serde(skip)]
     pub group_id: Option<usize>,
 }
 

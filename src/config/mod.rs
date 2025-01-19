@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod domain;
+pub mod edit;
 pub mod error;
 pub mod external;
 pub mod interfaces;
@@ -11,6 +12,7 @@ pub mod utils;
 
 pub use cache::{CacheBackend, CacheConfig};
 pub use domain::{ConfigLocation, DomainConfig, LocatedDomainConfig};
+pub use edit::ConfigEdit;
 pub use external::ExternalDependencyConfig;
 pub use interfaces::{InterfaceConfig, InterfaceDataTypes};
 pub use modules::{DependencyConfig, ModuleConfig};

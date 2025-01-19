@@ -16,10 +16,8 @@ use crate::parsing::error::ParsingError;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
-#[pyclass(get_all, module = "tach.extension")]
 pub struct DomainRootConfig {
     #[serde(default)]
-    #[pyo3(set)]
     pub depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
     pub layer: Option<String>,
@@ -36,7 +34,6 @@ pub struct DomainRootConfig {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
-#[pyclass(get_all, module = "tach.extension")]
 pub struct DomainConfig {
     #[serde(default)]
     pub root: Option<DomainRootConfig>,
@@ -161,7 +158,6 @@ impl Resolvable<InterfaceConfig> for InterfaceConfig {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[pyclass(module = "tach.extension")]
 pub struct LocatedDomainConfig {
     pub config: DomainConfig,
     pub location: ConfigLocation,

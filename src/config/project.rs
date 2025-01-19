@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use super::cache::CacheConfig;
 use super::domain::LocatedDomainConfig;
+use super::edit::ConfigEdit;
 use super::external::ExternalDependencyConfig;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
@@ -21,46 +22,61 @@ pub struct UnusedDependencies {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
-#[pyclass(get_all, module = "tach.extension")]
+#[pyclass(module = "tach.extension")]
 pub struct ProjectConfig {
     #[serde(
         default,
         deserialize_with = "deserialize_modules",
         serialize_with = "serialize_modules"
     )]
+    #[pyo3(get)]
     pub modules: Vec<ModuleConfig>,
     #[serde(default)]
+    #[pyo3(get)]
     pub interfaces: Vec<InterfaceConfig>,
     #[serde(default, skip_serializing_if = "is_empty")]
+    #[pyo3(get)]
     pub layers: Vec<String>,
     #[serde(default, skip_serializing_if = "CacheConfig::is_default")]
+    #[pyo3(get)]
     pub cache: CacheConfig,
     #[serde(default, skip_serializing_if = "ExternalDependencyConfig::is_default")]
+    #[pyo3(get)]
     pub external: ExternalDependencyConfig,
     #[serde(default)]
+    #[pyo3(get)]
     pub exclude: Vec<String>,
     #[serde(default = "default_source_roots")]
-    #[pyo3(set)]
+    #[pyo3(get)]
     pub source_roots: Vec<PathBuf>,
     #[serde(default, skip_serializing_if = "is_false")]
+    #[pyo3(get)]
     pub exact: bool,
     #[serde(default, skip_serializing_if = "is_false")]
+    #[pyo3(get)]
     pub disable_logging: bool,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
-    #[pyo3(set)]
+    #[pyo3(get)]
     pub ignore_type_checking_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
+    #[pyo3(get)]
     pub include_string_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
+    #[pyo3(get)]
     pub forbid_circular_dependencies: bool,
     #[serde(default, skip_serializing_if = "is_false")]
+    #[pyo3(get)]
     pub use_regex_matching: bool,
     #[serde(default, skip_serializing_if = "RootModuleTreatment::is_default")]
+    #[pyo3(get)]
     pub root_module: RootModuleTreatment,
     #[serde(default, skip_serializing_if = "RulesConfig::is_default")]
+    #[pyo3(get)]
     pub rules: RulesConfig,
     #[serde(skip)]
     pub domains: Vec<LocatedDomainConfig>,
+    #[serde(skip)]
+    pub pending_edits: Vec<ConfigEdit>,
 }
 
 pub fn default_source_roots() -> Vec<PathBuf> {
@@ -85,22 +101,25 @@ pub fn default_excludes() -> Vec<String> {
 impl Default for ProjectConfig {
     fn default() -> Self {
         Self {
+            // special defaults
+            exclude: default_excludes(),
+            source_roots: default_source_roots(),
+            ignore_type_checking_imports: true,
+            // normal defaults
             modules: Default::default(),
             interfaces: Default::default(),
             layers: Default::default(),
             cache: Default::default(),
             external: Default::default(),
-            exclude: default_excludes(),
-            source_roots: default_source_roots(),
             exact: Default::default(),
             disable_logging: Default::default(),
-            ignore_type_checking_imports: true,
             include_string_imports: Default::default(),
             forbid_circular_dependencies: Default::default(),
             use_regex_matching: Default::default(),
             root_module: Default::default(),
             rules: Default::default(),
             domains: Default::default(),
+            pending_edits: Default::default(),
         }
     }
 }
@@ -174,21 +193,7 @@ impl ProjectConfig {
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
-            interfaces: self.interfaces.clone(),
-            layers: self.layers.clone(),
-            domains: self.domains.clone(),
-            cache: self.cache.clone(),
-            external: self.external.clone(),
-            exclude: self.exclude.clone(),
-            source_roots: self.source_roots.clone(),
-            exact: self.exact,
-            disable_logging: self.disable_logging,
-            ignore_type_checking_imports: self.ignore_type_checking_imports,
-            include_string_imports: self.include_string_imports,
-            forbid_circular_dependencies: self.forbid_circular_dependencies,
-            use_regex_matching: self.use_regex_matching,
-            root_module: self.root_module.clone(),
-            rules: self.rules.clone(),
+            ..Clone::clone(&self)
         }
     }
 
