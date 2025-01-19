@@ -15,6 +15,7 @@ use super::utils::*;
 use crate::parsing::error::ParsingError;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct DomainRootConfig {
     #[serde(default)]

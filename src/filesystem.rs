@@ -248,7 +248,7 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
     let prefix_root = root.to_string();
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(move |e| !is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e))
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
         .map(move |entry| {
@@ -263,7 +263,7 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
 pub fn walk_pyprojects(root: &str) -> impl Iterator<Item = PathBuf> {
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(move |e| !is_hidden(e) && !direntry_is_excluded(e))
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file())
         .filter(|entry| entry.file_name() == "pyproject.toml")
@@ -295,6 +295,7 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
 pub fn walk_domain_config_files(root: &str) -> impl Iterator<Item = PathBuf> {
     WalkDir::new(root)
         .into_iter()
+        .filter_entry(|e| !is_hidden(e))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_name() == "domain.toml")
         .map(|entry| entry.into_path())

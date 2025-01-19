@@ -119,6 +119,7 @@ pub fn is_default_visibility(value: &Vec<String>) -> bool {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 #[pyclass(get_all, eq, module = "tach.extension")]
 pub struct ModuleConfig {
     pub path: String,
