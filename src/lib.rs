@@ -347,14 +347,13 @@ fn check(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, exclude_paths, prune))]
-fn sync_dependency_constraints(
+#[pyo3(signature = (project_root, project_config, exclude_paths))]
+fn detect_unused_dependencies(
     project_root: PathBuf,
     project_config: &mut config::ProjectConfig,
     exclude_paths: Vec<String>,
-    prune: bool,
-) -> Result<(), sync::SyncError> {
-    sync::sync_dependency_constraints(project_root, project_config, exclude_paths, prune)
+) -> Result<Vec<sync::UnusedDependencies>, sync::SyncError> {
+    sync::detect_unused_dependencies(project_root, project_config, exclude_paths)
 }
 
 #[pyfunction]
@@ -399,7 +398,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(update_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(dump_project_config_to_toml, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(sync_dependency_constraints, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(detect_unused_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
     Ok(())

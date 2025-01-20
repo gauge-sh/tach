@@ -26,8 +26,8 @@ from tach.extension import (
     check,
     check_computation_cache,
     create_computation_cache_key,
+    detect_unused_dependencies,
     run_server,
-    sync_dependency_constraints,
     update_computation_cache,
 )
 from tach.filesystem import install_pre_commit
@@ -641,15 +641,13 @@ def tach_check(
         )
         exit_code = 1 if len(check_result.errors) > 0 else 0
 
-        # If we're checking in exact mode, we want to verify that pruning constraints has no effect
+        # If we're checking in exact mode, we want to verify that there are no unused dependencies
         if dependencies and exact:
-            pruned_config = sync_dependency_constraints(
+            unused_dependencies = detect_unused_dependencies(
                 project_root=project_root,
                 project_config=project_config,
                 exclude_paths=exclude_paths,
-                prune=True,
             )
-            unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:
                 print_unused_dependencies(unused_dependencies)
                 exit_code = 1

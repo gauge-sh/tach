@@ -62,12 +62,11 @@ def check(
     interfaces: bool,
     exclude_paths: list[str],
 ) -> CheckDiagnostics: ...
-def sync_dependency_constraints(
+def detect_unused_dependencies(
     project_root: Path,
     project_config: ProjectConfig,
     exclude_paths: list[str],
-    prune: bool,
-) -> ProjectConfig: ...
+) -> list[UnusedDependencies]: ...
 def sync_project(
     project_root: Path,
     project_config: ProjectConfig,

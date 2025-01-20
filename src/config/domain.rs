@@ -49,6 +49,19 @@ pub struct DomainConfig {
 }
 
 impl DomainConfig {
+    pub fn with_dependencies_removed(&self) -> Self {
+        let mut new_modules = self.modules.clone();
+        new_modules.iter_mut().for_each(|module| {
+            if let Some(depends_on) = &mut module.depends_on {
+                depends_on.clear();
+            }
+        });
+        Self {
+            modules: new_modules,
+            ..self.clone()
+        }
+    }
+
     pub fn with_location(self, location: ConfigLocation) -> LocatedDomainConfig {
         let resolved_modules = self
             .modules
@@ -175,6 +188,12 @@ impl LocatedDomainConfig {
 
     pub fn interfaces(&self) -> impl Iterator<Item = &InterfaceConfig> {
         self.resolved_interfaces.iter()
+    }
+
+    pub fn with_dependencies_removed(&self) -> Self {
+        self.config
+            .with_dependencies_removed()
+            .with_location(self.location.clone())
     }
 }
 

@@ -13,13 +13,6 @@ use super::root_module::RootModuleTreatment;
 use super::rules::RulesConfig;
 use super::utils::*;
 
-#[derive(Default, Clone)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct UnusedDependencies {
-    pub path: String,
-    pub dependencies: Vec<DependencyConfig>,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(module = "tach.extension")]
@@ -163,6 +156,11 @@ impl ProjectConfig {
         });
         Self {
             modules: new_modules,
+            domains: self
+                .domains
+                .iter()
+                .map(|domain| domain.with_dependencies_removed())
+                .collect(),
             ..self.clone()
         }
     }
@@ -432,7 +430,7 @@ impl ProjectConfig {
         !self.pending_edits.is_empty()
     }
 
-    // TODO: only used in sync, probably should be removed
+    // TODO: only used in show, probably should be removed
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
@@ -440,6 +438,7 @@ impl ProjectConfig {
         }
     }
 
+    // TODO: only used in show, probably should be removed
     pub fn set_modules(&mut self, module_paths: Vec<String>) {
         let new_module_paths: HashSet<String> = module_paths.into_iter().collect();
         let mut new_modules: Vec<ModuleConfig> = Vec::new();
@@ -465,79 +464,5 @@ impl ProjectConfig {
         }
 
         self.modules = new_modules;
-    }
-
-    pub fn mark_utilities(&mut self, utility_paths: Vec<String>) {
-        for module in &mut self.modules {
-            module.utility = utility_paths.contains(&module.path);
-        }
-    }
-
-    pub fn add_dependency_to_module(&mut self, module: &str, dependency: DependencyConfig) {
-        if let Some(module_config) = self
-            .modules
-            .iter_mut()
-            .find(|mod_config| mod_config.path == module)
-        {
-            match &mut module_config.depends_on {
-                Some(depends_on) => {
-                    if !depends_on.iter().any(|dep| dep.path == dependency.path) {
-                        depends_on.push(dependency);
-                    }
-                }
-                None => module_config.depends_on = Some(vec![dependency]),
-            }
-        } else {
-            self.modules.push(ModuleConfig {
-                path: module.to_string(),
-                depends_on: Some(vec![dependency]),
-                ..Default::default()
-            });
-        }
-    }
-
-    pub fn compare_dependencies(&self, other_config: &ProjectConfig) -> Vec<UnusedDependencies> {
-        let mut all_unused_dependencies = Vec::new();
-        let own_module_paths: HashSet<&String> =
-            self.all_modules().map(|module| &module.path).collect();
-
-        for module_config in other_config.all_modules() {
-            if !own_module_paths.contains(&module_config.path) {
-                all_unused_dependencies.push(UnusedDependencies {
-                    path: module_config.path.clone(),
-                    dependencies: module_config.depends_on.clone().unwrap_or_default(),
-                });
-                continue;
-            }
-
-            let own_module_dependency_paths: HashSet<&String> = self
-                .dependencies_for_module(&module_config.path)
-                .map(|deps| deps.iter().map(|dep| &dep.path).collect())
-                .unwrap_or_default();
-
-            let current_dependency_paths: HashSet<&String> = module_config
-                .dependencies_iter()
-                .map(|dep| &dep.path)
-                .collect();
-
-            let extra_dependency_paths: HashSet<&&String> = current_dependency_paths
-                .difference(&own_module_dependency_paths)
-                .collect();
-
-            if !extra_dependency_paths.is_empty() {
-                let extra_dependencies: Vec<DependencyConfig> = module_config
-                    .dependencies_iter()
-                    .filter(|dep| extra_dependency_paths.contains(&&dep.path))
-                    .cloned()
-                    .collect();
-
-                all_unused_dependencies.push(UnusedDependencies {
-                    path: module_config.path.clone(),
-                    dependencies: extra_dependencies,
-                });
-            }
-        }
-
-        all_unused_dependencies
     }
 }
