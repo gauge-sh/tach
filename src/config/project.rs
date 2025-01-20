@@ -403,6 +403,14 @@ impl ProjectConfig {
         self.enqueue_edit(&ConfigEdit::RemoveDependency { path, dependency })
     }
 
+    fn add_source_root(&mut self, filepath: PathBuf) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::AddSourceRoot { filepath })
+    }
+
+    fn remove_source_root(&mut self, filepath: PathBuf) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::RemoveSourceRoot { filepath })
+    }
+
     fn save_edits(&mut self) -> Result<(), EditError> {
         self.apply_edits()
     }

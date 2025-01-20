@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import tomli
@@ -18,6 +17,8 @@ from tach.extension import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tach.extension import ProjectConfig
 
 
@@ -82,8 +83,7 @@ def migrate_deprecated_yaml_config(filepath: Path) -> ProjectConfig:
     return project_config
 
 
-def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
-    root = root or Path.cwd()
+def parse_project_config(root: Path) -> ProjectConfig | None:
     file_path = fs.get_project_config_path(root)
     if file_path:
         # Standard TOML config found

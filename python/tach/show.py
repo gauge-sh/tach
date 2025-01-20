@@ -69,7 +69,7 @@ def filter_project_config(
     )
     included_paths = list(map(lambda path: project_root / path, included_paths))
     all_modules = copy(project_config.modules)
-    project_config.set_modules([])
+    project_config.set_modules([])  # pyright: ignore
     filtered_modules: list[ModuleConfig] = []
 
     for module in all_modules:
