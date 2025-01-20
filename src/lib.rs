@@ -112,6 +112,7 @@ impl From<sync::SyncError> for PyErr {
             sync::SyncError::TomlSerialize(err) => PyOSError::new_err(err.to_string()),
             sync::SyncError::CheckError(err) => err.into(),
             sync::SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
+            sync::SyncError::EditError(err) => PyValueError::new_err(err.to_string()),
         }
     }
 }
@@ -349,10 +350,10 @@ fn check(
 #[pyo3(signature = (project_root, project_config, exclude_paths, prune))]
 fn sync_dependency_constraints(
     project_root: PathBuf,
-    project_config: config::ProjectConfig,
+    project_config: &mut config::ProjectConfig,
     exclude_paths: Vec<String>,
     prune: bool,
-) -> Result<config::ProjectConfig, sync::SyncError> {
+) -> Result<(), sync::SyncError> {
     sync::sync_dependency_constraints(project_root, project_config, exclude_paths, prune)
 }
 
@@ -363,7 +364,7 @@ pub fn sync_project(
     project_config: config::ProjectConfig,
     exclude_paths: Vec<String>,
     add: bool,
-) -> Result<String, sync::SyncError> {
+) -> Result<(), sync::SyncError> {
     sync::sync_project(project_root, project_config, exclude_paths, add)
 }
 

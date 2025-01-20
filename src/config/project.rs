@@ -129,7 +129,7 @@ impl Default for ProjectConfig {
 }
 
 impl ProjectConfig {
-    fn dependencies_for_module(&self, module: &str) -> Option<&Vec<DependencyConfig>> {
+    pub fn dependencies_for_module(&self, module: &str) -> Option<&Vec<DependencyConfig>> {
         self.all_modules()
             .find(|mod_config| mod_config.path == module)
             .map(|mod_config| mod_config.depends_on.as_ref())?
@@ -152,6 +152,19 @@ impl ProjectConfig {
                 }
             })
             .collect()
+    }
+
+    pub fn with_dependencies_removed(&self) -> Self {
+        let mut new_modules = self.modules.clone();
+        new_modules.iter_mut().for_each(|module| {
+            if let Some(depends_on) = &mut module.depends_on {
+                depends_on.clear();
+            }
+        });
+        Self {
+            modules: new_modules,
+            ..self.clone()
+        }
     }
 
     pub fn add_domain(&mut self, domain: LocatedDomainConfig) {
@@ -366,7 +379,7 @@ impl ProjectConfig {
         serde_json::to_string(&self).unwrap()
     }
 
-    fn module_paths(&self) -> Vec<String> {
+    pub fn module_paths(&self) -> Vec<String> {
         self.all_modules()
             .map(|module| module.path.clone())
             .collect()
@@ -379,40 +392,44 @@ impl ProjectConfig {
             .collect()
     }
 
-    fn create_module(&mut self, path: String) -> Result<(), EditError> {
+    pub fn create_module(&mut self, path: String) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::CreateModule { path })
     }
 
-    fn delete_module(&mut self, path: String) -> Result<(), EditError> {
+    pub fn delete_module(&mut self, path: String) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::DeleteModule { path })
     }
 
-    fn mark_module_as_utility(&mut self, path: String) -> Result<(), EditError> {
+    pub fn mark_module_as_utility(&mut self, path: String) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::MarkModuleAsUtility { path })
     }
 
-    fn unmark_module_as_utility(&mut self, path: String) -> Result<(), EditError> {
+    pub fn unmark_module_as_utility(&mut self, path: String) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::UnmarkModuleAsUtility { path })
     }
 
-    fn add_dependency(&mut self, path: String, dependency: String) -> Result<(), EditError> {
+    pub fn add_dependency(&mut self, path: String, dependency: String) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::AddDependency { path, dependency })
     }
 
-    fn remove_dependency(&mut self, path: String, dependency: String) -> Result<(), EditError> {
+    pub fn remove_dependency(&mut self, path: String, dependency: String) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::RemoveDependency { path, dependency })
     }
 
-    fn add_source_root(&mut self, filepath: PathBuf) -> Result<(), EditError> {
+    pub fn add_source_root(&mut self, filepath: PathBuf) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::AddSourceRoot { filepath })
     }
 
-    fn remove_source_root(&mut self, filepath: PathBuf) -> Result<(), EditError> {
+    pub fn remove_source_root(&mut self, filepath: PathBuf) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::RemoveSourceRoot { filepath })
     }
 
-    fn save_edits(&mut self) -> Result<(), EditError> {
+    pub fn save_edits(&mut self) -> Result<(), EditError> {
         self.apply_edits()
+    }
+
+    pub fn has_edits(&self) -> bool {
+        !self.pending_edits.is_empty()
     }
 
     // TODO: only used in sync, probably should be removed

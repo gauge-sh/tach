@@ -1,13 +1,13 @@
 use thiserror::Error;
 
 use crate::commands::check_internal::{check, CheckError};
+use crate::config::edit::{ConfigEditor, EditError};
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
-use crate::config::utils::global_visibility;
-use crate::config::{DependencyConfig, ModuleConfig, ProjectConfig};
-use crate::filesystem::{self as fs};
-use crate::parsing::config::dump_project_config_to_toml;
-use std::collections::HashMap;
+use crate::config::ProjectConfig;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+
+use super::check_internal::BoundaryError;
 
 #[derive(Error, Debug)]
 pub enum SyncError {
@@ -19,39 +19,57 @@ pub enum SyncError {
     CheckError(#[from] CheckError),
     #[error("Failed to sync project configuration due to root module violation.\n{0}")]
     RootModuleViolation(String),
+    #[error("Failed to apply edits to project configuration.\n{0}")]
+    EditError(#[from] EditError),
 }
 
-fn handle_detected_dependency(
+fn handle_added_dependency(
     module_path: &str,
-    dependency: DependencyConfig,
+    dependency: &str,
     project_config: &mut ProjectConfig,
 ) -> Result<(), SyncError> {
     let module_is_root = module_path == ROOT_MODULE_SENTINEL_TAG;
-    let dependency_is_root = dependency.path == ROOT_MODULE_SENTINEL_TAG;
+    let dependency_is_root = dependency == ROOT_MODULE_SENTINEL_TAG;
 
     if !module_is_root && !dependency_is_root {
-        project_config.add_dependency_to_module(module_path, dependency);
+        project_config.add_dependency(module_path.to_string(), dependency.to_string());
         return Ok(());
     }
 
     match project_config.root_module {
         RootModuleTreatment::Ignore => Ok(()),
         RootModuleTreatment::Allow => {
-            project_config.add_dependency_to_module(module_path, dependency);
+            project_config.add_dependency(module_path.to_string(), dependency.to_string());
             Ok(())
         }
         RootModuleTreatment::Forbid => Err(SyncError::RootModuleViolation(format!(
             "The root module is forbidden, but it was found that '{}' depends on '{}'.",
-            module_path, dependency.path
+            module_path, dependency
         ))),
         RootModuleTreatment::DependenciesOnly => {
             if dependency_is_root {
                 return Err(SyncError::RootModuleViolation(format!("No module may depend on the root module, but it was found that '{}' depends on the root module.", module_path)));
             }
-            project_config.add_dependency_to_module(module_path, dependency);
+            project_config.add_dependency(module_path.to_string(), dependency.to_string());
             Ok(())
         }
     }
+}
+
+fn detect_dependencies(boundary_errors: &[BoundaryError]) -> HashMap<String, Vec<String>> {
+    let mut dependencies = HashMap::new();
+    for error in boundary_errors {
+        let error_info = &error.error_info;
+        if error_info.is_dependency_error() {
+            let source_path = error_info.source_path().unwrap();
+            let dep_path = error_info.invalid_path().unwrap();
+            dependencies
+                .entry(source_path.to_string())
+                .or_insert(vec![])
+                .push(dep_path.to_string());
+        }
+    }
+    dependencies
 }
 
 /// Update project configuration with auto-detected dependency constraints.
@@ -59,97 +77,69 @@ fn handle_detected_dependency(
 /// but will not remove any constraints.
 pub fn sync_dependency_constraints(
     project_root: PathBuf,
-    mut project_config: ProjectConfig,
+    project_config: &mut ProjectConfig,
     exclude_paths: Vec<String>,
     prune: bool,
-) -> Result<ProjectConfig, SyncError> {
-    let mut deprecation_map: HashMap<String, Vec<String>> = HashMap::new();
-    let mut visibility_map: HashMap<String, Vec<String>> = HashMap::new();
-    let mut new_project_config = None;
-
-    // Drain visibility patterns from modules into visibility map, restore after syncing
-    project_config.modules.iter_mut().for_each(|module| {
-        visibility_map.insert(module.path.clone(), module.visibility.drain(..).collect());
-        module.visibility.extend(global_visibility());
-    });
-
-    if prune {
-        let mut new_modules: Vec<ModuleConfig> = Vec::new();
-
-        let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
-        let (valid_modules, _) =
-            fs::validate_project_modules(&source_roots, project_config.modules.clone());
-
-        for module in valid_modules.iter() {
-            // Clone modules and remove declared dependencies (unless unchecked, which should keep dependencies)
-            if module.unchecked {
-                new_modules.push(module.clone());
-            } else {
-                new_modules.push(module.with_no_dependencies());
-            }
-            // Track deprecations for each module
-            for dependency in module.dependencies_iter() {
-                if dependency.deprecated {
-                    deprecation_map
-                        .entry(module.path.clone())
-                        .or_default()
-                        .push(dependency.path.clone());
-                }
-            }
-        }
-        new_project_config = Some(project_config.with_modules(new_modules));
-    }
-    let mut new_project_config = new_project_config.unwrap_or(project_config);
-
-    // If prune is false, the existing project config is reused without changes
+) -> Result<(), SyncError> {
+    // This is a shortcut to finding all cross-module dependencies
+    // TODO: dedicated function
+    let cleared_project_config = project_config.with_dependencies_removed();
     let check_result = check(
         project_root,
-        &new_project_config,
-        true,  // dependencies
-        false, // interfaces
+        &cleared_project_config,
+        true,
+        false,
         exclude_paths,
     )?;
+    let detected_dependencies = detect_dependencies(&check_result.errors);
 
-    // Iterate through the check results to add dependencies to the config
-    for error in check_result.errors {
-        let error_info = error.error_info;
+    // Now diff with project config and apply edits
+    for module_path in project_config.module_paths() {
+        let module_detected_dependencies =
+            detected_dependencies
+                .get(&module_path)
+                .map_or(HashSet::new(), |deps| {
+                    deps.iter()
+                        .map(|dep| dep.to_string())
+                        .collect::<HashSet<_>>()
+                });
+        let module_current_dependencies = project_config
+            .dependencies_for_module(&module_path)
+            .map_or(HashSet::new(), |deps| {
+                deps.iter()
+                    .map(|dep| dep.path.clone())
+                    .collect::<HashSet<_>>()
+            });
 
-        if error_info.is_dependency_error() {
-            let source_path = error_info.source_path().unwrap();
-            let dep_path = error_info.invalid_path().unwrap();
+        let dependencies_to_add =
+            module_detected_dependencies.difference(&module_current_dependencies);
+        for dep in dependencies_to_add {
+            // This handler will also handle root module treatment
+            handle_added_dependency(&module_path, dep, project_config)?;
+        }
 
-            let deprecated = deprecation_map
-                .get(source_path)
-                .map_or(false, |deps| deps.contains(dep_path));
-
-            let dependency = DependencyConfig {
-                path: dep_path.clone(),
-                deprecated,
-            };
-
-            // The project config determines whether the sync fails, ignores, or adds this dependency
-            handle_detected_dependency(source_path, dependency, &mut new_project_config)?
+        if prune {
+            let dependencies_to_remove =
+                module_current_dependencies.difference(&module_detected_dependencies);
+            for dep in dependencies_to_remove {
+                project_config.remove_dependency(module_path.to_string(), dep.to_string());
+            }
         }
     }
 
-    // Restore visibility settings
-    for module in new_project_config.modules.iter_mut() {
-        if let Some(visibility) = visibility_map.get(&module.path) {
-            module.visibility.clone_from(visibility);
-        }
-    }
-
-    Ok(new_project_config)
+    Ok(())
 }
 
 pub fn sync_project(
     project_root: PathBuf,
-    project_config: ProjectConfig,
+    mut project_config: ProjectConfig,
     exclude_paths: Vec<String>,
     add: bool,
-) -> Result<String, SyncError> {
-    let mut project_config =
-        sync_dependency_constraints(project_root, project_config, exclude_paths, !add)?;
+) -> Result<(), SyncError> {
+    // This may queue edits to the project config
+    sync_dependency_constraints(project_root, &mut project_config, exclude_paths, !add)?;
 
-    Ok(dump_project_config_to_toml(&mut project_config)?)
+    project_config.apply_edits()?;
+
+    Ok(())
 }
