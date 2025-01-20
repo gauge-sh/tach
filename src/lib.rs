@@ -125,6 +125,12 @@ impl From<lsp::error::ServerError> for PyErr {
     }
 }
 
+impl From<config::edit::EditError> for PyErr {
+    fn from(err: config::edit::EditError) -> Self {
+        PyValueError::new_err(err.to_string())
+    }
+}
+
 impl IntoPy<PyObject> for modules::error::VisibilityErrorInfo {
     fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
         (

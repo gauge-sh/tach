@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use super::cache::CacheConfig;
 use super::domain::LocatedDomainConfig;
-use super::edit::ConfigEdit;
+use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::external::ExternalDependencyConfig;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
@@ -77,6 +77,9 @@ pub struct ProjectConfig {
     pub domains: Vec<LocatedDomainConfig>,
     #[serde(skip)]
     pub pending_edits: Vec<ConfigEdit>,
+    // If location is None, the config is not on disk
+    #[serde(skip)]
+    pub location: Option<PathBuf>,
 }
 
 pub fn default_source_roots() -> Vec<PathBuf> {
@@ -120,6 +123,7 @@ impl Default for ProjectConfig {
             rules: Default::default(),
             domains: Default::default(),
             pending_edits: Default::default(),
+            location: Default::default(),
         }
     }
 }
@@ -131,6 +135,11 @@ impl ProjectConfig {
             .map(|mod_config| mod_config.depends_on.as_ref())?
     }
 
+    pub fn set_location(&mut self, location: PathBuf) {
+        self.location = Some(location);
+    }
+
+    // TODO: use location for this
     pub fn prepend_roots(&self, project_root: &Path) -> Vec<PathBuf> {
         // don't prepend if root is "."
         self.source_roots
@@ -162,6 +171,159 @@ impl ProjectConfig {
     }
 }
 
+impl ConfigEditor for ProjectConfig {
+    fn enqueue_edit(&mut self, edit: &ConfigEdit) -> Result<(), EditError> {
+        // Enqueue the edit for any relevant domains
+        let domain_results = self
+            .domains
+            .iter_mut()
+            .map(|domain| domain.enqueue_edit(edit))
+            .collect::<Vec<Result<(), EditError>>>();
+
+        let result = match edit {
+            ConfigEdit::CreateModule { path } => {
+                if !domain_results.iter().any(|r| r.is_ok()) {
+                    if self.modules.iter().any(|module| module.path == *path) {
+                        Err(EditError::ModuleAlreadyExists)
+                    } else {
+                        // If no domain will create the module, and the module doesn't already exist,
+                        // enqueue the edit
+                        self.pending_edits.push(edit.clone());
+                        Ok(())
+                    }
+                } else {
+                    Err(EditError::NotApplicable)
+                }
+            }
+            ConfigEdit::DeleteModule { path }
+            | ConfigEdit::MarkModuleAsUtility { path }
+            | ConfigEdit::UnmarkModuleAsUtility { path }
+            | ConfigEdit::AddDependency { path, .. }
+            | ConfigEdit::RemoveDependency { path, .. } => {
+                // If we know of this module, enqueue the edit
+                if self.modules.iter().any(|module| module.path == *path) {
+                    self.pending_edits.push(edit.clone());
+                    Ok(())
+                } else {
+                    Err(EditError::ModuleNotFound)
+                }
+            }
+        };
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                // If any domain enqueued the edit, return Ok
+                if domain_results.iter().any(|r| r.is_ok()) {
+                    Ok(())
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    fn apply_edits(&mut self) -> Result<(), EditError> {
+        for domain in &mut self.domains {
+            domain.apply_edits()?;
+        }
+
+        if self.pending_edits.is_empty() {
+            return Ok(());
+        }
+        let config_path = self
+            .location
+            .as_ref()
+            .ok_or(EditError::ConfigDoesNotExist)?;
+
+        let toml_str =
+            std::fs::read_to_string(config_path).map_err(|_| EditError::ConfigDoesNotExist)?;
+        let mut doc = toml_str
+            .parse::<toml_edit::DocumentMut>()
+            .map_err(|_| EditError::ParsingFailed)?;
+
+        for edit in &self.pending_edits {
+            match edit {
+                ConfigEdit::CreateModule { path } => {
+                    let mut module_table = toml_edit::Table::new();
+                    module_table.insert("path", toml_edit::value(path));
+                    module_table.insert("depends_on", toml_edit::value(toml_edit::Array::new()));
+
+                    let modules = doc["modules"]
+                        .or_insert(toml_edit::Item::ArrayOfTables(Default::default()));
+                    if let toml_edit::Item::ArrayOfTables(array) = modules {
+                        array.push(module_table);
+                    }
+                }
+                ConfigEdit::DeleteModule { path } => {
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                        modules.retain(|table| {
+                            table["path"].as_str().map(|p| p != path).unwrap_or(true)
+                        });
+                    }
+                }
+                ConfigEdit::MarkModuleAsUtility { path }
+                | ConfigEdit::UnmarkModuleAsUtility { path } => {
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                        for table in modules.iter_mut() {
+                            if table["path"].as_str() == Some(path) {
+                                match edit {
+                                    ConfigEdit::MarkModuleAsUtility { .. } => {
+                                        table.insert("utility", toml_edit::value(true));
+                                    }
+                                    ConfigEdit::UnmarkModuleAsUtility { .. } => {
+                                        table.remove("utility");
+                                    }
+                                    _ => unreachable!(),
+                                }
+                            }
+                        }
+                    }
+                }
+                ConfigEdit::AddDependency { path, dependency }
+                | ConfigEdit::RemoveDependency { path, dependency } => {
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                        for table in modules.iter_mut() {
+                            if table["path"].as_str() == Some(path) {
+                                match edit {
+                                    ConfigEdit::AddDependency { .. } => {
+                                        let deps = table["depends_on"]
+                                            .or_insert(toml_edit::value(toml_edit::Array::new()));
+                                        if let toml_edit::Item::Value(toml_edit::Value::Array(
+                                            array,
+                                        )) = deps
+                                        {
+                                            array.push(dependency);
+                                        }
+                                    }
+                                    ConfigEdit::RemoveDependency { .. } => {
+                                        if let toml_edit::Item::Value(toml_edit::Value::Array(
+                                            array,
+                                        )) = &mut table["depends_on"]
+                                        {
+                                            array.retain(|dep| {
+                                                dep.as_str()
+                                                    .map(|d| d != dependency)
+                                                    .unwrap_or(true)
+                                            });
+                                        }
+                                    }
+                                    _ => unreachable!(),
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        std::fs::write(config_path, doc.to_string()).map_err(|_| EditError::DiskWriteFailed)?;
+
+        self.pending_edits.clear();
+        Ok(())
+    }
+}
+
 #[pymethods]
 impl ProjectConfig {
     #[new]
@@ -172,28 +334,56 @@ impl ProjectConfig {
     fn __str__(&self) -> String {
         format!("{:#?}", self)
     }
-    pub fn model_dump_json(&self) -> String {
+    fn serialize_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
     }
 
-    pub fn module_paths(&self) -> Vec<String> {
+    fn module_paths(&self) -> Vec<String> {
         self.all_modules()
             .map(|module| module.path.clone())
             .collect()
     }
 
-    pub fn utility_paths(&self) -> Vec<String> {
+    fn utility_paths(&self) -> Vec<String> {
         self.all_modules()
             .filter(|module| module.utility)
             .map(|module| module.path.clone())
             .collect()
     }
 
+    fn create_module(&mut self, path: String) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::CreateModule { path })
+    }
+
+    fn delete_module(&mut self, path: String) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::DeleteModule { path })
+    }
+
+    fn mark_module_as_utility(&mut self, path: String) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::MarkModuleAsUtility { path })
+    }
+
+    fn unmark_module_as_utility(&mut self, path: String) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::UnmarkModuleAsUtility { path })
+    }
+
+    fn add_dependency(&mut self, path: String, dependency: String) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::AddDependency { path, dependency })
+    }
+
+    fn remove_dependency(&mut self, path: String, dependency: String) -> Result<(), EditError> {
+        self.enqueue_edit(&ConfigEdit::RemoveDependency { path, dependency })
+    }
+
+    fn save_edits(&mut self) -> Result<(), EditError> {
+        self.apply_edits()
+    }
+
     // TODO: only used in sync, probably should be removed
     pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
         Self {
             modules,
-            ..Clone::clone(&self)
+            ..Clone::clone(self)
         }
     }
 

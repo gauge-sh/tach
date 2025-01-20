@@ -153,6 +153,7 @@ pub fn parse_domain_config<P: AsRef<Path>>(
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
     let content = read_file_content(filepath.as_ref())?;
     let mut config: ProjectConfig = toml::from_str(&content)?;
+    config.set_location(filepath.as_ref().to_path_buf());
     let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
         || migrate_deprecated_regex_exclude(&mut config);
     let root_dir = filepath.as_ref().parent().unwrap();
@@ -222,6 +223,7 @@ mod tests {
                     .collect(),
                 exact: true,
                 forbid_circular_dependencies: true,
+                location: example_dir.join("valid/tach.toml").into(),
                 ..Default::default()
             }
         );

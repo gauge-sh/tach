@@ -314,7 +314,7 @@ def generate_modularity_report(
         repo=branch_info.repo,
         branch=branch_info.name,
         commit=branch_info.commit,
-        full_configuration=project_config.model_dump_json(),
+        full_configuration=project_config.serialize_json(),
     )
     source_roots = [project_root / root for root in project_config.source_roots]
 

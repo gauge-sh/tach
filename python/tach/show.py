@@ -25,7 +25,7 @@ def generate_show_url(
         project_config = filter_project_config(
             project_config, project_root=project_root, included_paths=included_paths
         )
-    json_data = project_config.model_dump_json()
+    json_data = project_config.serialize_json()
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
         f"{GAUGE_API_BASE_URL}/api/show/graph/1.3",

@@ -1,7 +1,6 @@
 pub mod cache;
 pub mod domain;
 pub mod edit;
-pub mod error;
 pub mod external;
 pub mod interfaces;
 pub mod modules;

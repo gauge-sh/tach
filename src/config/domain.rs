@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::filesystem::file_to_module_path;
 
+use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::interfaces::InterfaceConfig;
 use super::modules::{
     default_visibility, deserialize_modules, is_default_visibility, serialize_modules,
@@ -68,6 +69,7 @@ impl DomainConfig {
             location,
             resolved_modules,
             resolved_interfaces,
+            pending_edits: Default::default(),
         }
     }
 }
@@ -163,6 +165,7 @@ pub struct LocatedDomainConfig {
     pub location: ConfigLocation,
     resolved_modules: Vec<ModuleConfig>,
     resolved_interfaces: Vec<InterfaceConfig>,
+    pending_edits: Vec<ConfigEdit>,
 }
 
 impl LocatedDomainConfig {
@@ -172,6 +175,223 @@ impl LocatedDomainConfig {
 
     pub fn interfaces(&self) -> impl Iterator<Item = &InterfaceConfig> {
         self.resolved_interfaces.iter()
+    }
+}
+
+impl ConfigEditor for LocatedDomainConfig {
+    fn enqueue_edit(&mut self, edit: &ConfigEdit) -> Result<(), EditError> {
+        match edit {
+            ConfigEdit::CreateModule { path } => {
+                if self.modules().any(|module| module.path == *path) {
+                    Err(EditError::ModuleAlreadyExists)
+                } else if path.starts_with(&self.location.mod_path) {
+                    // Loose check, if the module path starts with the domain path,
+                    // then it belongs to this domain
+                    self.pending_edits.push(edit.clone());
+                    Ok(())
+                } else {
+                    Err(EditError::NotApplicable)
+                }
+            }
+            ConfigEdit::DeleteModule { path }
+            | ConfigEdit::MarkModuleAsUtility { path }
+            | ConfigEdit::UnmarkModuleAsUtility { path }
+            | ConfigEdit::AddDependency { path, .. }
+            | ConfigEdit::RemoveDependency { path, .. } => {
+                if path.starts_with(&self.location.mod_path) {
+                    // If this module path appears to belong to this domain,
+                    // and the module exists, enqueue the edit
+                    if self.modules().any(|module| module.path == *path) {
+                        self.pending_edits.push(edit.clone());
+                        Ok(())
+                    } else {
+                        Err(EditError::ModuleNotFound)
+                    }
+                } else {
+                    Err(EditError::NotApplicable)
+                }
+            }
+        }
+    }
+
+    fn apply_edits(&mut self) -> Result<(), EditError> {
+        if self.pending_edits.is_empty() {
+            return Ok(());
+        }
+
+        let toml_str = std::fs::read_to_string(&self.location.path)
+            .map_err(|_| EditError::ConfigDoesNotExist)?;
+        let mut doc = toml_str
+            .parse::<toml_edit::DocumentMut>()
+            .map_err(|_| EditError::ParsingFailed)?;
+
+        for edit in &self.pending_edits {
+            match edit {
+                ConfigEdit::CreateModule { path } => {
+                    // Check if this is a root module
+                    if path == &self.location.mod_path {
+                        let mut root_table = toml_edit::Table::new();
+                        root_table.insert("depends_on", toml_edit::value(toml_edit::Array::new()));
+                        doc.insert("root", toml_edit::Item::Table(root_table));
+                        continue;
+                    }
+
+                    let relative_path = path
+                        .strip_prefix(&self.location.mod_path)
+                        .map(|p| p.trim_start_matches('.'))
+                        .unwrap_or(path);
+
+                    let mut module_table = toml_edit::Table::new();
+                    module_table.insert("path", toml_edit::value(relative_path));
+                    module_table.insert("depends_on", toml_edit::value(toml_edit::Array::new()));
+
+                    if let Some(root) = &self.config.root {
+                        if let Some(layer) = &root.layer {
+                            module_table.insert("layer", toml_edit::value(layer));
+                        }
+                    }
+
+                    let modules = doc["modules"]
+                        .or_insert(toml_edit::Item::ArrayOfTables(Default::default()));
+                    if let toml_edit::Item::ArrayOfTables(array) = modules {
+                        array.push(module_table);
+                    }
+                }
+                ConfigEdit::DeleteModule { path } => {
+                    // Check if this is a root module
+                    if path == &self.location.mod_path {
+                        doc.remove("root");
+                        continue;
+                    }
+
+                    let relative_path = path
+                        .strip_prefix(&self.location.mod_path)
+                        .map(|p| p.trim_start_matches('.'))
+                        .unwrap_or(path);
+
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                        modules.retain(|table| {
+                            table["path"]
+                                .as_str()
+                                .map(|p| p != relative_path)
+                                .unwrap_or(true)
+                        });
+                    }
+                }
+                ConfigEdit::MarkModuleAsUtility { path }
+                | ConfigEdit::UnmarkModuleAsUtility { path } => {
+                    // Check if this is a root module
+                    if path == &self.location.mod_path {
+                        if let Some(toml_edit::Item::Table(root)) = doc.get_mut("root") {
+                            match edit {
+                                ConfigEdit::MarkModuleAsUtility { .. } => {
+                                    root.insert("utility", toml_edit::value(true));
+                                }
+                                ConfigEdit::UnmarkModuleAsUtility { .. } => {
+                                    root.remove("utility");
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        continue;
+                    }
+
+                    let relative_path = path
+                        .strip_prefix(&self.location.mod_path)
+                        .map(|p| p.trim_start_matches('.'))
+                        .unwrap_or(path);
+
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                        for table in modules.iter_mut() {
+                            if table["path"].as_str() == Some(relative_path) {
+                                match edit {
+                                    ConfigEdit::MarkModuleAsUtility { .. } => {
+                                        table.insert("utility", toml_edit::value(true));
+                                    }
+                                    ConfigEdit::UnmarkModuleAsUtility { .. } => {
+                                        table.remove("utility");
+                                    }
+                                    _ => unreachable!(),
+                                }
+                            }
+                        }
+                    }
+                }
+                ConfigEdit::AddDependency { path, dependency }
+                | ConfigEdit::RemoveDependency { path, dependency } => {
+                    // Check if this is a root module
+                    if path == &self.location.mod_path {
+                        if let Some(toml_edit::Item::Table(root)) = doc.get_mut("root") {
+                            match edit {
+                                ConfigEdit::AddDependency { .. } => {
+                                    let deps = root["depends_on"]
+                                        .or_insert(toml_edit::value(toml_edit::Array::new()));
+                                    if let toml_edit::Item::Value(toml_edit::Value::Array(array)) =
+                                        deps
+                                    {
+                                        array.push(dependency);
+                                    }
+                                }
+                                ConfigEdit::RemoveDependency { .. } => {
+                                    if let toml_edit::Item::Value(toml_edit::Value::Array(array)) =
+                                        &mut root["depends_on"]
+                                    {
+                                        array.retain(|dep| {
+                                            dep.as_str().map(|d| d != dependency).unwrap_or(true)
+                                        });
+                                    }
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        continue;
+                    }
+
+                    let relative_path = path
+                        .strip_prefix(&self.location.mod_path)
+                        .map(|p| p.trim_start_matches('.'))
+                        .unwrap_or(path);
+
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                        for table in modules.iter_mut() {
+                            if table["path"].as_str() == Some(relative_path) {
+                                match edit {
+                                    ConfigEdit::AddDependency { .. } => {
+                                        let deps = table["depends_on"]
+                                            .or_insert(toml_edit::value(toml_edit::Array::new()));
+                                        if let toml_edit::Item::Value(toml_edit::Value::Array(
+                                            array,
+                                        )) = deps
+                                        {
+                                            array.push(dependency);
+                                        }
+                                    }
+                                    ConfigEdit::RemoveDependency { .. } => {
+                                        if let toml_edit::Item::Value(toml_edit::Value::Array(
+                                            array,
+                                        )) = &mut table["depends_on"]
+                                        {
+                                            array.retain(|dep| {
+                                                dep.as_str()
+                                                    .map(|d| d != dependency)
+                                                    .unwrap_or(true)
+                                            });
+                                        }
+                                    }
+                                    _ => unreachable!(),
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        std::fs::write(&self.location.path, doc.to_string())
+            .map_err(|_| EditError::DiskWriteFailed)?;
+
+        self.pending_edits.clear();
+        Ok(())
     }
 }
 
