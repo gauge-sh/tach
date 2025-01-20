@@ -208,6 +208,11 @@ impl ConfigEditor for ProjectConfig {
                     Err(EditError::ModuleNotFound)
                 }
             }
+            ConfigEdit::AddSourceRoot { .. } | ConfigEdit::RemoveSourceRoot { .. } => {
+                // Source root edits are always applicable to project config
+                self.pending_edits.push(edit.clone());
+                Ok(())
+            }
         };
 
         match result {
@@ -314,6 +319,28 @@ impl ConfigEditor for ProjectConfig {
                         }
                     }
                 }
+                ConfigEdit::AddSourceRoot { filepath } => {
+                    if let toml_edit::Item::Value(toml_edit::Value::Array(source_roots)) =
+                        &mut doc["source_roots"]
+                    {
+                        if !source_roots.iter().any(|root| {
+                            root.as_str() == Some(filepath.as_os_str().to_str().unwrap())
+                        }) {
+                            source_roots.push(filepath.display().to_string());
+                        }
+                    }
+                }
+                ConfigEdit::RemoveSourceRoot { filepath } => {
+                    if let toml_edit::Item::Value(toml_edit::Value::Array(source_roots)) =
+                        &mut doc["source_roots"]
+                    {
+                        source_roots.retain(|root| {
+                            root.as_str()
+                                .map(|s| s != filepath.as_os_str().to_str().unwrap())
+                                .unwrap_or(true)
+                        });
+                    }
+                }
             }
         }
 
@@ -334,6 +361,7 @@ impl ProjectConfig {
     fn __str__(&self) -> String {
         format!("{:#?}", self)
     }
+
     fn serialize_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
     }

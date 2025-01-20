@@ -187,6 +187,18 @@ impl ModuleConfig {
     }
 }
 
+impl ModuleConfig {
+    pub fn with_no_dependencies(&self) -> Self {
+        let mut new_module = self.clone();
+        new_module.depends_on = Some(vec![]);
+        new_module
+    }
+
+    pub fn new_root_config() -> Self {
+        Self::new(ROOT_MODULE_SENTINEL_TAG, false)
+    }
+}
+
 #[pymethods]
 impl ModuleConfig {
     #[new]
@@ -203,16 +215,6 @@ impl ModuleConfig {
         }
     }
 
-    pub fn with_no_dependencies(&self) -> Self {
-        let mut new_module = self.clone();
-        new_module.depends_on = Some(vec![]);
-        new_module
-    }
-
-    #[staticmethod]
-    pub fn new_root_config() -> Self {
-        Self::new(ROOT_MODULE_SENTINEL_TAG, false)
-    }
     pub fn mod_path(&self) -> String {
         if self.path == ROOT_MODULE_SENTINEL_TAG {
             return ".".to_string();

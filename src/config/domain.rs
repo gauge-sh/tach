@@ -211,6 +211,9 @@ impl ConfigEditor for LocatedDomainConfig {
                     Err(EditError::NotApplicable)
                 }
             }
+            ConfigEdit::AddSourceRoot { .. } | ConfigEdit::RemoveSourceRoot { .. } => {
+                Err(EditError::NotApplicable)
+            }
         }
     }
 
@@ -383,6 +386,9 @@ impl ConfigEditor for LocatedDomainConfig {
                             }
                         }
                     }
+                }
+                ConfigEdit::AddSourceRoot { .. } | ConfigEdit::RemoveSourceRoot { .. } => {
+                    return Err(EditError::NotApplicable);
                 }
             }
         }

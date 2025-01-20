@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -8,6 +10,8 @@ pub enum ConfigEdit {
     UnmarkModuleAsUtility { path: String },
     AddDependency { path: String, dependency: String },
     RemoveDependency { path: String, dependency: String },
+    AddSourceRoot { filepath: PathBuf },
+    RemoveSourceRoot { filepath: PathBuf },
 }
 
 #[derive(Debug, Clone, PartialEq, Error)]
