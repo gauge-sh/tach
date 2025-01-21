@@ -169,63 +169,150 @@ pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfi
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::path::PathBuf;
 
     use super::*;
     use crate::{
-        config::project::DEFAULT_EXCLUDE_PATHS,
-        config::root_module::ROOT_MODULE_SENTINEL_TAG,
-        config::{DependencyConfig, ModuleConfig},
+        config::{
+            project::DEFAULT_EXCLUDE_PATHS, root_module::ROOT_MODULE_SENTINEL_TAG, DependencyConfig,
+        },
         tests::fixtures::example_dir,
     };
     use rstest::rstest;
+
     #[rstest]
     fn test_parse_valid_project_config(example_dir: PathBuf) {
-        // TODO: remove tach.toml when joining
         let result = parse_project_config(example_dir.join("valid/tach.toml"));
         assert!(result.is_ok());
         let (config, _) = result.unwrap();
+
+        let module_paths: Vec<_> = config.module_paths();
         assert_eq!(
-            config,
-            ProjectConfig {
-                modules: vec![
-                    ModuleConfig {
-                        path: "domain_one".to_string(),
-                        depends_on: Some(vec![DependencyConfig::from_deprecated_path(
-                            "domain_two"
-                        )]),
-                        strict: false,
-                        ..Default::default()
-                    },
-                    ModuleConfig {
-                        path: "domain_three".to_string(),
-                        depends_on: Some(vec![]),
-                        strict: false,
-                        ..Default::default()
-                    },
-                    ModuleConfig {
-                        path: "domain_two".to_string(),
-                        depends_on: Some(vec![DependencyConfig::from_path("domain_three")]),
-                        strict: false,
-                        ..Default::default()
-                    },
-                    ModuleConfig {
-                        path: ROOT_MODULE_SENTINEL_TAG.to_string(),
-                        depends_on: Some(vec![DependencyConfig::from_path("domain_one")]),
-                        strict: false,
-                        ..Default::default()
-                    }
-                ],
-                exclude: DEFAULT_EXCLUDE_PATHS
-                    .into_iter()
-                    .chain(["domain_four.py"].into_iter())
-                    .map(String::from)
-                    .collect(),
-                exact: true,
-                forbid_circular_dependencies: true,
-                location: example_dir.join("valid/tach.toml").into(),
-                ..Default::default()
-            }
+            module_paths,
+            vec![
+                "domain_one",
+                "domain_three",
+                "domain_two",
+                ROOT_MODULE_SENTINEL_TAG
+            ]
+        );
+
+        assert_eq!(
+            config
+                .dependencies_for_module("domain_one")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            vec![DependencyConfig::from_deprecated_path("domain_two")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("domain_three")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            vec![].iter().collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("domain_two")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            vec![DependencyConfig::from_path("domain_three")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module(ROOT_MODULE_SENTINEL_TAG)
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            vec![DependencyConfig::from_path("domain_one")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+
+        let expected_excludes: Vec<String> = DEFAULT_EXCLUDE_PATHS
+            .into_iter()
+            .chain(["domain_four.py"].into_iter())
+            .map(String::from)
+            .collect();
+        assert_eq!(config.exclude, expected_excludes);
+
+        assert!(config.exact);
+        assert!(config.forbid_circular_dependencies);
+    }
+
+    #[rstest]
+    fn test_parse_domain_config(example_dir: PathBuf) {
+        let source_roots = vec![example_dir.join("distributed_config")];
+        let result = parse_domain_config(
+            &source_roots,
+            example_dir.join("distributed_config/project/module_one/tach.domain.toml"),
+        );
+        assert!(result.is_ok());
+        let config = result.unwrap();
+
+        let modules: Vec<_> = config.modules().map(|m| m.path.as_str()).collect();
+        assert_eq!(modules, vec!["project.module_one"]);
+
+        assert_eq!(
+            config.modules().next().unwrap().depends_on,
+            Some(vec![DependencyConfig::from_path("project.module_two")])
+        );
+    }
+
+    #[rstest]
+    fn test_parse_nested_project_config(example_dir: PathBuf) {
+        let result = parse_project_config(example_dir.join("distributed_config/tach.toml"));
+        assert!(result.is_ok());
+        let (config, _) = result.unwrap();
+
+        let module_paths: HashSet<_> = config.module_paths().into_iter().collect();
+        assert_eq!(
+            module_paths,
+            vec![
+                "project.top_level",
+                "project.module_one",
+                "project.module_two"
+            ]
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect::<HashSet<_>>()
+        );
+
+        assert_eq!(
+            config
+                .dependencies_for_module("project.top_level")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            vec![DependencyConfig::from_path("project.module_two")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("project.module_one")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            vec![DependencyConfig::from_path("project.module_two")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("project.module_two")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            vec![].iter().collect::<HashSet<_>>()
         );
     }
 }

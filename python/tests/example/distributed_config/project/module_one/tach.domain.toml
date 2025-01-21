@@ -1,0 +1,2 @@
+[root]
+depends_on = ["//project.module_two"]
