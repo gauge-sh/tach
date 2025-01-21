@@ -391,6 +391,20 @@ impl ProjectConfig {
         serde_json::to_string(&self).unwrap()
     }
 
+    pub fn has_no_modules(&self) -> bool {
+        self.all_modules().next().is_none()
+    }
+
+    pub fn has_no_dependencies(&self) -> bool {
+        self.all_modules().all(|module| {
+            module
+                .depends_on
+                .as_ref()
+                .map(|deps| deps.is_empty())
+                .unwrap_or(true)
+        })
+    }
+
     pub fn module_paths(&self) -> Vec<String> {
         self.all_modules()
             .map(|module| module.path.clone())

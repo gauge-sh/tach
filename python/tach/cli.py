@@ -906,12 +906,11 @@ def tach_show(
             f"{BCOLORS.WARNING}Passing --web generates a remote graph; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
         )
 
-    # TODO: avoid reading directly
-    if not project_config.modules:
+    if project_config.has_no_modules():
         print_no_modules_found()
         sys.exit(1)
 
-    if not any([module.depends_on for module in project_config.modules]):
+    if project_config.has_no_dependencies():
         print_no_dependencies_found()
         sys.exit(1)
     try:
