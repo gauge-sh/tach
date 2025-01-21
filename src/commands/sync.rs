@@ -6,6 +6,7 @@ use crate::commands::check_internal::{check, BoundaryError, CheckError};
 use crate::config::edit::{ConfigEditor, EditError};
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
+use crate::filesystem::validate_module_path;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -130,10 +131,7 @@ pub fn detect_unused_dependencies(
         .collect())
 }
 
-/// Update project configuration with auto-detected dependency constraints.
-/// If prune is set to False, it will create dependencies to resolve existing errors,
-/// but will not remove any constraints.
-pub fn sync_dependency_constraints(
+fn sync_dependency_constraints(
     project_root: PathBuf,
     project_config: &mut ProjectConfig,
     exclude_paths: Vec<String>,
@@ -185,9 +183,24 @@ pub fn sync_dependency_constraints(
         }
     }
 
+    if prune {
+        project_config
+            .module_paths()
+            .iter()
+            .for_each(|module_path| {
+                if !validate_module_path(&project_config.source_roots, module_path) {
+                    // Not clear what to do if enqueueing deletion fails
+                    let _ = project_config.delete_module(module_path.to_string());
+                }
+            });
+    }
+
     Ok(())
 }
 
+/// Update project configuration with auto-detected dependency constraints.
+/// If prune is set to False, it will create dependencies to resolve existing errors,
+/// but will not remove any constraints.
 pub fn sync_project(
     project_root: PathBuf,
     mut project_config: ProjectConfig,

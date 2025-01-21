@@ -313,6 +313,11 @@ pub fn walk_domain_config_files(root: &str) -> impl Iterator<Item = PathBuf> {
         .map(|entry| entry.into_path())
 }
 
+pub fn validate_module_path(source_roots: &[PathBuf], module_path: &str) -> bool {
+    module_path == ROOT_MODULE_SENTINEL_TAG
+        || module_to_pyfile_or_dir_path(source_roots, module_path).is_some()
+}
+
 /// Returns a tuple of (valid, invalid) modules
 pub fn validate_project_modules(
     source_roots: &[PathBuf],
@@ -321,9 +326,7 @@ pub fn validate_project_modules(
     let mut result = (Vec::new(), Vec::new());
 
     for module in modules {
-        if module.path == ROOT_MODULE_SENTINEL_TAG
-            || module_to_pyfile_or_dir_path(source_roots, &module.path).is_some()
-        {
+        if validate_module_path(source_roots, &module.path) {
             // valid module
             result.0.push(module);
         } else {
