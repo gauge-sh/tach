@@ -309,7 +309,7 @@ pub fn walk_domain_config_files(root: &str) -> impl Iterator<Item = PathBuf> {
         .into_iter()
         .filter_entry(|e| !is_hidden(e))
         .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_name() == "domain.toml")
+        .filter(|entry| entry.file_name() == "tach.domain.toml")
         .map(|entry| entry.into_path())
 }
 
