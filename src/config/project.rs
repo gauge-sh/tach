@@ -1,11 +1,13 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+
+use crate::filesystem::module_path_is_included_in_paths;
 
 use super::cache::CacheConfig;
 use super::domain::LocatedDomainConfig;
 use super::edit::{ConfigEdit, ConfigEditor, EditError};
+use super::error::ConfigError;
 use super::external::ExternalDependencyConfig;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
@@ -132,7 +134,19 @@ impl ProjectConfig {
         self.location = Some(location);
     }
 
-    // TODO: use location for this
+    pub fn absolute_source_roots(&self) -> Result<Vec<PathBuf>, ConfigError> {
+        let project_root = self
+            .location
+            .as_ref()
+            .ok_or(ConfigError::ConfigDoesNotExist)?;
+        Ok(self
+            .source_roots
+            .iter()
+            .map(|root| project_root.join(root))
+            .collect())
+    }
+
+    // TODO: use absolute_source_roots
     pub fn prepend_roots(&self, project_root: &Path) -> Vec<PathBuf> {
         // don't prepend if root is "."
         self.source_roots
@@ -390,6 +404,27 @@ impl ProjectConfig {
             .collect()
     }
 
+    pub fn filtered_modules(
+        &self,
+        included_paths: Vec<PathBuf>,
+    ) -> Result<Vec<ModuleConfig>, ConfigError> {
+        let absolute_source_roots = self.absolute_source_roots()?;
+        Ok(self
+            .all_modules()
+            .filter(|module| {
+                included_paths.is_empty()
+                    || module_path_is_included_in_paths(
+                        &absolute_source_roots,
+                        &module.path,
+                        &included_paths,
+                    )
+            })
+            .map(|module| {
+                module.with_filtered_dependencies(&absolute_source_roots, &included_paths)
+            })
+            .collect())
+    }
+
     pub fn create_module(&mut self, path: String) -> Result<(), EditError> {
         self.enqueue_edit(&ConfigEdit::CreateModule { path })
     }
@@ -424,45 +459,5 @@ impl ProjectConfig {
 
     pub fn save_edits(&mut self) -> Result<(), EditError> {
         self.apply_edits()
-    }
-
-    pub fn has_edits(&self) -> bool {
-        !self.pending_edits.is_empty()
-    }
-
-    // TODO: only used in show, probably should be removed
-    pub fn with_modules(&self, modules: Vec<ModuleConfig>) -> Self {
-        Self {
-            modules,
-            ..Clone::clone(self)
-        }
-    }
-
-    // TODO: only used in show, probably should be removed
-    pub fn set_modules(&mut self, module_paths: Vec<String>) {
-        let new_module_paths: HashSet<String> = module_paths.into_iter().collect();
-        let mut new_modules: Vec<ModuleConfig> = Vec::new();
-
-        let mut original_modules_by_path: HashMap<String, ModuleConfig> = self
-            .modules
-            .drain(..)
-            .map(|module| (module.path.clone(), module))
-            .collect();
-
-        for new_module_path in &new_module_paths {
-            if let Some(mut original_module) = original_modules_by_path.remove(new_module_path) {
-                if let Some(deps) = original_module.depends_on.as_mut() {
-                    deps.retain(|dep| new_module_paths.contains(&dep.path))
-                }
-                new_modules.push(original_module);
-            } else {
-                new_modules.push(ModuleConfig {
-                    path: new_module_path.to_string(),
-                    ..Default::default()
-                });
-            }
-        }
-
-        self.modules = new_modules;
     }
 }

@@ -215,6 +215,18 @@ fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> 
     None
 }
 
+pub fn module_path_is_included_in_paths(
+    source_roots: &[PathBuf],
+    module_path: &str,
+    included_paths: &[PathBuf],
+) -> bool {
+    module_to_pyfile_or_dir_path(source_roots, module_path).is_some_and(|path| {
+        included_paths
+            .iter()
+            .any(|included_path| path.starts_with(included_path))
+    })
+}
+
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     let mut file = fs::File::open(path.as_ref())?;
     let mut content = String::new();

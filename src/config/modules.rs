@@ -1,8 +1,11 @@
+use crate::filesystem::module_path_is_included_in_paths;
+
 use super::root_module::ROOT_MODULE_SENTINEL_TAG;
 use super::utils::*;
 use pyo3::prelude::*;
 use serde::ser::{Error, SerializeSeq, SerializeStruct};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use std::path::PathBuf;
 use std::{
     collections::{HashMap, HashSet},
     fmt,
@@ -185,13 +188,32 @@ impl ModuleConfig {
             .into_iter()
             .flat_map(|deps| deps.iter())
     }
-}
 
-impl ModuleConfig {
-    pub fn with_no_dependencies(&self) -> Self {
-        let mut new_module = self.clone();
-        new_module.depends_on = Some(vec![]);
-        new_module
+    pub fn with_filtered_dependencies(
+        &self,
+        absolute_source_roots: &[PathBuf],
+        included_paths: &[PathBuf],
+    ) -> Self {
+        match &self.depends_on {
+            Some(depends_on) => Self {
+                depends_on: Some(
+                    depends_on
+                        .iter()
+                        .filter(|dep| {
+                            included_paths.is_empty()
+                                || module_path_is_included_in_paths(
+                                    absolute_source_roots,
+                                    &dep.path,
+                                    included_paths,
+                                )
+                        })
+                        .cloned()
+                        .collect(),
+                ),
+                ..self.clone()
+            },
+            None => self.clone(),
+        }
     }
 
     pub fn new_root_config() -> Self {
@@ -221,6 +243,14 @@ impl ModuleConfig {
         }
         self.path.clone()
     }
+}
+
+pub fn serialize_modules_json(modules: &Vec<ModuleConfig>) -> String {
+    #[derive(Serialize)]
+    struct ModulesWrapper<'a> {
+        modules: &'a Vec<ModuleConfig>,
+    }
+    serde_json::to_string(&ModulesWrapper { modules }).unwrap()
 }
 
 #[derive(Serialize, Deserialize)]

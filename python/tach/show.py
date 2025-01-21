@@ -1,31 +1,31 @@
 from __future__ import annotations
 
 import json
-from copy import copy
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
 
-from tach import filesystem as fs
 from tach.constants import GAUGE_API_BASE_URL
-from tach.extension import DependencyConfig, ModuleConfig, ProjectConfig
+from tach.extension import serialize_modules_json
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     import pydot  # type: ignore
 
+    from tach.extension import ProjectConfig
+
 
 def generate_show_url(
-    project_root: Path,
     project_config: ProjectConfig,
-    included_paths: list[Path] | None = None,
+    included_paths: list[Path],
 ) -> str | None:
-    if included_paths:
-        project_config = filter_project_config(
-            project_config, project_root=project_root, included_paths=included_paths
-        )
-    json_data = project_config.serialize_json()
+    modules = project_config.filtered_modules(included_paths)
+    for module in modules:
+        if module.depends_on is None:
+            # This is a hack to avoid bumping the API version
+            module.depends_on = []
+    json_data = serialize_modules_json(modules)
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
         f"{GAUGE_API_BASE_URL}/api/show/graph/1.3",
@@ -45,59 +45,10 @@ def generate_show_url(
         return None
 
 
-def module_path_is_included_in_paths(
-    source_roots: tuple[Path, ...], module_path: str, included_paths: list[Path] | None
-) -> bool:
-    if included_paths is None:
-        return True
-    module_fs_path = fs.module_to_pyfile_or_dir_path(source_roots, module_path)
-    if not module_fs_path:
-        return False
-    for included_path in included_paths:
-        if included_path in module_fs_path.parents or included_path == module_fs_path:
-            return True
-    return False
-
-
-def filter_project_config(
-    project_config: ProjectConfig,
-    project_root: Path,
-    included_paths: list[Path],
-) -> ProjectConfig:
-    source_roots = tuple(
-        map(lambda source_root: project_root / source_root, project_config.source_roots)
-    )
-    included_paths = list(map(lambda path: project_root / path, included_paths))
-    all_modules = copy(project_config.modules)
-    project_config.set_modules([])  # pyright: ignore
-    filtered_modules: list[ModuleConfig] = []
-
-    for module in all_modules:
-        module_is_included = module_path_is_included_in_paths(
-            source_roots, module.path, included_paths
-        )
-        if module_is_included:
-            filtered_modules.append(module)
-        else:
-            filtered_dependencies: list[DependencyConfig] = []
-            for dependency in module.depends_on:
-                dependency_is_included = module_path_is_included_in_paths(
-                    source_roots, dependency.path, included_paths
-                )
-                if dependency_is_included:
-                    filtered_dependencies.append(dependency)
-            if filtered_dependencies:
-                module.depends_on = filtered_dependencies
-                filtered_modules.append(module)
-
-    return ProjectConfig.with_modules(project_config, filtered_modules)
-
-
 def generate_module_graph_dot_file(
-    project_root: Path,
     project_config: ProjectConfig,
     output_filepath: Path,
-    included_paths: list[Path] | None = None,
+    included_paths: list[Path],
 ) -> None:
     # Local import because networkx takes about ~100ms to load
     import networkx as nx
@@ -111,20 +62,10 @@ def generate_module_graph_dot_file(
             graph.add_node(dependency)  # type: ignore
         graph.add_edge(module, dependency)  # type: ignore
 
-    included_paths = (
-        list(map(lambda path: project_root / path, included_paths))
-        if included_paths
-        else None
-    )
-    if included_paths:
-        modules = filter_project_config(
-            project_config, project_root, included_paths
-        ).modules
-    else:
-        modules = project_config.modules
+    modules = project_config.filtered_modules(included_paths)
 
     for module in modules:
-        for dependency in module.depends_on:
+        for dependency in module.depends_on or []:
             upsert_edge(graph, module.path, dependency.path)  # type: ignore
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
@@ -134,19 +75,15 @@ def generate_module_graph_dot_file(
 
 
 def generate_module_graph_mermaid(
-    project_root: Path,
     project_config: ProjectConfig,
     output_filepath: Path,
-    included_paths: list[Path] | None = None,
-):
-    if included_paths:
-        project_config = filter_project_config(
-            project_config, project_root, included_paths
-        )
+    included_paths: list[Path],
+) -> None:
+    modules = project_config.filtered_modules(included_paths)
     edges: list[str] = []
     isolated: list[str] = []
-    for module in project_config.modules:
-        for dependency in module.depends_on:
+    for module in modules:
+        for dependency in module.depends_on or []:
             edges.append(
                 f"    {module.path.strip('<>')} --> {dependency.path.strip('<>')}"
             )

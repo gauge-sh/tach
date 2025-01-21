@@ -202,6 +202,7 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
         dependencies = [
             Dependency(path=dep.path, deprecated=dep.deprecated)
             for dep in module.depends_on
+            or []  # TODO: platform should differentiate None vs. []
         ]
         modules.append(
             Module(

@@ -906,6 +906,7 @@ def tach_show(
             f"{BCOLORS.WARNING}Passing --web generates a remote graph; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
         )
 
+    # TODO: avoid reading directly
     if not project_config.modules:
         print_no_modules_found()
         sys.exit(1)
@@ -914,10 +915,11 @@ def tach_show(
         print_no_dependencies_found()
         sys.exit(1)
     try:
+        included_paths = list(
+            map(lambda path: project_root / path, included_paths or [])
+        )
         if is_web:
-            result = generate_show_url(
-                project_root, project_config, included_paths=included_paths
-            )
+            result = generate_show_url(project_config, included_paths=included_paths)
             if result:
                 print("View your dependency graph here:")
                 print(result)
@@ -931,7 +933,6 @@ def tach_show(
                     f"{TOOL_NAME}_module_graph.mmd"
                 )
                 generate_module_graph_mermaid(
-                    project_root,
                     project_config,
                     included_paths=included_paths,
                     output_filepath=output_filepath,
@@ -943,7 +944,6 @@ def tach_show(
                     f"{TOOL_NAME}_module_graph.dot"
                 )
                 generate_module_graph_dot_file(
-                    project_root,
                     project_config,
                     included_paths=included_paths,
                     output_filepath=output_filepath,

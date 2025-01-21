@@ -132,6 +132,12 @@ impl From<config::edit::EditError> for PyErr {
     }
 }
 
+impl From<config::error::ConfigError> for PyErr {
+    fn from(err: config::error::ConfigError) -> Self {
+        PyValueError::new_err(err.to_string())
+    }
+}
+
 impl IntoPy<PyObject> for modules::error::VisibilityErrorInfo {
     fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
         (
@@ -376,6 +382,12 @@ fn run_server(
     server::run_server(project_root, project_config)
 }
 
+#[pyfunction]
+#[pyo3(signature = (modules))]
+fn serialize_modules_json(modules: Vec<config::ModuleConfig>) -> String {
+    config::serialize_modules_json(&modules)
+}
+
 #[pymodule]
 fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     interrupt::setup_interrupt_handler();
@@ -401,5 +413,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(detect_unused_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(serialize_modules_json, m)?)?;
     Ok(())
 }
