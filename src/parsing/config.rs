@@ -204,7 +204,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .collect::<HashSet<_>>(),
-            vec![DependencyConfig::from_deprecated_path("domain_two")]
+            [DependencyConfig::from_deprecated_path("domain_two")]
                 .iter()
                 .collect::<HashSet<_>>()
         );
@@ -214,7 +214,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .collect::<HashSet<_>>(),
-            vec![].iter().collect::<HashSet<_>>()
+            [].iter().collect::<HashSet<_>>()
         );
         assert_eq!(
             config
@@ -222,7 +222,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .collect::<HashSet<_>>(),
-            vec![DependencyConfig::from_path("domain_three")]
+            [DependencyConfig::from_path("domain_three")]
                 .iter()
                 .collect::<HashSet<_>>()
         );
@@ -232,7 +232,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .collect::<HashSet<_>>(),
-            vec![DependencyConfig::from_path("domain_one")]
+            [DependencyConfig::from_path("domain_one")]
                 .iter()
                 .collect::<HashSet<_>>()
         );
@@ -292,7 +292,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .collect::<HashSet<_>>(),
-            vec![DependencyConfig::from_path("project.module_two")]
+            [DependencyConfig::from_path("project.module_two")]
                 .iter()
                 .collect::<HashSet<_>>()
         );
@@ -302,7 +302,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .collect::<HashSet<_>>(),
-            vec![DependencyConfig::from_path("project.module_two")]
+            [DependencyConfig::from_path("project.module_two")]
                 .iter()
                 .collect::<HashSet<_>>()
         );
@@ -312,7 +312,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .collect::<HashSet<_>>(),
-            vec![].iter().collect::<HashSet<_>>()
+            [].iter().collect::<HashSet<_>>()
         );
     }
 }
