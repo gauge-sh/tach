@@ -213,8 +213,10 @@ pub fn create_dependency_report(
     }
 
     let source_roots = project_config.prepend_roots(project_root);
-    let (valid_modules, _) =
-        validate_project_modules(&source_roots, project_config.modules.clone());
+    let (valid_modules, _) = validate_project_modules(
+        &source_roots,
+        project_config.all_modules().cloned().collect(),
+    );
     let module_tree = build_module_tree(
         &source_roots,
         &valid_modules,

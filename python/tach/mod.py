@@ -5,9 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tach import errors
-from tach import filesystem as fs
 from tach.colors import BCOLORS
-from tach.filesystem import build_project_config_path
+from tach.filesystem import build_project_config_path, file_to_module_path
 from tach.interactive import (
     InteractiveModuleConfiguration,
     get_selected_modules_interactive,
@@ -18,42 +17,98 @@ if TYPE_CHECKING:
     from tach.extension import ProjectConfig
 
 
-def update_modules(
+def handle_module_edits(
+    project_config: ProjectConfig,
+    selected_modules: list[str],
+    selected_utilities: list[str],
+) -> None:
+    existing_modules = set(project_config.module_paths())
+    existing_utilities = set(project_config.utility_paths())
+    selected_modules_set = set(selected_modules)
+    selected_utilities_set = set(selected_utilities)
+    all_selected_paths = selected_modules_set | selected_utilities_set
+
+    modules_to_add = all_selected_paths - existing_modules
+    modules_to_remove = existing_modules - all_selected_paths
+
+    for module in modules_to_add:
+        project_config.create_module(module)
+
+    for module in modules_to_remove:
+        project_config.delete_module(module)
+
+    utilities_to_add = selected_utilities_set - existing_utilities
+    utilities_to_remove = existing_utilities - selected_utilities_set
+
+    for utility in utilities_to_add:
+        project_config.mark_module_as_utility(utility)
+
+    for utility in utilities_to_remove:
+        project_config.unmark_module_as_utility(utility)
+
+
+def handle_utility_edits(
+    project_config: ProjectConfig, selected_utilities: list[str]
+) -> None:
+    existing_utilities = set(project_config.utility_paths())
+    selected_utilities_set = set(selected_utilities)
+
+    utilities_to_add = selected_utilities_set - existing_utilities
+    utilities_to_remove = existing_utilities - selected_utilities_set
+
+    for utility in utilities_to_add:
+        project_config.mark_module_as_utility(utility)
+
+    for utility in utilities_to_remove:
+        project_config.unmark_module_as_utility(utility)
+
+
+def handle_source_root_edits(
+    project_config: ProjectConfig, selected_source_roots: list[str]
+) -> None:
+    existing_source_roots = set(project_config.source_roots)
+    selected_source_roots_set = set(selected_source_roots)
+
+    source_roots_to_add = selected_source_roots_set - existing_source_roots
+    source_roots_to_remove = existing_source_roots - selected_source_roots_set
+
+    for source_root in source_roots_to_add:
+        project_config.add_source_root(Path(source_root))
+
+    for source_root in source_roots_to_remove:
+        project_config.remove_source_root(Path(source_root))
+
+
+def apply_selected_configuration(
     project_config: ProjectConfig,
     project_root: Path,
     selected_source_roots: list[Path],
     selected_modules: list[Path],
     selected_utilities: list[Path],
 ):
-    if set(project_config.source_roots) != set(selected_source_roots):
-        # Only assign to this field if it has changed,
-        # since the project config writes any field that
-        # has been touched out to TOML.
-        project_config.source_roots = [
-            source_root.relative_to(project_root)
-            for source_root in selected_source_roots
-        ]
-
-    module_paths = [
-        fs.file_to_module_path(
-            source_roots=tuple(selected_source_roots),
-            file_path=selected_module_file_path,
-        )
-        for selected_module_file_path in selected_modules
-    ]
-    utility_paths = [
-        fs.file_to_module_path(
-            source_roots=tuple(selected_source_roots),
-            file_path=selected_utility_file_path,
-        )
-        for selected_utility_file_path in selected_utilities
-    ]
-    project_config.set_modules(module_paths=[*module_paths, *utility_paths])
-    project_config.mark_utilities(utility_paths=utility_paths)
-
+    # Write initial config file if it doesn't exist
     project_config_path = build_project_config_path(project_root)
-    config_toml_content = dump_project_config_to_toml(project_config)
-    fs.write_file(project_config_path, config_toml_content, root=project_root)
+    if not project_config_path.exists():
+        config_toml_content = dump_project_config_to_toml(project_config)
+        project_config_path.write_text(config_toml_content)
+
+    relative_selected_source_roots = [
+        str(source_root.relative_to(project_root))
+        for source_root in selected_source_roots
+    ]
+    handle_source_root_edits(project_config, relative_selected_source_roots)
+
+    selected_module_paths = [
+        file_to_module_path(tuple(selected_source_roots), module_filepath)
+        for module_filepath in selected_modules
+    ]
+    selected_utility_paths = [
+        file_to_module_path(tuple(selected_source_roots), utility_filepath)
+        for utility_filepath in selected_utilities
+    ]
+    handle_module_edits(project_config, selected_module_paths, selected_utility_paths)
+
+    project_config.save_edits()
 
 
 @dataclass
@@ -103,7 +158,7 @@ def mod_edit_interactive(
                 f"{BCOLORS.FAIL}Validation error: {BCOLORS.WARNING}{error}{BCOLORS.ENDC}"
                 for error in validation_result.errors
             ]
-        update_modules(
+        apply_selected_configuration(
             project_config=project_config,
             project_root=project_root,
             selected_source_roots=interactive_module_configuration.source_roots,

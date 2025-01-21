@@ -72,18 +72,6 @@ depends_on = []
 layer = "core"
 
 [[modules]]
-path = "tach.filesystem"
-depends_on = [
-    "tach.hooks",
-]
-layer = "core"
-
-[[modules]]
-path = "tach.filesystem.git_ops"
-depends_on = []
-layer = "core"
-
-[[modules]]
 path = "tach.hooks"
 depends_on = []
 layer = "core"
@@ -217,15 +205,6 @@ from = [
     "tach.constants",
 ]
 data_types = "primitive"
-
-[[interfaces]]
-expose = [
-    "get_changed_files",
-    "get_current_branch_info",
-]
-from = [
-    "tach.filesystem.git_ops",
-]
 
 [[interfaces]]
 expose = [

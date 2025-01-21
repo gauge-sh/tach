@@ -202,6 +202,7 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
         dependencies = [
             Dependency(path=dep.path, deprecated=dep.deprecated)
             for dep in module.depends_on
+            or []  # TODO: platform should differentiate None vs. []
         ]
         modules.append(
             Module(
@@ -314,7 +315,7 @@ def generate_modularity_report(
         repo=branch_info.repo,
         branch=branch_info.name,
         commit=branch_info.commit,
-        full_configuration=project_config.model_dump_json(),
+        full_configuration=project_config.serialize_json(),
     )
     source_roots = [project_root / root for root in project_config.source_roots]
 

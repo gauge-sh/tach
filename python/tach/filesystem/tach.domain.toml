@@ -1,0 +1,25 @@
+[root]
+layer = "core"
+
+[[modules]]
+path = "git_ops"
+depends_on = []
+layer = "core"
+
+[[modules]]
+path = "install"
+depends_on = ["service", "//tach.hooks"]
+layer = "core"
+
+[[modules]]
+path = "service"
+depends_on = []
+layer = "core"
+
+[[interfaces]]
+expose = ["get_changed_files", "get_current_branch_info"]
+from = ["git_ops"]
+
+[[interfaces]]
+expose = ["install_pre_commit"]
+from = ["install"]

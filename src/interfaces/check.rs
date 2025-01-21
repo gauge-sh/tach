@@ -10,6 +10,7 @@ pub struct InterfaceChecker {
     type_check_cache: Option<TypeCheckCache>,
 }
 
+#[derive(Debug)]
 pub enum CheckResult {
     Exposed { type_check_result: TypeCheckResult },
     NotExposed,

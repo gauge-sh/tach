@@ -33,6 +33,7 @@ impl IntoPy<PyObject> for InterfaceDataTypes {
 }
 
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 #[pyclass(get_all, module = "tach.extension")]
 pub struct InterfaceConfig {
     pub expose: Vec<String>,

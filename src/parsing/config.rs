@@ -3,11 +3,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use rayon::prelude::*;
+
 use crate::{
     colors::BColors,
-    config::root_module::ROOT_MODULE_SENTINEL_TAG,
-    config::{InterfaceConfig, InterfaceDataTypes, ProjectConfig},
-    filesystem::read_file_content,
+    config::{
+        root_module::ROOT_MODULE_SENTINEL_TAG, ConfigLocation, DomainConfig, InterfaceConfig,
+        InterfaceDataTypes, LocatedDomainConfig, ProjectConfig,
+    },
+    filesystem::{read_file_content, walk_domain_config_files},
     python::parsing::parse_interface_members,
 };
 
@@ -136,11 +140,30 @@ fn migrate_deprecated_regex_exclude(config: &mut ProjectConfig) -> bool {
     did_migrate
 }
 
+pub fn parse_domain_config<P: AsRef<Path>>(
+    source_roots: &[PathBuf],
+    filepath: P,
+) -> Result<LocatedDomainConfig> {
+    let content = read_file_content(filepath.as_ref())?;
+    let config: DomainConfig = toml::from_str(&content)?;
+    let location = ConfigLocation::new(source_roots, filepath.as_ref())?;
+    Ok(config.with_location(location))
+}
+
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
     let content = read_file_content(filepath.as_ref())?;
     let mut config: ProjectConfig = toml::from_str(&content)?;
+    config.set_location(filepath.as_ref().to_path_buf());
     let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
         || migrate_deprecated_regex_exclude(&mut config);
+    let root_dir = filepath.as_ref().parent().unwrap();
+    let mut domain_configs = walk_domain_config_files(root_dir.as_os_str().to_str().unwrap())
+        .par_bridge()
+        .map(|filepath| parse_domain_config(&config.prepend_roots(root_dir), filepath))
+        .collect::<Result<Vec<_>>>()?;
+    domain_configs.drain(..).for_each(|domain| {
+        config.add_domain(domain);
+    });
     Ok((config, did_migrate))
 }
 
@@ -200,6 +223,7 @@ mod tests {
                     .collect(),
                 exact: true,
                 forbid_circular_dependencies: true,
+                location: example_dir.join("valid/tach.toml").into(),
                 ..Default::default()
             }
         );

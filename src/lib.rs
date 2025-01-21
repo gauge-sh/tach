@@ -101,6 +101,7 @@ impl From<parsing::error::ParsingError> for PyErr {
             parsing::error::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
             parsing::error::ParsingError::TomlParse(err) => PyValueError::new_err(err.to_string()),
             parsing::error::ParsingError::MissingField(err) => PyValueError::new_err(err),
+            parsing::error::ParsingError::ModulePath(err) => PyValueError::new_err(err),
         }
     }
 }
@@ -111,6 +112,7 @@ impl From<sync::SyncError> for PyErr {
             sync::SyncError::TomlSerialize(err) => PyOSError::new_err(err.to_string()),
             sync::SyncError::CheckError(err) => err.into(),
             sync::SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
+            sync::SyncError::EditError(err) => PyValueError::new_err(err.to_string()),
         }
     }
 }
@@ -121,6 +123,18 @@ impl From<lsp::error::ServerError> for PyErr {
             lsp::error::ServerError::Initialize => errors::TachSetupError::new_err(err.to_string()),
             _ => PyOSError::new_err(err.to_string()),
         }
+    }
+}
+
+impl From<config::edit::EditError> for PyErr {
+    fn from(err: config::edit::EditError) -> Self {
+        PyValueError::new_err(err.to_string())
+    }
+}
+
+impl From<config::error::ConfigError> for PyErr {
+    fn from(err: config::error::ConfigError) -> Self {
+        PyValueError::new_err(err.to_string())
     }
 }
 
@@ -339,14 +353,13 @@ fn check(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, exclude_paths, prune))]
-fn sync_dependency_constraints(
+#[pyo3(signature = (project_root, project_config, exclude_paths))]
+fn detect_unused_dependencies(
     project_root: PathBuf,
-    project_config: config::ProjectConfig,
+    project_config: &mut config::ProjectConfig,
     exclude_paths: Vec<String>,
-    prune: bool,
-) -> Result<config::ProjectConfig, sync::SyncError> {
-    sync::sync_dependency_constraints(project_root, project_config, exclude_paths, prune)
+) -> Result<Vec<sync::UnusedDependencies>, sync::SyncError> {
+    sync::detect_unused_dependencies(project_root, project_config, exclude_paths)
 }
 
 #[pyfunction]
@@ -356,7 +369,7 @@ pub fn sync_project(
     project_config: config::ProjectConfig,
     exclude_paths: Vec<String>,
     add: bool,
-) -> Result<String, sync::SyncError> {
+) -> Result<(), sync::SyncError> {
     sync::sync_project(project_root, project_config, exclude_paths, add)
 }
 
@@ -367,6 +380,12 @@ fn run_server(
     project_config: config::ProjectConfig,
 ) -> Result<(), lsp::error::ServerError> {
     server::run_server(project_root, project_config)
+}
+
+#[pyfunction]
+#[pyo3(signature = (modules))]
+fn serialize_modules_json(modules: Vec<config::ModuleConfig>) -> String {
+    config::serialize_modules_json(&modules)
 }
 
 #[pymodule]
@@ -391,8 +410,9 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(update_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(dump_project_config_to_toml, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(sync_dependency_constraints, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(detect_unused_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(serialize_modules_json, m)?)?;
     Ok(())
 }
