@@ -195,6 +195,20 @@ impl LocatedDomainConfig {
             .with_dependencies_removed()
             .with_location(self.location.clone())
     }
+
+    pub fn normalize_module_path(&self, module_path: &str) -> String {
+        if module_path == self.location.mod_path {
+            DOMAIN_ROOT_SENTINEL.to_string()
+        } else if module_path.starts_with(&self.location.mod_path) {
+            return module_path
+                .strip_prefix(&self.location.mod_path)
+                .map(|p| p.trim_start_matches('.'))
+                .unwrap()
+                .to_string();
+        } else {
+            return format!("//{}", module_path);
+        }
+    }
 }
 
 impl ConfigEditor for LocatedDomainConfig {
@@ -351,7 +365,7 @@ impl ConfigEditor for LocatedDomainConfig {
                                     if let toml_edit::Item::Value(toml_edit::Value::Array(array)) =
                                         deps
                                     {
-                                        array.push(dependency);
+                                        array.push(self.normalize_module_path(dependency));
                                     }
                                 }
                                 ConfigEdit::RemoveDependency { .. } => {
@@ -359,7 +373,11 @@ impl ConfigEditor for LocatedDomainConfig {
                                         &mut root["depends_on"]
                                     {
                                         array.retain(|dep| {
-                                            dep.as_str().map(|d| d != dependency).unwrap_or(true)
+                                            dep.as_str()
+                                                .map(|d| {
+                                                    d != self.normalize_module_path(dependency)
+                                                })
+                                                .unwrap_or(true)
                                         });
                                     }
                                 }
@@ -385,7 +403,7 @@ impl ConfigEditor for LocatedDomainConfig {
                                             array,
                                         )) = deps
                                         {
-                                            array.push(dependency);
+                                            array.push(self.normalize_module_path(dependency));
                                         }
                                     }
                                     ConfigEdit::RemoveDependency { .. } => {
@@ -395,7 +413,9 @@ impl ConfigEditor for LocatedDomainConfig {
                                         {
                                             array.retain(|dep| {
                                                 dep.as_str()
-                                                    .map(|d| d != dependency)
+                                                    .map(|d| {
+                                                        d != self.normalize_module_path(dependency)
+                                                    })
                                                     .unwrap_or(true)
                                             });
                                         }
