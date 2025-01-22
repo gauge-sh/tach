@@ -290,6 +290,12 @@ In `tach.toml`, each entry in `source_roots` is interpreted as a relative path f
 
 ## `tach.domain.toml`
 
+<Warning>
+This feature is in **beta**. The exact behavior and syntax of this configuration is subject to change and should not be considered stable.
+
+If it seems useful, we'd love to hear your feedback! E-mail us at founders@gauge.sh
+</Warning>
+
 Tach allows splitting your configuration into 'domains', or sub-folders of your project.
 You can define modules and interfaces in a `tach.domain.toml` file which lives right next to the module code itself.
 
@@ -297,8 +303,8 @@ This is useful to allow multiple developers or teams to independently own and ma
 
 ### Modules
 
-Within a `tach.domain.toml` file, you can define [modules](#modules) similarly to how you would in `tach.toml`.
-The key difference is that paths are relative to the location of the domain by default, and there is a special syntax for describing the parent folder itself.
+Within a `tach.domain.toml` file, you can define [modules](#modules) similar to modules in `tach.toml`.
+The key difference is that paths are relative to the location of the domain by default, and there is a `[root]` module syntax for describing the parent folder itself.
 
 For example, a `tach.toml` file containing the module definitions:
 ```toml
@@ -363,9 +369,9 @@ expose = ["client.*"]
 from = ["git_ops"]  # This matches "tach.filesystem.git_ops"
 ```
 
-### Example: CODEOWNERS
+### Example: `CODEOWNERS`
 
-Tach domain configuration files enable smooth integration with `CODEOWNERS`:
+Tach domain configuration files enable smooth integration with [`CODEOWNERS`](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners):
 
 ```CODEOWNERS
 # Domain ownership for different teams
@@ -380,14 +386,6 @@ Tach domain configuration files enable smooth integration with `CODEOWNERS`:
 ```
 
 This allows a team to own their public interface, without imposing a bottleneck on other teams' configuration changes.
-
-## Cache
-
-Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](commands#tach-test).
-
-The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](caching#determining-cache-hits). This should typically include files outside of your [source roots](#source-roots) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
-
-The `env_dependencies` key accepts a list of environment variable names whose values affect your project's behavior under test. This may include a `DEBUG` flag, or database connection parameters in the case of tests which use a configurable database.
 
 ## External
 
@@ -441,3 +439,11 @@ from other.valid import valid_import_fn
 # other options are "error", "off"
 unused_ignore_directives = "warn"
 ```
+
+## Cache
+
+Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](commands#tach-test).
+
+The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](caching#determining-cache-hits). This should typically include files outside of your [source roots](#source-roots) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
+
+The `env_dependencies` key accepts a list of environment variable names whose values affect your project's behavior under test. This may include a `DEBUG` flag, or database connection parameters in the case of tests which use a configurable database.
