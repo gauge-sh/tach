@@ -306,12 +306,33 @@ impl ConfigEditor for LocatedDomainConfig {
                         .unwrap_or(path);
 
                     if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
-                        modules.retain(|table| {
-                            table["path"]
-                                .as_str()
-                                .map(|p| p != relative_path)
-                                .unwrap_or(true)
-                        });
+                        let mut module_index = None;
+                        for (i, table) in modules.iter_mut().enumerate() {
+                            if table
+                                .get("path")
+                                .map(|p| p.as_str() == Some(relative_path))
+                                .unwrap_or(false)
+                            {
+                                module_index = Some(i);
+                                break;
+                            } else if table
+                                .get("paths")
+                                .map(|p| p.as_array().is_some())
+                                .unwrap_or(false)
+                            {
+                                table["paths"]
+                                    .as_array_mut()
+                                    .unwrap()
+                                    .retain(|p| p.as_str().unwrap() != relative_path);
+                                if table["paths"].as_array().unwrap().is_empty() {
+                                    module_index = Some(i);
+                                }
+                                break;
+                            }
+                        }
+                        if let Some(index) = module_index {
+                            modules.remove(index);
+                        }
                     }
                 }
                 ConfigEdit::MarkModuleAsUtility { path }
@@ -339,7 +360,11 @@ impl ConfigEditor for LocatedDomainConfig {
 
                     if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
                         for table in modules.iter_mut() {
-                            if table["path"].as_str() == Some(relative_path) {
+                            if table
+                                .get("path")
+                                .map(|p| p.as_str() == Some(relative_path))
+                                .unwrap_or(false)
+                            {
                                 match edit {
                                     ConfigEdit::MarkModuleAsUtility { .. } => {
                                         table.insert("utility", toml_edit::value(true));
@@ -349,6 +374,14 @@ impl ConfigEditor for LocatedDomainConfig {
                                     }
                                     _ => unreachable!(),
                                 }
+                            } else if table.get("paths").is_some_and(|p| {
+                                p.as_array()
+                                    .map(|p| p.iter().any(|p| p.as_str() == Some(relative_path)))
+                                    .unwrap_or(false)
+                            }) {
+                                return Err(EditError::NotImplemented(
+                                    "Cannot mark utilities for multi-path modules".to_string(),
+                                ));
                             }
                         }
                     }
@@ -360,12 +393,18 @@ impl ConfigEditor for LocatedDomainConfig {
                         if let Some(toml_edit::Item::Table(root)) = doc.get_mut("root") {
                             match edit {
                                 ConfigEdit::AddDependency { .. } => {
-                                    let deps = root["depends_on"]
-                                        .or_insert(toml_edit::value(toml_edit::Array::new()));
-                                    if let toml_edit::Item::Value(toml_edit::Value::Array(array)) =
-                                        deps
+                                    if let Some(toml_edit::Item::Value(toml_edit::Value::Array(
+                                        array,
+                                    ))) = root.get_mut("depends_on")
                                     {
                                         array.push(self.normalize_module_path(dependency));
+                                    } else {
+                                        root.insert(
+                                            "depends_on",
+                                            toml_edit::value(toml_edit::Array::from_iter(
+                                                iter::once(self.normalize_module_path(dependency)),
+                                            )),
+                                        );
                                     }
                                 }
                                 ConfigEdit::RemoveDependency { .. } => {
@@ -394,16 +433,36 @@ impl ConfigEditor for LocatedDomainConfig {
 
                     if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
                         for table in modules.iter_mut() {
-                            if table["path"].as_str() == Some(relative_path) {
+                            let is_target_module = table
+                                .get("path")
+                                .map(|p| p.as_str() == Some(relative_path))
+                                .unwrap_or(false)
+                                || table
+                                    .get("paths")
+                                    .map(|p| {
+                                        p.as_array().is_some_and(|p| {
+                                            p.iter().any(|p| p.as_str() == Some(relative_path))
+                                        })
+                                    })
+                                    .unwrap_or(false);
+
+                            if is_target_module {
                                 match edit {
                                     ConfigEdit::AddDependency { .. } => {
-                                        let deps = table["depends_on"]
-                                            .or_insert(toml_edit::value(toml_edit::Array::new()));
-                                        if let toml_edit::Item::Value(toml_edit::Value::Array(
-                                            array,
-                                        )) = deps
+                                        if let Some(toml_edit::Item::Value(
+                                            toml_edit::Value::Array(array),
+                                        )) = table.get_mut("depends_on")
                                         {
                                             array.push(self.normalize_module_path(dependency));
+                                        } else {
+                                            table.insert(
+                                                "depends_on",
+                                                toml_edit::value(toml_edit::Array::from_iter(
+                                                    iter::once(
+                                                        self.normalize_module_path(dependency),
+                                                    ),
+                                                )),
+                                            );
                                         }
                                     }
                                     ConfigEdit::RemoveDependency { .. } => {

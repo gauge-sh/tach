@@ -28,6 +28,8 @@ pub enum EditError {
     DiskWriteFailed,
     #[error("Config file does not exist")]
     ConfigDoesNotExist,
+    #[error("Edit not implemented: {0}")]
+    NotImplemented(String),
 }
 
 pub trait ConfigEditor {

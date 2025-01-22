@@ -2,18 +2,13 @@
 layer = "core"
 
 [[modules]]
-path = "git_ops"
+paths = ["git_ops", "service"]
 depends_on = []
 layer = "core"
 
 [[modules]]
 path = "install"
 depends_on = ["service", "//tach.hooks"]
-layer = "core"
-
-[[modules]]
-path = "service"
-depends_on = []
 layer = "core"
 
 [[interfaces]]

@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::iter;
 use std::path::{Path, PathBuf};
 
 use crate::filesystem::module_path_is_included_in_paths;
@@ -287,16 +288,44 @@ impl ConfigEditor for ProjectConfig {
                 }
                 ConfigEdit::DeleteModule { path } => {
                     if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
-                        modules.retain(|table| {
-                            table["path"].as_str().map(|p| p != path).unwrap_or(true)
-                        });
+                        let mut module_index = None;
+                        for (i, table) in modules.iter_mut().enumerate() {
+                            if table
+                                .get("path")
+                                .map(|p| p.as_str() == Some(path))
+                                .unwrap_or(false)
+                            {
+                                module_index = Some(i);
+                                break;
+                            } else if table
+                                .get("paths")
+                                .map(|p| p.as_array().is_some())
+                                .unwrap_or(false)
+                            {
+                                table["paths"]
+                                    .as_array_mut()
+                                    .unwrap()
+                                    .retain(|p| p.as_str().unwrap() != path);
+                                if table["paths"].as_array().unwrap().is_empty() {
+                                    module_index = Some(i);
+                                }
+                                break;
+                            }
+                        }
+                        if let Some(index) = module_index {
+                            modules.remove(index);
+                        }
                     }
                 }
                 ConfigEdit::MarkModuleAsUtility { path }
                 | ConfigEdit::UnmarkModuleAsUtility { path } => {
                     if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
                         for table in modules.iter_mut() {
-                            if table["path"].as_str() == Some(path) {
+                            if table
+                                .get("path")
+                                .map(|p| p.as_str() == Some(path))
+                                .unwrap_or(false)
+                            {
                                 match edit {
                                     ConfigEdit::MarkModuleAsUtility { .. } => {
                                         table.insert("utility", toml_edit::value(true));
@@ -306,6 +335,14 @@ impl ConfigEditor for ProjectConfig {
                                     }
                                     _ => unreachable!(),
                                 }
+                            } else if table.get("paths").is_some_and(|p| {
+                                p.as_array()
+                                    .map(|p| p.iter().any(|p| p.as_str() == Some(path)))
+                                    .unwrap_or(false)
+                            }) {
+                                return Err(EditError::NotImplemented(
+                                    "Cannot mark utilities for multi-path modules".to_string(),
+                                ));
                             }
                         }
                     }
@@ -314,16 +351,34 @@ impl ConfigEditor for ProjectConfig {
                 | ConfigEdit::RemoveDependency { path, dependency } => {
                     if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
                         for table in modules.iter_mut() {
-                            if table["path"].as_str() == Some(path) {
+                            let is_target_module = table
+                                .get("path")
+                                .map(|p| p.as_str() == Some(path))
+                                .unwrap_or(false)
+                                || table
+                                    .get("paths")
+                                    .map(|p| {
+                                        p.as_array().is_some_and(|p| {
+                                            p.iter().any(|p| p.as_str() == Some(path))
+                                        })
+                                    })
+                                    .unwrap_or(false);
+
+                            if is_target_module {
                                 match edit {
                                     ConfigEdit::AddDependency { .. } => {
-                                        let deps = table["depends_on"]
-                                            .or_insert(toml_edit::value(toml_edit::Array::new()));
-                                        if let toml_edit::Item::Value(toml_edit::Value::Array(
-                                            array,
-                                        )) = deps
+                                        if let Some(toml_edit::Item::Value(
+                                            toml_edit::Value::Array(array),
+                                        )) = table.get_mut("depends_on")
                                         {
                                             array.push(dependency);
+                                        } else {
+                                            table.insert(
+                                                "depends_on",
+                                                toml_edit::value(toml_edit::Array::from_iter(
+                                                    iter::once(dependency),
+                                                )),
+                                            );
                                         }
                                     }
                                     ConfigEdit::RemoveDependency { .. } => {
