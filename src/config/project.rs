@@ -285,10 +285,18 @@ impl ConfigEditor for ProjectConfig {
                     module_table.insert("path", toml_edit::value(path));
                     module_table.insert("depends_on", toml_edit::value(toml_edit::Array::new()));
 
-                    let modules = doc["modules"]
-                        .or_insert(toml_edit::Item::ArrayOfTables(Default::default()));
-                    if let toml_edit::Item::ArrayOfTables(array) = modules {
-                        array.push(module_table);
+                    match doc.get_mut("modules") {
+                        // If modules is a regular array (modules = []) or doesn't exist, convert it to array of tables
+                        None | Some(toml_edit::Item::Value(toml_edit::Value::Array(_))) => {
+                            let mut array = toml_edit::ArrayOfTables::new();
+                            array.push(module_table);
+                            doc["modules"] = toml_edit::Item::ArrayOfTables(array);
+                        }
+                        // If modules is already an array of tables ([[modules]]), just push
+                        Some(toml_edit::Item::ArrayOfTables(array)) => {
+                            array.push(module_table);
+                        }
+                        _ => return Err(EditError::ParsingFailed),
                     }
                 }
                 ConfigEdit::DeleteModule { path } => {
