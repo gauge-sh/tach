@@ -442,6 +442,16 @@ impl ProjectConfig {
         serde_json::to_string(&self).unwrap()
     }
 
+    #[pyo3(name = "all_modules")]
+    fn all_modules_py(&self) -> Vec<ModuleConfig> {
+        self.all_modules().cloned().collect()
+    }
+
+    #[pyo3(name = "all_interfaces")]
+    fn all_interfaces_py(&self) -> Vec<InterfaceConfig> {
+        self.all_interfaces().cloned().collect()
+    }
+
     pub fn set_location(&mut self, location: PathBuf) {
         self.location = Some(location);
     }

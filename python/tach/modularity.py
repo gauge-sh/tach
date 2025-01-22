@@ -186,14 +186,14 @@ class Report:
 
 def build_modules(project_config: ProjectConfig) -> list[Module]:
     modules: list[Module] = []
-    for module in project_config.modules:
+    for module in project_config.all_modules():
         if module.mod_path() == ".":
             # Skip <root>
             continue
 
         has_interface = False
         interface_members: set[str] = set()
-        for interface in project_config.interfaces:
+        for interface in project_config.all_interfaces():
             if any(
                 re.match(pattern, module.path) for pattern in interface.from_modules
             ):
@@ -219,7 +219,7 @@ def build_usages(
     project_root: Path, source_roots: list[Path], project_config: ProjectConfig
 ) -> list[Usage]:
     module_paths = sorted(
-        (module.path for module in project_config.modules),
+        (module.path for module in project_config.all_modules()),
         key=lambda path: len(path.split(".")),
         reverse=True,
     )
