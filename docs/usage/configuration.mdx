@@ -288,6 +288,99 @@ in your `tach.toml`, or use [`tach mod`](commands#tach-mod) and mark the same fo
 
 In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
 
+## `tach.domain.toml`
+
+Tach allows splitting your configuration into 'domains', or sub-folders of your project.
+You can define modules and interfaces in a `tach.domain.toml` file which lives right next to the module code itself.
+
+This is useful to allow multiple developers or teams to independently own and maintain their modules and interfaces.
+
+### Modules
+
+Within a `tach.domain.toml` file, you can define [modules](#modules) similarly to how you would in `tach.toml`.
+The key difference is that paths are relative to the location of the domain by default, and there is a special syntax for describing the parent folder itself.
+
+For example, a `tach.toml` file containing the module definitions:
+```toml
+[[modules]]
+path = "tach.filesystem"
+depends_on = [
+  "tach.hooks",
+  "tach.filesystem.service",
+]
+
+[[modules]]
+path = "tach.filesystem.service"
+depends_on = []
+```
+
+could be expressed instead in a `tach.domain.toml` file at `<source root>/tach/filesystem/tach.domain.toml`:
+
+```toml
+[root]  # This defines "tach.filesystem"
+depends_on = [
+  "//tach.hooks",  # This refers to "tach.hooks" (outside of this domain)
+  "service",  # This refers to "tach.filesystem.service"
+]
+
+[[modules]]
+path = "service"  # This defines "tach.filesystem.service"
+depends_on = []
+```
+
+Note that the `tach.domain.toml` file uses its location relative to the nearest source root to implicitly determine its `[root]` module path (`"tach.filesystem"`).
+
+The domain configuration also uses special syntax to refer to dependencies on module paths outside of the domain, prefixing the absolute path with `"//"`.
+
+Module paths are generally interpreted relative to the location of the `tach.domain.toml` file, which can be seen in the definition for the `"service"` module.
+This path is interpreted relative to the domain root, meaning it refers to the `"tach.filesystem.service"` module.
+
+### Interfaces
+
+Interfaces are defined in largely the same way as in [`tach.toml`](#interfaces), with the key difference being the treatment of paths in the `from` field.
+These will be interpreted as paths relative to the domain root.
+
+For example, a `tach.toml` file containing the interface definitions:
+```toml
+[[interfaces]]
+expose = ["service.*"]
+from = ["tach.filesystem"]
+
+[[interfaces]]
+expose = ["client.*"]
+from = ["tach.filesystem.git_ops"]
+```
+
+could be expressed instead in a `tach.domain.toml` file at `<source root>/tach/filesystem/tach.domain.toml`:
+
+```toml
+[[interfaces]]
+expose = ["service.*"]
+from = ["<domain_root>"]  # This matches "tach.filesystem"
+
+[[interfaces]]
+expose = ["client.*"]
+from = ["git_ops"]  # This matches "tach.filesystem.git_ops"
+```
+
+### Example: CODEOWNERS
+
+Tach domain configuration files enable smooth integration with `CODEOWNERS`:
+
+```CODEOWNERS
+# Domain ownership for different teams
+
+/tach.toml    @platform-team
+
+/payments/tach.domain.toml    @payments-team
+/auth/tach.domain.toml    @auth-team
+/data/analytics/tach.domain.toml    @analytics-team @data-team
+/mobile/tach.domain.toml    @mobile-team
+/libs/shared/tach.domain.toml    @platform-team
+```
+
+This allows a team to own their public interface, without imposing a bottleneck on other teams' configuration changes.
+
 ## Cache
 
 Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](commands#tach-test).
