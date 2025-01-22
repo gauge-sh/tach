@@ -3,6 +3,8 @@ use std::fmt::Debug;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use rayon::prelude::*;
+
 use thiserror::Error;
 
 use crate::colors::*;
@@ -14,6 +16,7 @@ use crate::filesystem::{
     file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
 };
 use crate::imports::{get_project_imports, ImportParseError, NormalizedImport};
+use crate::interrupt::check_interrupt;
 use crate::modules::{build_module_tree, error::ModuleTreeError};
 
 struct Dependency {
@@ -36,6 +39,8 @@ pub enum ReportCreationError {
     NothingToReport,
     #[error("Module tree build error: {0}")]
     ModuleTree(#[from] ModuleTreeError),
+    #[error("Operation interrupted")]
+    Interrupted,
 }
 
 pub type Result<T> = std::result::Result<T, ReportCreationError>;
@@ -217,6 +222,9 @@ pub fn create_dependency_report(
         &source_roots,
         project_config.all_modules().cloned().collect(),
     );
+
+    check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;
+
     let module_tree = build_module_tree(
         &source_roots,
         &valid_modules,
@@ -232,91 +240,120 @@ pub fn create_dependency_report(
 
     let mut report = DependencyReport::new(path.display().to_string());
 
-    for pyfile in walk_pyfiles(project_root.to_str().unwrap()) {
-        let absolute_pyfile = project_root.join(&pyfile);
-        let file_module_path = file_to_module_path(&source_roots, &absolute_pyfile)?;
-        let file_module = module_tree.find_nearest(&file_module_path);
+    for source_root in &source_roots {
+        check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;
 
-        match get_project_imports(
-            &source_roots,
-            &absolute_pyfile,
-            project_config.ignore_type_checking_imports,
-            project_config.include_string_imports,
-        ) {
-            Ok(project_imports) => {
-                let is_in_target_path = is_module_prefix(&module_path, &file_module_path);
-
-                if is_in_target_path && !skip_dependencies {
-                    // Add external dependencies
-                    report.dependencies.extend(
-                        project_imports
-                            .imports
-                            .into_iter()
-                            .filter_map(|import| {
-                                if let Some(import_module) =
-                                    module_tree.find_nearest(&import.module_path)
-                                {
-                                    if import_module == target_module {
-                                        return None; // Skip internal imports
-                                    }
-
-                                    // Check if module is in include list
-                                    include_dependency_modules.as_ref().map_or(
-                                        Some((import.clone(), import_module.clone())),
-                                        |included_modules| {
-                                            if included_modules.contains(&import_module.full_path) {
-                                                Some((import.clone(), import_module.clone()))
-                                            } else {
-                                                None
-                                            }
-                                        },
-                                    )
-                                } else {
-                                    None // Skip imports that don't match any module
-                                }
-                            })
-                            .map(|(import, import_module)| Dependency {
-                                file_path: pyfile.clone(),
-                                absolute_path: absolute_pyfile.clone(),
-                                import,
-                                source_module: target_module.full_path.clone(),
-                                target_module: import_module.full_path.clone(),
-                            }),
-                    );
-                } else if !is_in_target_path && !skip_usages {
-                    // Add external usages
-                    report.usages.extend(
-                        project_imports
-                            .imports
-                            .into_iter()
-                            .filter(|import| {
-                                if !is_module_prefix(&module_path, &import.module_path) {
-                                    return false; // Skip imports not targeting our path
-                                }
-
-                                // Check if using module is in include list
-                                file_module.as_ref().map_or(false, |m| {
-                                    include_usage_modules
-                                        .as_ref()
-                                        .map_or(true, |included_modules| {
-                                            included_modules.contains(&m.full_path)
-                                        })
-                                })
-                            })
-                            .map(|import| Dependency {
-                                file_path: pyfile.clone(),
-                                absolute_path: absolute_pyfile.clone(),
-                                import,
-                                source_module: file_module
-                                    .as_ref()
-                                    .map_or(String::new(), |m| m.full_path.clone()),
-                                target_module: target_module.full_path.clone(),
-                            }),
-                    );
+        let source_root_results: Vec<_> = walk_pyfiles(&source_root.display().to_string())
+            .par_bridge()
+            .filter_map(|pyfile| {
+                if check_interrupt().is_err() {
+                    return None;
                 }
-            }
-            Err(err) => {
-                report.warnings.push(err.to_string());
+
+                let absolute_pyfile = source_root.join(&pyfile);
+                let file_module_path = match file_to_module_path(&source_roots, &absolute_pyfile) {
+                    Ok(path) => path,
+                    Err(_) => return None,
+                };
+                let file_module = module_tree.find_nearest(&file_module_path);
+
+                match get_project_imports(
+                    &source_roots,
+                    &absolute_pyfile,
+                    project_config.ignore_type_checking_imports,
+                    project_config.include_string_imports,
+                ) {
+                    Ok(project_imports) => {
+                        let is_in_target_path = is_module_prefix(&module_path, &file_module_path);
+                        let mut dependencies = Vec::new();
+                        let mut usages = Vec::new();
+
+                        if is_in_target_path && !skip_dependencies {
+                            // Add dependencies
+                            dependencies.extend(
+                                project_imports
+                                    .imports
+                                    .iter()
+                                    .filter_map(|import| {
+                                        if let Some(import_module) =
+                                            module_tree.find_nearest(&import.module_path)
+                                        {
+                                            if import_module == target_module {
+                                                return None;
+                                            }
+                                            include_dependency_modules.as_ref().map_or(
+                                                Some((import.clone(), import_module.clone())),
+                                                |included_modules| {
+                                                    if included_modules
+                                                        .contains(&import_module.full_path)
+                                                    {
+                                                        Some((
+                                                            import.clone(),
+                                                            import_module.clone(),
+                                                        ))
+                                                    } else {
+                                                        None
+                                                    }
+                                                },
+                                            )
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .map(|(import, import_module)| Dependency {
+                                        file_path: pyfile.clone(),
+                                        absolute_path: absolute_pyfile.clone(),
+                                        import,
+                                        source_module: target_module.full_path.clone(),
+                                        target_module: import_module.full_path.clone(),
+                                    }),
+                            );
+                        } else if !is_in_target_path && !skip_usages {
+                            // Add usages
+                            usages.extend(
+                                project_imports
+                                    .imports
+                                    .iter()
+                                    .filter(|import| {
+                                        if !is_module_prefix(&module_path, &import.module_path) {
+                                            return false;
+                                        }
+                                        file_module.as_ref().map_or(false, |m| {
+                                            include_usage_modules.as_ref().map_or(
+                                                true,
+                                                |included_modules| {
+                                                    included_modules.contains(&m.full_path)
+                                                },
+                                            )
+                                        })
+                                    })
+                                    .map(|import| Dependency {
+                                        file_path: pyfile.clone(),
+                                        absolute_path: absolute_pyfile.clone(),
+                                        import: import.clone(),
+                                        source_module: file_module
+                                            .as_ref()
+                                            .map_or(String::new(), |m| m.full_path.clone()),
+                                        target_module: target_module.full_path.clone(),
+                                    }),
+                            );
+                        }
+
+                        Some((dependencies, usages, None))
+                    }
+                    Err(err) => Some((Vec::new(), Vec::new(), Some(err.to_string()))),
+                }
+            })
+            .collect();
+
+        check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;
+
+        // Combine results
+        for (dependencies, usages, warning) in source_root_results {
+            report.dependencies.extend(dependencies);
+            report.usages.extend(usages);
+            if let Some(warning) = warning {
+                report.warnings.push(warning);
             }
         }
     }
