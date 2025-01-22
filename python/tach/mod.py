@@ -91,6 +91,7 @@ def apply_selected_configuration(
     if not project_config_path.exists():
         config_toml_content = dump_project_config_to_toml(project_config)
         project_config_path.write_text(config_toml_content)
+        project_config.set_location(project_config_path)
 
     relative_selected_source_roots = [
         str(source_root.relative_to(project_root))

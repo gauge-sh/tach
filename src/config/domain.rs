@@ -225,32 +225,16 @@ impl LocatedDomainConfig {
 impl ConfigEditor for LocatedDomainConfig {
     fn enqueue_edit(&mut self, edit: &ConfigEdit) -> Result<(), EditError> {
         match edit {
-            ConfigEdit::CreateModule { path } => {
-                if self.modules().any(|module| module.path == *path) {
-                    Err(EditError::ModuleAlreadyExists)
-                } else if path.starts_with(&self.location.mod_path) {
-                    // Loose check, if the module path starts with the domain path,
-                    // then it belongs to this domain
-                    self.pending_edits.push(edit.clone());
-                    Ok(())
-                } else {
-                    Err(EditError::NotApplicable)
-                }
-            }
-            ConfigEdit::DeleteModule { path }
+            ConfigEdit::CreateModule { path }
+            | ConfigEdit::DeleteModule { path }
             | ConfigEdit::MarkModuleAsUtility { path }
             | ConfigEdit::UnmarkModuleAsUtility { path }
             | ConfigEdit::AddDependency { path, .. }
             | ConfigEdit::RemoveDependency { path, .. } => {
                 if path.starts_with(&self.location.mod_path) {
-                    // If this module path appears to belong to this domain,
-                    // and the module exists, enqueue the edit
-                    if self.modules().any(|module| module.path == *path) {
-                        self.pending_edits.push(edit.clone());
-                        Ok(())
-                    } else {
-                        Err(EditError::ModuleNotFound)
-                    }
+                    // If this module path appears to belong to this domain, enqueue the edit
+                    self.pending_edits.push(edit.clone());
+                    Ok(())
                 } else {
                     Err(EditError::NotApplicable)
                 }

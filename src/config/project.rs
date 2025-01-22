@@ -131,10 +131,6 @@ impl ProjectConfig {
             .map(|mod_config| mod_config.depends_on.as_ref())?
     }
 
-    pub fn set_location(&mut self, location: PathBuf) {
-        self.location = Some(location);
-    }
-
     pub fn absolute_source_roots(&self) -> Result<Vec<PathBuf>, ConfigError> {
         let project_root = self
             .location
@@ -212,31 +208,18 @@ impl ConfigEditor for ProjectConfig {
             .collect::<Vec<Result<(), EditError>>>();
 
         let result = match edit {
-            ConfigEdit::CreateModule { path } => {
+            ConfigEdit::CreateModule { .. }
+            | ConfigEdit::DeleteModule { .. }
+            | ConfigEdit::MarkModuleAsUtility { .. }
+            | ConfigEdit::UnmarkModuleAsUtility { .. }
+            | ConfigEdit::AddDependency { .. }
+            | ConfigEdit::RemoveDependency { .. } => {
                 if !domain_results.iter().any(|r| r.is_ok()) {
-                    if self.modules.iter().any(|module| module.path == *path) {
-                        Err(EditError::ModuleAlreadyExists)
-                    } else {
-                        // If no domain will create the module, and the module doesn't already exist,
-                        // enqueue the edit
-                        self.pending_edits.push(edit.clone());
-                        Ok(())
-                    }
-                } else {
-                    Err(EditError::NotApplicable)
-                }
-            }
-            ConfigEdit::DeleteModule { path }
-            | ConfigEdit::MarkModuleAsUtility { path }
-            | ConfigEdit::UnmarkModuleAsUtility { path }
-            | ConfigEdit::AddDependency { path, .. }
-            | ConfigEdit::RemoveDependency { path, .. } => {
-                // If we know of this module, enqueue the edit
-                if self.modules.iter().any(|module| module.path == *path) {
+                    // If no domain accepted the edit, enqueue the edit
                     self.pending_edits.push(edit.clone());
                     Ok(())
                 } else {
-                    Err(EditError::ModuleNotFound)
+                    Err(EditError::NotApplicable)
                 }
             }
             ConfigEdit::AddSourceRoot { .. } | ConfigEdit::RemoveSourceRoot { .. } => {
@@ -457,6 +440,10 @@ impl ProjectConfig {
 
     fn serialize_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
+    }
+
+    pub fn set_location(&mut self, location: PathBuf) {
+        self.location = Some(location);
     }
 
     pub fn has_no_modules(&self) -> bool {
