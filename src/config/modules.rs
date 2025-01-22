@@ -189,6 +189,13 @@ impl ModuleConfig {
             .flat_map(|deps| deps.iter())
     }
 
+    pub fn with_dependencies_removed(&self) -> Self {
+        Self {
+            depends_on: Some(vec![]),
+            ..self.clone()
+        }
+    }
+
     pub fn with_filtered_dependencies(
         &self,
         absolute_source_roots: &[PathBuf],

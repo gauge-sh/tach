@@ -163,14 +163,12 @@ impl ProjectConfig {
     }
 
     pub fn with_dependencies_removed(&self) -> Self {
-        let mut new_modules = self.modules.clone();
-        new_modules.iter_mut().for_each(|module| {
-            if let Some(depends_on) = &mut module.depends_on {
-                depends_on.clear();
-            }
-        });
         Self {
-            modules: new_modules,
+            modules: self
+                .modules
+                .iter()
+                .map(|module| module.with_dependencies_removed())
+                .collect(),
             domains: self
                 .domains
                 .iter()

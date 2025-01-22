@@ -33,6 +33,15 @@ pub struct DomainRootConfig {
     pub unchecked: bool,
 }
 
+impl DomainRootConfig {
+    pub fn with_dependencies_removed(&self) -> Self {
+        Self {
+            depends_on: Some(vec![]),
+            ..self.clone()
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct DomainConfig {
@@ -50,14 +59,16 @@ pub struct DomainConfig {
 
 impl DomainConfig {
     pub fn with_dependencies_removed(&self) -> Self {
-        let mut new_modules = self.modules.clone();
-        new_modules.iter_mut().for_each(|module| {
-            if let Some(depends_on) = &mut module.depends_on {
-                depends_on.clear();
-            }
-        });
         Self {
-            modules: new_modules,
+            modules: self
+                .modules
+                .iter()
+                .map(|module| module.with_dependencies_removed())
+                .collect(),
+            root: self
+                .root
+                .as_ref()
+                .map(|root| root.with_dependencies_removed()),
             ..self.clone()
         }
     }
