@@ -26,8 +26,8 @@ from tach.extension import (
     check,
     check_computation_cache,
     create_computation_cache_key,
+    detect_unused_dependencies,
     run_server,
-    sync_dependency_constraints,
     update_computation_cache,
 )
 from tach.filesystem import install_pre_commit
@@ -641,15 +641,13 @@ def tach_check(
         )
         exit_code = 1 if len(check_result.errors) > 0 else 0
 
-        # If we're checking in exact mode, we want to verify that pruning constraints has no effect
+        # If we're checking in exact mode, we want to verify that there are no unused dependencies
         if dependencies and exact:
-            pruned_config = sync_dependency_constraints(
+            unused_dependencies = detect_unused_dependencies(
                 project_root=project_root,
                 project_config=project_config,
                 exclude_paths=exclude_paths,
-                prune=True,
             )
-            unused_dependencies = pruned_config.compare_dependencies(project_config)
             if unused_dependencies:
                 print_unused_dependencies(unused_dependencies)
                 exit_code = 1
@@ -908,18 +906,19 @@ def tach_show(
             f"{BCOLORS.WARNING}Passing --web generates a remote graph; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
         )
 
-    if not project_config.modules:
+    if project_config.has_no_modules():
         print_no_modules_found()
         sys.exit(1)
 
-    if not any([module.depends_on for module in project_config.modules]):
+    if project_config.has_no_dependencies():
         print_no_dependencies_found()
         sys.exit(1)
     try:
+        included_paths = list(
+            map(lambda path: project_root / path, included_paths or [])
+        )
         if is_web:
-            result = generate_show_url(
-                project_root, project_config, included_paths=included_paths
-            )
+            result = generate_show_url(project_config, included_paths=included_paths)
             if result:
                 print("View your dependency graph here:")
                 print(result)
@@ -933,7 +932,6 @@ def tach_show(
                     f"{TOOL_NAME}_module_graph.mmd"
                 )
                 generate_module_graph_mermaid(
-                    project_root,
                     project_config,
                     included_paths=included_paths,
                     output_filepath=output_filepath,
@@ -945,7 +943,6 @@ def tach_show(
                     f"{TOOL_NAME}_module_graph.dot"
                 )
                 generate_module_graph_dot_file(
-                    project_root,
                     project_config,
                     included_paths=included_paths,
                     output_filepath=output_filepath,

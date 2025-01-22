@@ -3,11 +3,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use rayon::prelude::*;
+
 use crate::{
     colors::BColors,
-    config::root_module::ROOT_MODULE_SENTINEL_TAG,
-    config::{InterfaceConfig, InterfaceDataTypes, ProjectConfig},
-    filesystem::read_file_content,
+    config::{
+        root_module::ROOT_MODULE_SENTINEL_TAG, ConfigLocation, DomainConfig, InterfaceConfig,
+        InterfaceDataTypes, LocatedDomainConfig, ProjectConfig,
+    },
+    filesystem::{read_file_content, walk_domain_config_files},
     python::parsing::parse_interface_members,
 };
 
@@ -136,72 +140,179 @@ fn migrate_deprecated_regex_exclude(config: &mut ProjectConfig) -> bool {
     did_migrate
 }
 
+pub fn parse_domain_config<P: AsRef<Path>>(
+    source_roots: &[PathBuf],
+    filepath: P,
+) -> Result<LocatedDomainConfig> {
+    let content = read_file_content(filepath.as_ref())?;
+    let config: DomainConfig = toml::from_str(&content)?;
+    let location = ConfigLocation::new(source_roots, filepath.as_ref())?;
+    Ok(config.with_location(location))
+}
+
 pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
     let content = read_file_content(filepath.as_ref())?;
     let mut config: ProjectConfig = toml::from_str(&content)?;
+    config.set_location(filepath.as_ref().to_path_buf());
     let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
         || migrate_deprecated_regex_exclude(&mut config);
+    let root_dir = filepath.as_ref().parent().unwrap();
+    let mut domain_configs = walk_domain_config_files(root_dir.as_os_str().to_str().unwrap())
+        .par_bridge()
+        .map(|filepath| parse_domain_config(&config.prepend_roots(root_dir), filepath))
+        .collect::<Result<Vec<_>>>()?;
+    domain_configs.drain(..).for_each(|domain| {
+        config.add_domain(domain);
+    });
     Ok((config, did_migrate))
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::path::PathBuf;
 
     use super::*;
     use crate::{
-        config::project::DEFAULT_EXCLUDE_PATHS,
-        config::root_module::ROOT_MODULE_SENTINEL_TAG,
-        config::{DependencyConfig, ModuleConfig},
+        config::{
+            project::DEFAULT_EXCLUDE_PATHS, root_module::ROOT_MODULE_SENTINEL_TAG, DependencyConfig,
+        },
         tests::fixtures::example_dir,
     };
     use rstest::rstest;
+
     #[rstest]
     fn test_parse_valid_project_config(example_dir: PathBuf) {
-        // TODO: remove tach.toml when joining
         let result = parse_project_config(example_dir.join("valid/tach.toml"));
         assert!(result.is_ok());
         let (config, _) = result.unwrap();
+
+        let module_paths: Vec<_> = config.module_paths();
         assert_eq!(
-            config,
-            ProjectConfig {
-                modules: vec![
-                    ModuleConfig {
-                        path: "domain_one".to_string(),
-                        depends_on: Some(vec![DependencyConfig::from_deprecated_path(
-                            "domain_two"
-                        )]),
-                        strict: false,
-                        ..Default::default()
-                    },
-                    ModuleConfig {
-                        path: "domain_three".to_string(),
-                        depends_on: Some(vec![]),
-                        strict: false,
-                        ..Default::default()
-                    },
-                    ModuleConfig {
-                        path: "domain_two".to_string(),
-                        depends_on: Some(vec![DependencyConfig::from_path("domain_three")]),
-                        strict: false,
-                        ..Default::default()
-                    },
-                    ModuleConfig {
-                        path: ROOT_MODULE_SENTINEL_TAG.to_string(),
-                        depends_on: Some(vec![DependencyConfig::from_path("domain_one")]),
-                        strict: false,
-                        ..Default::default()
-                    }
-                ],
-                exclude: DEFAULT_EXCLUDE_PATHS
-                    .into_iter()
-                    .chain(["domain_four.py"].into_iter())
-                    .map(String::from)
-                    .collect(),
-                exact: true,
-                forbid_circular_dependencies: true,
-                ..Default::default()
-            }
+            module_paths,
+            vec![
+                "domain_one",
+                "domain_three",
+                "domain_two",
+                ROOT_MODULE_SENTINEL_TAG
+            ]
+        );
+
+        assert_eq!(
+            config
+                .dependencies_for_module("domain_one")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [DependencyConfig::from_deprecated_path("domain_two")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("domain_three")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [].iter().collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("domain_two")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [DependencyConfig::from_path("domain_three")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module(ROOT_MODULE_SENTINEL_TAG)
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [DependencyConfig::from_path("domain_one")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+
+        let expected_excludes: Vec<String> = DEFAULT_EXCLUDE_PATHS
+            .into_iter()
+            .chain(["domain_four.py"].into_iter())
+            .map(String::from)
+            .collect();
+        assert_eq!(config.exclude, expected_excludes);
+
+        assert!(config.exact);
+        assert!(config.forbid_circular_dependencies);
+    }
+
+    #[rstest]
+    fn test_parse_domain_config(example_dir: PathBuf) {
+        let source_roots = vec![example_dir.join("distributed_config")];
+        let result = parse_domain_config(
+            &source_roots,
+            example_dir.join("distributed_config/project/module_one/tach.domain.toml"),
+        );
+        assert!(result.is_ok());
+        let config = result.unwrap();
+
+        let modules: Vec<_> = config.modules().map(|m| m.path.as_str()).collect();
+        assert_eq!(modules, vec!["project.module_one"]);
+
+        assert_eq!(
+            config.modules().next().unwrap().depends_on,
+            Some(vec![DependencyConfig::from_path("project.module_two")])
+        );
+    }
+
+    #[rstest]
+    fn test_parse_nested_project_config(example_dir: PathBuf) {
+        let result = parse_project_config(example_dir.join("distributed_config/tach.toml"));
+        assert!(result.is_ok());
+        let (config, _) = result.unwrap();
+
+        let module_paths: HashSet<_> = config.module_paths().into_iter().collect();
+        assert_eq!(
+            module_paths,
+            vec![
+                "project.top_level",
+                "project.module_one",
+                "project.module_two"
+            ]
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect::<HashSet<_>>()
+        );
+
+        assert_eq!(
+            config
+                .dependencies_for_module("project.top_level")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [DependencyConfig::from_path("project.module_two")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("project.module_one")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [DependencyConfig::from_path("project.module_two")]
+                .iter()
+                .collect::<HashSet<_>>()
+        );
+        assert_eq!(
+            config
+                .dependencies_for_module("project.module_two")
+                .unwrap()
+                .iter()
+                .collect::<HashSet<_>>(),
+            [].iter().collect::<HashSet<_>>()
         );
     }
 }

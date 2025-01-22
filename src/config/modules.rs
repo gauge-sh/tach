@@ -1,8 +1,11 @@
+use crate::filesystem::module_path_is_included_in_paths;
+
 use super::root_module::ROOT_MODULE_SENTINEL_TAG;
 use super::utils::*;
 use pyo3::prelude::*;
 use serde::ser::{Error, SerializeSeq, SerializeStruct};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use std::path::PathBuf;
 use std::{
     collections::{HashMap, HashSet},
     fmt,
@@ -119,6 +122,7 @@ pub fn is_default_visibility(value: &Vec<String>) -> bool {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 #[pyclass(get_all, eq, module = "tach.extension")]
 pub struct ModuleConfig {
     pub path: String,
@@ -144,7 +148,7 @@ pub struct ModuleConfig {
     pub unchecked: bool,
     // Hidden field to track grouping
     // Unfortunately marked as public due to test fixtures constructing struct literals
-    #[doc(hidden)]
+    #[serde(skip)]
     pub group_id: Option<usize>,
 }
 
@@ -184,6 +188,44 @@ impl ModuleConfig {
             .into_iter()
             .flat_map(|deps| deps.iter())
     }
+
+    pub fn with_dependencies_removed(&self) -> Self {
+        Self {
+            depends_on: Some(vec![]),
+            ..self.clone()
+        }
+    }
+
+    pub fn with_filtered_dependencies(
+        &self,
+        absolute_source_roots: &[PathBuf],
+        included_paths: &[PathBuf],
+    ) -> Self {
+        match &self.depends_on {
+            Some(depends_on) => Self {
+                depends_on: Some(
+                    depends_on
+                        .iter()
+                        .filter(|dep| {
+                            included_paths.is_empty()
+                                || module_path_is_included_in_paths(
+                                    absolute_source_roots,
+                                    &dep.path,
+                                    included_paths,
+                                )
+                        })
+                        .cloned()
+                        .collect(),
+                ),
+                ..self.clone()
+            },
+            None => self.clone(),
+        }
+    }
+
+    pub fn new_root_config() -> Self {
+        Self::new(ROOT_MODULE_SENTINEL_TAG, false)
+    }
 }
 
 #[pymethods]
@@ -202,22 +244,20 @@ impl ModuleConfig {
         }
     }
 
-    pub fn with_no_dependencies(&self) -> Self {
-        let mut new_module = self.clone();
-        new_module.depends_on = Some(vec![]);
-        new_module
-    }
-
-    #[staticmethod]
-    pub fn new_root_config() -> Self {
-        Self::new(ROOT_MODULE_SENTINEL_TAG, false)
-    }
     pub fn mod_path(&self) -> String {
         if self.path == ROOT_MODULE_SENTINEL_TAG {
             return ".".to_string();
         }
         self.path.clone()
     }
+}
+
+pub fn serialize_modules_json(modules: &Vec<ModuleConfig>) -> String {
+    #[derive(Serialize)]
+    struct ModulesWrapper<'a> {
+        modules: &'a Vec<ModuleConfig>,
+    }
+    serde_json::to_string(&ModulesWrapper { modules }).unwrap()
 }
 
 #[derive(Serialize, Deserialize)]

@@ -45,8 +45,10 @@ impl TachPytestPluginHandler {
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
         let source_roots = project_config.prepend_roots(&project_root);
-        let (valid_modules, invalid_modules) =
-            fs::validate_project_modules(&source_roots, project_config.modules.clone());
+        let (valid_modules, invalid_modules) = fs::validate_project_modules(
+            &source_roots,
+            project_config.all_modules().cloned().collect(),
+        );
         for invalid_module in invalid_modules {
             eprintln!(
                 "Module '{}' not found. It will be ignored.",
@@ -170,7 +172,8 @@ pub fn get_affected_modules(
         affected_modules.insert(nearest_module.full_path.clone());
     }
 
-    let module_consumers = build_module_consumer_map(&project_config.modules);
+    let modules = project_config.all_modules().cloned().collect();
+    let module_consumers = build_module_consumer_map(&modules);
     for module in affected_modules.clone() {
         affected_modules = find_affected_modules(&module, &module_consumers, affected_modules);
     }

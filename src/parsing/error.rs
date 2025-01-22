@@ -13,4 +13,6 @@ pub enum ParsingError {
     TomlParse(#[from] toml::de::Error),
     #[error("Missing field in TOML: {0}")]
     MissingField(String),
+    #[error("Module path error: {0}")]
+    ModulePath(String),
 }

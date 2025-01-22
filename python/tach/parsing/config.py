@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import tomli
@@ -18,6 +17,8 @@ from tach.extension import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from tach.extension import ProjectConfig
 
 
@@ -82,25 +83,24 @@ def migrate_deprecated_yaml_config(filepath: Path) -> ProjectConfig:
     return project_config
 
 
-def parse_project_config(root: Path | None = None) -> ProjectConfig | None:
-    root = root or Path.cwd()
+def parse_project_config(root: Path) -> ProjectConfig | None:
     file_path = fs.get_project_config_path(root)
     if file_path:
         # Standard TOML config found
         project_config, ext_migrated = ext_parse_project_config(file_path)
         if ext_migrated:
-            # This is a second migration pass, so we need to save the result
+            # Write the auto-migrated TOML config
             file_path.with_suffix(".toml").write_text(
                 dump_project_config_to_toml(project_config)
             )
+        return project_config
     else:
         # No TOML found, check for deprecated (YAML) config as a fallback
         file_path = fs.get_deprecated_project_config_path(root)
         if not file_path:
             return None
-        # Return right away, this is a final ProjectConfig
-        project_config = migrate_deprecated_yaml_config(file_path)
-    return project_config
+        # This will write the auto-migrated TOML config
+        return migrate_deprecated_yaml_config(file_path)
 
 
 def extend_and_validate(

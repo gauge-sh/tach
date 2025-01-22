@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, NonCallableMagicMock
 
 import pytest
 
-from tach.extension import ProjectConfig
 from tach.report import external_dependency_report
 
 
 @pytest.fixture
 def project_config():
-    p = ProjectConfig()
+    p = NonCallableMagicMock()
     p.source_roots = [
         Path("src/pack-a/src"),
         Path("src/pack-b/src"),
@@ -22,6 +21,8 @@ def project_config():
         Path("src/pack-g/src"),
     ]
     p.ignore_type_checking_imports = True
+    p.use_regex_matching = False
+    p.include_string_imports = False
     return p
 
 

@@ -31,7 +31,7 @@ pub fn relative_to<P: AsRef<Path>, R: AsRef<Path>>(path: P, root: R) -> Result<P
     Ok(diff_path.to_owned())
 }
 
-pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &PathBuf) -> Result<String> {
+pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &Path) -> Result<String> {
     // Find the matching source root
     let matching_root = source_roots
         .iter()
@@ -189,10 +189,7 @@ pub fn module_to_file_path<P: AsRef<Path>>(
     )
 }
 
-pub fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(
-    roots: &[P],
-    mod_path: &str,
-) -> Option<PathBuf> {
+fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Option<PathBuf> {
     if mod_path.is_empty() {
         return None;
     }
@@ -218,6 +215,18 @@ pub fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(
     None
 }
 
+pub fn module_path_is_included_in_paths(
+    source_roots: &[PathBuf],
+    module_path: &str,
+    included_paths: &[PathBuf],
+) -> bool {
+    module_to_pyfile_or_dir_path(source_roots, module_path).is_some_and(|path| {
+        included_paths
+            .iter()
+            .any(|included_path| path.starts_with(included_path))
+    })
+}
+
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     let mut file = fs::File::open(path.as_ref())?;
     let mut content = String::new();
@@ -237,6 +246,10 @@ fn direntry_is_excluded(entry: &DirEntry) -> bool {
     is_path_excluded(entry.path())
 }
 
+fn direntry_is_tach_project(entry: &DirEntry) -> bool {
+    entry.path().join("tach.toml").is_file()
+}
+
 fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
     if entry.file_type().is_dir() {
         return true;
@@ -251,7 +264,7 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
     let prefix_root = root.to_string();
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(move |e| !is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e))
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
         .map(move |entry| {
@@ -266,7 +279,7 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
 pub fn walk_pyprojects(root: &str) -> impl Iterator<Item = PathBuf> {
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(move |e| !is_hidden(e) && !direntry_is_excluded(e))
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file())
         .filter(|entry| entry.file_name() == "pyproject.toml")
@@ -295,6 +308,23 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
         })
 }
 
+pub fn walk_domain_config_files(root: &str) -> impl Iterator<Item = PathBuf> {
+    // NOTE: Filtering out tach.toml files in subdirectories
+    //       is a temporary measure to avoid recursive tach.toml files.
+    //       Once exclude paths are made safe (non-global), this can be removed.
+    WalkDir::new(root)
+        .into_iter()
+        .filter_entry(|e| e.depth() == 0 || (!is_hidden(e) && !direntry_is_tach_project(e)))
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_name() == "tach.domain.toml")
+        .map(|entry| entry.into_path())
+}
+
+pub fn validate_module_path(source_roots: &[PathBuf], module_path: &str) -> bool {
+    module_path == ROOT_MODULE_SENTINEL_TAG
+        || module_to_pyfile_or_dir_path(source_roots, module_path).is_some()
+}
+
 /// Returns a tuple of (valid, invalid) modules
 pub fn validate_project_modules(
     source_roots: &[PathBuf],
@@ -303,9 +333,7 @@ pub fn validate_project_modules(
     let mut result = (Vec::new(), Vec::new());
 
     for module in modules {
-        if module.path == ROOT_MODULE_SENTINEL_TAG
-            || module_to_pyfile_or_dir_path(source_roots, &module.path).is_some()
-        {
+        if validate_module_path(source_roots, &module.path) {
             // valid module
             result.0.push(module);
         } else {
