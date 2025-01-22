@@ -188,7 +188,10 @@ fn sync_dependency_constraints(
             .module_paths()
             .iter()
             .for_each(|module_path| {
-                if !validate_module_path(&project_config.source_roots, module_path) {
+                if !validate_module_path(
+                    &project_config.absolute_source_roots().unwrap(),
+                    module_path,
+                ) {
                     // Not clear what to do if enqueueing deletion fails
                     let _ = project_config.delete_module(module_path.to_string());
                 }

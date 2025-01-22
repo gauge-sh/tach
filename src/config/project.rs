@@ -139,11 +139,18 @@ impl ProjectConfig {
         let project_root = self
             .location
             .as_ref()
+            .map(|path| path.parent().unwrap())
             .ok_or(ConfigError::ConfigDoesNotExist)?;
         Ok(self
             .source_roots
             .iter()
-            .map(|root| project_root.join(root))
+            .map(|root| {
+                if root.display().to_string() == "." {
+                    project_root.to_path_buf()
+                } else {
+                    project_root.join(root)
+                }
+            })
             .collect())
     }
 

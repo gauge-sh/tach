@@ -1,5 +1,6 @@
 [root]
 layer = "core"
+depends_on = ["service", "install"]
 
 [[modules]]
 paths = ["git_ops", "service"]
