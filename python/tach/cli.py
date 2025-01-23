@@ -705,22 +705,20 @@ def tach_check_external(
 
         print_warnings(result.warnings)
         print_errors(result.errors)
+        print_unused_external_dependencies(result.unused_dependencies)
+        print_undeclared_dependencies(result.undeclared_dependencies)
 
-        if result.unused_dependencies:
-            print_unused_external_dependencies(result.unused_dependencies)
-
-        if result.undeclared_dependencies:
-            print_undeclared_dependencies(result.undeclared_dependencies)
+        if result.errors or result.undeclared_dependencies:
             sys.exit(1)
+        else:
+            print(
+                f"{icons.SUCCESS} {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
+            )
+            sys.exit(0)
 
     except Exception as e:
         print(str(e))
         sys.exit(1)
-
-    print(
-        f"{icons.SUCCESS} {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
-    )
-    sys.exit(0)
 
 
 def tach_mod(

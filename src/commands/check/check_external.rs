@@ -110,7 +110,7 @@ pub fn check(
                                 match project_config.rules.unused_ignore_directives {
                                     RuleSetting::Error => {
                                         diagnostics.errors.push(format!(
-                                            "{}:{}: Unused ignore directive: '{}'",
+                                            "{}:{}: Unnecessary ignore directive for package: '{}'",
                                             display_file_path,
                                             directive_ignored_import.import.line_no,
                                             directive_ignored_import.import.top_level_module_name()
@@ -118,7 +118,7 @@ pub fn check(
                                     }
                                     RuleSetting::Warn => {
                                         diagnostics.warnings.push(format!(
-                                            "{}:{}: Unused ignore directive: '{}'",
+                                            "{}:{}: Unnecessary ignore directive for package: '{}'",
                                             display_file_path,
                                             directive_ignored_import.import.line_no,
                                             directive_ignored_import.import.top_level_module_name()
