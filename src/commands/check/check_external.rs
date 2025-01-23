@@ -1,53 +1,17 @@
-use pyo3::conversion::IntoPy;
-use pyo3::PyObject;
 use std::collections::{HashMap, HashSet};
-use std::io;
 use std::path::{Path, PathBuf};
-
-use thiserror::Error;
 
 use crate::config::{ProjectConfig, RuleSetting};
 use crate::external::parsing::ProjectInfo;
-use crate::external::{
-    error::ParsingError, parsing::normalize_package_name, parsing::parse_pyproject_toml,
-};
+use crate::external::{parsing::normalize_package_name, parsing::parse_pyproject_toml};
 use crate::filesystem::relative_to;
 use crate::imports::NormalizedImport;
 use crate::{filesystem, imports};
 
 use super::checks::check_missing_ignore_directive_reason;
-
-#[derive(Error, Debug)]
-pub enum ExternalCheckError {
-    #[error("Parsing error: {0}")]
-    Parse(#[from] ParsingError),
-    #[error("Import parsing error: {0}")]
-    ImportParse(#[from] imports::ImportParseError),
-    #[error("IO error: {0}")]
-    Io(#[from] io::Error),
-    #[error("Filesystem error: {0}")]
-    Filesystem(#[from] filesystem::FileSystemError),
-}
-
+use super::diagnostics::ExternalCheckDiagnostics;
+use super::error::ExternalCheckError;
 pub type Result<T> = std::result::Result<T, ExternalCheckError>;
-
-#[derive(Default)]
-pub struct ExternalCheckDiagnostics {
-    // Undeclared dependencies by source filepath
-    undeclared_dependencies: HashMap<String, Vec<String>>,
-    // Unused dependencies by project configuration filepath
-    unused_dependencies: HashMap<String, Vec<String>>,
-    // Other errors
-    errors: Vec<String>,
-    // Other warnings
-    warnings: Vec<String>,
-}
-
-impl IntoPy<PyObject> for ExternalCheckDiagnostics {
-    fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
-        (self.undeclared_dependencies, self.unused_dependencies).into_py(py)
-    }
-}
 
 pub fn check(
     project_root: &Path,

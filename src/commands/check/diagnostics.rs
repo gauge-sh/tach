@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use pyo3::exceptions::PyValueError;
@@ -179,5 +180,36 @@ impl ImportCheckError {
 
     pub fn to_pystring(&self) -> String {
         self.to_string()
+    }
+}
+
+#[derive(Default)]
+#[pyclass(get_all, module = "tach.extension")]
+pub struct ExternalCheckDiagnostics {
+    // Undeclared dependencies by source filepath
+    pub undeclared_dependencies: HashMap<String, Vec<String>>,
+    // Unused dependencies by project configuration filepath
+    pub unused_dependencies: HashMap<String, Vec<String>>,
+    // Other errors
+    pub errors: Vec<String>,
+    // Other warnings
+    pub warnings: Vec<String>,
+}
+
+#[pymethods]
+impl ExternalCheckDiagnostics {
+    #[new]
+    fn new(
+        undeclared_dependencies: HashMap<String, Vec<String>>,
+        unused_dependencies: HashMap<String, Vec<String>>,
+        errors: Vec<String>,
+        warnings: Vec<String>,
+    ) -> Self {
+        Self {
+            undeclared_dependencies,
+            unused_dependencies,
+            errors,
+            warnings,
+        }
     }
 }

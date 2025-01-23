@@ -88,7 +88,14 @@ def print_warnings(warning_list: list[str]) -> None:
         print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
 
 
-def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> None:
+def print_errors(error_list: list[str]) -> None:
+    for error in error_list:
+        print(f"{BCOLORS.FAIL}{error}{BCOLORS.ENDC}", file=sys.stderr)
+
+
+def print_boundary_errors(
+    error_list: list[BoundaryError], source_roots: list[Path]
+) -> None:
     if not error_list:
         return
 
@@ -635,7 +642,7 @@ def tach_check(
             project_root / source_root for source_root in project_config.source_roots
         ]
 
-        print_errors(
+        print_boundary_errors(
             check_result.errors + check_result.deprecated_warnings,
             source_roots=source_roots,
         )
@@ -689,6 +696,9 @@ def tach_check_external(
             project_config=project_config,
             exclude_paths=exclude_paths,
         )
+
+        print_warnings(result.warnings)
+        print_errors(result.errors)
 
         if result.unused_dependencies:
             print_unused_external_dependencies(result.unused_dependencies)

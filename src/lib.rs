@@ -61,8 +61,8 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
-impl From<check::check_external::ExternalCheckError> for PyErr {
-    fn from(err: check::check_external::ExternalCheckError) -> Self {
+impl From<check::ExternalCheckError> for PyErr {
+    fn from(err: check::ExternalCheckError) -> Self {
         PyOSError::new_err(err.to_string())
     }
 }
@@ -247,7 +247,7 @@ fn check_external_dependencies(
     project_root: String,
     project_config: config::ProjectConfig,
     module_mappings: HashMap<String, Vec<String>>,
-) -> check::check_external::Result<check::check_external::ExternalCheckDiagnostics> {
+) -> check::check_external::Result<check::ExternalCheckDiagnostics> {
     let project_root = PathBuf::from(project_root);
     check::check_external::check(&project_root, &project_config, &module_mappings)
 }
@@ -385,6 +385,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::RulesConfig>()?;
     m.add_class::<config::DependencyConfig>()?;
     m.add_class::<check::CheckDiagnostics>()?;
+    m.add_class::<check::ExternalCheckDiagnostics>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;

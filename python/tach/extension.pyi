@@ -23,10 +23,9 @@ def set_excluded_paths(
 ) -> None: ...
 def check_external_dependencies(
     project_root: str,
-    source_roots: list[str],
+    project_config: ProjectConfig,
     module_mappings: dict[str, list[str]],
-    ignore_type_checking_imports: bool,
-) -> tuple[dict[str, list[str]], dict[str, list[str]]]: ...
+) -> ExternalCheckDiagnostics: ...
 def create_dependency_report(
     project_root: str,
     project_config: ProjectConfig,
@@ -93,6 +92,20 @@ class CheckDiagnostics:
     warnings: list[str]
 
     def serialize_json(self, pretty_print: bool = False) -> str: ...
+
+class ExternalCheckDiagnostics:
+    undeclared_dependencies: dict[str, list[str]]
+    unused_dependencies: dict[str, list[str]]
+    errors: list[str]
+    warnings: list[str]
+
+    def __new__(
+        cls,
+        undeclared_dependencies: dict[str, list[str]],
+        unused_dependencies: dict[str, list[str]],
+        errors: list[str],
+        warnings: list[str],
+    ) -> ExternalCheckDiagnostics: ...
 
 class DependencyConfig:
     path: str

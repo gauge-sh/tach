@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from tach.errors import TachError
-from tach.extension import check_external_dependencies, set_excluded_paths
+from tach.extension import (
+    ExternalCheckDiagnostics,
+    check_external_dependencies,
+    set_excluded_paths,
+)
 from tach.utils.external import get_module_mappings, is_stdlib_module
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from tach.extension import ProjectConfig
-
-
-@dataclass
-class ExternalCheckDiagnostics:
-    undeclared_dependencies: dict[str, list[str]]
-    unused_dependencies: dict[str, list[str]]
 
 
 def extract_module_mappings(rename: list[str]) -> dict[str, list[str]]:
@@ -35,9 +32,6 @@ def check_external(
     project_config: ProjectConfig,
     exclude_paths: list[str],
 ) -> ExternalCheckDiagnostics:
-    serialized_source_roots = [
-        str(project_root / source_root) for source_root in project_config.source_roots
-    ]
     set_excluded_paths(
         project_root=str(project_root),
         exclude_paths=exclude_paths,
@@ -51,12 +45,11 @@ def check_external(
         )
     diagnostics = check_external_dependencies(
         project_root=str(project_root),
-        source_roots=serialized_source_roots,
+        project_config=project_config,
         module_mappings=metadata_module_mappings,
-        ignore_type_checking_imports=project_config.ignore_type_checking_imports,
     )
-    undeclared_dependencies_by_file = diagnostics[0]
-    unused_dependencies_by_project = diagnostics[1]
+    undeclared_dependencies_by_file = diagnostics.undeclared_dependencies
+    unused_dependencies_by_project = diagnostics.unused_dependencies
 
     excluded_external_modules = set(project_config.external.exclude)
     filtered_undeclared_dependencies: dict[str, list[str]] = {}
@@ -85,6 +78,8 @@ def check_external(
     return ExternalCheckDiagnostics(
         undeclared_dependencies=filtered_undeclared_dependencies,
         unused_dependencies=filtered_unused_dependencies,
+        errors=diagnostics.errors,
+        warnings=diagnostics.warnings,
     )
 
 

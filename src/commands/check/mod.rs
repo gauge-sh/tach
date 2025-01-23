@@ -6,5 +6,5 @@ pub mod error;
 
 pub use check_external::check as check_external;
 pub use check_internal::check as check_internal;
-pub use diagnostics::{BoundaryError, CheckDiagnostics};
-pub use error::CheckError;
+pub use diagnostics::{BoundaryError, CheckDiagnostics, ExternalCheckDiagnostics};
+pub use error::{CheckError, ExternalCheckError};
