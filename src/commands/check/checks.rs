@@ -232,7 +232,7 @@ fn check_layers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::check_internal::diagnostics::ImportCheckError;
+    use crate::commands::check::diagnostics::ImportCheckError;
     use crate::config::{InterfaceConfig, ModuleConfig};
     use crate::modules::ModuleTree;
     use crate::tests::check_internal::fixtures::{

@@ -16,7 +16,7 @@ pub mod pattern;
 pub mod python;
 pub mod tests;
 
-use commands::{check_external, check_internal, report, server, sync, test};
+use commands::{check, report, server, sync, test};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -61,20 +61,20 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
-impl From<check_external::ExternalCheckError> for PyErr {
-    fn from(err: check_external::ExternalCheckError) -> Self {
+impl From<check::check_external::ExternalCheckError> for PyErr {
+    fn from(err: check::check_external::ExternalCheckError) -> Self {
         PyOSError::new_err(err.to_string())
     }
 }
 
-impl From<check_internal::CheckError> for PyErr {
-    fn from(err: check_internal::CheckError) -> Self {
+impl From<check::CheckError> for PyErr {
+    fn from(err: check::CheckError) -> Self {
         match err {
-            check_internal::CheckError::Interrupt => PyKeyboardInterrupt::new_err(err.to_string()),
-            check_internal::CheckError::ModuleTree(
-                modules::error::ModuleTreeError::CircularDependency(c),
-            ) => errors::TachCircularDependencyError::new_err(c),
-            check_internal::CheckError::ModuleTree(
+            check::CheckError::Interrupt => PyKeyboardInterrupt::new_err(err.to_string()),
+            check::CheckError::ModuleTree(modules::error::ModuleTreeError::CircularDependency(
+                c,
+            )) => errors::TachCircularDependencyError::new_err(c),
+            check::CheckError::ModuleTree(
                 modules::error::ModuleTreeError::VisibilityViolation(v),
             ) => errors::TachVisibilityError::new_err(v),
             _ => PyValueError::new_err(err.to_string()),
@@ -210,24 +210,19 @@ fn get_project_imports(
 
 /// Get third-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
+#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_external_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-    include_string_imports: bool,
 ) -> imports::Result<Vec<imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(imports::get_normalized_imports(
-        &source_roots,
-        &file_path,
-        ignore_type_checking_imports,
-        include_string_imports,
-    )?
-    .into_active_imports()
-    .into_external_imports(&source_roots)
-    .imports)
+    Ok(
+        imports::get_external_imports(&source_roots, &file_path, ignore_type_checking_imports)?
+            .into_active_imports()
+            .imports,
+    )
 }
 
 /// Set excluded paths globally.
@@ -247,21 +242,14 @@ fn set_excluded_paths(
 
 /// Validate external dependency imports against pyproject.toml dependencies
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, module_mappings, ignore_type_checking_imports=false))]
+#[pyo3(signature = (project_root, project_config, module_mappings))]
 fn check_external_dependencies(
     project_root: String,
-    source_roots: Vec<String>,
+    project_config: config::ProjectConfig,
     module_mappings: HashMap<String, Vec<String>>,
-    ignore_type_checking_imports: bool,
-) -> check_external::Result<check_external::ExternalCheckDiagnostics> {
+) -> check::check_external::Result<check::check_external::ExternalCheckDiagnostics> {
     let project_root = PathBuf::from(project_root);
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    check_external::check_external_dependencies(
-        &project_root,
-        &source_roots,
-        &module_mappings,
-        ignore_type_checking_imports,
-    )
+    check::check_external::check(&project_root, &project_config, &module_mappings)
 }
 
 /// Create a report of dependencies and usages of a given path
@@ -335,15 +323,15 @@ fn update_computation_cache(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, dependencies, interfaces, exclude_paths))]
-fn check(
+#[pyo3(name = "check", signature = (project_root, project_config, dependencies, interfaces, exclude_paths))]
+fn check_internal(
     project_root: PathBuf,
     project_config: &config::ProjectConfig,
     dependencies: bool,
     interfaces: bool,
     exclude_paths: Vec<String>,
-) -> Result<check_internal::CheckDiagnostics, check_internal::CheckError> {
-    check_internal::check(
+) -> Result<check::CheckDiagnostics, check::CheckError> {
+    check::check_internal(
         project_root,
         project_config,
         dependencies,
@@ -396,7 +384,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::InterfaceConfig>()?;
     m.add_class::<config::RulesConfig>()?;
     m.add_class::<config::DependencyConfig>()?;
-    m.add_class::<check_internal::CheckDiagnostics>()?;
+    m.add_class::<check::CheckDiagnostics>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
@@ -409,7 +397,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(check_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(update_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(dump_project_config_to_toml, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(check, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(check_internal, m)?)?;
     m.add_function(wrap_pyfunction_bound!(detect_unused_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;

@@ -3,7 +3,7 @@ use lsp_server::{Message, ProtocolError};
 use std::io;
 use thiserror::Error;
 
-use crate::check_internal::CheckError;
+use crate::commands::check::CheckError;
 use crate::filesystem::FileSystemError;
 
 #[derive(Error, Debug)]

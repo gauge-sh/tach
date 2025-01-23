@@ -600,6 +600,16 @@ pub fn get_project_imports(
     Ok(normalized_imports.into_project_imports(source_roots))
 }
 
+pub fn get_external_imports(
+    source_roots: &[PathBuf],
+    file_path: &PathBuf,
+    ignore_type_checking_imports: bool,
+) -> Result<NormalizedImports<ExternalImports>> {
+    let normalized_imports =
+        get_normalized_imports(source_roots, file_path, ignore_type_checking_imports, false)?;
+    Ok(normalized_imports.into_external_imports(source_roots))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

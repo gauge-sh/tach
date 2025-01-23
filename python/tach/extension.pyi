@@ -11,7 +11,6 @@ def get_external_imports(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
-    include_string_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def get_normalized_imports(
     source_roots: list[str],
