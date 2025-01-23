@@ -128,22 +128,31 @@ impl<State> NormalizedImports<State> {
 }
 
 impl NormalizedImports<AllImports> {
+    fn partition_imports(
+        self,
+        source_roots: &[PathBuf],
+    ) -> (Vec<NormalizedImport>, Vec<NormalizedImport>) {
+        self.imports.into_iter().partition(|normalized_import| {
+            is_project_import(source_roots, &normalized_import.module_path)
+                .map_or(false, |is_project| is_project)
+        })
+    }
+
     pub fn into_project_imports(
         self,
         source_roots: &[PathBuf],
     ) -> NormalizedImports<ProjectImports> {
+        let mut filtered_directives = self.ignore_directives.clone();
+        let (project_imports, external_imports) = self.partition_imports(source_roots);
+
+        // Remove directives that apply to external imports
+        for import in external_imports {
+            filtered_directives.remove_matching_directives(&import);
+        }
+
         NormalizedImports {
-            imports: self
-                .imports
-                .into_iter()
-                .filter_map(|normalized_import| {
-                    is_project_import(source_roots, &normalized_import.module_path)
-                        .map_or(None, |is_project_import| {
-                            is_project_import.then_some(normalized_import)
-                        })
-                })
-                .collect(),
-            ignore_directives: self.ignore_directives,
+            imports: project_imports,
+            ignore_directives: filtered_directives,
             _state: PhantomData,
         }
     }
@@ -152,18 +161,17 @@ impl NormalizedImports<AllImports> {
         self,
         source_roots: &[PathBuf],
     ) -> NormalizedImports<ExternalImports> {
+        let mut filtered_directives = self.ignore_directives.clone();
+        let (project_imports, external_imports) = self.partition_imports(source_roots);
+
+        // Remove directives that apply to project imports
+        for import in project_imports {
+            filtered_directives.remove_matching_directives(&import);
+        }
+
         NormalizedImports {
-            imports: self
-                .imports
-                .into_iter()
-                .filter_map(|normalized_import| {
-                    is_project_import(source_roots, &normalized_import.module_path)
-                        .map_or(None, |is_project_import| {
-                            (!is_project_import).then_some(normalized_import)
-                        })
-                })
-                .collect(),
-            ignore_directives: self.ignore_directives,
+            imports: external_imports,
+            ignore_directives: filtered_directives,
             _state: PhantomData,
         }
     }
@@ -185,14 +193,14 @@ impl IntoPy<PyObject> for NormalizedImport {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IgnoreDirective {
     pub modules: Vec<String>,
     pub reason: String,
     pub line_no: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct IgnoreDirectives {
     directives: HashMap<usize, IgnoreDirective>,
     redundant_directives: Vec<IgnoreDirective>,
@@ -240,6 +248,13 @@ impl IgnoreDirectives {
                             .contains(normalized_import.alias_path.as_ref().unwrap())
                 }
             })
+    }
+
+    pub fn remove_matching_directives(&mut self, normalized_import: &NormalizedImport) {
+        self.directives
+            .retain(|line_no, _directive| *line_no != normalized_import.import_line_no);
+        self.redundant_directives
+            .retain(|directive| directive.line_no != normalized_import.import_line_no);
     }
 
     pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
