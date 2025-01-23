@@ -25,6 +25,7 @@ def check_external_dependencies(
     project_root: str,
     project_config: ProjectConfig,
     module_mappings: dict[str, list[str]],
+    stdlib_modules: list[str],
 ) -> ExternalCheckDiagnostics: ...
 def create_dependency_report(
     project_root: str,

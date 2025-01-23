@@ -13,22 +13,32 @@ use super::diagnostics::ExternalCheckDiagnostics;
 use super::error::ExternalCheckError;
 pub type Result<T> = std::result::Result<T, ExternalCheckError>;
 
+#[derive(Debug)]
+enum ImportProcessResult {
+    UndeclaredDependency(String),
+    UsedDependencies(Vec<String>),
+    Excluded(Vec<String>),
+}
+
 pub fn check(
     project_root: &Path,
     project_config: &ProjectConfig,
     module_mappings: &HashMap<String, Vec<String>>,
+    stdlib_modules: &[String],
 ) -> Result<ExternalCheckDiagnostics> {
+    let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
+    let excluded_external_modules: HashSet<String> =
+        project_config.external.exclude.iter().cloned().collect();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
     let mut diagnostics = ExternalCheckDiagnostics::default();
     for pyproject in filesystem::walk_pyprojects(project_root.to_str().unwrap()) {
         let project_info = parse_pyproject_toml(&pyproject)?;
         let mut all_dependencies = project_info.dependencies.clone();
         for source_root in &project_info.source_paths {
-            let source_files = filesystem::walk_pyfiles(source_root.to_str().unwrap());
-            for file_path in source_files {
+            for file_path in filesystem::walk_pyfiles(source_root.to_str().unwrap()) {
                 let absolute_file_path = source_root.join(&file_path);
                 let display_file_path = relative_to(&absolute_file_path, project_root)?
-                    .to_string_lossy()
+                    .display()
                     .to_string();
 
                 if let Ok(project_imports) = imports::get_external_imports(
@@ -37,14 +47,27 @@ pub fn check(
                     project_config.ignore_type_checking_imports,
                 ) {
                     for import in project_imports.active_imports() {
-                        process_import(
-                            &mut diagnostics,
-                            &mut all_dependencies,
+                        match process_import(
                             import,
                             &project_info,
                             module_mappings,
-                            &display_file_path,
-                        );
+                            &excluded_external_modules,
+                            &stdlib_modules,
+                        ) {
+                            ImportProcessResult::UndeclaredDependency(module_name) => {
+                                let undeclared_dep_entry: &mut Vec<String> = diagnostics
+                                    .undeclared_dependencies
+                                    .entry(display_file_path.to_string())
+                                    .or_default();
+                                undeclared_dep_entry.push(module_name);
+                            }
+                            ImportProcessResult::UsedDependencies(deps)
+                            | ImportProcessResult::Excluded(deps) => {
+                                for dep in deps {
+                                    all_dependencies.remove(&dep);
+                                }
+                            }
+                        }
                     }
 
                     for directive_ignored_import in project_imports.directive_ignored_imports() {
@@ -68,6 +91,37 @@ pub fn check(
                                             display_file_path,
                                             directive_ignored_import.import.line_no,
                                             e
+                                        ));
+                                    }
+                                    RuleSetting::Off => {}
+                                }
+                            }
+                        }
+
+                        if project_config.rules.unused_ignore_directives != RuleSetting::Off {
+                            if let ImportProcessResult::UsedDependencies(_)
+                            | ImportProcessResult::Excluded(_) = process_import(
+                                directive_ignored_import.import,
+                                &project_info,
+                                module_mappings,
+                                &excluded_external_modules,
+                                &stdlib_modules,
+                            ) {
+                                match project_config.rules.unused_ignore_directives {
+                                    RuleSetting::Error => {
+                                        diagnostics.errors.push(format!(
+                                            "{}:{}: Unused ignore directive: '{}'",
+                                            display_file_path,
+                                            directive_ignored_import.import.line_no,
+                                            directive_ignored_import.import.top_level_module_name()
+                                        ));
+                                    }
+                                    RuleSetting::Warn => {
+                                        diagnostics.warnings.push(format!(
+                                            "{}:{}: Unused ignore directive: '{}'",
+                                            display_file_path,
+                                            directive_ignored_import.import.line_no,
+                                            directive_ignored_import.import.top_level_module_name()
                                         ));
                                     }
                                     RuleSetting::Off => {}
@@ -105,7 +159,10 @@ pub fn check(
             relative_to(&pyproject, project_root)?
                 .to_string_lossy()
                 .to_string(),
-            all_dependencies.into_iter().collect(),
+            all_dependencies
+                .into_iter()
+                .filter(|dep| !excluded_external_modules.contains(dep)) // 'exclude' should hide unused errors unconditionally
+                .collect(),
         );
     }
 
@@ -113,36 +170,37 @@ pub fn check(
 }
 
 fn process_import(
-    diagnostics: &mut ExternalCheckDiagnostics,
-    all_dependencies: &mut HashSet<String>,
     import: &NormalizedImport,
     project_info: &ProjectInfo,
     module_mappings: &HashMap<String, Vec<String>>,
-    display_file_path: &str,
-) {
-    let top_level_module_name = import.top_level_module_name();
-    let default_distribution_names = vec![top_level_module_name.to_string()];
+    excluded_external_modules: &HashSet<String>,
+    stdlib_modules: &HashSet<String>,
+) -> ImportProcessResult {
+    let top_level_module_name = import.top_level_module_name().to_string();
+    let default_distribution_names = vec![top_level_module_name.clone()];
     let distribution_names: Vec<String> = module_mappings
-        .get(top_level_module_name)
+        .get(&top_level_module_name)
         .unwrap_or(&default_distribution_names)
         .iter()
         .map(|dist_name| normalize_package_name(dist_name))
         .collect();
 
-    for dist_name in distribution_names.iter() {
-        all_dependencies.remove(dist_name);
-    }
-
     if distribution_names
         .iter()
-        .all(|dist_name| !project_info.dependencies.contains(dist_name))
+        .any(|dist_name| excluded_external_modules.contains(dist_name))
+        || stdlib_modules.contains(&top_level_module_name)
     {
-        // Found a possible undeclared dependency in this file
-        let undeclared_dep_entry: &mut Vec<String> = diagnostics
-            .undeclared_dependencies
-            .entry(display_file_path.to_string())
-            .or_default();
-        undeclared_dep_entry.push(top_level_module_name.to_string());
+        return ImportProcessResult::Excluded(distribution_names);
+    }
+
+    let is_declared = distribution_names
+        .iter()
+        .any(|dist_name| project_info.dependencies.contains(dist_name));
+
+    if !is_declared {
+        ImportProcessResult::UndeclaredDependency(top_level_module_name.to_string())
+    } else {
+        ImportProcessResult::UsedDependencies(distribution_names)
     }
 }
 
@@ -186,7 +244,7 @@ mod tests {
         module_mapping: HashMap<String, Vec<String>>,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check(&project_root, &project_config, &module_mapping);
+        let result = check(&project_root, &project_config, &module_mapping, &[]);
         assert!(result.as_ref().unwrap().undeclared_dependencies.is_empty());
         let unused_dependency_root = "src/pack-a/pyproject.toml";
         assert!(result
@@ -201,7 +259,7 @@ mod tests {
         project_config: ProjectConfig,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check(&project_root, &project_config, &HashMap::new());
+        let result = check(&project_root, &project_config, &HashMap::new(), &[]);
         let expected_failure_path = "src/pack-a/src/myorg/pack_a/__init__.py";
         let r = result.unwrap();
         assert_eq!(

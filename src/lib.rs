@@ -242,14 +242,20 @@ fn set_excluded_paths(
 
 /// Validate external dependency imports against pyproject.toml dependencies
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, module_mappings))]
+#[pyo3(signature = (project_root, project_config, module_mappings, stdlib_modules))]
 fn check_external_dependencies(
     project_root: String,
     project_config: config::ProjectConfig,
     module_mappings: HashMap<String, Vec<String>>,
+    stdlib_modules: Vec<String>,
 ) -> check::check_external::Result<check::ExternalCheckDiagnostics> {
     let project_root = PathBuf::from(project_root);
-    check::check_external::check(&project_root, &project_config, &module_mappings)
+    check::check_external::check(
+        &project_root,
+        &project_config,
+        &module_mappings,
+        &stdlib_modules,
+    )
 }
 
 /// Create a report of dependencies and usages of a given path

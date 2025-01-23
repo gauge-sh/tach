@@ -249,35 +249,41 @@ def print_visibility_errors(
 def print_undeclared_dependencies(
     undeclared_dependencies: dict[str, list[str]],
 ) -> None:
+    any_undeclared = False
     for file_path, dependencies in undeclared_dependencies.items():
         if dependencies:
+            any_undeclared = True
             print(
                 f"{icons.FAIL}: {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
             )
             for dependency in dependencies:
                 print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
-    print(
-        f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
-        file=sys.stderr,
-    )
+    if any_undeclared:
+        print(
+            f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
+            f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
+            file=sys.stderr,
+        )
 
 
 def print_unused_external_dependencies(
     unused_dependencies: dict[str, list[str]],
 ) -> None:
+    any_unused = False
     for pyproject_path, dependencies in unused_dependencies.items():
         if dependencies:
+            any_unused = True
             print(
                 f"{icons.WARNING}  {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
             )
             for dependency in dependencies:
                 print(f"\t{BCOLORS.WARNING}{dependency}{BCOLORS.ENDC}")
-    print(
-        f"{BCOLORS.OKCYAN}\nRemove the unused dependencies from the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
-        file=sys.stderr,
-    )
+    if any_unused:
+        print(
+            f"{BCOLORS.OKCYAN}\nRemove the unused dependencies from the corresponding pyproject.toml file, "
+            f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
+            file=sys.stderr,
+        )
 
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:

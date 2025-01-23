@@ -8,7 +8,10 @@ from tach.extension import (
     check_external_dependencies,
     set_excluded_paths,
 )
-from tach.utils.external import get_module_mappings, is_stdlib_module
+from tach.utils.external import (
+    get_module_mappings,
+    get_stdlib_modules,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,43 +46,11 @@ def check_external(
         metadata_module_mappings.update(
             extract_module_mappings(project_config.external.rename)
         )
-    diagnostics = check_external_dependencies(
+    return check_external_dependencies(
         project_root=str(project_root),
         project_config=project_config,
         module_mappings=metadata_module_mappings,
-    )
-    undeclared_dependencies_by_file = diagnostics.undeclared_dependencies
-    unused_dependencies_by_project = diagnostics.unused_dependencies
-
-    excluded_external_modules = set(project_config.external.exclude)
-    filtered_undeclared_dependencies: dict[str, list[str]] = {}
-    for filepath, undeclared_dependencies in undeclared_dependencies_by_file.items():
-        dependencies = set(
-            filter(
-                lambda dependency: not is_stdlib_module(dependency)
-                and dependency not in excluded_external_modules,
-                undeclared_dependencies,
-            )
-        )
-        if dependencies:
-            filtered_undeclared_dependencies[filepath] = list(dependencies)
-    filtered_unused_dependencies: dict[str, list[str]] = {}
-    for filepath, unused_dependencies in unused_dependencies_by_project.items():
-        dependencies = set(
-            filter(
-                lambda dependency: not is_stdlib_module(dependency)
-                and dependency not in excluded_external_modules,
-                unused_dependencies,
-            )
-        )
-        if dependencies:
-            filtered_unused_dependencies[filepath] = list(dependencies)
-
-    return ExternalCheckDiagnostics(
-        undeclared_dependencies=filtered_undeclared_dependencies,
-        unused_dependencies=filtered_unused_dependencies,
-        errors=diagnostics.errors,
-        warnings=diagnostics.warnings,
+        stdlib_modules=get_stdlib_modules(),
     )
 
 
