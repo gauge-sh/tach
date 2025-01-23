@@ -157,6 +157,7 @@ Tach also supports:
 - [Incremental adoption](https://docs.gauge.sh/usage/unchecked-modules)
 - [Manual file configuration](https://docs.gauge.sh/usage/configuration)
 - [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
+- [Domain ownership](https://docs.gauge.sh/usage/configuration#tach-domain-toml)
 - [Inline 'ignore' comments](https://docs.gauge.sh/usage/tach-ignore)
 - [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install)
 
