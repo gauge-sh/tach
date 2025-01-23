@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use pyo3::prelude::*;
 
-use crate::commands::check_internal::{check, BoundaryError, CheckError};
+use crate::commands::check::{check_internal, BoundaryError, CheckError};
 use crate::config::edit::{ConfigEditor, EditError};
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
@@ -88,7 +88,7 @@ pub fn detect_unused_dependencies(
     // This is a shortcut to finding all cross-module dependencies
     // TODO: dedicated function
     let cleared_project_config = project_config.with_dependencies_removed();
-    let check_result = check(
+    let check_result = check_internal(
         project_root,
         &cleared_project_config,
         true,
@@ -140,7 +140,7 @@ fn sync_dependency_constraints(
     // This is a shortcut to finding all cross-module dependencies
     // TODO: dedicated function
     let cleared_project_config = project_config.with_dependencies_removed();
-    let check_result = check(
+    let check_result = check_internal(
         project_root,
         &cleared_project_config,
         true,

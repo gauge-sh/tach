@@ -1,10 +1,8 @@
-pub mod checks;
-use checks::{check_import, check_missing_ignore_directive_reason, check_unused_ignore_directive};
-pub mod diagnostics;
-use diagnostics::ImportCheckError;
-pub use diagnostics::{BoundaryError, CheckDiagnostics};
-pub mod error;
-pub use error::CheckError;
+use super::checks::{
+    check_import, check_missing_ignore_directive_reason, check_unused_ignore_directive,
+};
+use super::diagnostics::{BoundaryError, CheckDiagnostics, ImportCheckError};
+use super::error::CheckError;
 
 use std::{
     path::{Path, PathBuf},

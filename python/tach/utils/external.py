@@ -27,6 +27,20 @@ def is_stdlib_module(module: str) -> bool:
         return in_stdlib(module)  # type: ignore
 
 
+def get_stdlib_modules() -> list[str]:
+    if sys.version_info >= (3, 10):
+        modules = set(sys.builtin_module_names)
+        modules.update(sys.stdlib_module_names)
+        modules.update(KNOWN_MODULE_SPECIAL_CASES)
+        return sorted(modules)
+    else:
+        from stdlib_list import stdlib_list  # type: ignore
+
+        modules: set[str] = set(stdlib_list())  # type: ignore
+        modules.update(KNOWN_MODULE_SPECIAL_CASES)
+        return list(sorted(modules))
+
+
 def _get_installed_modules(dist: Any) -> list[str]:
     # This method is best-effort, and is only used for Python < 3.10
     module_names: set[str] = set()

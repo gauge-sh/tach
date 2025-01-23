@@ -127,14 +127,12 @@ def get_external_dependencies(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
-    include_string_imports: bool = False,
     excluded_modules: set[str] | None = None,
 ) -> list[ExternalDependency]:
     external_imports = get_external_imports(
         source_roots=source_roots,
         file_path=file_path,
         ignore_type_checking_imports=ignore_type_checking_imports,
-        include_string_imports=include_string_imports,
     )
 
     excluded_modules = excluded_modules or set()
@@ -196,7 +194,6 @@ def external_dependency_report(
             file_path=str(path.resolve()),
             excluded_modules=set(project_config.external.exclude),
             ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-            include_string_imports=project_config.include_string_imports,
         )
         return render_external_dependency_report(path, external_dependencies, raw=raw)
 

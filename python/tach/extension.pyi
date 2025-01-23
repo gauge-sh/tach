@@ -11,7 +11,6 @@ def get_external_imports(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
-    include_string_imports: bool,
 ) -> list[tuple[str, int]]: ...
 def get_normalized_imports(
     source_roots: list[str],
@@ -24,10 +23,10 @@ def set_excluded_paths(
 ) -> None: ...
 def check_external_dependencies(
     project_root: str,
-    source_roots: list[str],
+    project_config: ProjectConfig,
     module_mappings: dict[str, list[str]],
-    ignore_type_checking_imports: bool,
-) -> tuple[dict[str, list[str]], dict[str, list[str]]]: ...
+    stdlib_modules: list[str],
+) -> ExternalCheckDiagnostics: ...
 def create_dependency_report(
     project_root: str,
     project_config: ProjectConfig,
@@ -94,6 +93,20 @@ class CheckDiagnostics:
     warnings: list[str]
 
     def serialize_json(self, pretty_print: bool = False) -> str: ...
+
+class ExternalCheckDiagnostics:
+    undeclared_dependencies: dict[str, list[str]]
+    unused_dependencies: dict[str, list[str]]
+    errors: list[str]
+    warnings: list[str]
+
+    def __new__(
+        cls,
+        undeclared_dependencies: dict[str, list[str]],
+        unused_dependencies: dict[str, list[str]],
+        errors: list[str],
+        warnings: list[str],
+    ) -> ExternalCheckDiagnostics: ...
 
 class DependencyConfig:
     path: str

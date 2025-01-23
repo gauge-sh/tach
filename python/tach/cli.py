@@ -88,7 +88,14 @@ def print_warnings(warning_list: list[str]) -> None:
         print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
 
 
-def print_errors(error_list: list[BoundaryError], source_roots: list[Path]) -> None:
+def print_errors(error_list: list[str]) -> None:
+    for error in error_list:
+        print(f"{BCOLORS.FAIL}{error}{BCOLORS.ENDC}", file=sys.stderr)
+
+
+def print_boundary_errors(
+    error_list: list[BoundaryError], source_roots: list[Path]
+) -> None:
     if not error_list:
         return
 
@@ -242,35 +249,41 @@ def print_visibility_errors(
 def print_undeclared_dependencies(
     undeclared_dependencies: dict[str, list[str]],
 ) -> None:
+    any_undeclared = False
     for file_path, dependencies in undeclared_dependencies.items():
         if dependencies:
+            any_undeclared = True
             print(
                 f"{icons.FAIL}: {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
             )
             for dependency in dependencies:
                 print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
-    print(
-        f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
-        file=sys.stderr,
-    )
+    if any_undeclared:
+        print(
+            f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
+            f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
+            file=sys.stderr,
+        )
 
 
 def print_unused_external_dependencies(
     unused_dependencies: dict[str, list[str]],
 ) -> None:
+    any_unused = False
     for pyproject_path, dependencies in unused_dependencies.items():
         if dependencies:
+            any_unused = True
             print(
                 f"{icons.WARNING}  {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
             )
             for dependency in dependencies:
                 print(f"\t{BCOLORS.WARNING}{dependency}{BCOLORS.ENDC}")
-    print(
-        f"{BCOLORS.OKCYAN}\nRemove the unused dependencies from the corresponding pyproject.toml file, "
-        f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
-        file=sys.stderr,
-    )
+    if any_unused:
+        print(
+            f"{BCOLORS.OKCYAN}\nRemove the unused dependencies from the corresponding pyproject.toml file, "
+            f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
+            file=sys.stderr,
+        )
 
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
@@ -635,7 +648,7 @@ def tach_check(
             project_root / source_root for source_root in project_config.source_roots
         ]
 
-        print_errors(
+        print_boundary_errors(
             check_result.errors + check_result.deprecated_warnings,
             source_roots=source_roots,
         )
@@ -690,21 +703,22 @@ def tach_check_external(
             exclude_paths=exclude_paths,
         )
 
-        if result.unused_dependencies:
-            print_unused_external_dependencies(result.unused_dependencies)
+        print_warnings(result.warnings)
+        print_errors(result.errors)
+        print_unused_external_dependencies(result.unused_dependencies)
+        print_undeclared_dependencies(result.undeclared_dependencies)
 
-        if result.undeclared_dependencies:
-            print_undeclared_dependencies(result.undeclared_dependencies)
+        if result.errors or result.undeclared_dependencies:
             sys.exit(1)
+        else:
+            print(
+                f"{icons.SUCCESS} {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
+            )
+            sys.exit(0)
 
     except Exception as e:
         print(str(e))
         sys.exit(1)
-
-    print(
-        f"{icons.SUCCESS} {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
-    )
-    sys.exit(0)
 
 
 def tach_mod(

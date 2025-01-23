@@ -6,7 +6,7 @@ use std::thread::JoinHandle;
 
 use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
 
-use crate::check_internal::check;
+use crate::commands::check::check_internal;
 use crate::config;
 use crate::interrupt::{check_interrupt, get_interrupt_channel};
 
@@ -129,7 +129,7 @@ impl LSPServer {
         eprintln!("Linting for diagnostics: {uri_pathbuf:?}");
         eprintln!("Project root: {}", self.project_root.display());
 
-        let check_result = check(
+        let check_result = check_internal(
             self.project_root.clone(),
             &self.project_config,
             true,
