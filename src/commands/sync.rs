@@ -149,6 +149,22 @@ fn sync_dependency_constraints(
     )?;
     let detected_dependencies = detect_dependencies(&check_result.errors);
 
+    // Root module is a special case -- it may not be in module paths and still implicitly detect dependencies
+    // If the root module is not in the module paths, but was detected, create it
+    if !project_config
+        .module_paths()
+        .contains(&ROOT_MODULE_SENTINEL_TAG.to_string())
+        && (detected_dependencies.contains_key(ROOT_MODULE_SENTINEL_TAG)
+            || detected_dependencies
+                .values()
+                .any(|deps| deps.contains(&ROOT_MODULE_SENTINEL_TAG.to_string())))
+    {
+        // This enqueues an edit to the TOML
+        project_config.create_module(ROOT_MODULE_SENTINEL_TAG.to_string())?;
+        // This adds the root module to the module paths immediately
+        project_config.add_root_module();
+    }
+
     // Now diff with project config and apply edits
     for module_path in project_config.module_paths() {
         let module_detected_dependencies =
