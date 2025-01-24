@@ -1,9 +1,16 @@
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
-use super::diagnostics::ImportCheckError;
+use super::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::{
-    config::{root_module::RootModuleTreatment, DependencyConfig, ModuleConfig, ProjectConfig},
-    imports::DirectiveIgnoredImport,
+    config::{
+        root_module::RootModuleTreatment, rules::RuleSetting, DependencyConfig, ModuleConfig,
+        ProjectConfig,
+    },
+    external::parsing::{normalize_package_name, ProjectInfo},
+    imports::{DirectiveIgnoredImport, NormalizedImport},
     interfaces::{
         check::CheckResult as InterfaceCheckResult, data_types::TypeCheckResult, InterfaceChecker,
     },
@@ -15,7 +22,7 @@ fn check_dependencies(
     file_module_config: &ModuleConfig,
     import_module_config: &ModuleConfig,
     layers: &[String],
-) -> Result<(), ImportCheckError> {
+) -> Result<(), Diagnostic> {
     // Layer check should take precedence over other dependency checks
     match check_layers(layers, file_module_config, import_module_config) {
         LayerCheckResult::Ok => return Ok(()), // Higher layers can unconditionally import lower layers
@@ -40,17 +47,21 @@ fn check_dependencies(
     {
         Some(DependencyConfig {
             deprecated: true, ..
-        }) => Err(ImportCheckError::DeprecatedImport {
-            import_mod_path: import_mod_path.to_string(),
-            source_module: file_nearest_module_path.to_string(),
-            invalid_module: import_nearest_module_path.to_string(),
-        }),
+        }) => Err(Diagnostic::new_global_error(DiagnosticDetails::Code(
+            CodeDiagnostic::DeprecatedImport {
+                import_mod_path: import_mod_path.to_string(),
+                usage_module: file_nearest_module_path.to_string(),
+                definition_module: import_nearest_module_path.to_string(),
+            },
+        ))),
         Some(_) => Ok(()),
-        None => Err(ImportCheckError::InvalidImport {
-            import_mod_path: import_mod_path.to_string(),
-            source_module: file_nearest_module_path.to_string(),
-            invalid_module: import_nearest_module_path.to_string(),
-        }),
+        None => Err(Diagnostic::new_global_error(DiagnosticDetails::Code(
+            CodeDiagnostic::InvalidImport {
+                import_mod_path: import_mod_path.to_string(),
+                usage_module: file_nearest_module_path.to_string(),
+                definition_module: import_nearest_module_path.to_string(),
+            },
+        ))),
     }
 }
 
@@ -59,7 +70,7 @@ fn check_interfaces(
     import_nearest_module: &ModuleNode,
     file_nearest_module: &ModuleNode,
     interface_checker: &InterfaceChecker,
-) -> Result<(), ImportCheckError> {
+) -> Result<(), Diagnostic> {
     let import_member = import_mod_path
         .strip_prefix(&import_nearest_module.full_path)
         .and_then(|s| s.strip_prefix('.'))
@@ -67,23 +78,27 @@ fn check_interfaces(
     let check_result =
         interface_checker.check_member(import_member, &import_nearest_module.full_path);
     match check_result {
-        InterfaceCheckResult::NotExposed => Err(ImportCheckError::PrivateImport {
-            import_mod_path: import_mod_path.to_string(),
-            import_nearest_module_path: import_nearest_module.full_path.to_string(),
-            file_nearest_module_path: file_nearest_module.full_path.to_string(),
-        }),
+        InterfaceCheckResult::NotExposed => Err(Diagnostic::new_global_error(
+            DiagnosticDetails::Code(CodeDiagnostic::PrivateImport {
+                import_mod_path: import_mod_path.to_string(),
+                import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                file_nearest_module_path: file_nearest_module.full_path.to_string(),
+            }),
+        )),
         InterfaceCheckResult::Exposed {
             type_check_result: TypeCheckResult::DidNotMatchInterface { expected },
-        } => Err(ImportCheckError::InvalidDataTypeExport {
-            import_mod_path: import_mod_path.to_string(),
-            import_nearest_module_path: import_nearest_module.full_path.to_string(),
-            expected_data_type: expected.to_string(),
-        }),
+        } => Err(Diagnostic::new_global_error(DiagnosticDetails::Code(
+            CodeDiagnostic::InvalidDataTypeExport {
+                import_mod_path: import_mod_path.to_string(),
+                import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                expected_data_type: expected.to_string(),
+            },
+        ))),
         _ => Ok(()),
     }
 }
 
-pub(super) fn check_import(
+pub(super) fn check_import_internal(
     import_mod_path: &str,
     module_tree: &ModuleTree,
     file_nearest_module: Arc<ModuleNode>,
@@ -91,9 +106,11 @@ pub(super) fn check_import(
     root_module_treatment: RootModuleTreatment,
     interface_checker: &Option<InterfaceChecker>,
     should_check_dependencies: bool,
-) -> Result<(), ImportCheckError> {
+) -> Result<(), Diagnostic> {
     if !should_check_dependencies && interface_checker.is_none() {
-        return Err(ImportCheckError::NoChecksEnabled());
+        return Err(Diagnostic::new_global_error(
+            DiagnosticDetails::Configuration(ConfigurationDiagnostic::NoChecksEnabled()),
+        ));
     }
 
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
@@ -112,14 +129,20 @@ pub(super) fn check_import(
         return Ok(());
     }
 
-    let file_module_config = file_nearest_module
-        .config
-        .as_ref()
-        .ok_or(ImportCheckError::ModuleConfigNotFound())?;
-    let import_module_config = import_nearest_module
-        .config
-        .as_ref()
-        .ok_or(ImportCheckError::ModuleConfigNotFound())?;
+    let file_module_config =
+        file_nearest_module
+            .config
+            .as_ref()
+            .ok_or(Diagnostic::new_global_error(
+                DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleConfigNotFound()),
+            ))?;
+    let import_module_config =
+        import_nearest_module
+            .config
+            .as_ref()
+            .ok_or(Diagnostic::new_global_error(
+                DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleConfigNotFound()),
+            ))?;
 
     if let Some(interface_checker) = interface_checker {
         check_interfaces(
@@ -142,15 +165,19 @@ pub(super) fn check_import(
     Ok(())
 }
 
-pub(super) fn check_unused_ignore_directive(
+pub(super) fn check_unused_ignore_directive_internal(
     directive_ignored_import: &DirectiveIgnoredImport,
     module_tree: &ModuleTree,
     nearest_module: Arc<ModuleNode>,
     project_config: &ProjectConfig,
     interface_checker: &Option<InterfaceChecker>,
     check_dependencies: bool,
-) -> Result<(), ImportCheckError> {
-    match check_import(
+) -> Result<(), Diagnostic> {
+    if project_config.rules.unused_ignore_directives == RuleSetting::Off {
+        return Ok(());
+    }
+
+    match check_import_internal(
         &directive_ignored_import.import.module_path,
         module_tree,
         Arc::clone(&nearest_module),
@@ -159,20 +186,118 @@ pub(super) fn check_unused_ignore_directive(
         interface_checker,
         check_dependencies,
     ) {
-        Ok(()) => Err(ImportCheckError::UnnecessarilyIgnoredImport {
-            import_mod_path: directive_ignored_import.import.module_path.to_string(),
-        }),
+        Ok(()) => Err(Diagnostic::new_global(
+            (&project_config.rules.unused_ignore_directives)
+                .try_into()
+                .unwrap(),
+            DiagnosticDetails::Code(CodeDiagnostic::UnnecessarilyIgnoredImport {
+                import_mod_path: directive_ignored_import.import.module_path.to_string(),
+            }),
+        )),
         Err(_) => Ok(()),
+    }
+}
+
+#[derive(Debug)]
+pub enum ImportProcessResult {
+    UndeclaredDependency(String),
+    UsedDependencies(Vec<String>),
+    Excluded(Vec<String>),
+}
+
+pub(super) fn check_import_external(
+    import: &NormalizedImport,
+    project_info: &ProjectInfo,
+    module_mappings: &HashMap<String, Vec<String>>,
+    excluded_external_modules: &HashSet<String>,
+    stdlib_modules: &HashSet<String>,
+) -> ImportProcessResult {
+    let top_level_module_name = import.top_level_module_name().to_string();
+    let default_distribution_names = vec![top_level_module_name.clone()];
+    let distribution_names: Vec<String> = module_mappings
+        .get(&top_level_module_name)
+        .unwrap_or(&default_distribution_names)
+        .iter()
+        .map(|dist_name| normalize_package_name(dist_name))
+        .collect();
+
+    if distribution_names
+        .iter()
+        .any(|dist_name| excluded_external_modules.contains(dist_name))
+        || stdlib_modules.contains(&top_level_module_name)
+    {
+        return ImportProcessResult::Excluded(distribution_names);
+    }
+
+    let is_declared = distribution_names
+        .iter()
+        .any(|dist_name| project_info.dependencies.contains(dist_name));
+
+    if !is_declared {
+        ImportProcessResult::UndeclaredDependency(top_level_module_name.to_string())
+    } else {
+        ImportProcessResult::UsedDependencies(distribution_names)
+    }
+}
+
+pub(super) fn check_unused_ignore_directive_external(
+    directive_ignored_import: &DirectiveIgnoredImport,
+    project_info: &ProjectInfo,
+    module_mappings: &HashMap<String, Vec<String>>,
+    excluded_external_modules: &HashSet<String>,
+    stdlib_modules: &HashSet<String>,
+    project_config: &ProjectConfig,
+) -> Result<(), Diagnostic> {
+    if let ImportProcessResult::UsedDependencies(_) | ImportProcessResult::Excluded(_) =
+        check_import_external(
+            directive_ignored_import.import,
+            &project_info,
+            module_mappings,
+            &excluded_external_modules,
+            &stdlib_modules,
+        )
+    {
+        match project_config.rules.unused_ignore_directives {
+            RuleSetting::Error => Err(Diagnostic::new_global(
+                (&project_config.rules.unused_ignore_directives)
+                    .try_into()
+                    .unwrap(),
+                DiagnosticDetails::Code(CodeDiagnostic::UnnecessarilyIgnoredImport {
+                    import_mod_path: directive_ignored_import.import.module_path.to_string(),
+                }),
+            )),
+            RuleSetting::Warn => Err(Diagnostic::new_global(
+                (&project_config.rules.unused_ignore_directives)
+                    .try_into()
+                    .unwrap(),
+                DiagnosticDetails::Code(CodeDiagnostic::UnnecessarilyIgnoredImport {
+                    import_mod_path: directive_ignored_import.import.module_path.to_string(),
+                }),
+            )),
+            RuleSetting::Off => Ok(()),
+        }
+    } else {
+        Ok(())
     }
 }
 
 pub(super) fn check_missing_ignore_directive_reason(
     directive_ignored_import: &DirectiveIgnoredImport,
-) -> Result<(), ImportCheckError> {
+    project_config: &ProjectConfig,
+) -> Result<(), Diagnostic> {
+    if project_config.rules.require_ignore_directive_reasons == RuleSetting::Off {
+        return Ok(());
+    }
+
     if directive_ignored_import.reason.is_empty() {
-        Err(ImportCheckError::MissingIgnoreDirectiveReason {
-            import_mod_path: directive_ignored_import.import.module_path.to_string(),
-        })
+        Err(Diagnostic::new_global(
+            (&project_config.rules.require_ignore_directive_reasons)
+                .try_into()
+                .unwrap(),
+            DiagnosticDetails::Code(CodeDiagnostic::MissingIgnoreDirectiveReason {
+                import_mod_path: directive_ignored_import.import.module_path.to_string(),
+            }),
+        ))
     } else {
         Ok(())
     }
@@ -183,8 +308,8 @@ enum LayerCheckResult {
     Ok,
     SameLayer,
     LayerNotSpecified,
-    LayerViolation(ImportCheckError),
-    UnknownLayer(ImportCheckError),
+    LayerViolation(Diagnostic),
+    UnknownLayer(Diagnostic),
 }
 
 fn check_layers(
@@ -204,25 +329,33 @@ fn check_layers(
                     } else if source_index < target_index {
                         LayerCheckResult::Ok
                     } else {
-                        LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
-                            import_mod_path: target_module_config.path.clone(),
-                            source_module: source_module_config.path.clone(),
-                            source_layer: source_layer.clone(),
-                            invalid_module: target_module_config.path.clone(),
-                            invalid_layer: target_layer.clone(),
-                        })
+                        LayerCheckResult::LayerViolation(Diagnostic::new_global_error(
+                            DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
+                                import_mod_path: target_module_config.path.clone(),
+                                usage_module: source_module_config.path.clone(),
+                                usage_layer: source_layer.clone(),
+                                definition_module: target_module_config.path.clone(),
+                                definition_layer: target_layer.clone(),
+                            }),
+                        ))
                     }
                 }
                 // If either index is not found, the layer is unknown
-                (Some(_), None) => LayerCheckResult::UnknownLayer(ImportCheckError::UnknownLayer {
-                    layer: target_layer.clone(),
-                }),
-                (None, Some(_)) => LayerCheckResult::UnknownLayer(ImportCheckError::UnknownLayer {
-                    layer: source_layer.clone(),
-                }),
-                _ => LayerCheckResult::UnknownLayer(ImportCheckError::UnknownLayer {
-                    layer: source_layer.clone(),
-                }),
+                (Some(_), None) => LayerCheckResult::UnknownLayer(Diagnostic::new_global_error(
+                    DiagnosticDetails::Configuration(ConfigurationDiagnostic::UnknownLayer {
+                        layer: target_layer.clone(),
+                    }),
+                )),
+                (None, Some(_)) => LayerCheckResult::UnknownLayer(Diagnostic::new_global_error(
+                    DiagnosticDetails::Configuration(ConfigurationDiagnostic::UnknownLayer {
+                        layer: source_layer.clone(),
+                    }),
+                )),
+                _ => LayerCheckResult::UnknownLayer(Diagnostic::new_global_error(
+                    DiagnosticDetails::Configuration(ConfigurationDiagnostic::UnknownLayer {
+                        layer: source_layer.clone(),
+                    }),
+                )),
             }
         }
         _ => LayerCheckResult::LayerNotSpecified, // At least one module does not have a layer
@@ -232,7 +365,7 @@ fn check_layers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::check::diagnostics::ImportCheckError;
+    use crate::commands::check::diagnostics::Diagnostic;
     use crate::config::{InterfaceConfig, ModuleConfig};
     use crate::modules::ModuleTree;
     use crate::tests::check_internal::fixtures::{
@@ -269,7 +402,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let check_error = check_import(
+        let check_error = check_import_internal(
             import_mod_path,
             &module_tree,
             file_module.clone(),
@@ -296,7 +429,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let check_error = check_import(
+        let check_error = check_import_internal(
             "domain_one.subdomain",
             &module_tree,
             file_module.clone(),
@@ -314,27 +447,33 @@ mod tests {
     #[case("top", "middle", LayerCheckResult::Ok)]
     #[case("top", "bottom", LayerCheckResult::Ok)]
     #[case("middle", "bottom", LayerCheckResult::Ok)]
-    #[case("bottom", "top", LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
-        source_layer: "bottom".to_string(),
-        invalid_layer: "top".to_string(),
-        import_mod_path: "".to_string(),
-        source_module: "".to_string(),
-        invalid_module: "".to_string(),
-    }))]
-    #[case("middle", "top", LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
-        source_layer: "middle".to_string(),
-        invalid_layer: "top".to_string(),
-        import_mod_path: "".to_string(),
-        source_module: "".to_string(),
-        invalid_module: "".to_string(),
-    }))]
-    #[case("bottom", "middle", LayerCheckResult::LayerViolation(ImportCheckError::LayerViolation {
-        source_layer: "bottom".to_string(),
-        invalid_layer: "middle".to_string(),
-        import_mod_path: "".to_string(),
-        source_module: "".to_string(),
-        invalid_module: "".to_string(),
-    }))]
+    #[case("bottom", "top", LayerCheckResult::LayerViolation(Diagnostic::new_global_error(
+        DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
+            import_mod_path: "".to_string(),
+            usage_module: "".to_string(),
+            usage_layer: "bottom".to_string(),
+            definition_module: "".to_string(),
+            definition_layer: "top".to_string(),
+        }),
+    )))]
+    #[case("middle", "top", LayerCheckResult::LayerViolation(Diagnostic::new_global_error(
+        DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
+            import_mod_path: "".to_string(),
+            usage_module: "".to_string(),
+            usage_layer: "middle".to_string(),
+            definition_module: "".to_string(),
+            definition_layer: "top".to_string(),
+        }),
+    )))]
+    #[case("bottom", "middle", LayerCheckResult::LayerViolation(Diagnostic::new_global_error(
+        DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
+            import_mod_path: "".to_string(),
+            usage_module: "".to_string(),
+            usage_layer: "bottom".to_string(),
+            definition_module: "".to_string(),
+            definition_layer: "middle".to_string(),
+        }),
+    )))]
     fn test_check_layers_hierarchy(
         layers: Vec<String>,
         #[case] source_layer: &str,
@@ -393,7 +532,7 @@ mod tests {
                 .unwrap(),
         );
 
-        let check_error = check_import(
+        let check_error = check_import_internal(
             import_mod_path,
             &module_tree,
             file_module.clone(),

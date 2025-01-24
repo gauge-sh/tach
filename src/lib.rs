@@ -248,7 +248,7 @@ fn check_external_dependencies(
     project_config: config::ProjectConfig,
     module_mappings: HashMap<String, Vec<String>>,
     stdlib_modules: Vec<String>,
-) -> check::check_external::Result<check::ExternalCheckDiagnostics> {
+) -> check::check_external::Result<Vec<check::Diagnostic>> {
     let project_root = PathBuf::from(project_root);
     check::check_external::check(
         &project_root,
@@ -336,7 +336,7 @@ fn check_internal(
     dependencies: bool,
     interfaces: bool,
     exclude_paths: Vec<String>,
-) -> Result<check::CheckDiagnostics, check::CheckError> {
+) -> check::check_internal::Result<Vec<check::Diagnostic>> {
     check::check_internal(
         project_root,
         project_config,
@@ -390,8 +390,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::InterfaceConfig>()?;
     m.add_class::<config::RulesConfig>()?;
     m.add_class::<config::DependencyConfig>()?;
-    m.add_class::<check::CheckDiagnostics>()?;
-    m.add_class::<check::ExternalCheckDiagnostics>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;

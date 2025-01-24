@@ -1,87 +1,58 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf};
 
-use pyo3::exceptions::PyValueError;
-use pyo3::{pyclass, pymethods, PyResult};
-use rayon::prelude::*;
+use pyo3::{pyclass, pymethods};
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::interrupt::check_interrupt;
+use crate::config::RuleSetting;
 
-#[derive(Debug, Clone, Serialize)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct BoundaryError {
-    pub file_path: PathBuf,
-    pub line_number: usize,
-    pub import_mod_path: String,
-    pub error_info: ImportCheckError,
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[pyclass(eq, eq_int, module = "tach.extension")]
+pub enum Severity {
+    Error,
+    Warning,
 }
 
-impl BoundaryError {
-    pub fn is_deprecated(&self) -> bool {
-        self.error_info.is_deprecated()
-    }
-}
+impl TryFrom<&RuleSetting> for Severity {
+    type Error = ();
 
-#[derive(Debug, Default, Serialize)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct CheckDiagnostics {
-    pub errors: Vec<BoundaryError>,
-    pub deprecated_warnings: Vec<BoundaryError>,
-    pub warnings: Vec<String>,
-}
-
-#[pymethods]
-impl CheckDiagnostics {
-    #[pyo3(signature = (pretty_print = false))]
-    fn serialize_json(&self, pretty_print: bool) -> PyResult<String> {
-        if pretty_print {
-            serde_json::to_string_pretty(&self)
-                .map_err(|_| PyValueError::new_err("Failed to serialize check results."))
-        } else {
-            serde_json::to_string(&self)
-                .map_err(|_| PyValueError::new_err("Failed to serialize check results."))
+    fn try_from(setting: &RuleSetting) -> Result<Self, <Self as TryFrom<&RuleSetting>>::Error> {
+        match setting {
+            RuleSetting::Error => Ok(Self::Error),
+            RuleSetting::Warn => Ok(Self::Warning),
+            RuleSetting::Off => Err(()),
         }
-    }
-}
-
-impl ParallelExtend<CheckDiagnostics> for CheckDiagnostics {
-    fn par_extend<I>(&mut self, par_iter: I)
-    where
-        I: IntoParallelIterator<Item = CheckDiagnostics>,
-    {
-        // Reduce all diagnostics into a single one in parallel
-        let combined =
-            par_iter
-                .into_par_iter()
-                .reduce(CheckDiagnostics::default, |mut acc, item| {
-                    if check_interrupt().is_err() {
-                        return acc;
-                    }
-                    acc.errors.extend(item.errors);
-                    acc.deprecated_warnings.extend(item.deprecated_warnings);
-                    acc.warnings.extend(item.warnings);
-                    acc
-                });
-
-        if check_interrupt().is_err() {
-            return;
-        }
-        // Extend self with the combined results
-        self.errors.extend(combined.errors);
-        self.deprecated_warnings
-            .extend(combined.deprecated_warnings);
-        self.warnings.extend(combined.warnings);
     }
 }
 
 #[derive(Error, Debug, Clone, Serialize)]
 #[pyclass(module = "tach.extension")]
-pub enum ImportCheckError {
+pub enum ConfigurationDiagnostic {
     #[error("Module containing '{file_mod_path}' not found in project.")]
     ModuleNotFound { file_mod_path: String },
 
+    #[error("Could not find module configuration.")]
+    ModuleConfigNotFound(),
+
+    #[error("Layer '{layer}' is not defined in the project.")]
+    UnknownLayer { layer: String },
+
+    #[error("No first-party imports were found. You may need to use 'tach mod' to update your Python source roots. Docs: https://docs.gauge.sh/usage/configuration#source-roots")]
+    NoFirstPartyImportsFound(),
+
+    #[error("Unexpected error: No checks were enabled.")]
+    NoChecksEnabled(),
+
+    #[error("Skipped '{file_path}' due to a syntax error.")]
+    SkippedFileSyntaxError { file_path: String },
+
+    #[error("Skipped '{file_path}' due to an I/O error.")]
+    SkippedFileIoError { file_path: String },
+}
+
+#[derive(Error, Debug, Clone, Serialize)]
+#[pyclass(module = "tach.extension")]
+pub enum CodeDiagnostic {
     #[error("Module '{import_nearest_module_path}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
     PrivateImport {
         import_mod_path: String,
@@ -96,34 +67,28 @@ pub enum ImportCheckError {
         expected_data_type: String,
     },
 
-    #[error("Could not find module configuration.")]
-    ModuleConfigNotFound(),
-
-    #[error("Cannot import '{import_mod_path}'. Module '{source_module}' cannot depend on '{invalid_module}'.")]
+    #[error("Cannot import '{import_mod_path}'. Module '{usage_module}' cannot depend on '{definition_module}'.")]
     InvalidImport {
         import_mod_path: String,
-        source_module: String,
-        invalid_module: String,
+        usage_module: String,
+        definition_module: String,
     },
 
-    #[error("Import '{import_mod_path}' is deprecated. Module '{source_module}' should not depend on '{invalid_module}'.")]
+    #[error("Import '{import_mod_path}' is deprecated. Module '{usage_module}' should not depend on '{definition_module}'.")]
     DeprecatedImport {
         import_mod_path: String,
-        source_module: String,
-        invalid_module: String,
+        usage_module: String,
+        definition_module: String,
     },
 
-    #[error("Cannot import '{import_mod_path}'. Layer '{source_layer}' ('{source_module}') is lower than layer '{invalid_layer}' ('{invalid_module}').")]
+    #[error("Cannot import '{import_mod_path}'. Layer '{usage_layer}' ('{usage_module}') is lower than layer '{definition_layer}' ('{definition_module}').")]
     LayerViolation {
         import_mod_path: String,
-        source_module: String,
-        source_layer: String,
-        invalid_module: String,
-        invalid_layer: String,
+        usage_module: String,
+        usage_layer: String,
+        definition_module: String,
+        definition_layer: String,
     },
-
-    #[error("Layer '{layer}' is not defined in the project.")]
-    UnknownLayer { layer: String },
 
     #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
     UnnecessarilyIgnoredImport { import_mod_path: String },
@@ -134,82 +99,206 @@ pub enum ImportCheckError {
     #[error("Import '{import_mod_path}' is ignored without providing a reason.")]
     MissingIgnoreDirectiveReason { import_mod_path: String },
 
-    #[error("No checks enabled. At least one of dependencies or interfaces must be enabled.")]
-    NoChecksEnabled(),
+    #[error("Import '{import_mod_path}' does not match any declared dependency.")]
+    UndeclaredExternalDependency { import_mod_path: String },
+
+    #[error("External package '{package_module_name}' is not used.")]
+    UnusedExternalDependency { package_module_name: String },
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[pyclass(module = "tach.extension")]
+pub enum DiagnosticDetails {
+    Code(CodeDiagnostic),
+    Configuration(ConfigurationDiagnostic),
+}
+
+impl Display for DiagnosticDetails {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiagnosticDetails::Code(code) => write!(f, "{}", code),
+            DiagnosticDetails::Configuration(config) => write!(f, "{}", config),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[pyclass(module = "tach.extension")]
+pub enum Diagnostic {
+    Global {
+        severity: Severity,
+        details: DiagnosticDetails,
+    },
+    Located {
+        file_path: PathBuf,
+        line_number: usize,
+        severity: Severity,
+        details: DiagnosticDetails,
+    },
+}
+
+impl Diagnostic {
+    pub fn new_global(severity: Severity, details: DiagnosticDetails) -> Self {
+        Self::Global { severity, details }
+    }
+
+    pub fn new_located(
+        severity: Severity,
+        details: DiagnosticDetails,
+        file_path: PathBuf,
+        line_number: usize,
+    ) -> Self {
+        Self::Located {
+            severity,
+            details,
+            file_path,
+            line_number,
+        }
+    }
+
+    pub fn into_located(self, file_path: PathBuf, line_number: usize) -> Self {
+        match self {
+            Self::Global { details, .. } => {
+                Self::new_located_error(file_path, line_number, details)
+            }
+            Self::Located { .. } => self,
+        }
+    }
+
+    pub fn new_located_error(
+        file_path: PathBuf,
+        line_number: usize,
+        details: DiagnosticDetails,
+    ) -> Self {
+        Self::Located {
+            file_path,
+            line_number,
+            severity: Severity::Error,
+            details,
+        }
+    }
+
+    pub fn new_located_warning(
+        file_path: PathBuf,
+        line_number: usize,
+        details: DiagnosticDetails,
+    ) -> Self {
+        Self::Located {
+            file_path,
+            line_number,
+            severity: Severity::Warning,
+            details,
+        }
+    }
+
+    pub fn new_global_error(details: DiagnosticDetails) -> Self {
+        Self::Global {
+            severity: Severity::Error,
+            details,
+        }
+    }
+
+    pub fn new_global_warning(details: DiagnosticDetails) -> Self {
+        Self::Global {
+            severity: Severity::Warning,
+            details,
+        }
+    }
+
+    pub fn details(&self) -> &DiagnosticDetails {
+        match self {
+            Self::Global { details, .. } => details,
+            Self::Located { details, .. } => details,
+        }
+    }
+
+    pub fn severity(&self) -> Severity {
+        match self {
+            Self::Global { severity, .. } => severity.clone(),
+            Self::Located { severity, .. } => severity.clone(),
+        }
+    }
+
+    pub fn file_path(&self) -> Option<&PathBuf> {
+        match self {
+            Self::Global { .. } => None,
+            Self::Located { file_path, .. } => Some(file_path),
+        }
+    }
+
+    pub fn line_number(&self) -> Option<usize> {
+        match self {
+            Self::Global { .. } => None,
+            Self::Located { line_number, .. } => Some(*line_number),
+        }
+    }
 }
 
 #[pymethods]
-impl ImportCheckError {
+impl Diagnostic {
+    pub fn is_code(&self) -> bool {
+        matches!(self.details(), DiagnosticDetails::Code { .. })
+    }
+
+    pub fn is_configuration(&self) -> bool {
+        matches!(self.details(), DiagnosticDetails::Configuration { .. })
+    }
+
     pub fn is_dependency_error(&self) -> bool {
         matches!(
-            self,
-            Self::InvalidImport { .. }
-                | Self::DeprecatedImport { .. }
-                | Self::LayerViolation { .. }
+            self.details(),
+            DiagnosticDetails::Code(CodeDiagnostic::InvalidImport { .. })
+                | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport { .. })
+                | DiagnosticDetails::Code(CodeDiagnostic::LayerViolation { .. })
         )
     }
 
     pub fn is_interface_error(&self) -> bool {
         matches!(
-            self,
-            Self::PrivateImport { .. } | Self::InvalidDataTypeExport { .. }
+            self.details(),
+            DiagnosticDetails::Code(CodeDiagnostic::PrivateImport { .. })
+                | DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport { .. })
         )
     }
 
-    pub fn source_path(&self) -> Option<&String> {
-        match self {
-            Self::InvalidImport { source_module, .. } => Some(source_module),
-            Self::DeprecatedImport { source_module, .. } => Some(source_module),
-            Self::LayerViolation { source_module, .. } => Some(source_module),
+    pub fn usage_module(&self) -> Option<&String> {
+        match self.details() {
+            DiagnosticDetails::Code(CodeDiagnostic::InvalidImport { usage_module, .. })
+            | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport { usage_module, .. })
+            | DiagnosticDetails::Code(CodeDiagnostic::LayerViolation { usage_module, .. }) => {
+                Some(usage_module)
+            }
             _ => None,
         }
     }
 
-    pub fn invalid_path(&self) -> Option<&String> {
-        match self {
-            Self::InvalidImport { invalid_module, .. } => Some(invalid_module),
-            Self::DeprecatedImport { invalid_module, .. } => Some(invalid_module),
-            Self::LayerViolation { invalid_module, .. } => Some(invalid_module),
+    pub fn definition_module(&self) -> Option<&String> {
+        match self.details() {
+            DiagnosticDetails::Code(CodeDiagnostic::InvalidImport {
+                definition_module, ..
+            })
+            | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport {
+                definition_module, ..
+            })
+            | DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
+                definition_module, ..
+            }) => Some(definition_module),
             _ => None,
         }
     }
 
     pub fn is_deprecated(&self) -> bool {
-        matches!(self, Self::DeprecatedImport { .. })
+        matches!(
+            self.details(),
+            DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport { .. })
+        )
     }
 
+    #[pyo3(name = "to_string")]
     pub fn to_pystring(&self) -> String {
-        self.to_string()
-    }
-}
-
-#[derive(Default)]
-#[pyclass(get_all, module = "tach.extension")]
-pub struct ExternalCheckDiagnostics {
-    // Undeclared dependencies by source filepath
-    pub undeclared_dependencies: HashMap<String, Vec<String>>,
-    // Unused dependencies by project configuration filepath
-    pub unused_dependencies: HashMap<String, Vec<String>>,
-    // Other errors
-    pub errors: Vec<String>,
-    // Other warnings
-    pub warnings: Vec<String>,
-}
-
-#[pymethods]
-impl ExternalCheckDiagnostics {
-    #[new]
-    fn new(
-        undeclared_dependencies: HashMap<String, Vec<String>>,
-        unused_dependencies: HashMap<String, Vec<String>>,
-        errors: Vec<String>,
-        warnings: Vec<String>,
-    ) -> Self {
-        Self {
-            undeclared_dependencies,
-            unused_dependencies,
-            errors,
-            warnings,
+        match self {
+            Self::Global { details, .. } => details.to_string(),
+            Self::Located { details, .. } => details.to_string(),
         }
     }
 }

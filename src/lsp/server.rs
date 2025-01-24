@@ -7,6 +7,7 @@ use std::thread::JoinHandle;
 use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
 
 use crate::commands::check::check_internal;
+use crate::commands::check::diagnostics::{Diagnostic, Severity};
 use crate::config;
 use crate::interrupt::{check_interrupt, get_interrupt_channel};
 
@@ -49,6 +50,39 @@ fn uri_to_path(uri: &Uri) -> PathBuf {
     } else {
         // On POSIX, ensure path starts with /
         format!("/{}", segments.join(MAIN_SEPARATOR_STR)).into()
+    }
+}
+
+impl From<Severity> for lsp_types::DiagnosticSeverity {
+    fn from(severity: Severity) -> Self {
+        match severity {
+            Severity::Error => lsp_types::DiagnosticSeverity::ERROR,
+            Severity::Warning => lsp_types::DiagnosticSeverity::WARNING,
+        }
+    }
+}
+
+impl From<Diagnostic> for Option<lsp_types::Diagnostic> {
+    fn from(diag: Diagnostic) -> Self {
+        match diag {
+            Diagnostic::Global { .. } => None,
+            Diagnostic::Located { line_number, .. } => Some(lsp_types::Diagnostic {
+                range: lsp_types::Range {
+                    start: lsp_types::Position {
+                        line: (line_number - 1) as u32,
+                        character: 0,
+                    },
+                    end: lsp_types::Position {
+                        line: (line_number - 1) as u32,
+                        character: 99999,
+                    },
+                },
+                severity: Some(diag.severity().into()),
+                source: Some("tach".to_string()),
+                message: diag.details().to_string(),
+                ..Default::default()
+            }),
+        }
     }
 }
 
@@ -136,35 +170,25 @@ impl LSPServer {
             true,
             self.project_config.exclude.clone(),
         )?;
-        let diagnostics = check_result
-            .errors
-            .into_iter()
-            .filter_map(|e| {
-                if self.project_config.source_roots.iter().any(|source_root| {
-                    let full_path = self.project_root.join(source_root).join(&e.file_path);
-                    uri_pathbuf == full_path
-                }) {
-                    Some(lsp_types::Diagnostic {
-                        range: lsp_types::Range {
-                            start: lsp_types::Position {
-                                line: (e.line_number - 1) as u32,
-                                character: 0,
-                            },
-                            end: lsp_types::Position {
-                                line: (e.line_number - 1) as u32,
-                                character: 99999,
-                            },
-                        },
-                        severity: Some(lsp_types::DiagnosticSeverity::ERROR),
-                        source: Some("tach".to_string()),
-                        message: e.error_info.to_string(),
-                        ..Default::default()
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let diagnostics =
+            check_result
+                .into_iter()
+                .filter_map(|e| {
+                    if self.project_config.source_roots.iter().any(|source_root| {
+                        match e.file_path() {
+                            Some(file_path) => {
+                                let full_path = self.project_root.join(source_root).join(file_path);
+                                uri_pathbuf == full_path
+                            }
+                            None => false,
+                        }
+                    }) {
+                        e.into()
+                    } else {
+                        None
+                    }
+                })
+                .collect();
         Ok(lsp_types::PublishDiagnosticsParams {
             uri,
             diagnostics,
