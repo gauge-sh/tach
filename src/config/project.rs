@@ -185,6 +185,10 @@ impl ProjectConfig {
         self.domains.push(domain);
     }
 
+    pub fn add_root_module(&mut self) {
+        self.modules.push(ModuleConfig::new_root_config());
+    }
+
     pub fn all_modules(&self) -> impl Iterator<Item = &ModuleConfig> {
         self.modules
             .iter()
