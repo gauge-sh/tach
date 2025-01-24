@@ -470,6 +470,17 @@ impl ProjectConfig {
         })
     }
 
+    pub fn has_root_module_reference(&self) -> bool {
+        self.all_modules().any(|module| {
+            module.path == "<root>"
+                || module
+                    .depends_on
+                    .as_ref()
+                    .map(|deps| deps.iter().any(|dep| dep.path == "<root>"))
+                    .unwrap_or(false)
+        })
+    }
+
     pub fn module_paths(&self) -> Vec<String> {
         self.all_modules()
             .map(|module| module.path.clone())
