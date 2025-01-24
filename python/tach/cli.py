@@ -1183,10 +1183,22 @@ def main() -> None:
         print_no_config_found()
         sys.exit(1)
 
+    # Deprecation warnings
     if project_config.use_regex_matching:
         print(
             f"{BCOLORS.WARNING}WARNING: regex matching for exclude paths is deprecated. "
             + f"Update your exclude paths in {CONFIG_FILE_NAME}.toml to use glob patterns instead, and remove the 'use_regex_matching' setting.{BCOLORS.ENDC}"
+            + "\n"
+        )
+    if (
+        project_config.root_module == "ignore"
+        and project_config.has_root_module_reference()
+    ):
+        print(
+            f"{BCOLORS.WARNING}WARNING: root module treatment is set to 'ignore' (default as of 0.23.0), but '<root>' appears in your configuration."
+            + f"\n\nRun '{TOOL_NAME} sync' to remove the root module from your dependencies,"
+            + f" or update 'root_module' in {CONFIG_FILE_NAME}.toml to 'allow' or 'forbid' instead."
+            + f"\nDocumentation: https://docs.gauge.sh/usage/configuration#the-root-module{BCOLORS.ENDC}"
             + "\n"
         )
 

@@ -6,9 +6,9 @@ pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
 #[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum RootModuleTreatment {
-    #[default]
     Allow,
     Forbid,
+    #[default]
     Ignore,
     DependenciesOnly,
 }
