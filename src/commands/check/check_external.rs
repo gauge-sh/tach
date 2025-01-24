@@ -132,10 +132,10 @@ pub fn check(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::commands::check::diagnostics::Severity;
     use crate::config::ProjectConfig;
     use crate::tests::fixtures::example_dir;
-
-    use super::*;
     use rstest::*;
 
     #[fixture]
@@ -170,13 +170,21 @@ mod tests {
         module_mapping: HashMap<String, Vec<String>>,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check(&project_root, &project_config, &module_mapping, &[]);
-        assert!(result.as_ref().unwrap().undeclared_dependencies.is_empty());
-        let unused_dependency_root = "src/pack-a/pyproject.toml";
-        assert!(result
-            .unwrap()
-            .unused_dependencies
-            .contains_key(unused_dependency_root));
+        let result = check(&project_root, &project_config, &module_mapping, &[]).unwrap();
+        assert_eq!(result.len(), 1);
+        assert!(matches!(
+            result[0],
+            Diagnostic::Global {
+                severity: Severity::Error,
+                details: DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency { .. })
+            }
+        ));
+        assert_eq!(
+            result[0].details(),
+            &DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
+                package_module_name: "unused".to_string()
+            })
+        );
     }
 
     #[rstest]
@@ -185,16 +193,19 @@ mod tests {
         project_config: ProjectConfig,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check(&project_root, &project_config, &HashMap::new(), &[]);
-        let expected_failure_path = "src/pack-a/src/myorg/pack_a/__init__.py";
-        let r = result.unwrap();
-        assert_eq!(
-            r.undeclared_dependencies.keys().collect::<Vec<_>>(),
-            vec![expected_failure_path]
-        );
-        assert_eq!(
-            r.undeclared_dependencies[expected_failure_path],
-            vec!["git"]
-        );
+        let result = check(&project_root, &project_config, &HashMap::new(), &[]).unwrap();
+        assert_eq!(result.len(), 3);
+        assert!(result.iter().any(|d| d.details()
+            == &DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
+                import_mod_path: "git".to_string()
+            })));
+        assert!(result.iter().any(|d| d.details()
+            == &DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
+                package_module_name: "gitpython".to_string()
+            })));
+        assert!(result.iter().any(|d| d.details()
+            == &DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
+                package_module_name: "unused".to_string()
+            })));
     }
 }

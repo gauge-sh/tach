@@ -28,6 +28,7 @@ from tach.extension import (
     create_computation_cache_key,
     detect_unused_dependencies,
     run_server,
+    serialize_diagnostics_json,
     update_computation_cache,
 )
 from tach.filesystem import install_pre_commit
@@ -45,28 +46,33 @@ from tach.test import run_affected_tests
 from tach.utils.display import create_clickable_link
 
 if TYPE_CHECKING:
-    from tach.extension import BoundaryError, UnusedDependencies
+    from tach.extension import Diagnostic, UnusedDependencies
 
 
-def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
-    absolute_error_path = next(
-        (
-            source_root / error.file_path
-            for source_root in source_roots
-            if (source_root / error.file_path).exists()
-        ),
-        None,
+def build_diagnostic_message(error: Diagnostic, source_roots: list[Path]) -> str:
+    local_error_path = error.pyfile_path()
+    absolute_error_path = (
+        next(
+            (
+                source_root / local_error_path
+                for source_root in source_roots
+                if (source_root / local_error_path).exists()
+            ),
+            None,
+        )
+        if local_error_path is not None
+        else None
     )
 
     if absolute_error_path is None:
-        # This is an unexpected case,
-        # all errors should have originated from within a source root
-        error_location = error.file_path
+        error_location = "Error" if error.is_error() else "Warning"
     else:
         error_location = create_clickable_link(
             absolute_error_path,
-            display_path=error.file_path,
-            line=error.line_number,
+            display_path=Path(local_error_path)
+            if local_error_path is not None
+            else None,
+            line=error.pyline_number(),
         )
 
     error_template = (
@@ -77,10 +83,9 @@ def build_error_message(error: BoundaryError, source_roots: list[Path]) -> str:
         f"{icons.WARNING}  {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
         f"{{message}} {BCOLORS.ENDC}"
     )
-    error_info = error.error_info
-    if error_info.is_deprecated():
-        return warning_template.format(message=error_info.to_pystring())
-    return error_template.format(message=error_info.to_pystring())
+    if error.is_warning():
+        return warning_template.format(message=error.to_string())
+    return error_template.format(message=error.to_string())
 
 
 def print_warnings(warning_list: list[str]) -> None:
@@ -93,25 +98,26 @@ def print_errors(error_list: list[str]) -> None:
         print(f"{BCOLORS.FAIL}{error}{BCOLORS.ENDC}", file=sys.stderr)
 
 
-def print_boundary_errors(
-    error_list: list[BoundaryError], source_roots: list[Path]
-) -> None:
+def print_diagnostics(error_list: list[Diagnostic], source_roots: list[Path]) -> None:
     if not error_list:
         return
 
-    interface_errors: list[BoundaryError] = []
-    dependency_errors: list[BoundaryError] = []
-    for error in sorted(error_list, key=lambda e: e.file_path):
-        if error.error_info.is_interface_error():
+    interface_errors: list[Diagnostic] = []
+    dependency_errors: list[Diagnostic] = []
+    other_errors: list[Diagnostic] = []
+    for error in sorted(error_list, key=lambda e: (e.pyfile_path() or "")):
+        if error.is_interface_error():
             interface_errors.append(error)
-        else:
+        elif error.is_dependency_error():
             dependency_errors.append(error)
+        else:
+            other_errors.append(error)
 
     if interface_errors:
         print(f"{BCOLORS.FAIL}Interface Errors:{BCOLORS.ENDC}", file=sys.stderr)
         for error in interface_errors:
             print(
-                build_error_message(error, source_roots=source_roots),
+                build_diagnostic_message(error, source_roots=source_roots),
                 file=sys.stderr,
             )
         print(
@@ -124,10 +130,10 @@ def print_boundary_errors(
         print(f"{BCOLORS.FAIL}Dependency Errors:{BCOLORS.ENDC}", file=sys.stderr)
         has_real_errors = False
         for error in dependency_errors:
-            if not error.error_info.is_deprecated():
+            if not error.is_deprecated():
                 has_real_errors = True
             print(
-                build_error_message(error, source_roots=source_roots),
+                build_diagnostic_message(error, source_roots=source_roots),
                 file=sys.stderr,
             )
         print(file=sys.stderr)
@@ -135,6 +141,13 @@ def print_boundary_errors(
             print(
                 f"{BCOLORS.WARNING}If you intended to add a new dependency, run 'tach sync' to update your module configuration."
                 f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
+                file=sys.stderr,
+            )
+
+    if other_errors:
+        for error in other_errors:
+            print(
+                build_diagnostic_message(error, source_roots=source_roots),
                 file=sys.stderr,
             )
 
@@ -626,33 +639,31 @@ def tach_check(
     try:
         exact |= project_config.exact
 
-        check_result = check(
+        diagnostics = check(
             project_root=project_root,
             project_config=project_config,
             dependencies=dependencies,
             interfaces=interfaces,
             exclude_paths=exclude_paths,
         )
+        has_errors = any(diagnostic.is_error() for diagnostic in diagnostics)
 
         if output_format == "json":
             try:
-                print(check_result.serialize_json(pretty_print=True))
+                print(serialize_diagnostics_json(diagnostics, pretty_print=True))
             except ValueError as e:
                 json.dump({"error": str(e)}, sys.stdout)
-            sys.exit(1 if len(check_result.errors) > 0 else 0)
-
-        if check_result.warnings:
-            print_warnings(check_result.warnings)
+            sys.exit(1 if has_errors else 0)
 
         source_roots = [
             project_root / source_root for source_root in project_config.source_roots
         ]
 
-        print_boundary_errors(
-            check_result.errors + check_result.deprecated_warnings,
+        print_diagnostics(
+            diagnostics,
             source_roots=source_roots,
         )
-        exit_code = 1 if len(check_result.errors) > 0 else 0
+        exit_code = 1 if has_errors else 0
 
         # If we're checking in exact mode, we want to verify that there are no unused dependencies
         if dependencies and exact:
@@ -697,18 +708,20 @@ def tach_check_external(
         },
     )
     try:
-        result = check_external(
+        diagnostics = check_external(
             project_root=project_root,
             project_config=project_config,
             exclude_paths=exclude_paths,
         )
 
-        print_warnings(result.warnings)
-        print_errors(result.errors)
-        print_unused_external_dependencies(result.unused_dependencies)
-        print_undeclared_dependencies(result.undeclared_dependencies)
+        warnings = list(filter(lambda d: d.is_warning(), diagnostics))
+        errors = list(filter(lambda d: d.is_error(), diagnostics))
+        for diagnostic in warnings:
+            print(diagnostic.to_string())
+        for diagnostic in errors:
+            print(diagnostic.to_string())
 
-        if result.errors or result.undeclared_dependencies:
+        if errors:
             sys.exit(1)
         else:
             print(

@@ -16,6 +16,7 @@ pub mod pattern;
 pub mod python;
 pub mod tests;
 
+use commands::check::diagnostics::serialize_diagnostics_json;
 use commands::{check, report, server, sync, test};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -390,6 +391,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::InterfaceConfig>()?;
     m.add_class::<config::RulesConfig>()?;
     m.add_class::<config::DependencyConfig>()?;
+    m.add_class::<check::Diagnostic>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
@@ -407,5 +409,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
     m.add_function(wrap_pyfunction_bound!(serialize_modules_json, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(serialize_diagnostics_json, m)?)?;
     Ok(())
 }

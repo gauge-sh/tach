@@ -21,12 +21,6 @@ def get_normalized_imports(
 def set_excluded_paths(
     project_root: str, exclude_paths: list[str], use_regex_matching: bool
 ) -> None: ...
-def check_external_dependencies(
-    project_root: str,
-    project_config: ProjectConfig,
-    module_mappings: dict[str, list[str]],
-    stdlib_modules: list[str],
-) -> ExternalCheckDiagnostics: ...
 def create_dependency_report(
     project_root: str,
     project_config: ProjectConfig,
@@ -60,7 +54,13 @@ def check(
     dependencies: bool,
     interfaces: bool,
     exclude_paths: list[str],
-) -> CheckDiagnostics: ...
+) -> list[Diagnostic]: ...
+def check_external_dependencies(
+    project_root: str,
+    project_config: ProjectConfig,
+    module_mappings: dict[str, list[str]],
+    stdlib_modules: list[str],
+) -> list[Diagnostic]: ...
 def detect_unused_dependencies(
     project_root: Path,
     project_config: ProjectConfig,
@@ -75,38 +75,23 @@ def sync_project(
 def run_server(project_root: Path, project_config: ProjectConfig) -> None: ...
 def serialize_modules_json(modules: list[ModuleConfig]) -> str: ...
 
-class ErrorInfo:
+class Diagnostic:
+    def is_code(self) -> bool: ...
+    def is_configuration(self) -> bool: ...
     def is_dependency_error(self) -> bool: ...
     def is_interface_error(self) -> bool: ...
-    def to_pystring(self) -> str: ...
+    def is_warning(self) -> bool: ...
+    def is_error(self) -> bool: ...
     def is_deprecated(self) -> bool: ...
+    def usage_module(self) -> str | None: ...
+    def definition_module(self) -> str | None: ...
+    def to_string(self) -> str: ...
+    def pyfile_path(self) -> str | None: ...
+    def pyline_number(self) -> int | None: ...
 
-class BoundaryError:
-    file_path: Path
-    line_number: int
-    import_mod_path: str
-    error_info: ErrorInfo
-
-class CheckDiagnostics:
-    errors: list[BoundaryError]
-    deprecated_warnings: list[BoundaryError]
-    warnings: list[str]
-
-    def serialize_json(self, pretty_print: bool = False) -> str: ...
-
-class ExternalCheckDiagnostics:
-    undeclared_dependencies: dict[str, list[str]]
-    unused_dependencies: dict[str, list[str]]
-    errors: list[str]
-    warnings: list[str]
-
-    def __new__(
-        cls,
-        undeclared_dependencies: dict[str, list[str]],
-        unused_dependencies: dict[str, list[str]],
-        errors: list[str],
-        warnings: list[str],
-    ) -> ExternalCheckDiagnostics: ...
+def serialize_diagnostics_json(
+    diagnostics: list[Diagnostic], pretty_print: bool
+) -> str: ...
 
 class DependencyConfig:
     path: str

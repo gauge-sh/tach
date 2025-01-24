@@ -13,7 +13,7 @@ from tach.colors import BCOLORS
 from tach.constants import GAUGE_API_BASE_URL
 from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
-    CheckDiagnostics,
+    Diagnostic,
     ProjectConfig,
     check,
     get_project_imports,
@@ -178,6 +178,8 @@ class Report:
     usages: list[Usage] = field(default_factory=list)
     # [1.3] Check result for dependency errors
     check_result: CheckResult = field(default_factory=CheckResult)
+    # [1.4] Diagnostics
+    diagnostics: list[Diagnostic] = field(default_factory=list)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
     # [1.2] Deprecated
     interface_rules: list[Any] = field(default_factory=list)
@@ -273,34 +275,8 @@ def build_usages(
     return usages
 
 
-def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
-    return CheckResult(
-        errors=[
-            BoundaryError(
-                file_path=str(error.file_path),
-                line_number=error.line_number,
-                import_mod_path=error.import_mod_path,
-                error_info=ErrorInfo(
-                    is_deprecated=error.error_info.is_deprecated(),
-                    pystring=error.error_info.to_pystring(),
-                ),
-            )
-            for error in check_diagnostics.errors
-        ],
-        deprecated_warnings=[
-            BoundaryError(
-                file_path=str(warning.file_path),
-                line_number=warning.line_number,
-                import_mod_path=warning.import_mod_path,
-                error_info=ErrorInfo(
-                    is_deprecated=warning.error_info.is_deprecated(),
-                    pystring=warning.error_info.to_pystring(),
-                ),
-            )
-            for warning in check_diagnostics.deprecated_warnings
-        ],
-        warnings=check_diagnostics.warnings,
-    )
+def process_check_result(check_diagnostics: list[Diagnostic]) -> list[Diagnostic]:
+    return check_diagnostics
 
 
 def generate_modularity_report(
@@ -331,7 +307,7 @@ def generate_modularity_report(
         dependencies=True,
         interfaces=False,  # for now leave this as a separate concern
     )
-    report.check_result = process_check_result(check_diagnostics)
+    report.diagnostics = process_check_result(check_diagnostics)
     print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
     return report
 

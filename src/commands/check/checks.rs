@@ -47,7 +47,7 @@ fn check_dependencies(
     {
         Some(DependencyConfig {
             deprecated: true, ..
-        }) => Err(Diagnostic::new_global_error(DiagnosticDetails::Code(
+        }) => Err(Diagnostic::new_global_warning(DiagnosticDetails::Code(
             CodeDiagnostic::DeprecatedImport {
                 import_mod_path: import_mod_path.to_string(),
                 usage_module: file_nearest_module_path.to_string(),
@@ -251,10 +251,10 @@ pub(super) fn check_unused_ignore_directive_external(
     if let ImportProcessResult::UsedDependencies(_) | ImportProcessResult::Excluded(_) =
         check_import_external(
             directive_ignored_import.import,
-            &project_info,
+            project_info,
             module_mappings,
-            &excluded_external_modules,
-            &stdlib_modules,
+            excluded_external_modules,
+            stdlib_modules,
         )
     {
         match project_config.rules.unused_ignore_directives {

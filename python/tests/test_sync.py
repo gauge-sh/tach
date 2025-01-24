@@ -62,12 +62,9 @@ def test_distributed_config_dir(example_dir, capfd):
 
         assert exc_info.value.code == 0
         captured = capfd.readouterr()
-        print(captured.err)
-        print(captured.out)
         assert "✅" in captured.out  # success state
 
         project_config = parse_project_config(root=temp_project_root)
-        print(project_config.serialize_json())
         assert project_config is not None
 
         modules = project_config.filtered_modules([])

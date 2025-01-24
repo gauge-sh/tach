@@ -1,6 +1,6 @@
 use std::{fmt::Display, path::PathBuf};
 
-use pyo3::{pyclass, pymethods};
+use pyo3::prelude::*;
 use serde::Serialize;
 use thiserror::Error;
 
@@ -25,7 +25,7 @@ impl TryFrom<&RuleSetting> for Severity {
     }
 }
 
-#[derive(Error, Debug, Clone, Serialize)]
+#[derive(Error, Debug, Clone, Serialize, PartialEq)]
 #[pyclass(module = "tach.extension")]
 pub enum ConfigurationDiagnostic {
     #[error("Module containing '{file_mod_path}' not found in project.")]
@@ -50,7 +50,7 @@ pub enum ConfigurationDiagnostic {
     SkippedFileIoError { file_path: String },
 }
 
-#[derive(Error, Debug, Clone, Serialize)]
+#[derive(Error, Debug, Clone, Serialize, PartialEq)]
 #[pyclass(module = "tach.extension")]
 pub enum CodeDiagnostic {
     #[error("Module '{import_nearest_module_path}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
@@ -106,7 +106,7 @@ pub enum CodeDiagnostic {
     UnusedExternalDependency { package_module_name: String },
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 #[pyclass(module = "tach.extension")]
 pub enum DiagnosticDetails {
     Code(CodeDiagnostic),
@@ -122,7 +122,7 @@ impl Display for DiagnosticDetails {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq)]
 #[pyclass(module = "tach.extension")]
 pub enum Diagnostic {
     Global {
@@ -158,8 +158,8 @@ impl Diagnostic {
 
     pub fn into_located(self, file_path: PathBuf, line_number: usize) -> Self {
         match self {
-            Self::Global { details, .. } => {
-                Self::new_located_error(file_path, line_number, details)
+            Self::Global { severity, details } => {
+                Self::new_located(severity, details, file_path, line_number)
             }
             Self::Located { .. } => self,
         }
@@ -294,11 +294,37 @@ impl Diagnostic {
         )
     }
 
+    pub fn is_error(&self) -> bool {
+        matches!(self.severity(), Severity::Error)
+    }
+
+    pub fn is_warning(&self) -> bool {
+        matches!(self.severity(), Severity::Warning)
+    }
+
     #[pyo3(name = "to_string")]
     pub fn to_pystring(&self) -> String {
         match self {
             Self::Global { details, .. } => details.to_string(),
             Self::Located { details, .. } => details.to_string(),
         }
+    }
+
+    pub fn pyfile_path(&self) -> Option<String> {
+        self.file_path()
+            .map(|path| path.to_string_lossy().to_string())
+    }
+
+    pub fn pyline_number(&self) -> Option<usize> {
+        self.line_number()
+    }
+}
+
+#[pyfunction(signature = (diagnostics, pretty_print = false))]
+pub fn serialize_diagnostics_json(diagnostics: Vec<Diagnostic>, pretty_print: bool) -> String {
+    if pretty_print {
+        serde_json::to_string_pretty(&diagnostics).unwrap()
+    } else {
+        serde_json::to_string(&diagnostics).unwrap()
     }
 }

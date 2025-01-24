@@ -246,11 +246,12 @@ pub fn check(
         return Err(CheckError::Interrupt);
     }
 
+    let mut final_diagnostics: Vec<Diagnostic> = diagnostics.collect();
     if !found_imports.load(Ordering::Relaxed) {
-        warnings.push(Diagnostic::new_global_warning(
+        final_diagnostics.push(Diagnostic::new_global_warning(
             DiagnosticDetails::Configuration(ConfigurationDiagnostic::NoFirstPartyImportsFound()),
         ));
     }
 
-    Ok(diagnostics.chain(warnings).collect())
+    Ok(final_diagnostics)
 }
