@@ -48,8 +48,6 @@ exact = true
 ignore_type_checking_imports = true
 forbid_circular_dependencies = true
 
-root_module = "allow"
-
 [[modules]]
 path = "tach"
 depends_on = []
@@ -148,8 +146,9 @@ A module can match multiple interface entries - if an import matches _any_ of th
 
 ## The Root Module
 
-By default, Tach checks all of the source files beneath all of the configured [source roots](#source_roots).
-This means that some code may not be contained within any configured [module](#modules).
+By default, Tach checks all of the source files beneath all of the configured [source roots](#source_roots), and will ignore dependencies which are not contained by [modules](#modules).
+
+However, Tach allows configuration of how to treat code which is within a source root, but not contained by a module.
 
 For example, given the file tree below:
 
@@ -170,12 +169,12 @@ my_repo/
 If `lib.module1`, `lib.module2`, and `lib.module3` are the only configured modules, then the code in `script.py` would be automatically part of the `<root>` module.
 
 This module can declare its own dependencies with `depends_on` and use the rest of the available module configuration.
-Further, other modules need to declare an explicit dependency on `<root>` to use code which rolls up to the root.
+Further, other modules would need to declare an explicit dependency on `<root>` to use code which rolls up to the root.
 
 Tach allows configuring how the root module should be treated through the `root_module` key in `tach.toml`. It may take one of the following values:
 
-- **(default)** `"allow"`: Treat `<root>` as a catch-all rollup module which must be explicitly declared as a dependency and must declare its own dependencies on other modules.
-- **(permissive)** `"ignore"`: Disable all checks related to the `<root>` module. `tach check` will never fail due to code in the `<root>` module, and `tach sync` will never add `<root>` to `tach.toml`
+- **(permissive default)** `"ignore"`: Disable all checks related to the `<root>` module. `tach check` will never fail due to code in the `<root>` module, and `tach sync` will never add `<root>` to `tach.toml`
+- **(stricter)** `"allow"`: Treat `<root>` as a catch-all rollup module which must be explicitly declared as a dependency and must declare its own dependencies on other modules.
 - **(stricter)** `"dependenciesonly"`: Forbid any module from listing `<root>` as a dependency, but allow `<root>` to declare its own dependencies.
 - **(strictest)** `"forbid"`: Forbid any reference to the `<root>` module in tach.toml. This means that all code in [source roots](#source_roots) MUST be contained within an explicitly configured [module](#modules).
 
