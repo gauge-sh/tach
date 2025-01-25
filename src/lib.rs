@@ -10,6 +10,7 @@ pub mod imports;
 pub mod interfaces;
 pub mod interrupt;
 pub mod lsp;
+pub mod modularity;
 pub mod modules;
 pub mod parsing;
 pub mod pattern;
@@ -18,6 +19,7 @@ pub mod tests;
 
 use commands::check::diagnostics::serialize_diagnostics_json;
 use commands::{check, report, server, sync, test};
+use modularity::into_usage_errors;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -393,6 +395,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::DependencyConfig>()?;
     m.add_class::<check::Diagnostic>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
+    m.add_class::<modularity::UsageError>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;
@@ -410,5 +413,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
     m.add_function(wrap_pyfunction_bound!(serialize_modules_json, m)?)?;
     m.add_function(wrap_pyfunction_bound!(serialize_diagnostics_json, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(into_usage_errors, m)?)?;
     Ok(())
 }

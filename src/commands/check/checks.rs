@@ -81,8 +81,8 @@ fn check_interfaces(
         InterfaceCheckResult::NotExposed => Err(Diagnostic::new_global_error(
             DiagnosticDetails::Code(CodeDiagnostic::PrivateImport {
                 import_mod_path: import_mod_path.to_string(),
-                import_nearest_module_path: import_nearest_module.full_path.to_string(),
-                file_nearest_module_path: file_nearest_module.full_path.to_string(),
+                usage_module: file_nearest_module.full_path.to_string(),
+                definition_module: import_nearest_module.full_path.to_string(),
             }),
         )),
         InterfaceCheckResult::Exposed {
@@ -90,7 +90,8 @@ fn check_interfaces(
         } => Err(Diagnostic::new_global_error(DiagnosticDetails::Code(
             CodeDiagnostic::InvalidDataTypeExport {
                 import_mod_path: import_mod_path.to_string(),
-                import_nearest_module_path: import_nearest_module.full_path.to_string(),
+                usage_module: file_nearest_module.full_path.to_string(),
+                definition_module: import_nearest_module.full_path.to_string(),
                 expected_data_type: expected.to_string(),
             },
         ))),

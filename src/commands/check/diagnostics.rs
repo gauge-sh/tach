@@ -53,17 +53,18 @@ pub enum ConfigurationDiagnostic {
 #[derive(Error, Debug, Clone, Serialize, PartialEq)]
 #[pyclass(module = "tach.extension")]
 pub enum CodeDiagnostic {
-    #[error("Module '{import_nearest_module_path}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{file_nearest_module_path}') is not public.")]
+    #[error("Module '{definition_module}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{usage_module}') is not public.")]
     PrivateImport {
         import_mod_path: String,
-        import_nearest_module_path: String,
-        file_nearest_module_path: String,
+        definition_module: String,
+        usage_module: String,
     },
 
-    #[error("The import '{import_mod_path}' (from module '{import_nearest_module_path}') matches an interface but does not match the expected data type ('{expected_data_type}').")]
+    #[error("The import '{import_mod_path}' (from module '{definition_module}') matches an interface but does not match the expected data type ('{expected_data_type}').")]
     InvalidDataTypeExport {
         import_mod_path: String,
-        import_nearest_module_path: String,
+        definition_module: String,
+        usage_module: String,
         expected_data_type: String,
     },
 
@@ -104,6 +105,67 @@ pub enum CodeDiagnostic {
 
     #[error("External package '{package_module_name}' is not used.")]
     UnusedExternalDependency { package_module_name: String },
+}
+
+impl CodeDiagnostic {
+    pub fn import_mod_path(&self) -> Option<&str> {
+        match self {
+            CodeDiagnostic::PrivateImport {
+                import_mod_path, ..
+            }
+            | CodeDiagnostic::InvalidDataTypeExport {
+                import_mod_path, ..
+            }
+            | CodeDiagnostic::InvalidImport {
+                import_mod_path, ..
+            }
+            | CodeDiagnostic::DeprecatedImport {
+                import_mod_path, ..
+            }
+            | CodeDiagnostic::LayerViolation {
+                import_mod_path, ..
+            }
+            | CodeDiagnostic::UnnecessarilyIgnoredImport {
+                import_mod_path, ..
+            } => Some(import_mod_path),
+            CodeDiagnostic::UnusedIgnoreDirective { .. } => None,
+            CodeDiagnostic::MissingIgnoreDirectiveReason { .. } => None,
+            CodeDiagnostic::UndeclaredExternalDependency { .. } => None,
+            CodeDiagnostic::UnusedExternalDependency { .. } => None,
+        }
+    }
+
+    pub fn usage_module(&self) -> Option<&str> {
+        match self {
+            CodeDiagnostic::PrivateImport { usage_module, .. }
+            | CodeDiagnostic::InvalidDataTypeExport { usage_module, .. }
+            | CodeDiagnostic::InvalidImport { usage_module, .. }
+            | CodeDiagnostic::DeprecatedImport { usage_module, .. }
+            | CodeDiagnostic::LayerViolation { usage_module, .. } => Some(usage_module),
+            _ => None,
+        }
+    }
+
+    pub fn definition_module(&self) -> Option<&str> {
+        match self {
+            CodeDiagnostic::PrivateImport {
+                definition_module, ..
+            }
+            | CodeDiagnostic::InvalidDataTypeExport {
+                definition_module, ..
+            }
+            | CodeDiagnostic::InvalidImport {
+                definition_module, ..
+            }
+            | CodeDiagnostic::DeprecatedImport {
+                definition_module, ..
+            }
+            | CodeDiagnostic::LayerViolation {
+                definition_module, ..
+            } => Some(definition_module),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -232,6 +294,27 @@ impl Diagnostic {
             Self::Located { line_number, .. } => Some(*line_number),
         }
     }
+
+    pub fn import_mod_path(&self) -> Option<&str> {
+        match self.details() {
+            DiagnosticDetails::Code(details) => details.import_mod_path(),
+            _ => None,
+        }
+    }
+
+    pub fn usage_module(&self) -> Option<&str> {
+        match self.details() {
+            DiagnosticDetails::Code(details) => details.usage_module(),
+            _ => None,
+        }
+    }
+
+    pub fn definition_module(&self) -> Option<&str> {
+        match self.details() {
+            DiagnosticDetails::Code(details) => details.definition_module(),
+            _ => None,
+        }
+    }
 }
 
 #[pymethods]
@@ -259,32 +342,6 @@ impl Diagnostic {
             DiagnosticDetails::Code(CodeDiagnostic::PrivateImport { .. })
                 | DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport { .. })
         )
-    }
-
-    pub fn usage_module(&self) -> Option<&String> {
-        match self.details() {
-            DiagnosticDetails::Code(CodeDiagnostic::InvalidImport { usage_module, .. })
-            | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport { usage_module, .. })
-            | DiagnosticDetails::Code(CodeDiagnostic::LayerViolation { usage_module, .. }) => {
-                Some(usage_module)
-            }
-            _ => None,
-        }
-    }
-
-    pub fn definition_module(&self) -> Option<&String> {
-        match self.details() {
-            DiagnosticDetails::Code(CodeDiagnostic::InvalidImport {
-                definition_module, ..
-            })
-            | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport {
-                definition_module, ..
-            })
-            | DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
-                definition_module, ..
-            }) => Some(definition_module),
-            _ => None,
-        }
     }
 
     pub fn is_deprecated(&self) -> bool {

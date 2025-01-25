@@ -5,7 +5,7 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from urllib import parse
 
 from tach import filesystem as fs
@@ -13,10 +13,13 @@ from tach.colors import BCOLORS
 from tach.constants import GAUGE_API_BASE_URL
 from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
-    Diagnostic,
     ProjectConfig,
     check,
     get_project_imports,
+    into_usage_errors,
+)
+from tach.extension import (
+    UsageError as ExtUsageError,
 )
 from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing import extend_and_validate
@@ -164,6 +167,29 @@ class CheckResult:
     warnings: list[str] = field(default_factory=list)
 
 
+# This is unfortunately necessary because we use 'asdict' on the report
+# This will be removed once we move report generation to Rust
+@dataclass
+class UsageError:
+    file: str
+    line_number: int
+    member: str
+    usage_module: str
+    definition_module: str
+    error_type: Literal["DEPENDENCY", "INTERFACE"]
+
+    @classmethod
+    def from_extension(cls, ext_usage_error: ExtUsageError) -> UsageError:
+        return cls(
+            file=ext_usage_error.file,
+            line_number=ext_usage_error.line_number,
+            member=ext_usage_error.member,
+            usage_module=ext_usage_error.usage_module,
+            definition_module=ext_usage_error.definition_module,
+            error_type=ext_usage_error.error_type,
+        )
+
+
 @dataclass
 class Report:
     email: str
@@ -179,7 +205,7 @@ class Report:
     # [1.3] Check result for dependency errors
     check_result: CheckResult = field(default_factory=CheckResult)
     # [1.4] Diagnostics
-    diagnostics: list[Diagnostic] = field(default_factory=list)
+    diagnostics: list[UsageError] = field(default_factory=list)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
     # [1.2] Deprecated
     interface_rules: list[Any] = field(default_factory=list)
@@ -275,10 +301,6 @@ def build_usages(
     return usages
 
 
-def process_check_result(check_diagnostics: list[Diagnostic]) -> list[Diagnostic]:
-    return check_diagnostics
-
-
 def generate_modularity_report(
     project_root: Path, project_config: ProjectConfig, force: bool = False
 ) -> Report:
@@ -305,9 +327,14 @@ def generate_modularity_report(
         project_config=project_config,
         exclude_paths=exclude_paths,
         dependencies=True,
-        interfaces=False,  # for now leave this as a separate concern
+        interfaces=True,
     )
-    report.diagnostics = process_check_result(check_diagnostics)
+    report.diagnostics = list(
+        map(
+            lambda ext_usage_error: UsageError.from_extension(ext_usage_error),
+            into_usage_errors(check_diagnostics),
+        )
+    )
     print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
     return report
 

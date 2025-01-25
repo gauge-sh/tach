@@ -93,6 +93,20 @@ def serialize_diagnostics_json(
     diagnostics: list[Diagnostic], pretty_print: bool
 ) -> str: ...
 
+ErrorKind = Literal["DEPENDENCY", "INTERFACE"]
+
+class UsageError:
+    file: str
+    line_number: int
+    member: str
+    # The module that contains the usage
+    usage_module: str
+    # The module that contains the definition
+    definition_module: str
+    error_type: ErrorKind
+
+def into_usage_errors(diagnostics: list[Diagnostic]) -> list[UsageError]: ...
+
 class DependencyConfig:
     path: str
     deprecated: bool
