@@ -107,11 +107,13 @@ pub(super) fn check_import_internal(
     root_module_treatment: RootModuleTreatment,
     interface_checker: &Option<InterfaceChecker>,
     should_check_dependencies: bool,
-) -> Result<(), Diagnostic> {
+) -> Result<(), Vec<Diagnostic>> {
+    let mut diagnostics = Vec::new();
+
     if !should_check_dependencies && interface_checker.is_none() {
-        return Err(Diagnostic::new_global_error(
+        return Err(vec![Diagnostic::new_global_error(
             DiagnosticDetails::Configuration(ConfigurationDiagnostic::NoChecksEnabled()),
-        ));
+        )]);
     }
 
     let import_nearest_module = match module_tree.find_nearest(import_mod_path) {
@@ -130,40 +132,51 @@ pub(super) fn check_import_internal(
         return Ok(());
     }
 
-    let file_module_config =
-        file_nearest_module
-            .config
-            .as_ref()
-            .ok_or(Diagnostic::new_global_error(
+    let file_module_config = match file_nearest_module.config.as_ref() {
+        Some(config) => config,
+        None => {
+            return Err(vec![Diagnostic::new_global_error(
                 DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleConfigNotFound()),
-            ))?;
-    let import_module_config =
-        import_nearest_module
-            .config
-            .as_ref()
-            .ok_or(Diagnostic::new_global_error(
+            )]);
+        }
+    };
+
+    let import_module_config = match import_nearest_module.config.as_ref() {
+        Some(config) => config,
+        None => {
+            return Err(vec![Diagnostic::new_global_error(
                 DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleConfigNotFound()),
-            ))?;
+            )]);
+        }
+    };
 
     if let Some(interface_checker) = interface_checker {
-        check_interfaces(
+        if let Err(err) = check_interfaces(
             import_mod_path,
             &import_nearest_module,
             &file_nearest_module,
             interface_checker,
-        )?
+        ) {
+            diagnostics.push(err);
+        }
     }
 
     if should_check_dependencies {
-        check_dependencies(
+        if let Err(err) = check_dependencies(
             import_mod_path,
             file_module_config,
             import_module_config,
             layers,
-        )?
+        ) {
+            diagnostics.push(err);
+        }
     }
 
-    Ok(())
+    if diagnostics.is_empty() {
+        Ok(())
+    } else {
+        Err(diagnostics)
+    }
 }
 
 pub(super) fn check_unused_ignore_directive_internal(
@@ -440,7 +453,10 @@ mod tests {
             true,
         );
         assert!(check_error.is_err());
-        assert!(check_error.unwrap_err().is_deprecated());
+        assert!(check_error
+            .unwrap_err()
+            .iter()
+            .any(|err| err.is_deprecated()));
     }
 
     #[rstest]

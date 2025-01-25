@@ -84,7 +84,7 @@ fn process_file(
     };
 
     project_imports.active_imports().for_each(|import| {
-        if let Err(diagnostic) = check_import_internal(
+        if let Err(import_diagnostics) = check_import_internal(
             &import.module_path,
             module_tree,
             Arc::clone(&nearest_module),
@@ -93,22 +93,25 @@ fn process_file(
             interface_checker,
             check_dependencies,
         ) {
-            match &diagnostic {
-                Diagnostic::Global {
-                    details: DiagnosticDetails::Code(_),
-                    ..
-                } => {
-                    diagnostics.push(diagnostic.into_located(file_path.clone(), import.line_no));
-                }
-                Diagnostic::Global {
-                    details: DiagnosticDetails::Configuration(_),
-                    ..
-                } => {
-                    diagnostics.push(diagnostic);
-                }
-                _ => {}
-            }
-        };
+            import_diagnostics
+                .into_iter()
+                .for_each(|diagnostic| match &diagnostic {
+                    Diagnostic::Global {
+                        details: DiagnosticDetails::Code(_),
+                        ..
+                    } => {
+                        diagnostics
+                            .push(diagnostic.into_located(file_path.clone(), import.line_no));
+                    }
+                    Diagnostic::Global {
+                        details: DiagnosticDetails::Configuration(_),
+                        ..
+                    } => {
+                        diagnostics.push(diagnostic);
+                    }
+                    _ => {}
+                });
+        }
     });
 
     project_imports
