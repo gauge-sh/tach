@@ -5,8 +5,10 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 from urllib import parse
+
+from typing_extensions import Literal
 
 from tach import filesystem as fs
 from tach.colors import BCOLORS
