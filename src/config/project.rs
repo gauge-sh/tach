@@ -371,7 +371,26 @@ impl ConfigEditor for ProjectConfig {
                                             toml_edit::Value::Array(array),
                                         )) = table.get_mut("depends_on")
                                         {
-                                            array.push(dependency);
+                                            // Check if dependency already exists
+                                            let exists = array.iter().any(|item| {
+                                                match item {
+                                                    // Check for string match
+                                                    toml_edit::Value::String(s) => {
+                                                        s.value() == dependency
+                                                    }
+                                                    // Check for object with matching path
+                                                    toml_edit::Value::InlineTable(t) => t
+                                                        .get("path")
+                                                        .and_then(|p| p.as_str())
+                                                        .map(|p| p == dependency)
+                                                        .unwrap_or(false),
+                                                    _ => false,
+                                                }
+                                            });
+
+                                            if !exists {
+                                                array.push(dependency);
+                                            }
                                         } else {
                                             table.insert(
                                                 "depends_on",
