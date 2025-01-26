@@ -49,20 +49,9 @@ if TYPE_CHECKING:
     from tach.extension import Diagnostic, UnusedDependencies
 
 
-def build_diagnostic_message(error: Diagnostic, source_roots: list[Path]) -> str:
+def build_diagnostic_message(error: Diagnostic, project_root: Path) -> str:
     local_error_path = error.pyfile_path()
-    absolute_error_path = (
-        next(
-            (
-                source_root / local_error_path
-                for source_root in source_roots
-                if (source_root / local_error_path).exists()
-            ),
-            None,
-        )
-        if local_error_path is not None
-        else None
-    )
+    absolute_error_path = project_root / local_error_path if local_error_path else None
 
     if absolute_error_path is None:
         error_location = "Error" if error.is_error() else "Warning"
@@ -98,7 +87,7 @@ def print_errors(error_list: list[str]) -> None:
         print(f"{BCOLORS.FAIL}{error}{BCOLORS.ENDC}", file=sys.stderr)
 
 
-def print_diagnostics(error_list: list[Diagnostic], source_roots: list[Path]) -> None:
+def print_diagnostics(error_list: list[Diagnostic], project_root: Path) -> None:
     if not error_list:
         return
 
@@ -117,7 +106,7 @@ def print_diagnostics(error_list: list[Diagnostic], source_roots: list[Path]) ->
         print(f"{BCOLORS.FAIL}Interface Errors:{BCOLORS.ENDC}", file=sys.stderr)
         for error in interface_errors:
             print(
-                build_diagnostic_message(error, source_roots=source_roots),
+                build_diagnostic_message(error, project_root),
                 file=sys.stderr,
             )
         print(
@@ -133,7 +122,7 @@ def print_diagnostics(error_list: list[Diagnostic], source_roots: list[Path]) ->
             if not error.is_deprecated():
                 has_real_errors = True
             print(
-                build_diagnostic_message(error, source_roots=source_roots),
+                build_diagnostic_message(error, project_root),
                 file=sys.stderr,
             )
         print(file=sys.stderr)
@@ -147,7 +136,7 @@ def print_diagnostics(error_list: list[Diagnostic], source_roots: list[Path]) ->
     if other_errors:
         for error in other_errors:
             print(
-                build_diagnostic_message(error, source_roots=source_roots),
+                build_diagnostic_message(error, project_root),
                 file=sys.stderr,
             )
 
@@ -655,14 +644,7 @@ def tach_check(
                 json.dump({"error": str(e)}, sys.stdout)
             sys.exit(1 if has_errors else 0)
 
-        source_roots = [
-            project_root / source_root for source_root in project_config.source_roots
-        ]
-
-        print_diagnostics(
-            diagnostics,
-            source_roots=source_roots,
-        )
+        print_diagnostics(diagnostics, project_root=project_root)
         exit_code = 1 if has_errors else 0
 
         # If we're checking in exact mode, we want to verify that there are no unused dependencies
