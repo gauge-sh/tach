@@ -3,6 +3,7 @@ pub mod cli;
 pub mod colors;
 pub mod commands;
 pub mod config;
+pub mod diagnostics;
 pub mod exclusion;
 pub mod external;
 pub mod filesystem;
@@ -17,8 +18,8 @@ pub mod pattern;
 pub mod python;
 pub mod tests;
 
-use commands::check::diagnostics::serialize_diagnostics_json;
 use commands::{check, report, server, sync, test};
+use diagnostics::serialize_diagnostics_json;
 use modularity::into_usage_errors;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -251,7 +252,7 @@ fn check_external_dependencies(
     project_config: config::ProjectConfig,
     module_mappings: HashMap<String, Vec<String>>,
     stdlib_modules: Vec<String>,
-) -> check::check_external::Result<Vec<check::Diagnostic>> {
+) -> check::check_external::Result<Vec<diagnostics::Diagnostic>> {
     let project_root = PathBuf::from(project_root);
     check::check_external::check(
         &project_root,
@@ -339,7 +340,7 @@ fn check_internal(
     dependencies: bool,
     interfaces: bool,
     exclude_paths: Vec<String>,
-) -> check::check_internal::Result<Vec<check::Diagnostic>> {
+) -> check::check_internal::Result<Vec<diagnostics::Diagnostic>> {
     check::check_internal(
         project_root,
         project_config,
@@ -393,7 +394,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::InterfaceConfig>()?;
     m.add_class::<config::RulesConfig>()?;
     m.add_class::<config::DependencyConfig>()?;
-    m.add_class::<check::Diagnostic>()?;
+    m.add_class::<diagnostics::Diagnostic>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_class::<modularity::UsageError>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;

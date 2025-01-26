@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use crate::commands::check::Diagnostic;
+use crate::diagnostics::Diagnostic;
 
 #[derive(Debug, Clone)]
 pub enum ErrorKind {

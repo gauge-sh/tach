@@ -2,10 +2,11 @@ use thiserror::Error;
 
 use pyo3::prelude::*;
 
-use crate::commands::check::{check_internal, CheckError, Diagnostic};
+use crate::commands::check::{check_internal, CheckError};
 use crate::config::edit::{ConfigEditor, EditError};
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
+use crate::diagnostics::Diagnostic;
 use crate::filesystem::validate_module_path;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;

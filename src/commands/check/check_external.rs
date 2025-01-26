@@ -9,8 +9,8 @@ use super::checks::{
     check_import_external, check_missing_ignore_directive_reason,
     check_unused_ignore_directive_external, ImportProcessResult,
 };
-use super::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use super::error::ExternalCheckError;
+use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 pub type Result<T> = std::result::Result<T, ExternalCheckError>;
 
 pub fn check(
@@ -133,8 +133,8 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::check::diagnostics::Severity;
     use crate::config::ProjectConfig;
+    use crate::diagnostics::Severity;
     use crate::tests::fixtures::example_dir;
     use rstest::*;
 

@@ -7,8 +7,8 @@ use std::thread::JoinHandle;
 use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
 
 use crate::commands::check::check_internal;
-use crate::commands::check::diagnostics::{Diagnostic, Severity};
 use crate::config;
+use crate::diagnostics::{Diagnostic, Severity};
 use crate::interrupt::{check_interrupt, get_interrupt_channel};
 
 use super::error::ServerError;

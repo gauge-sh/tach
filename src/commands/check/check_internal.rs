@@ -2,8 +2,8 @@ use super::checks::{
     check_import_internal, check_missing_ignore_directive_reason,
     check_unused_ignore_directive_internal,
 };
-use super::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
 use super::error::CheckError;
+use crate::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
 
 use std::{
     path::{Path, PathBuf},

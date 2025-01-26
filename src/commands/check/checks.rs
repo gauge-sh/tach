@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use super::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
+use crate::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::{
     config::{
         root_module::RootModuleTreatment, rules::RuleSetting, DependencyConfig, ModuleConfig,
@@ -379,8 +379,8 @@ fn check_layers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::check::diagnostics::Diagnostic;
     use crate::config::{InterfaceConfig, ModuleConfig};
+    use crate::diagnostics::Diagnostic;
     use crate::modules::ModuleTree;
     use crate::tests::check_internal::fixtures::{
         interface_config, layers, module_config, module_tree,
