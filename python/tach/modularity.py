@@ -130,8 +130,6 @@ class Dependency:
 @dataclass
 class Module:
     path: str
-    # [1.2] Deprecated
-    is_strict: bool = False
     # [1.2] Replaces 'is_strict'
     has_interface: bool = False
     interface_members: list[str] = field(default_factory=list)
@@ -139,34 +137,13 @@ class Module:
     depends_on: list[Dependency] = field(default_factory=list)
 
 
-REPORT_VERSION = "1.3"
+REPORT_VERSION = "1.4"
 
 
 @dataclass
 class ReportMetadata:
     version: str = REPORT_VERSION
     configuration_format: str = "json"
-
-
-@dataclass
-class ErrorInfo:
-    is_deprecated: bool
-    pystring: str
-
-
-@dataclass
-class BoundaryError:
-    file_path: str
-    line_number: int
-    import_mod_path: str
-    error_info: ErrorInfo
-
-
-@dataclass
-class CheckResult:
-    errors: list[BoundaryError] = field(default_factory=list)
-    deprecated_warnings: list[BoundaryError] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
 
 
 # This is unfortunately necessary because we use 'asdict' on the report
@@ -204,13 +181,8 @@ class Report:
     full_configuration: str
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
-    # [1.3] Check result for dependency errors
-    check_result: CheckResult = field(default_factory=CheckResult)
     # [1.4] Diagnostics
     diagnostics: list[UsageError] = field(default_factory=list)
-    metadata: ReportMetadata = field(default_factory=ReportMetadata)
-    # [1.2] Deprecated
-    interface_rules: list[Any] = field(default_factory=list)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
@@ -225,7 +197,8 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
         interface_members: set[str] = set()
         for interface in project_config.all_interfaces():
             if any(
-                re.match(pattern, module.path) for pattern in interface.from_modules
+                re.match(r"^" + pattern + r"$", module.path)
+                for pattern in interface.from_modules
             ):
                 has_interface = True
                 interface_members.update(interface.expose)
