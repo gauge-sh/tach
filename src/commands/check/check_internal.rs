@@ -4,6 +4,7 @@ use super::checks::{
 };
 use super::error::CheckError;
 use crate::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
+use crate::filesystem::relative_to;
 
 use std::{
     path::{Path, PathBuf},
@@ -28,6 +29,7 @@ pub type Result<T> = std::result::Result<T, CheckError>;
 
 fn process_file(
     file_path: PathBuf,
+    project_root: &Path,
     source_root: &Path,
     source_roots: &[PathBuf],
     module_tree: &ModuleTree,
@@ -37,6 +39,7 @@ fn process_file(
     found_imports: &AtomicBool,
 ) -> Result<Vec<Diagnostic>> {
     let abs_file_path = &source_root.join(&file_path);
+    let relative_file_path = relative_to(abs_file_path, project_root)?;
     let mod_path = fs::file_to_module_path(source_roots, abs_file_path)?;
     let nearest_module = module_tree
         .find_nearest(&mod_path)
@@ -70,14 +73,14 @@ fn process_file(
         Err(ImportParseError::Parsing { .. }) => {
             return Ok(vec![Diagnostic::new_global_warning(
                 DiagnosticDetails::Configuration(ConfigurationDiagnostic::SkippedFileSyntaxError {
-                    file_path: file_path.display().to_string(),
+                    file_path: relative_file_path.display().to_string(),
                 }),
             )]);
         }
         Err(ImportParseError::Filesystem(_)) => {
             return Ok(vec![Diagnostic::new_global_warning(
                 DiagnosticDetails::Configuration(ConfigurationDiagnostic::SkippedFileIoError {
-                    file_path: file_path.display().to_string(),
+                    file_path: relative_file_path.display().to_string(),
                 }),
             )]);
         }
@@ -100,8 +103,9 @@ fn process_file(
                         details: DiagnosticDetails::Code(_),
                         ..
                     } => {
-                        diagnostics
-                            .push(diagnostic.into_located(file_path.clone(), import.line_no));
+                        diagnostics.push(
+                            diagnostic.into_located(relative_file_path.clone(), import.line_no),
+                        );
                     }
                     Diagnostic::Global {
                         details: DiagnosticDetails::Configuration(_),
@@ -127,23 +131,19 @@ fn process_file(
             ) {
                 Ok(()) => {}
                 Err(diagnostic) => {
-                    diagnostics.push(
-                        diagnostic.into_located(
-                            file_path.clone(),
-                            directive_ignored_import.import.line_no,
-                        ),
-                    );
+                    diagnostics.push(diagnostic.into_located(
+                        relative_file_path.clone(),
+                        directive_ignored_import.import.line_no,
+                    ));
                 }
             }
             match check_missing_ignore_directive_reason(&directive_ignored_import, project_config) {
                 Ok(()) => {}
                 Err(diagnostic) => {
-                    diagnostics.push(
-                        diagnostic.into_located(
-                            file_path.clone(),
-                            directive_ignored_import.import.line_no,
-                        ),
-                    );
+                    diagnostics.push(diagnostic.into_located(
+                        relative_file_path.clone(),
+                        directive_ignored_import.import.line_no,
+                    ));
                 }
             }
         });
@@ -155,7 +155,7 @@ fn process_file(
                 diagnostics.push(Diagnostic::new_located(
                     severity,
                     DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
-                    file_path.clone(),
+                    relative_file_path.clone(),
                     ignore_directive.line_no,
                 ));
             }
@@ -233,6 +233,7 @@ pub fn check(
                 }
                 process_file(
                     file_path,
+                    &project_root,
                     source_root,
                     &source_roots,
                     &module_tree,

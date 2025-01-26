@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::config::ProjectConfig;
 use crate::external::parsing::parse_pyproject_toml;
+use crate::filesystem::relative_to;
 use crate::{filesystem, imports};
 
 use super::checks::{
@@ -46,7 +47,7 @@ pub fn check(
                         ) {
                             ImportProcessResult::UndeclaredDependency(module_name) => {
                                 diagnostics.push(Diagnostic::new_located_error(
-                                    absolute_file_path.clone(),
+                                    relative_to(&absolute_file_path, project_root)?,
                                     import.import_line_no,
                                     DiagnosticDetails::Code(
                                         CodeDiagnostic::UndeclaredExternalDependency {
@@ -72,7 +73,7 @@ pub fn check(
                             Ok(()) => {}
                             Err(diagnostic) => {
                                 diagnostics.push(diagnostic.into_located(
-                                    file_path.clone(),
+                                    relative_to(&absolute_file_path, project_root)?,
                                     directive_ignored_import.import.line_no,
                                 ));
                             }
@@ -89,7 +90,7 @@ pub fn check(
                             Ok(()) => {}
                             Err(diagnostic) => {
                                 diagnostics.push(diagnostic.into_located(
-                                    file_path.clone(),
+                                    relative_to(&absolute_file_path, project_root)?,
                                     directive_ignored_import.import.line_no,
                                 ));
                             }
@@ -103,7 +104,7 @@ pub fn check(
                             diagnostics.push(Diagnostic::new_located(
                                 severity,
                                 DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
-                                file_path.clone(),
+                                relative_to(&absolute_file_path, project_root)?,
                                 unused_directive.line_no,
                             ));
                         }
