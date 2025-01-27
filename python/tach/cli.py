@@ -44,102 +44,9 @@ from tach.show import (
 )
 from tach.sync import sync_project
 from tach.test import run_affected_tests
-from tach.utils.display import create_clickable_link
 
 if TYPE_CHECKING:
-    from tach.extension import Diagnostic, UnusedDependencies
-
-
-def build_diagnostic_message(error: Diagnostic, project_root: Path) -> str:
-    local_error_path = error.pyfile_path()
-    absolute_error_path = project_root / local_error_path if local_error_path else None
-
-    if absolute_error_path is None:
-        error_location = "Error" if error.is_error() else "Warning"
-    else:
-        error_location = create_clickable_link(
-            absolute_error_path,
-            display_path=Path(local_error_path)
-            if local_error_path is not None
-            else None,
-            line=error.pyline_number(),
-        )
-
-    error_template = (
-        f"{icons.FAIL}  {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
-        f"{{message}} {BCOLORS.ENDC}"
-    )
-    warning_template = (
-        f"{icons.WARNING}  {BCOLORS.FAIL}{error_location}{BCOLORS.ENDC}{BCOLORS.WARNING}: "
-        f"{{message}} {BCOLORS.ENDC}"
-    )
-    if error.is_warning():
-        return warning_template.format(message=error.to_string())
-    return error_template.format(message=error.to_string())
-
-
-def print_warnings(warning_list: list[str]) -> None:
-    for warning in warning_list:
-        print(f"{BCOLORS.WARNING}{warning}{BCOLORS.ENDC}", file=sys.stderr)
-
-
-def print_errors(error_list: list[str]) -> None:
-    for error in error_list:
-        print(f"{BCOLORS.FAIL}{error}{BCOLORS.ENDC}", file=sys.stderr)
-
-
-def print_diagnostics(error_list: list[Diagnostic], project_root: Path) -> None:
-    if not error_list:
-        return
-
-    interface_errors: list[Diagnostic] = []
-    dependency_errors: list[Diagnostic] = []
-    other_errors: list[Diagnostic] = []
-    for error in sorted(error_list, key=lambda e: (e.pyfile_path() or "")):
-        if error.is_interface_error():
-            interface_errors.append(error)
-        elif error.is_dependency_error():
-            dependency_errors.append(error)
-        else:
-            other_errors.append(error)
-
-    if interface_errors:
-        print(f"{BCOLORS.FAIL}Interface Errors:{BCOLORS.ENDC}", file=sys.stderr)
-        for error in interface_errors:
-            print(
-                build_diagnostic_message(error, project_root),
-                file=sys.stderr,
-            )
-        print(
-            f"{BCOLORS.WARNING}\nIf you intended to change an interface, edit the '[[interfaces]]' section of {CONFIG_FILE_NAME}.toml."
-            f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
-            file=sys.stderr,
-        )
-
-    if dependency_errors:
-        print(f"{BCOLORS.FAIL}Dependency Errors:{BCOLORS.ENDC}", file=sys.stderr)
-        has_real_errors = False
-        for error in dependency_errors:
-            if not error.is_deprecated():
-                has_real_errors = True
-            print(
-                build_diagnostic_message(error, project_root),
-                file=sys.stderr,
-            )
-        print(file=sys.stderr)
-        if has_real_errors:
-            print(
-                f"{BCOLORS.WARNING}If you intended to add a new dependency, run 'tach sync' to update your module configuration."
-                f"\nOtherwise, remove any disallowed imports and consider refactoring.\n{BCOLORS.ENDC}",
-                file=sys.stderr,
-            )
-
-    if other_errors:
-        for error in other_errors:
-            print(
-                build_diagnostic_message(error, project_root),
-                file=sys.stderr,
-            )
+    from tach.extension import UnusedDependencies
 
 
 def print_unused_dependencies(
@@ -247,46 +154,6 @@ def print_visibility_errors(
                 "\n",
                 file=sys.stderr,
             )
-
-
-def print_undeclared_dependencies(
-    undeclared_dependencies: dict[str, list[str]],
-) -> None:
-    any_undeclared = False
-    for file_path, dependencies in undeclared_dependencies.items():
-        if dependencies:
-            any_undeclared = True
-            print(
-                f"{icons.FAIL}: {BCOLORS.FAIL}Undeclared dependencies in {BCOLORS.ENDC}{BCOLORS.WARNING}'{file_path}'{BCOLORS.ENDC}:"
-            )
-            for dependency in dependencies:
-                print(f"\t{BCOLORS.FAIL}{dependency}{BCOLORS.ENDC}")
-    if any_undeclared:
-        print(
-            f"{BCOLORS.WARNING}\nAdd the undeclared dependencies to the corresponding pyproject.toml file, "
-            f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
-            file=sys.stderr,
-        )
-
-
-def print_unused_external_dependencies(
-    unused_dependencies: dict[str, list[str]],
-) -> None:
-    any_unused = False
-    for pyproject_path, dependencies in unused_dependencies.items():
-        if dependencies:
-            any_unused = True
-            print(
-                f"{icons.WARNING}  {BCOLORS.WARNING}Unused dependencies from project at {BCOLORS.OKCYAN}'{pyproject_path}'{BCOLORS.ENDC}{BCOLORS.ENDC}:"
-            )
-            for dependency in dependencies:
-                print(f"\t{BCOLORS.WARNING}{dependency}{BCOLORS.ENDC}")
-    if any_unused:
-        print(
-            f"{BCOLORS.OKCYAN}\nRemove the unused dependencies from the corresponding pyproject.toml file, "
-            f"or consider ignoring the dependencies by adding them to the 'external.exclude' list in {CONFIG_FILE_NAME}.toml.\n{BCOLORS.ENDC}",
-            file=sys.stderr,
-        )
 
 
 def add_base_arguments(parser: argparse.ArgumentParser) -> None:
