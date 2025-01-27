@@ -351,6 +351,14 @@ fn check_internal(
 }
 
 #[pyfunction]
+pub fn format_diagnostics(
+    project_root: PathBuf,
+    diagnostics: Vec<diagnostics::Diagnostic>,
+) -> String {
+    check::format::DiagnosticFormatter::new(project_root).format_diagnostics(&diagnostics)
+}
+
+#[pyfunction]
 #[pyo3(signature = (project_root, project_config, exclude_paths))]
 fn detect_unused_dependencies(
     project_root: PathBuf,
@@ -409,6 +417,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(update_computation_cache, m)?)?;
     m.add_function(wrap_pyfunction_bound!(dump_project_config_to_toml, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_internal, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(format_diagnostics, m)?)?;
     m.add_function(wrap_pyfunction_bound!(detect_unused_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(sync_project, m)?)?;
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;

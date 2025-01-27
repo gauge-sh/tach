@@ -61,6 +61,10 @@ def check_external_dependencies(
     module_mappings: dict[str, list[str]],
     stdlib_modules: list[str],
 ) -> list[Diagnostic]: ...
+def format_diagnostics(
+    project_root: Path,
+    diagnostics: list[Diagnostic],
+) -> str: ...
 def detect_unused_dependencies(
     project_root: Path,
     project_config: ProjectConfig,

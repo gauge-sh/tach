@@ -27,6 +27,7 @@ from tach.extension import (
     check_computation_cache,
     create_computation_cache_key,
     detect_unused_dependencies,
+    format_diagnostics,
     run_server,
     serialize_diagnostics_json,
     update_computation_cache,
@@ -644,7 +645,11 @@ def tach_check(
                 json.dump({"error": str(e)}, sys.stdout)
             sys.exit(1 if has_errors else 0)
 
-        print_diagnostics(diagnostics, project_root=project_root)
+        if diagnostics:
+            print(
+                format_diagnostics(project_root=project_root, diagnostics=diagnostics),
+                file=sys.stderr,
+            )
         exit_code = 1 if has_errors else 0
 
         # If we're checking in exact mode, we want to verify that there are no unused dependencies
@@ -696,14 +701,14 @@ def tach_check_external(
             exclude_paths=exclude_paths,
         )
 
-        warnings = list(filter(lambda d: d.is_warning(), diagnostics))
-        errors = list(filter(lambda d: d.is_error(), diagnostics))
-        for diagnostic in warnings:
-            print(diagnostic.to_string())
-        for diagnostic in errors:
-            print(diagnostic.to_string())
+        if diagnostics:
+            print(
+                format_diagnostics(project_root=project_root, diagnostics=diagnostics),
+                file=sys.stderr,
+            )
 
-        if errors:
+        has_errors = any(diagnostic.is_error() for diagnostic in diagnostics)
+        if has_errors:
             sys.exit(1)
         else:
             print(

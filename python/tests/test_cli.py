@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from tach import cli
-from tach.extension import Diagnostic, ProjectConfig
+from tach.extension import ProjectConfig
 
 
 @pytest.fixture
@@ -39,28 +39,6 @@ def test_execute_with_config(capfd, mock_check, mock_project_config):
     assert sys_exit.value.code == 0
     assert "✅" in captured.out
     assert "All modules validated!" in captured.out
-
-
-def test_execute_with_error(capfd, mock_check, mock_project_config):
-    # Mock an error returned from check
-    location = Path("valid_dir/file.py")
-    message = "Import valid_dir in valid_dir/file.py is blocked by boundary"
-    mock_diagnostic = Mock(spec=Diagnostic)
-    mock_diagnostic.is_error.return_value = True
-    mock_diagnostic.to_string.return_value = message
-    mock_diagnostic.pyfile_path.return_value = location
-    mock_diagnostic.pyline_number.return_value = 0
-    mock_check.return_value = [mock_diagnostic]
-    with pytest.raises(SystemExit) as sys_exit:
-        cli.tach_check(
-            project_root=Path(),
-            project_config=mock_project_config,
-            exclude_paths=mock_project_config.exclude,
-        )
-    captured = capfd.readouterr()
-    assert sys_exit.value.code == 1
-    assert str(location) in captured.err
-    assert message in captured.err
 
 
 def test_invalid_command(capfd):

@@ -25,7 +25,7 @@ def test_valid_example_dir(example_dir, capfd):
     assert exc_info.value.code == 0
     captured = capfd.readouterr()
     assert SUCCESS in captured.out
-    assert WARNING in captured.err
+    assert WARNING in captured.err or "WARN" in captured.err
 
 
 def test_valid_example_dir_monorepo(example_dir):

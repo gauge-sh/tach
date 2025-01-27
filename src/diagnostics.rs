@@ -6,11 +6,20 @@ use thiserror::Error;
 
 use crate::config::RuleSetting;
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialOrd, Ord, Serialize, PartialEq)]
 #[pyclass(eq, eq_int, module = "tach.extension")]
 pub enum Severity {
     Error,
     Warning,
+}
+
+impl Display for Severity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Severity::Error => write!(f, "Error"),
+            Severity::Warning => write!(f, "Warning"),
+        }
+    }
 }
 
 impl TryFrom<&RuleSetting> for Severity {
@@ -274,6 +283,10 @@ impl Diagnostic {
         }
     }
 
+    pub fn message(&self) -> String {
+        self.details().to_string()
+    }
+
     pub fn severity(&self) -> Severity {
         match self {
             Self::Global { severity, .. } => severity.clone(),
@@ -361,10 +374,7 @@ impl Diagnostic {
 
     #[pyo3(name = "to_string")]
     pub fn to_pystring(&self) -> String {
-        match self {
-            Self::Global { details, .. } => details.to_string(),
-            Self::Located { details, .. } => details.to_string(),
-        }
+        self.message()
     }
 
     pub fn pyfile_path(&self) -> Option<String> {
