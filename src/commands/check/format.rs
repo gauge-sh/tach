@@ -49,13 +49,27 @@ impl<'a> DiagnosticGroup<'a> {
     fn new(severity: Severity, kind: DiagnosticGroupKind) -> Self {
         let (header, footer) = match kind {
             DiagnosticGroupKind::Configuration => (style("Configuration").red().bold(), None),
-            DiagnosticGroupKind::InternalDependency => {
-                (style("Internal Dependencies").red().bold(), None)
-            }
-            DiagnosticGroupKind::ExternalDependency => {
-                (style("External Dependencies").red().bold(), None)
-            }
-            DiagnosticGroupKind::Interface => (style("Interfaces").red().bold(), None),
+            DiagnosticGroupKind::InternalDependency => (
+                style("Internal Dependencies").red().bold(),
+                Some(style(
+                    "If you intended to add a new dependency, run 'tach sync' to update your module configuration.\n\
+                    Otherwise, remove any disallowed imports and consider refactoring."
+                ).yellow()),
+            ),
+            DiagnosticGroupKind::ExternalDependency => (
+                style("External Dependencies").red().bold(),
+                Some(style(
+                    "Consider updating the corresponding pyproject.toml file,\n\
+                    or add the dependencies to the 'external.exclude' list in tach.toml."
+                ).yellow()),
+            ),
+            DiagnosticGroupKind::Interface => (
+                style("Interfaces").red().bold(),
+                Some(style(
+                    "If you intended to change an interface, edit the '[[interfaces]]' section of tach.toml.\n\
+                    Otherwise, remove any disallowed imports and consider refactoring."
+                ).yellow()),
+            ),
             DiagnosticGroupKind::Other => (style("Other").red().bold(), None),
         };
 
@@ -64,7 +78,7 @@ impl<'a> DiagnosticGroup<'a> {
             severity,
             header: header.to_string(),
             diagnostics: vec![],
-            footer,
+            footer: footer.map(|f| f.to_string()),
         }
     }
 
@@ -121,7 +135,7 @@ impl DiagnosticFormatter {
         };
 
         format!(
-            "{} {} {} {}",
+            "{} {}{} {}",
             icon,
             style(error_location).red().bold(),
             style(":").yellow().bold(),
@@ -143,7 +157,7 @@ impl DiagnosticFormatter {
             .join("\n");
 
         match &group.footer {
-            Some(footer) => format!("{}\n{}\n{}", header, diagnostics, footer),
+            Some(footer) => format!("{}\n{}\n\n{}", header, diagnostics, footer),
             None => format!("{}\n{}", header, diagnostics),
         }
     }
