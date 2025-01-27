@@ -13,6 +13,8 @@ use crate::modules;
 pub enum CheckError {
     #[error("The path {0} is not a valid directory.")]
     InvalidDirectory(String),
+    #[error("No checks enabled.")]
+    NoChecksEnabled(),
     #[error("Filesystem error: {0}")]
     Filesystem(#[from] fs::FileSystemError),
     #[error("Module tree error: {0}")]

@@ -8,15 +8,20 @@ from http.client import HTTPConnection, HTTPSConnection
 from typing import TYPE_CHECKING, Any
 from urllib import parse
 
+from typing_extensions import Literal
+
 from tach import filesystem as fs
 from tach.colors import BCOLORS
 from tach.constants import GAUGE_API_BASE_URL
 from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
-    CheckDiagnostics,
     ProjectConfig,
     check,
     get_project_imports,
+    into_usage_errors,
+)
+from tach.extension import (
+    UsageError as ExtUsageError,
 )
 from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing import extend_and_validate
@@ -54,7 +59,7 @@ def upload_report_to_gauge(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.3"
+GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.4"
 
 
 def post_json_to_gauge_api(
@@ -125,8 +130,6 @@ class Dependency:
 @dataclass
 class Module:
     path: str
-    # [1.2] Deprecated
-    is_strict: bool = False
     # [1.2] Replaces 'is_strict'
     has_interface: bool = False
     interface_members: list[str] = field(default_factory=list)
@@ -134,7 +137,7 @@ class Module:
     depends_on: list[Dependency] = field(default_factory=list)
 
 
-REPORT_VERSION = "1.3"
+REPORT_VERSION = "1.4"
 
 
 @dataclass
@@ -143,25 +146,27 @@ class ReportMetadata:
     configuration_format: str = "json"
 
 
+# This is unfortunately necessary because we use 'asdict' on the report
+# This will be removed once we move report generation to Rust
 @dataclass
-class ErrorInfo:
-    is_deprecated: bool
-    pystring: str
-
-
-@dataclass
-class BoundaryError:
-    file_path: str
+class UsageError:
+    file: str
     line_number: int
-    import_mod_path: str
-    error_info: ErrorInfo
+    member: str
+    usage_module: str
+    definition_module: str
+    error_type: Literal["DEPENDENCY", "INTERFACE"]
 
-
-@dataclass
-class CheckResult:
-    errors: list[BoundaryError] = field(default_factory=list)
-    deprecated_warnings: list[BoundaryError] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
+    @classmethod
+    def from_extension(cls, ext_usage_error: ExtUsageError) -> UsageError:
+        return cls(
+            file=ext_usage_error.file,
+            line_number=ext_usage_error.line_number,
+            member=ext_usage_error.member,
+            usage_module=ext_usage_error.usage_module,
+            definition_module=ext_usage_error.definition_module,
+            error_type=ext_usage_error.error_type,
+        )
 
 
 @dataclass
@@ -176,11 +181,8 @@ class Report:
     full_configuration: str
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
-    # [1.3] Check result for dependency errors
-    check_result: CheckResult = field(default_factory=CheckResult)
-    metadata: ReportMetadata = field(default_factory=ReportMetadata)
-    # [1.2] Deprecated
-    interface_rules: list[Any] = field(default_factory=list)
+    # [1.4] Diagnostics
+    diagnostics: list[UsageError] = field(default_factory=list)
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
@@ -195,7 +197,8 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
         interface_members: set[str] = set()
         for interface in project_config.all_interfaces():
             if any(
-                re.match(pattern, module.path) for pattern in interface.from_modules
+                re.match(r"^" + pattern + r"$", module.path)
+                for pattern in interface.from_modules
             ):
                 has_interface = True
                 interface_members.update(interface.expose)
@@ -273,36 +276,6 @@ def build_usages(
     return usages
 
 
-def process_check_result(check_diagnostics: CheckDiagnostics) -> CheckResult:
-    return CheckResult(
-        errors=[
-            BoundaryError(
-                file_path=str(error.file_path),
-                line_number=error.line_number,
-                import_mod_path=error.import_mod_path,
-                error_info=ErrorInfo(
-                    is_deprecated=error.error_info.is_deprecated(),
-                    pystring=error.error_info.to_pystring(),
-                ),
-            )
-            for error in check_diagnostics.errors
-        ],
-        deprecated_warnings=[
-            BoundaryError(
-                file_path=str(warning.file_path),
-                line_number=warning.line_number,
-                import_mod_path=warning.import_mod_path,
-                error_info=ErrorInfo(
-                    is_deprecated=warning.error_info.is_deprecated(),
-                    pystring=warning.error_info.to_pystring(),
-                ),
-            )
-            for warning in check_diagnostics.deprecated_warnings
-        ],
-        warnings=check_diagnostics.warnings,
-    )
-
-
 def generate_modularity_report(
     project_root: Path, project_config: ProjectConfig, force: bool = False
 ) -> Report:
@@ -329,9 +302,14 @@ def generate_modularity_report(
         project_config=project_config,
         exclude_paths=exclude_paths,
         dependencies=True,
-        interfaces=False,  # for now leave this as a separate concern
+        interfaces=True,
     )
-    report.check_result = process_check_result(check_diagnostics)
+    report.diagnostics = list(
+        map(
+            lambda ext_usage_error: UsageError.from_extension(ext_usage_error),
+            into_usage_errors(check_diagnostics),
+        )
+    )
     print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
     return report
 

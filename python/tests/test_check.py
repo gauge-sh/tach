@@ -7,7 +7,7 @@ import pytest
 
 from tach.cli import tach_check
 from tach.errors import TachCircularDependencyError, TachVisibilityError
-from tach.extension import CheckDiagnostics
+from tach.extension import Diagnostic
 from tach.icons import SUCCESS, WARNING
 from tach.parsing.config import parse_project_config
 
@@ -25,7 +25,7 @@ def test_valid_example_dir(example_dir, capfd):
     assert exc_info.value.code == 0
     captured = capfd.readouterr()
     assert SUCCESS in captured.out
-    assert WARNING in captured.err
+    assert WARNING in captured.err or "WARN" in captured.err
 
 
 def test_valid_example_dir_monorepo(example_dir):
@@ -46,9 +46,11 @@ def test_check_json_output(example_dir, capfd, mocker):
     project_config = parse_project_config(root=project_root)
     assert project_config is not None
 
-    mock_diagnostics = NonCallableMagicMock(spec=CheckDiagnostics)
-    mock_diagnostics.serialize_json.return_value = json.dumps(
-        {"errors": [], "warnings": []}
+    mock_diagnostics = [NonCallableMagicMock(spec=Diagnostic)]
+    mock_diagnostics[0].is_error.return_value = False
+    mocker.patch(
+        "tach.cli.serialize_diagnostics_json",
+        return_value=json.dumps([{"hello": "world"}]),
     )
     mocker.patch("tach.cli.check", return_value=mock_diagnostics)
 
@@ -62,7 +64,7 @@ def test_check_json_output(example_dir, capfd, mocker):
     assert exc_info.value.code == 0
 
     captured = capfd.readouterr()
-    assert json.loads(captured.out) == {"errors": [], "warnings": []}
+    assert json.loads(captured.out) == [{"hello": "world"}]
 
 
 def test_check_json_with_errors(example_dir, capfd, mocker):
@@ -70,9 +72,12 @@ def test_check_json_with_errors(example_dir, capfd, mocker):
     project_config = parse_project_config(root=project_root)
     assert project_config is not None
 
-    mock_diagnostics = NonCallableMagicMock(spec=CheckDiagnostics)
-    mock_diagnostics.serialize_json.return_value = json.dumps(
-        {"errors": ["error1", "error2"], "warnings": ["warning1"]}
+    mock_diagnostics = [NonCallableMagicMock(spec=Diagnostic)]
+    mocker.patch(
+        "tach.cli.serialize_diagnostics_json",
+        return_value=json.dumps(
+            {"errors": ["error1", "error2"], "warnings": ["warning1"]}
+        ),
     )
     mocker.patch("tach.cli.check", return_value=mock_diagnostics)
 

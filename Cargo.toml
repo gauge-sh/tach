@@ -33,6 +33,7 @@ rayon = "1.10.0"
 parking_lot = "0.12.3"
 itertools = "0.14.0"
 toml_edit = "0.22.22"
+console = "0.15.10"
 
 [features]
 extension-module = ["pyo3/extension-module"]

@@ -30,8 +30,6 @@ pub enum ImportParseError {
     },
     #[error("Failed to parse project imports.\n{0}")]
     Filesystem(#[from] filesystem::FileSystemError),
-    #[error("Failed to check if path is excluded.\n{0}")]
-    Exclusion(#[from] exclusion::PathExclusionError),
 }
 
 pub type Result<T> = std::result::Result<T, ImportParseError>;
