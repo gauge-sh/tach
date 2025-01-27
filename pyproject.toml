@@ -56,7 +56,7 @@ keywords = [
 dev = [
     # Core deps (pinned)
     "rich==13.8.1",
-    "prompt-toolkit==3.0.47",
+    "prompt-toolkit==3.0.50",
     # Setup
     "pip==24.0",
     # Code Quality
