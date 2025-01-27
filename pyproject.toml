@@ -58,7 +58,7 @@ dev = [
     "rich==13.8.1",
     "prompt-toolkit==3.0.47",
     # Setup
-    "pip==24.0",
+    "pip==25.0",
     # Code Quality
     "pyright==1.1.389",
     "ruff==0.8.3",
