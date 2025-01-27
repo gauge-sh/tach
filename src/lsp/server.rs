@@ -170,25 +170,17 @@ impl LSPServer {
             true,
             self.project_config.exclude.clone(),
         )?;
-        let diagnostics =
-            check_result
-                .into_iter()
-                .filter_map(|e| {
-                    if self.project_config.source_roots.iter().any(|source_root| {
-                        match e.file_path() {
-                            Some(file_path) => {
-                                let full_path = self.project_root.join(source_root).join(file_path);
-                                uri_pathbuf == full_path
-                            }
-                            None => false,
-                        }
-                    }) {
-                        e.into()
-                    } else {
-                        None
+        let diagnostics = check_result
+            .into_iter()
+            .filter_map(|e| {
+                if let Some(file_path) = e.file_path() {
+                    if uri_pathbuf == self.project_root.join(file_path) {
+                        return e.into();
                     }
-                })
-                .collect();
+                }
+                None
+            })
+            .collect();
         Ok(lsp_types::PublishDiagnosticsParams {
             uri,
             diagnostics,

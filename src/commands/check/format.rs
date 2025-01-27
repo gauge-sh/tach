@@ -70,7 +70,7 @@ impl<'a> DiagnosticGroup<'a> {
                     Otherwise, remove any disallowed imports and consider refactoring."
                 ).yellow()),
             ),
-            DiagnosticGroupKind::Other => (style("Other").red().bold(), None),
+            DiagnosticGroupKind::Other => (style("General").red().bold(), None),
         };
 
         Self {
@@ -129,18 +129,22 @@ impl DiagnosticFormatter {
             None => diagnostic.severity().to_string(),
         };
 
-        let icon = match diagnostic.severity() {
-            Severity::Error => fail(),
-            Severity::Warning => warning(),
-        };
-
-        format!(
-            "{} {}{} {}",
-            icon,
-            style(error_location).red().bold(),
-            style(":").yellow().bold(),
-            style(diagnostic.message()).yellow(),
-        )
+        match diagnostic.severity() {
+            Severity::Error => format!(
+                "{} {}{} {}",
+                fail(),
+                style(error_location).red().bold(),
+                style(":").yellow().bold(),
+                style(diagnostic.message()).yellow(),
+            ),
+            Severity::Warning => format!(
+                "{} {}{} {}",
+                warning(),
+                style(error_location).yellow().bold(),
+                style(":").yellow().bold(),
+                style(diagnostic.message()).yellow(),
+            ),
+        }
     }
 
     fn format_diagnostic_group(&self, group: &mut DiagnosticGroup) -> String {
