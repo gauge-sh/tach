@@ -13,7 +13,7 @@ pub type Result<T> = std::result::Result<T, ParsingError>;
 
 /// Use the ruff-python-parser crate to parse a Python source file into an AST
 pub fn parse_python_source(python_source: &str) -> Result<Mod> {
-    Ok(parse(python_source, Mode::Module)?)
+    Ok(parse(python_source, Mode::Module)?.syntax().to_owned())
 }
 
 struct InterfaceVisitor {

@@ -135,7 +135,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
                 for target in &node.targets {
                     self.current_interface_members.push(InterfaceMember {
                         name: match target {
-                            Expr::Name(name) => name.id.clone(),
+                            Expr::Name(name) => name.id.to_string(),
                             _ => panic!("Expected Expr::Name"),
                         },
                         node: InterfaceMemberNode::Variable { annotation: None },
@@ -145,12 +145,12 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
             Stmt::AnnAssign(node) => {
                 self.current_interface_members.push(InterfaceMember {
                     name: match node.target.as_ref() {
-                        Expr::Name(name) => name.id.clone(),
+                        Expr::Name(name) => name.id.to_string(),
                         _ => panic!("Expected Expr::Name"),
                     },
                     node: InterfaceMemberNode::Variable {
                         annotation: match node.annotation.as_ref() {
-                            Expr::Name(name) => Some(name.id.clone()),
+                            Expr::Name(name) => Some(name.id.to_string()),
                             Expr::StringLiteral(s) => Some(s.value.to_string()),
                             _ => None,
                         },
@@ -159,7 +159,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
             }
             Stmt::FunctionDef(node) => {
                 self.current_interface_members.push(InterfaceMember {
-                    name: node.name.id.clone(),
+                    name: node.name.id.to_string(),
                     node: InterfaceMemberNode::Function {
                         parameters: node
                             .parameters
@@ -168,7 +168,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
                                 _name: p.parameter.name.to_string(),
                                 annotation: match &p.parameter.annotation {
                                     Some(annotation) => match annotation.as_ref() {
-                                        Expr::Name(name) => Some(name.id.clone()),
+                                        Expr::Name(name) => Some(name.id.to_string()),
                                         Expr::StringLiteral(s) => Some(s.value.to_string()),
                                         _ => None,
                                     },
@@ -178,7 +178,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
                             .collect(),
                         return_type: match node.returns.as_ref() {
                             Some(r) => match r.as_ref() {
-                                Expr::Name(name) => Some(name.id.clone()),
+                                Expr::Name(name) => Some(name.id.to_string()),
                                 Expr::StringLiteral(s) => Some(s.value.to_string()),
                                 _ => None,
                             },
@@ -189,7 +189,7 @@ impl StatementVisitor<'_> for ModuleInterfaceVisitor<'_> {
             }
             Stmt::ClassDef(node) => {
                 self.current_interface_members.push(InterfaceMember {
-                    name: node.name.id.clone(),
+                    name: node.name.id.to_string(),
                     node: InterfaceMemberNode::Class,
                 });
             }

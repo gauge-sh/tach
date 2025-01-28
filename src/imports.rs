@@ -11,10 +11,10 @@ use pyo3::PyObject;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use ruff_linter::Locator;
 use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
 use ruff_python_ast::visitor::Visitor;
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
-use ruff_source_file::Locator;
 use thiserror::Error;
 
 use crate::python::{error::ParsingError, parsing::parse_python_source};
