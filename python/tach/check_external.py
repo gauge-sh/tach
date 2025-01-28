@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from tach.errors import TachError
 from tach.extension import (
-    ExternalCheckDiagnostics,
+    Diagnostic,
     check_external_dependencies,
     set_excluded_paths,
 )
@@ -34,7 +34,7 @@ def check_external(
     project_root: Path,
     project_config: ProjectConfig,
     exclude_paths: list[str],
-) -> ExternalCheckDiagnostics:
+) -> list[Diagnostic]:
     set_excluded_paths(
         project_root=str(project_root),
         exclude_paths=exclude_paths,

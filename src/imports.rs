@@ -11,10 +11,10 @@ use pyo3::PyObject;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use ruff_linter::Locator;
 use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
 use ruff_python_ast::visitor::Visitor;
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
-use ruff_source_file::Locator;
 use thiserror::Error;
 
 use crate::python::{error::ParsingError, parsing::parse_python_source};
@@ -30,8 +30,6 @@ pub enum ImportParseError {
     },
     #[error("Failed to parse project imports.\n{0}")]
     Filesystem(#[from] filesystem::FileSystemError),
-    #[error("Failed to check if path is excluded.\n{0}")]
-    Exclusion(#[from] exclusion::PathExclusionError),
 }
 
 pub type Result<T> = std::result::Result<T, ImportParseError>;

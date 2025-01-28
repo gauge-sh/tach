@@ -1,8 +1,10 @@
 use super::checks::{
-    check_import, check_missing_ignore_directive_reason, check_unused_ignore_directive,
+    check_import_internal, check_missing_ignore_directive_reason,
+    check_unused_ignore_directive_internal,
 };
-use super::diagnostics::{BoundaryError, CheckDiagnostics, ImportCheckError};
 use super::error::CheckError;
+use crate::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
+use crate::filesystem::relative_to;
 
 use std::{
     path::{Path, PathBuf},
@@ -12,8 +14,9 @@ use std::{
 
 use rayon::prelude::*;
 
+use crate::modules::error::ModuleTreeError;
 use crate::{
-    config::{root_module::RootModuleTreatment, ProjectConfig, RuleSetting},
+    config::{root_module::RootModuleTreatment, ProjectConfig},
     exclusion::set_excluded_paths,
     filesystem as fs,
     imports::{get_project_imports, ImportParseError},
@@ -22,8 +25,11 @@ use crate::{
     modules::{build_module_tree, ModuleTree},
 };
 
+pub type Result<T> = std::result::Result<T, CheckError>;
+
 fn process_file(
     file_path: PathBuf,
+    project_root: &Path,
     source_root: &Path,
     source_roots: &[PathBuf],
     module_tree: &ModuleTree,
@@ -31,20 +37,25 @@ fn process_file(
     interface_checker: &Option<InterfaceChecker>,
     check_dependencies: bool,
     found_imports: &AtomicBool,
-) -> Option<CheckDiagnostics> {
+) -> Result<Vec<Diagnostic>> {
     let abs_file_path = &source_root.join(&file_path);
-    let mod_path = fs::file_to_module_path(source_roots, abs_file_path).ok()?;
-    let nearest_module = module_tree.find_nearest(&mod_path)?;
+    let relative_file_path = relative_to(abs_file_path, project_root)?;
+    let mod_path = fs::file_to_module_path(source_roots, abs_file_path)?;
+    let nearest_module = module_tree
+        .find_nearest(&mod_path)
+        .ok_or(CheckError::ModuleTree(ModuleTreeError::ModuleNotFound(
+            mod_path.to_string(),
+        )))?;
 
     if nearest_module.is_unchecked() {
-        return None;
+        return Ok(vec![]);
     }
 
     if nearest_module.is_root() && project_config.root_module == RootModuleTreatment::Ignore {
-        return None;
+        return Ok(vec![]);
     }
 
-    let mut diagnostics = CheckDiagnostics::default();
+    let mut diagnostics = vec![];
     let project_imports = match get_project_imports(
         source_roots,
         abs_file_path,
@@ -60,30 +71,23 @@ fn process_file(
             project_imports
         }
         Err(ImportParseError::Parsing { .. }) => {
-            diagnostics.warnings.push(format!(
-                "Skipped '{}' due to a syntax error.",
-                file_path.display()
-            ));
-            return Some(diagnostics);
+            return Ok(vec![Diagnostic::new_global_warning(
+                DiagnosticDetails::Configuration(ConfigurationDiagnostic::SkippedFileSyntaxError {
+                    file_path: relative_file_path.display().to_string(),
+                }),
+            )]);
         }
         Err(ImportParseError::Filesystem(_)) => {
-            diagnostics.warnings.push(format!(
-                "Skipped '{}' due to an I/O error.",
-                file_path.display()
-            ));
-            return Some(diagnostics);
-        }
-        Err(ImportParseError::Exclusion(_)) => {
-            diagnostics.warnings.push(format!(
-                "Skipped '{}'. Failed to check if the path is excluded.",
-                file_path.display(),
-            ));
-            return Some(diagnostics);
+            return Ok(vec![Diagnostic::new_global_warning(
+                DiagnosticDetails::Configuration(ConfigurationDiagnostic::SkippedFileIoError {
+                    file_path: relative_file_path.display().to_string(),
+                }),
+            )]);
         }
     };
 
     project_imports.active_imports().for_each(|import| {
-        if let Err(error_info) = check_import(
+        if let Err(import_diagnostics) = check_import_internal(
             &import.module_path,
             module_tree,
             Arc::clone(&nearest_module),
@@ -92,99 +96,72 @@ fn process_file(
             interface_checker,
             check_dependencies,
         ) {
-            let boundary_error = BoundaryError {
-                file_path: file_path.clone(),
-                line_number: import.line_no,
-                import_mod_path: import.module_path.to_string(),
-                error_info,
-            };
-            if boundary_error.is_deprecated() {
-                diagnostics.deprecated_warnings.push(boundary_error);
-            } else {
-                diagnostics.errors.push(boundary_error);
-            }
-        };
+            import_diagnostics
+                .into_iter()
+                .for_each(|diagnostic| match &diagnostic {
+                    Diagnostic::Global {
+                        details: DiagnosticDetails::Code(_),
+                        ..
+                    } => {
+                        diagnostics.push(
+                            diagnostic.into_located(relative_file_path.clone(), import.line_no),
+                        );
+                    }
+                    Diagnostic::Global {
+                        details: DiagnosticDetails::Configuration(_),
+                        ..
+                    } => {
+                        diagnostics.push(diagnostic);
+                    }
+                    _ => {}
+                });
+        }
     });
 
     project_imports
         .directive_ignored_imports()
         .for_each(|directive_ignored_import| {
-            if project_config.rules.unused_ignore_directives != RuleSetting::Off {
-                let check_result = check_unused_ignore_directive(
-                    &directive_ignored_import,
-                    module_tree,
-                    Arc::clone(&nearest_module),
-                    project_config,
-                    interface_checker,
-                    check_dependencies,
-                );
-                match (check_result, &project_config.rules.unused_ignore_directives) {
-                    (Err(e), RuleSetting::Error) => {
-                        diagnostics.errors.push(BoundaryError {
-                            file_path: file_path.clone(),
-                            line_number: directive_ignored_import.import.line_no,
-                            import_mod_path: directive_ignored_import
-                                .import
-                                .module_path
-                                .to_string(),
-                            error_info: e,
-                        });
-                    }
-                    (Err(e), RuleSetting::Warn) => {
-                        diagnostics.warnings.push(e.to_string());
-                    }
-                    (Ok(()), _) | (_, RuleSetting::Off) => {}
+            match check_unused_ignore_directive_internal(
+                &directive_ignored_import,
+                module_tree,
+                Arc::clone(&nearest_module),
+                project_config,
+                interface_checker,
+                check_dependencies,
+            ) {
+                Ok(()) => {}
+                Err(diagnostic) => {
+                    diagnostics.push(diagnostic.into_located(
+                        relative_file_path.clone(),
+                        directive_ignored_import.import.line_no,
+                    ));
                 }
             }
-            if project_config.rules.require_ignore_directive_reasons != RuleSetting::Off {
-                let check_result = check_missing_ignore_directive_reason(&directive_ignored_import);
-                match (
-                    check_result,
-                    &project_config.rules.require_ignore_directive_reasons,
-                ) {
-                    (Err(e), RuleSetting::Error) => {
-                        diagnostics.errors.push(BoundaryError {
-                            file_path: file_path.clone(),
-                            line_number: directive_ignored_import.import.line_no,
-                            import_mod_path: directive_ignored_import
-                                .import
-                                .module_path
-                                .to_string(),
-                            error_info: e,
-                        });
-                    }
-                    (Err(e), RuleSetting::Warn) => {
-                        diagnostics.warnings.push(e.to_string());
-                    }
-                    (Ok(()), _) | (_, RuleSetting::Off) => {}
+            match check_missing_ignore_directive_reason(&directive_ignored_import, project_config) {
+                Ok(()) => {}
+                Err(diagnostic) => {
+                    diagnostics.push(diagnostic.into_located(
+                        relative_file_path.clone(),
+                        directive_ignored_import.import.line_no,
+                    ));
                 }
             }
         });
 
     project_imports
         .unused_ignore_directives()
-        .for_each(
-            |ignore_directive| match project_config.rules.unused_ignore_directives {
-                RuleSetting::Error => {
-                    diagnostics.errors.push(BoundaryError {
-                        file_path: file_path.clone(),
-                        line_number: ignore_directive.line_no,
-                        import_mod_path: ignore_directive.modules.join(", "),
-                        error_info: ImportCheckError::UnusedIgnoreDirective(),
-                    });
-                }
-                RuleSetting::Warn => {
-                    diagnostics.warnings.push(format!(
-                        "Unused ignore directive: '{}' in file '{}'",
-                        ignore_directive.modules.join(","),
-                        file_path.display()
-                    ));
-                }
-                RuleSetting::Off => {}
-            },
-        );
+        .for_each(|ignore_directive| {
+            if let Ok(severity) = (&project_config.rules.unused_ignore_directives).try_into() {
+                diagnostics.push(Diagnostic::new_located(
+                    severity,
+                    DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
+                    relative_file_path.clone(),
+                    ignore_directive.line_no,
+                ));
+            }
+        });
 
-    Some(diagnostics)
+    Ok(diagnostics)
 }
 
 pub fn check(
@@ -193,21 +170,18 @@ pub fn check(
     dependencies: bool,
     interfaces: bool,
     exclude_paths: Vec<String>,
-) -> Result<CheckDiagnostics, CheckError> {
+) -> Result<Vec<Diagnostic>> {
     if !dependencies && !interfaces {
-        return Ok(CheckDiagnostics {
-            errors: Vec::new(),
-            deprecated_warnings: Vec::new(),
-            warnings: vec!["WARNING: No checks enabled. At least one of dependencies or interfaces must be enabled.".to_string()],
-        });
+        return Err(CheckError::NoChecksEnabled());
     }
+
     if !project_root.is_dir() {
         return Err(CheckError::InvalidDirectory(
             project_root.display().to_string(),
         ));
     }
 
-    let mut diagnostics = CheckDiagnostics::default();
+    let mut warnings = Vec::new();
     let found_imports = AtomicBool::new(false);
     let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
@@ -217,9 +191,10 @@ pub fn check(
     );
 
     for module in &invalid_modules {
-        diagnostics.warnings.push(format!(
-            "Module '{}' not found. It will be ignored.",
-            module.path
+        warnings.push(Diagnostic::new_global_warning(
+            DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleNotFound {
+                file_mod_path: module.path.to_string(),
+            }),
         ));
     }
 
@@ -246,18 +221,19 @@ pub fn check(
         None
     };
 
-    for source_root in &source_roots {
-        let source_root_diagnostics = fs::walk_pyfiles(&source_root.display().to_string())
+    let diagnostics = source_roots.par_iter().flat_map(|source_root| {
+        fs::walk_pyfiles(&source_root.display().to_string())
             .par_bridge()
-            .filter_map(|file_path| {
+            .flat_map(|file_path| {
                 if check_interrupt().is_err() {
                     // Since files are being processed in parallel,
                     // this will essentially short-circuit all remaining files.
                     // Then, we check for an interrupt right after, and return the Err if it is set
-                    return None;
+                    return vec![];
                 }
                 process_file(
                     file_path,
+                    &project_root,
                     source_root,
                     &source_roots,
                     &module_tree,
@@ -266,18 +242,20 @@ pub fn check(
                     dependencies,
                     &found_imports,
                 )
-            });
-        check_interrupt().map_err(|_| CheckError::Interrupt)?;
-        diagnostics.par_extend(source_root_diagnostics);
-        check_interrupt().map_err(|_| CheckError::Interrupt)?;
+                .unwrap_or_default()
+            })
+    });
+
+    if check_interrupt().is_err() {
+        return Err(CheckError::Interrupt);
     }
 
+    let mut final_diagnostics: Vec<Diagnostic> = diagnostics.collect();
     if !found_imports.load(Ordering::Relaxed) {
-        diagnostics.warnings.push(
-            "WARNING: No first-party imports were found. You may need to use 'tach mod' to update your Python source roots. Docs: https://docs.gauge.sh/usage/configuration#source-roots"
-                .to_string(),
-        );
+        final_diagnostics.push(Diagnostic::new_global_warning(
+            DiagnosticDetails::Configuration(ConfigurationDiagnostic::NoFirstPartyImportsFound()),
+        ));
     }
 
-    Ok(diagnostics)
+    Ok(final_diagnostics)
 }

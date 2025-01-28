@@ -2,10 +2,11 @@ use thiserror::Error;
 
 use pyo3::prelude::*;
 
-use crate::commands::check::{check_internal, BoundaryError, CheckError};
+use crate::commands::check::{check_internal, CheckError};
 use crate::config::edit::{ConfigEditor, EditError};
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
+use crate::diagnostics::Diagnostic;
 use crate::filesystem::validate_module_path;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -57,13 +58,12 @@ fn handle_added_dependency(
     }
 }
 
-fn detect_dependencies(boundary_errors: &[BoundaryError]) -> HashMap<String, Vec<String>> {
+fn detect_dependencies(diagnostics: &[Diagnostic]) -> HashMap<String, Vec<String>> {
     let mut dependencies = HashMap::new();
-    for error in boundary_errors {
-        let error_info = &error.error_info;
-        if error_info.is_dependency_error() {
-            let source_path = error_info.source_path().unwrap();
-            let dep_path = error_info.invalid_path().unwrap();
+    for diagnostic in diagnostics {
+        if diagnostic.is_dependency_error() {
+            let source_path = diagnostic.usage_module().unwrap();
+            let dep_path = diagnostic.definition_module().unwrap();
             dependencies
                 .entry(source_path.to_string())
                 .or_insert(vec![])
@@ -95,7 +95,7 @@ pub fn detect_unused_dependencies(
         false,
         exclude_paths,
     )?;
-    let detected_dependencies = detect_dependencies(&check_result.errors);
+    let detected_dependencies = detect_dependencies(&check_result);
 
     let mut unused_dependencies: Vec<UnusedDependencies> = vec![];
     for module_path in project_config.module_paths() {
@@ -147,7 +147,7 @@ fn sync_dependency_constraints(
         false,
         exclude_paths,
     )?;
-    let detected_dependencies = detect_dependencies(&check_result.errors);
+    let detected_dependencies = detect_dependencies(&check_result);
 
     // Root module is a special case -- it may not be in module paths and still implicitly detect dependencies
     // If the root module is not in the module paths, but was detected, create it
