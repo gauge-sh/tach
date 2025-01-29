@@ -8,8 +8,6 @@ from http.client import HTTPConnection, HTTPSConnection
 from typing import TYPE_CHECKING, Any
 from urllib import parse
 
-from typing_extensions import Literal
-
 from tach import filesystem as fs
 from tach.colors import BCOLORS
 from tach.constants import GAUGE_API_BASE_URL
@@ -27,6 +25,11 @@ from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing import extend_and_validate
 
 if TYPE_CHECKING:
+    try:
+        # dataclass reads the annotation but doesn't need to evaluate it (just checking for ClassVar etc.)
+        from typing import Literal  # noqa: TC004
+    except ImportError:
+        pass
     from pathlib import Path
 
 
