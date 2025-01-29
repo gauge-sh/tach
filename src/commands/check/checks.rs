@@ -230,10 +230,13 @@ pub(super) fn check_import_external(
     let default_distribution_names = vec![top_level_module_name.clone()];
     let distribution_names: Vec<String> = module_mappings
         .get(&top_level_module_name)
-        .unwrap_or(&default_distribution_names)
-        .iter()
-        .map(|dist_name| normalize_package_name(dist_name))
-        .collect();
+        .map(|dist_names| {
+            dist_names
+                .iter()
+                .map(|dist_name| normalize_package_name(dist_name))
+                .collect()
+        })
+        .unwrap_or(default_distribution_names);
 
     if distribution_names
         .iter()
