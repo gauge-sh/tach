@@ -253,7 +253,7 @@ def build_usages(
         pyfile_containing_module = get_containing_module(pyfile_mod_path)
         imports = get_project_imports(
             source_roots=list(map(str, source_roots)),
-            file_path=str(pyfile),
+            file_path=str(project_root / pyfile),
             ignore_type_checking_imports=project_config.ignore_type_checking_imports,
             include_string_imports=project_config.include_string_imports,
         )
