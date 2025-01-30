@@ -15,6 +15,7 @@ pub mod modularity;
 pub mod modules;
 pub mod parsing;
 pub mod pattern;
+pub mod plugins;
 pub mod processors;
 pub mod python;
 pub mod tests;
