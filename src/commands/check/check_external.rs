@@ -3,8 +3,9 @@ use std::path::{Path, PathBuf};
 
 use crate::config::ProjectConfig;
 use crate::external::parsing::parse_pyproject_toml;
+use crate::filesystem;
 use crate::filesystem::relative_to;
-use crate::{filesystem, imports};
+use crate::processors::imports;
 
 use super::checks::{
     check_import_external, check_missing_ignore_directive_reason,

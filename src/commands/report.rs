@@ -15,9 +15,9 @@ use crate::config::ProjectConfig;
 use crate::filesystem::{
     file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
 };
-use crate::imports::{get_project_imports, ImportParseError, NormalizedImport};
 use crate::interrupt::check_interrupt;
 use crate::modules::{build_module_tree, error::ModuleTreeError};
+use crate::processors::imports::{get_project_imports, ImportParseError, NormalizedImport};
 
 struct Dependency {
     file_path: PathBuf,

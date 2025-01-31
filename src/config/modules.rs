@@ -226,6 +226,10 @@ impl ModuleConfig {
     pub fn new_root_config() -> Self {
         Self::new(ROOT_MODULE_SENTINEL_TAG, false)
     }
+
+    pub fn is_root(&self) -> bool {
+        self.path == ROOT_MODULE_SENTINEL_TAG
+    }
 }
 
 #[pymethods]

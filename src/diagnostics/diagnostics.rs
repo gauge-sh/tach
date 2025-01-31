@@ -40,8 +40,8 @@ pub enum ConfigurationDiagnostic {
     #[error("Module containing '{file_mod_path}' not found in project.")]
     ModuleNotFound { file_mod_path: String },
 
-    #[error("Could not find module configuration.")]
-    ModuleConfigNotFound(),
+    #[error("Could not find module configuration for module '{module_path}'.")]
+    ModuleConfigNotFound { module_path: String },
 
     #[error("Layer '{layer}' is not defined in the project.")]
     UnknownLayer { layer: String },

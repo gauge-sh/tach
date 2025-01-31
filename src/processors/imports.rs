@@ -71,6 +71,14 @@ pub struct NormalizedImports<State = AllImports> {
 }
 
 impl<State> NormalizedImports<State> {
+    pub fn empty() -> Self {
+        Self {
+            imports: vec![],
+            ignore_directives: IgnoreDirectives::empty(),
+            _state: PhantomData,
+        }
+    }
+
     pub fn new(imports: Vec<NormalizedImport>, ignore_directives: IgnoreDirectives) -> Self {
         Self {
             imports,
@@ -205,6 +213,13 @@ pub struct IgnoreDirectives {
 }
 
 impl IgnoreDirectives {
+    pub fn empty() -> Self {
+        Self {
+            directives: HashMap::new(),
+            redundant_directives: Vec::new(),
+        }
+    }
+
     pub fn lines(&self) -> impl Iterator<Item = &usize> {
         self.directives.keys()
     }
@@ -524,7 +539,7 @@ pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> 
     let resolved_module = filesystem::module_to_file_path(source_roots, mod_path, true);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
-        Ok(!exclusion::is_path_excluded(module.file_path))
+        Ok(!exclusion::is_path_excluded(&module.file_path))
     } else {
         // This is not a project import
         Ok(false)
