@@ -29,8 +29,8 @@ impl From<&DiagnosticDetails> for DiagnosticGroupKind {
                 CodeDiagnostic::UndeclaredExternalDependency { .. } => Self::ExternalDependency,
                 CodeDiagnostic::UnusedExternalDependency { .. } => Self::ExternalDependency,
                 CodeDiagnostic::UnnecessarilyIgnoredImport { .. } => Self::Other,
-                CodeDiagnostic::UnusedIgnoreDirective { .. } => Self::Other,
-                CodeDiagnostic::MissingIgnoreDirectiveReason { .. } => Self::Other,
+                CodeDiagnostic::UnusedIgnoreDirective() => Self::Other,
+                CodeDiagnostic::MissingIgnoreDirectiveReason() => Self::Other,
             },
         }
     }

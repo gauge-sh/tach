@@ -1,14 +1,10 @@
 use crate::{
-    config::{
-        root_module::RootModuleTreatment, rules::RuleSetting, DependencyConfig, ModuleConfig,
-    },
+    config::{root_module::RootModuleTreatment, DependencyConfig, ModuleConfig},
     diagnostics::{
         CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, FileChecker,
         FileContext, Result as DiagnosticResult,
     },
-    processors::imports::{
-        DirectiveIgnoredImport, NormalizedImport, NormalizedImports, ProjectImports,
-    },
+    processors::imports::{NormalizedImport, NormalizedImports, ProjectImports},
 };
 use std::path::Path;
 
@@ -22,7 +18,18 @@ enum LayerCheckResult {
 }
 
 pub struct InternalDependencyChecker;
+
+impl Default for InternalDependencyChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InternalDependencyChecker {
+    pub fn new() -> Self {
+        Self {}
+    }
+
     fn check_layers(
         &self,
         import_mod_path: &str,
@@ -144,7 +151,7 @@ impl InternalDependencyChecker {
         }
     }
 
-    fn check_active_import(
+    fn check_import(
         &self,
         import: &NormalizedImport,
         context: &FileContext,
@@ -176,86 +183,6 @@ impl InternalDependencyChecker {
             )])
         }
     }
-
-    fn check_unused_ignore_directive(
-        &self,
-        directive_ignored_import: &DirectiveIgnoredImport,
-        context: &FileContext,
-    ) -> DiagnosticResult<Vec<Diagnostic>> {
-        if context.project_config.rules.unused_ignore_directives == RuleSetting::Off {
-            return Ok(vec![]);
-        }
-
-        self.check_active_import(directive_ignored_import.import, context)
-            .map_or(Ok(vec![]), |diagnostics| {
-                if diagnostics.is_empty() {
-                    Ok(vec![Diagnostic::new_located(
-                        (&context.project_config.rules.unused_ignore_directives)
-                            .try_into()
-                            .unwrap(),
-                        DiagnosticDetails::Code(CodeDiagnostic::UnnecessarilyIgnoredImport {
-                            import_mod_path: directive_ignored_import
-                                .import
-                                .module_path
-                                .to_string(),
-                        }),
-                        context.relative_file_path.to_path_buf(),
-                        directive_ignored_import.import.line_no,
-                    )])
-                } else {
-                    Ok(vec![])
-                }
-            })
-    }
-
-    fn check_missing_ignore_directive_reason(
-        &self,
-        directive_ignored_import: &DirectiveIgnoredImport,
-        context: &FileContext,
-    ) -> DiagnosticResult<Vec<Diagnostic>> {
-        if context
-            .project_config
-            .rules
-            .require_ignore_directive_reasons
-            == RuleSetting::Off
-        {
-            return Ok(vec![]);
-        }
-
-        if directive_ignored_import.reason.is_empty() {
-            Ok(vec![Diagnostic::new_located(
-                (&context
-                    .project_config
-                    .rules
-                    .require_ignore_directive_reasons)
-                    .try_into()
-                    .unwrap(),
-                DiagnosticDetails::Code(CodeDiagnostic::MissingIgnoreDirectiveReason {
-                    import_mod_path: directive_ignored_import.import.module_path.to_string(),
-                }),
-                context.relative_file_path.to_path_buf(),
-                directive_ignored_import.import.line_no,
-            )])
-        } else {
-            Ok(vec![])
-        }
-    }
-
-    fn check_ignored_import(
-        &self,
-        directive_ignored_import: &DirectiveIgnoredImport,
-        context: &FileContext,
-    ) -> DiagnosticResult<Vec<Diagnostic>> {
-        let unused_ignore_diagnostics =
-            self.check_unused_ignore_directive(directive_ignored_import, context)?;
-        let missing_ignore_directive_diagnostics =
-            self.check_missing_ignore_directive_reason(directive_ignored_import, context)?;
-
-        Ok(unused_ignore_diagnostics
-            .into_iter()
-            .chain(missing_ignore_directive_diagnostics)
-            .collect())
-    }
 }
 
 impl<'a> FileChecker<'a> for InternalDependencyChecker {
@@ -270,12 +197,8 @@ impl<'a> FileChecker<'a> for InternalDependencyChecker {
         context: &'a Self::Context,
     ) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = Vec::new();
-        for import in ir.active_imports() {
-            diagnostics.extend(self.check_active_import(import, context)?);
-        }
-
-        for import in ir.directive_ignored_imports() {
-            diagnostics.extend(self.check_ignored_import(&import, context)?);
+        for import in ir.all_imports() {
+            diagnostics.extend(self.check_import(import, context)?);
         }
 
         Ok(diagnostics)

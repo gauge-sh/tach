@@ -106,9 +106,7 @@ pub(super) fn check_missing_ignore_directive_reason(
             (&project_config.rules.require_ignore_directive_reasons)
                 .try_into()
                 .unwrap(),
-            DiagnosticDetails::Code(CodeDiagnostic::MissingIgnoreDirectiveReason {
-                import_mod_path: directive_ignored_import.import.module_path.to_string(),
-            }),
+            DiagnosticDetails::Code(CodeDiagnostic::MissingIgnoreDirectiveReason()),
         ))
     } else {
         Ok(())

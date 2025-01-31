@@ -87,6 +87,10 @@ impl<State> NormalizedImports<State> {
         }
     }
 
+    pub fn all_imports(&self) -> impl Iterator<Item = &NormalizedImport> {
+        self.imports.iter()
+    }
+
     pub fn active_imports(&self) -> impl Iterator<Item = &NormalizedImport> {
         self.imports
             .iter()
@@ -224,6 +228,14 @@ impl IgnoreDirectives {
         self.directives.keys()
     }
 
+    pub fn active_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
+        self.directives.values()
+    }
+
+    pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
+        self.redundant_directives.iter()
+    }
+
     pub fn len(&self) -> usize {
         self.directives.len()
     }
@@ -268,10 +280,6 @@ impl IgnoreDirectives {
             .retain(|line_no, _directive| *line_no != normalized_import.import_line_no);
         self.redundant_directives
             .retain(|directive| directive.line_no != normalized_import.import_line_no);
-    }
-
-    pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
-        self.redundant_directives.iter()
     }
 }
 

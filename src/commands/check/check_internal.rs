@@ -8,10 +8,13 @@ use rayon::prelude::*;
 
 use super::error::CheckError;
 use crate::{
-    checks::{InterfaceChecker, InternalDependencyChecker},
+    checks::{
+        ignore_directive::IgnoreDirectiveData, IgnoreDirectiveChecker, InterfaceChecker,
+        InternalDependencyChecker,
+    },
     config::{root_module::RootModuleTreatment, ProjectConfig},
     diagnostics::{
-        CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
+        ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
         DiagnosticPipeline, FileChecker, FileContext, FileProcessor, Result as DiagnosticResult,
     },
     exclusion::set_excluded_paths,
@@ -72,6 +75,7 @@ impl<'a> AsRef<CheckInternalFileInformation> for CheckInternalFileInformation {
 struct CheckInternalPipeline {
     dependency_checker: Option<InternalDependencyChecker>,
     interface_checker: Option<InterfaceChecker>,
+    ignore_directive_checker: Option<IgnoreDirectiveChecker>,
 }
 
 impl CheckInternalPipeline {
@@ -79,6 +83,7 @@ impl CheckInternalPipeline {
         Self {
             dependency_checker: None,
             interface_checker: None,
+            ignore_directive_checker: None,
         }
     }
 
@@ -92,6 +97,14 @@ impl CheckInternalPipeline {
 
     pub fn with_interface_checker(mut self, interface_checker: Option<InterfaceChecker>) -> Self {
         self.interface_checker = interface_checker;
+        self
+    }
+
+    pub fn with_ignore_directive_checker(
+        mut self,
+        ignore_directive_checker: Option<IgnoreDirectiveChecker>,
+    ) -> Self {
+        self.ignore_directive_checker = ignore_directive_checker;
         self
     }
 }
@@ -177,50 +190,41 @@ impl<'a> FileChecker<'a> for CheckInternalPipeline {
                 )]);
             }
         };
-
         let file_context = FileContext::new(
             context.project_config,
             &relative_file_path,
             file_module_config,
             context.module_tree,
         );
-        let dependency_diagnostics = self
-            .dependency_checker
-            .as_ref()
-            .map_or(Ok(vec![]), |checker| {
-                checker.check(file_path, &input.project_imports, &file_context)
-            })?;
+        let mut diagnostics = Vec::new();
 
-        let interface_diagnostics = self
-            .interface_checker
-            .as_ref()
-            .map_or(Ok(vec![]), |checker| {
-                checker.check(file_path, &input.project_imports, &file_context)
-            })?;
+        diagnostics.extend(
+            self.dependency_checker
+                .as_ref()
+                .map_or(Ok(vec![]), |checker| {
+                    checker.check(file_path, &input.project_imports, &file_context)
+                })?,
+        );
 
-        let unused_ignore_diagnostics = input
-            .project_imports
-            .unused_ignore_directives()
-            .filter_map(|ignore_directive| {
-                if let Ok(severity) =
-                    (&context.project_config.rules.unused_ignore_directives).try_into()
-                {
-                    Some(Diagnostic::new_located(
-                        severity,
-                        DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
-                        relative_file_path.clone(),
-                        ignore_directive.line_no,
-                    ))
-                } else {
-                    None
-                }
-            });
+        diagnostics.extend(
+            self.interface_checker
+                .as_ref()
+                .map_or(Ok(vec![]), |checker| {
+                    checker.check(file_path, &input.project_imports, &file_context)
+                })?,
+        );
 
-        Ok(dependency_diagnostics
-            .into_iter()
-            .chain(interface_diagnostics)
-            .chain(unused_ignore_diagnostics)
-            .collect())
+        let ignore_directive_data =
+            IgnoreDirectiveData::new(&input.project_imports.ignore_directives, &diagnostics);
+        diagnostics.extend(
+            self.ignore_directive_checker
+                .as_ref()
+                .map_or(Ok(vec![]), |checker| {
+                    checker.check(file_path, &ignore_directive_data, &file_context)
+                })?,
+        );
+
+        Ok(diagnostics)
     }
 }
 
@@ -273,7 +277,7 @@ pub fn check(
     )?;
 
     let dependency_checker = if dependencies {
-        Some(InternalDependencyChecker {})
+        Some(InternalDependencyChecker::new())
     } else {
         None
     };
@@ -289,7 +293,8 @@ pub fn check(
 
     let pipeline = CheckInternalPipeline::new()
         .with_dependency_checker(dependency_checker)
-        .with_interface_checker(interface_checker);
+        .with_interface_checker(interface_checker)
+        .with_ignore_directive_checker(Some(IgnoreDirectiveChecker::new()));
 
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(&source_root.display().to_string())
