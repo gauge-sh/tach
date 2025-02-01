@@ -13,6 +13,7 @@ use super::checks::{
 };
 use super::error::ExternalCheckError;
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
+
 pub type Result<T> = std::result::Result<T, ExternalCheckError>;
 
 pub fn check(

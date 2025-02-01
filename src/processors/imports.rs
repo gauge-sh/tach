@@ -143,8 +143,7 @@ impl NormalizedImports<AllImports> {
         source_roots: &[PathBuf],
     ) -> (Vec<NormalizedImport>, Vec<NormalizedImport>) {
         self.imports.into_iter().partition(|normalized_import| {
-            is_project_import(source_roots, &normalized_import.module_path)
-                .map_or(false, |is_project| is_project)
+            is_project_import(source_roots, &normalized_import.module_path).unwrap_or(false)
         })
     }
 
@@ -262,7 +261,7 @@ impl IgnoreDirectives {
     pub fn is_ignored(&self, normalized_import: &NormalizedImport) -> bool {
         self.directives
             .get(&normalized_import.import_line_no)
-            .map_or(false, |directive| {
+            .is_some_and(|directive| {
                 if normalized_import.is_absolute {
                     directive.modules.is_empty()
                         || directive.modules.contains(&normalized_import.module_path)
@@ -554,22 +553,25 @@ pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> 
     }
 }
 
-pub fn get_normalized_imports(
+pub fn get_normalized_imports<P: AsRef<Path>>(
     source_roots: &[PathBuf],
-    file_path: &PathBuf,
+    file_path: P,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
 ) -> Result<NormalizedImports> {
-    let file_contents = filesystem::read_file_content(file_path)?;
+    let file_contents = filesystem::read_file_content(file_path.as_ref())?;
     let file_ast =
         parse_python_source(&file_contents).map_err(|err| ImportParseError::Parsing {
-            file: file_path.to_str().unwrap().to_string(),
+            file: file_path.as_ref().to_string_lossy().to_string(),
             source: err,
         })?;
-    let is_package = file_path.ends_with("__init__.py");
+    let is_package = file_path
+        .as_ref()
+        .to_string_lossy()
+        .ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let file_mod_path: Option<String> =
-        filesystem::file_to_module_path(source_roots, file_path).ok();
+        filesystem::file_to_module_path(source_roots, file_path.as_ref()).ok();
     let mut import_visitor = ImportVisitor::new(
         file_mod_path,
         Locator::new(&file_contents),
@@ -606,28 +608,32 @@ pub fn get_normalized_imports(
     }
 }
 
-pub fn get_project_imports(
+pub fn get_project_imports<P: AsRef<Path>>(
     source_roots: &[PathBuf],
-    file_path: &PathBuf,
+    file_path: P,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
 ) -> Result<NormalizedImports<ProjectImports>> {
     let normalized_imports = get_normalized_imports(
         source_roots,
-        file_path,
+        file_path.as_ref(),
         ignore_type_checking_imports,
         include_string_imports,
     )?;
     Ok(normalized_imports.into_project_imports(source_roots))
 }
 
-pub fn get_external_imports(
+pub fn get_external_imports<P: AsRef<Path>>(
     source_roots: &[PathBuf],
-    file_path: &PathBuf,
+    file_path: P,
     ignore_type_checking_imports: bool,
 ) -> Result<NormalizedImports<ExternalImports>> {
-    let normalized_imports =
-        get_normalized_imports(source_roots, file_path, ignore_type_checking_imports, false)?;
+    let normalized_imports = get_normalized_imports(
+        source_roots,
+        file_path.as_ref(),
+        ignore_type_checking_imports,
+        false,
+    )?;
     Ok(normalized_imports.into_external_imports(source_roots))
 }
 

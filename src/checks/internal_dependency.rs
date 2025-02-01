@@ -1,10 +1,11 @@
 use crate::{
-    config::{root_module::RootModuleTreatment, DependencyConfig, ModuleConfig},
+    config::{root_module::RootModuleTreatment, DependencyConfig, ModuleConfig, ProjectConfig},
     diagnostics::{
         CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, FileChecker,
-        FileContext, Result as DiagnosticResult,
+        Result as DiagnosticResult,
     },
-    processors::imports::{NormalizedImport, NormalizedImports, ProjectImports},
+    modules::ModuleTree,
+    processors::{imports::NormalizedImport, internal_file::ProcessedInternalFile},
 };
 use std::path::Path;
 
@@ -17,17 +18,17 @@ enum LayerCheckResult {
     UnknownLayer(Diagnostic),
 }
 
-pub struct InternalDependencyChecker;
-
-impl Default for InternalDependencyChecker {
-    fn default() -> Self {
-        Self::new()
-    }
+pub struct InternalDependencyChecker<'a> {
+    project_config: &'a ProjectConfig,
+    module_tree: &'a ModuleTree,
 }
 
-impl InternalDependencyChecker {
-    pub fn new() -> Self {
-        Self {}
+impl<'a> InternalDependencyChecker<'a> {
+    pub fn new(project_config: &'a ProjectConfig, module_tree: &'a ModuleTree) -> Self {
+        Self {
+            project_config,
+            module_tree,
+        }
     }
 
     fn check_layers(
@@ -154,26 +155,26 @@ impl InternalDependencyChecker {
     fn check_import(
         &self,
         import: &NormalizedImport,
-        context: &FileContext,
+        internal_file: &ProcessedInternalFile,
     ) -> DiagnosticResult<Vec<Diagnostic>> {
-        if let Some(import_module_config) = context
+        if let Some(import_module_config) = self
             .module_tree
             .find_nearest(&import.module_path)
             .as_ref()
             .and_then(|module| module.config.as_ref())
         {
             if import_module_config.is_root()
-                && context.project_config.root_module == RootModuleTreatment::Ignore
+                && self.project_config.root_module == RootModuleTreatment::Ignore
             {
                 return Ok(vec![]);
             }
 
             self.check_dependencies(
-                context.relative_file_path,
+                internal_file.relative_file_path(),
                 import,
-                context.file_module_config,
+                internal_file.file_module_config(),
                 import_module_config,
-                &context.project_config.layers,
+                &self.project_config.layers,
             )
         } else {
             Ok(vec![Diagnostic::new_global_error(
@@ -185,20 +186,14 @@ impl InternalDependencyChecker {
     }
 }
 
-impl<'a> FileChecker<'a> for InternalDependencyChecker {
-    type IR = NormalizedImports<ProjectImports>;
-    type Context = FileContext<'a>;
+impl<'a> FileChecker<'a> for InternalDependencyChecker<'a> {
+    type ProcessedFile = ProcessedInternalFile<'a>;
     type Output = Vec<Diagnostic>;
 
-    fn check(
-        &'a self,
-        _file_path: &Path,
-        ir: &Self::IR,
-        context: &'a Self::Context,
-    ) -> DiagnosticResult<Self::Output> {
+    fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = Vec::new();
-        for import in ir.all_imports() {
-            diagnostics.extend(self.check_import(import, context)?);
+        for import in processed_file.project_imports.all_imports() {
+            diagnostics.extend(self.check_import(import, processed_file)?);
         }
 
         Ok(diagnostics)

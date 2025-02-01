@@ -229,7 +229,7 @@ impl DataTypeChecker for InterfaceDataTypes {
                 if parameters
                     .iter()
                     .all(|p| is_primitive_type(p.annotation.as_deref().unwrap_or("")))
-                    && return_type.as_ref().map_or(false, |t| is_primitive_type(t))
+                    && return_type.as_ref().is_some_and(|t| is_primitive_type(t))
                 {
                     TypeCheckResult::MatchedInterface {
                         expected: self.clone(),

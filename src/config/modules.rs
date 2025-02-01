@@ -230,6 +230,10 @@ impl ModuleConfig {
     pub fn is_root(&self) -> bool {
         self.path == ROOT_MODULE_SENTINEL_TAG
     }
+
+    pub fn is_unchecked(&self) -> bool {
+        self.unchecked
+    }
 }
 
 #[pymethods]

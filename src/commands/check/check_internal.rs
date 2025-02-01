@@ -1,86 +1,53 @@
 use std::{
     path::{Path, PathBuf},
     sync::atomic::{AtomicBool, Ordering},
-    sync::Arc,
 };
 
 use rayon::prelude::*;
 
 use super::error::CheckError;
 use crate::{
-    checks::{
-        ignore_directive::IgnoreDirectiveData, IgnoreDirectiveChecker, InterfaceChecker,
-        InternalDependencyChecker,
-    },
+    checks::{IgnoreDirectiveChecker, InterfaceChecker, InternalDependencyChecker},
     config::{root_module::RootModuleTreatment, ProjectConfig},
     diagnostics::{
         ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
-        DiagnosticPipeline, FileChecker, FileContext, FileProcessor, Result as DiagnosticResult,
+        DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
     },
     exclusion::set_excluded_paths,
-    filesystem::{self as fs, relative_to},
+    filesystem::{self as fs},
     interrupt::check_interrupt,
-    modules::{build_module_tree, error::ModuleTreeError, ModuleNode, ModuleTree},
-    processors::imports::{get_project_imports, NormalizedImports, ProjectImports},
+    modules::{build_module_tree, error::ModuleTreeError, ModuleTree},
+    processors::imports::{get_project_imports, NormalizedImports},
+    processors::internal_file::{InternalFile, ProcessedInternalFile},
 };
 
 pub type Result<T> = std::result::Result<T, CheckError>;
 
-struct CheckInternalContext<'a> {
-    project_root: &'a Path,
-    source_root: &'a Path,
-    source_roots: &'a [PathBuf],
+struct CheckInternalPipeline<'a> {
+    _project_root: &'a Path,
     project_config: &'a ProjectConfig,
+    source_roots: &'a [PathBuf],
     module_tree: &'a ModuleTree,
     found_imports: &'a AtomicBool,
+    dependency_checker: Option<InternalDependencyChecker<'a>>,
+    interface_checker: Option<InterfaceChecker<'a>>,
+    ignore_directive_checker: Option<IgnoreDirectiveChecker<'a>>,
 }
 
-impl<'a> CheckInternalContext<'a> {
+impl<'a> CheckInternalPipeline<'a> {
     pub fn new(
         project_root: &'a Path,
-        source_root: &'a Path,
-        source_roots: &'a [PathBuf],
         project_config: &'a ProjectConfig,
+        source_roots: &'a [PathBuf],
         module_tree: &'a ModuleTree,
         found_imports: &'a AtomicBool,
     ) -> Self {
         Self {
-            project_root,
-            source_root,
-            source_roots,
+            _project_root: project_root,
             project_config,
+            source_roots,
             module_tree,
             found_imports,
-        }
-    }
-}
-
-impl<'a> AsRef<CheckInternalContext<'a>> for CheckInternalContext<'a> {
-    fn as_ref(&self) -> &CheckInternalContext<'a> {
-        self
-    }
-}
-
-struct CheckInternalFileInformation {
-    file_module: Arc<ModuleNode>,
-    project_imports: NormalizedImports<ProjectImports>,
-}
-
-impl<'a> AsRef<CheckInternalFileInformation> for CheckInternalFileInformation {
-    fn as_ref(&self) -> &CheckInternalFileInformation {
-        self
-    }
-}
-
-struct CheckInternalPipeline {
-    dependency_checker: Option<InternalDependencyChecker>,
-    interface_checker: Option<InterfaceChecker>,
-    ignore_directive_checker: Option<IgnoreDirectiveChecker>,
-}
-
-impl CheckInternalPipeline {
-    pub fn new() -> Self {
-        Self {
             dependency_checker: None,
             interface_checker: None,
             ignore_directive_checker: None,
@@ -89,139 +56,106 @@ impl CheckInternalPipeline {
 
     pub fn with_dependency_checker(
         mut self,
-        dependency_checker: Option<InternalDependencyChecker>,
+        dependency_checker: Option<InternalDependencyChecker<'a>>,
     ) -> Self {
         self.dependency_checker = dependency_checker;
         self
     }
 
-    pub fn with_interface_checker(mut self, interface_checker: Option<InterfaceChecker>) -> Self {
+    pub fn with_interface_checker(
+        mut self,
+        interface_checker: Option<InterfaceChecker<'a>>,
+    ) -> Self {
         self.interface_checker = interface_checker;
         self
     }
 
     pub fn with_ignore_directive_checker(
         mut self,
-        ignore_directive_checker: Option<IgnoreDirectiveChecker>,
+        ignore_directive_checker: Option<IgnoreDirectiveChecker<'a>>,
     ) -> Self {
         self.ignore_directive_checker = ignore_directive_checker;
         self
     }
 }
 
-impl<'a> FileProcessor<'a> for CheckInternalPipeline {
-    type IR = CheckInternalFileInformation;
-    type Context = CheckInternalContext<'a>;
+impl<'a> FileProcessor<'a, InternalFile<'a>> for CheckInternalPipeline<'a> {
+    type ProcessedFile = ProcessedInternalFile<'a>;
 
-    fn process(
-        &'a self,
-        file_path: &Path,
-        context: &'a Self::Context,
-    ) -> DiagnosticResult<Self::IR> {
-        let abs_file_path = &context.source_root.join(file_path);
-        let mod_path = fs::file_to_module_path(context.source_roots, abs_file_path)?;
+    fn process(&'a self, file_path: InternalFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
+        let mod_path = fs::file_to_module_path(self.source_roots, file_path.as_ref())?;
         let file_module =
-            context
-                .module_tree
+            self.module_tree
                 .find_nearest(&mod_path)
                 .ok_or(DiagnosticError::ModuleTree(
                     ModuleTreeError::ModuleNotFound(mod_path.to_string()),
                 ))?;
 
         if file_module.is_unchecked() {
-            return Ok(CheckInternalFileInformation {
-                file_module: Arc::clone(&file_module),
-                project_imports: NormalizedImports::empty(),
-            });
+            return Ok(ProcessedInternalFile::new(
+                file_path,
+                file_module,
+                NormalizedImports::empty(),
+            ));
         }
 
-        if file_module.is_root()
-            && context.project_config.root_module == RootModuleTreatment::Ignore
-        {
-            return Ok(CheckInternalFileInformation {
-                file_module: Arc::clone(&file_module),
-                project_imports: NormalizedImports::empty(),
-            });
+        if file_module.is_root() && self.project_config.root_module == RootModuleTreatment::Ignore {
+            return Ok(ProcessedInternalFile::new(
+                file_path,
+                file_module,
+                NormalizedImports::empty(),
+            ));
         }
 
         let project_imports = get_project_imports(
-            context.source_roots,
-            abs_file_path,
-            context.project_config.ignore_type_checking_imports,
-            context.project_config.include_string_imports,
+            self.source_roots,
+            file_path.as_ref(),
+            self.project_config.ignore_type_checking_imports,
+            self.project_config.include_string_imports,
         )?;
 
-        if !project_imports.imports.is_empty() && !context.found_imports.load(Ordering::Relaxed) {
+        if !project_imports.imports.is_empty() && !self.found_imports.load(Ordering::Relaxed) {
             // Only attempt to write if we haven't found imports yet.
             // This avoids any potential lock contention.
-            context.found_imports.store(true, Ordering::Relaxed);
+            self.found_imports.store(true, Ordering::Relaxed);
         }
 
-        Ok(CheckInternalFileInformation {
-            file_module: Arc::clone(&file_module),
+        Ok(ProcessedInternalFile::new(
+            file_path,
+            file_module,
             project_imports,
-        })
+        ))
     }
 }
 
-impl<'a> FileChecker<'a> for CheckInternalPipeline {
-    type IR = CheckInternalFileInformation;
-    type Context = CheckInternalContext<'a>;
+impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
+    type ProcessedFile = ProcessedInternalFile<'a>;
     type Output = Vec<Diagnostic>;
 
-    fn check(
-        &'a self,
-        file_path: &Path,
-        input: &Self::IR,
-        context: &'a Self::Context,
-    ) -> DiagnosticResult<Self::Output> {
-        // This would delegate to the DependencyChecker, InterfaceChecker, etc.
-        let relative_file_path =
-            relative_to(context.source_root.join(file_path), context.project_root)?;
-        let file_module_config = match input.file_module.config.as_ref() {
-            Some(config) => config,
-            None => {
-                return Ok(vec![Diagnostic::new_global_error(
-                    DiagnosticDetails::Configuration(
-                        ConfigurationDiagnostic::ModuleConfigNotFound {
-                            module_path: input.file_module.full_path.to_string(),
-                        },
-                    ),
-                )]);
-            }
-        };
-        let file_context = FileContext::new(
-            context.project_config,
-            &relative_file_path,
-            file_module_config,
-            context.module_tree,
-        );
+    fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = Vec::new();
-
         diagnostics.extend(
             self.dependency_checker
                 .as_ref()
-                .map_or(Ok(vec![]), |checker| {
-                    checker.check(file_path, &input.project_imports, &file_context)
-                })?,
+                .map_or(Ok(vec![]), |checker| checker.check(processed_file))?,
         );
 
         diagnostics.extend(
             self.interface_checker
                 .as_ref()
-                .map_or(Ok(vec![]), |checker| {
-                    checker.check(file_path, &input.project_imports, &file_context)
-                })?,
+                .map_or(Ok(vec![]), |checker| checker.check(processed_file))?,
         );
 
-        let ignore_directive_data =
-            IgnoreDirectiveData::new(&input.project_imports.ignore_directives, &diagnostics);
         diagnostics.extend(
             self.ignore_directive_checker
                 .as_ref()
-                .map_or(Ok(vec![]), |checker| {
-                    checker.check(file_path, &ignore_directive_data, &file_context)
-                })?,
+                .map_or(vec![], |checker| {
+                    checker.check(
+                        &processed_file.project_imports.ignore_directives,
+                        &diagnostics,
+                        processed_file.relative_file_path(),
+                    )
+                }),
         );
 
         Ok(diagnostics)
@@ -277,24 +211,33 @@ pub fn check(
     )?;
 
     let dependency_checker = if dependencies {
-        Some(InternalDependencyChecker::new())
+        Some(InternalDependencyChecker::new(project_config, &module_tree))
     } else {
         None
     };
 
     let interface_checker = if interfaces {
-        let interface_checker =
-            InterfaceChecker::new(&project_config.all_interfaces().cloned().collect::<Vec<_>>());
+        let interface_checker = InterfaceChecker::new(
+            project_config,
+            &module_tree,
+            &project_config.all_interfaces().cloned().collect::<Vec<_>>(),
+        );
         // This is expensive
         Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
     } else {
         None
     };
 
-    let pipeline = CheckInternalPipeline::new()
-        .with_dependency_checker(dependency_checker)
-        .with_interface_checker(interface_checker)
-        .with_ignore_directive_checker(Some(IgnoreDirectiveChecker::new()));
+    let pipeline = CheckInternalPipeline::new(
+        &project_root,
+        project_config,
+        &source_roots,
+        &module_tree,
+        &found_imports,
+    )
+    .with_dependency_checker(dependency_checker)
+    .with_interface_checker(interface_checker)
+    .with_ignore_directive_checker(Some(IgnoreDirectiveChecker::new(project_config)));
 
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(&source_root.display().to_string())
@@ -306,17 +249,9 @@ pub fn check(
                     // Then, we check for an interrupt right after, and return the Err if it is set
                     return vec![];
                 }
-                let context = CheckInternalContext::new(
-                    &project_root,
-                    source_root,
-                    &source_roots,
-                    project_config,
-                    &module_tree,
-                    &found_imports,
-                );
-                pipeline
-                    .diagnostics(&file_path, &context)
-                    .unwrap_or_default()
+
+                let internal_file = InternalFile::new(&project_root, source_root, &file_path);
+                pipeline.diagnostics(internal_file).unwrap_or_default()
             })
     });
 

@@ -318,9 +318,8 @@ pub fn create_dependency_report(
                                         if !is_module_prefix(&module_path, &import.module_path) {
                                             return false;
                                         }
-                                        file_module.as_ref().map_or(false, |m| {
-                                            include_usage_modules.as_ref().map_or(
-                                                true,
+                                        file_module.as_ref().is_some_and(|m| {
+                                            include_usage_modules.as_ref().is_some_and(
                                                 |included_modules| {
                                                     included_modules.contains(&m.full_path)
                                                 },
