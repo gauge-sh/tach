@@ -24,7 +24,12 @@ fn check_dependencies(
     layers: &[String],
 ) -> Result<(), Diagnostic> {
     // Layer check should take precedence over other dependency checks
-    match check_layers(layers, file_module_config, import_module_config) {
+    match check_layers(
+        import_mod_path,
+        layers,
+        file_module_config,
+        import_module_config,
+    ) {
         LayerCheckResult::Ok => return Ok(()), // Higher layers can unconditionally import lower layers
         LayerCheckResult::SameLayer | LayerCheckResult::LayerNotSpecified => (), // We need to do further processing to determine if the dependency is allowed
         LayerCheckResult::LayerViolation(e) | LayerCheckResult::UnknownLayer(e) => return Err(e),
@@ -330,6 +335,7 @@ enum LayerCheckResult {
 }
 
 fn check_layers(
+    import_mod_path: &str,
     layers: &[String],
     source_module_config: &ModuleConfig,
     target_module_config: &ModuleConfig,
@@ -348,7 +354,7 @@ fn check_layers(
                     } else {
                         LayerCheckResult::LayerViolation(Diagnostic::new_global_error(
                             DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
-                                import_mod_path: target_module_config.path.clone(),
+                                import_mod_path: import_mod_path.to_string(),
                                 usage_module: source_module_config.path.clone(),
                                 usage_layer: source_layer.clone(),
                                 definition_module: target_module_config.path.clone(),
@@ -503,7 +509,7 @@ mod tests {
         let source_config = ModuleConfig::new_with_layer("source", source_layer);
         let target_config = ModuleConfig::new_with_layer("target", target_layer);
 
-        let result = check_layers(&layers, &source_config, &target_config);
+        let result = check_layers("target", &layers, &source_config, &target_config);
         match (result, expected_pattern) {
             (LayerCheckResult::Ok, LayerCheckResult::Ok) => (),
             (LayerCheckResult::SameLayer, LayerCheckResult::SameLayer) => (),
@@ -518,7 +524,7 @@ mod tests {
         let source_config = ModuleConfig::new_with_layer("source", "any");
         let target_config = ModuleConfig::new_with_layer("target", "any");
 
-        let result = check_layers(&layers, &source_config, &target_config);
+        let result = check_layers("target", &layers, &source_config, &target_config);
         assert!(matches!(result, LayerCheckResult::UnknownLayer(_)));
     }
 
@@ -528,7 +534,7 @@ mod tests {
         let source_config = ModuleConfig::default();
         let target_config = ModuleConfig::default();
 
-        let result = check_layers(&layers, &source_config, &target_config);
+        let result = check_layers("", &layers, &source_config, &target_config);
         assert!(matches!(result, LayerCheckResult::LayerNotSpecified));
     }
 
