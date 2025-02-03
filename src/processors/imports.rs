@@ -1,5 +1,5 @@
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::iter;
 use std::marker::PhantomData;
@@ -113,33 +113,6 @@ impl<State> NormalizedImports<State> {
             ignore_directives: self.ignore_directives,
             _state: PhantomData,
         }
-    }
-
-    pub fn directive_ignored_imports(&self) -> impl Iterator<Item = DirectiveIgnoredImport> {
-        self.imports
-            .iter()
-            .filter(|&import| self.ignore_directives.is_ignored(import))
-            .map(|import| DirectiveIgnoredImport {
-                import,
-                reason: self
-                    .ignore_directives
-                    .get(&import.import_line_no)
-                    .unwrap()
-                    .reason
-                    .clone(),
-            })
-    }
-
-    pub fn unused_ignore_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
-        let mut directive_lines: HashSet<usize> =
-            HashSet::from_iter(self.ignore_directives.lines().cloned());
-        self.imports.iter().for_each(|import| {
-            directive_lines.remove(&import.import_line_no);
-        });
-        directive_lines
-            .into_iter()
-            .map(|line| self.ignore_directives.get(&line).unwrap())
-            .chain(self.ignore_directives.redundant_directives())
     }
 }
 
@@ -280,10 +253,6 @@ impl IgnoreDirectives {
             directives: HashMap::new(),
             redundant_directives: Vec::new(),
         }
-    }
-
-    pub fn lines(&self) -> impl Iterator<Item = &usize> {
-        self.directives.keys()
     }
 
     pub fn active_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {

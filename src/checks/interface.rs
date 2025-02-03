@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::config::root_module::RootModuleTreatment;
-use crate::config::{InterfaceConfig, ModuleConfig, ProjectConfig};
+use crate::config::{ModuleConfig, ProjectConfig};
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, FileChecker,
     Result as DiagnosticResult,
