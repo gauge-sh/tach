@@ -5,12 +5,14 @@ from pathlib import Path
 from tach.constants import CONFIG_FILE_NAME
 
 
-def build_project_config_path(root: Path) -> Path:
-    return root / f"{CONFIG_FILE_NAME}.toml"
+def build_project_config_path(root: Path, file_name: str = CONFIG_FILE_NAME) -> Path:
+    return root / f"{file_name}.toml"
 
 
-def get_project_config_path(root: Path) -> Path | None:
-    file_path = build_project_config_path(root)
+def get_project_config_path(
+    root: Path, *, file_name: str = CONFIG_FILE_NAME
+) -> Path | None:
+    file_path = build_project_config_path(root, file_name)
     if file_path.exists():
         return file_path
     return None
