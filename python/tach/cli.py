@@ -402,13 +402,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     ## tach server
-    subparsers.add_parser(
+    server_parser = subparsers.add_parser(
         "server",
         prog=f"{TOOL_NAME} server",
         help="Start the Language Server Protocol (LSP) server",
         description="Start the Language Server Protocol (LSP) server",
     )
-    parser.add_argument(
+    server_parser.add_argument(
         "-c",
         "--config",
         type=Path,
@@ -1024,7 +1024,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
     args, parser = parse_arguments(argv)
     project_root = fs.find_project_config_root() or Path.cwd()
 
-    if args.config:
+    if args.command == "server" and args.config:
         project_config = try_parse_project_config(
             args.config.parent, file_name=args.config.stem
         )
