@@ -49,7 +49,7 @@ impl<'a> CheckExternalPipeline<'a> {
             external_dependency_checker: ExternalDependencyChecker::new(
                 project_info,
                 module_mappings,
-                &stdlib_modules,
+                stdlib_modules,
                 excluded_external_modules,
             ),
             ignore_directive_post_processor: IgnoreDirectivePostProcessor::new(project_config),
@@ -138,7 +138,7 @@ pub fn check(
                 &source_roots,
                 project_config,
                 &project_info,
-                &module_mappings,
+                module_mappings,
                 &stdlib_modules,
                 &excluded_external_modules,
             );
@@ -157,7 +157,7 @@ pub fn check(
                             }
 
                             match pipeline.diagnostics(ProjectFile::new(
-                                &project_root,
+                                project_root,
                                 source_root,
                                 &file_path,
                             )) {
@@ -198,7 +198,6 @@ pub fn check(
             let unused_dependency_diagnostics = project_info
                 .dependencies
                 .difference(&all_seen_dependencies)
-                .into_iter()
                 .filter(|&dep| !pipeline.excluded_external_modules.contains(dep)) // 'exclude' should hide unused errors unconditionally
                 .map(|dep| {
                     Diagnostic::new_global_error(DiagnosticDetails::Code(

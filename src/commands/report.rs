@@ -319,7 +319,7 @@ pub fn create_dependency_report(
                                             return false;
                                         }
                                         file_module.as_ref().is_some_and(|m| {
-                                            include_usage_modules.as_ref().is_some_and(
+                                            include_usage_modules.as_ref().is_none_or(
                                                 |included_modules| {
                                                     included_modules.contains(&m.full_path)
                                                 },

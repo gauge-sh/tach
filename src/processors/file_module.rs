@@ -15,7 +15,7 @@ pub struct FileModule<'a, State = AllImports> {
     _state: PhantomData<State>,
 }
 
-impl<'a, State> FileModule<'a, State> {
+impl<State> FileModule<'_, State> {
     pub fn module_config(&self) -> &ModuleConfig {
         self.module.config.as_ref().unwrap()
     }

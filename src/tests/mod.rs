@@ -1,4 +1,3 @@
-pub mod check_internal;
 pub mod module;
 pub mod test;
 #[cfg(test)]
