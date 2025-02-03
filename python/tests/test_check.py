@@ -8,7 +8,7 @@ import pytest
 from tach.cli import tach_check
 from tach.errors import TachCircularDependencyError, TachVisibilityError
 from tach.extension import Diagnostic
-from tach.icons import SUCCESS, WARNING
+from tach.icons import FAIL, SUCCESS, WARNING
 from tach.parsing.config import parse_project_config
 
 
@@ -188,3 +188,26 @@ def test_check_visibility_error_json(example_dir, capfd, mocker):
     result = json.loads(captured.out)
     assert result["error"] == "Visibility error"
     assert result["visibility_errors"] == [["mod1", "mod2", ["public"]]]
+
+
+def test_distributed_config_example_dir(example_dir, capfd):
+    project_root = example_dir / "distributed_config"
+    project_config = parse_project_config(root=project_root)
+    assert project_config is not None
+
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(
+            project_root=project_root,
+            project_config=project_config,
+            exclude_paths=project_config.exclude,
+        )
+    assert exc_info.value.code == 1
+
+    captured = capfd.readouterr()
+    assert FAIL in captured.err or "FAIL" in captured.err
+    assert "Cannot import 'project.module_one.module_one'" in captured.err
+    assert (
+        "Module 'project.top_level' cannot depend on 'project.module_one'"
+        in captured.err
+    )
+    assert "project/top_level.py" in captured.err
