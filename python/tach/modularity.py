@@ -8,8 +8,6 @@ from http.client import HTTPConnection, HTTPSConnection
 from typing import TYPE_CHECKING, Any
 from urllib import parse
 
-from typing_extensions import Literal
-
 from tach import filesystem as fs
 from tach.colors import BCOLORS
 from tach.constants import GAUGE_API_BASE_URL
@@ -27,6 +25,11 @@ from tach.filesystem.git_ops import get_current_branch_info
 from tach.parsing import extend_and_validate
 
 if TYPE_CHECKING:
+    try:
+        # dataclass reads the annotation but doesn't need to evaluate it (just checking for ClassVar etc.)
+        from typing import Literal  # noqa: TC004
+    except ImportError:
+        pass
     from pathlib import Path
 
 
@@ -250,7 +253,7 @@ def build_usages(
         pyfile_containing_module = get_containing_module(pyfile_mod_path)
         imports = get_project_imports(
             source_roots=list(map(str, source_roots)),
-            file_path=str(pyfile),
+            file_path=str(project_root / pyfile),
             ignore_type_checking_imports=project_config.ignore_type_checking_imports,
             include_string_imports=project_config.include_string_imports,
         )
