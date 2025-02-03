@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::config::ProjectConfig;
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::diagnostics::{FileChecker, Result as DiagnosticResult};
 use crate::external::parsing::ProjectInfo;
@@ -8,7 +7,6 @@ use crate::processors::file_module::FileModuleExternal;
 use crate::processors::imports::ExternalImportWithDistributionNames;
 
 pub struct ExternalDependencyChecker<'a> {
-    project_config: &'a ProjectConfig,
     project_info: &'a ProjectInfo,
     module_mappings: &'a HashMap<String, Vec<String>>,
     stdlib_modules: &'a HashSet<String>,
@@ -17,14 +15,12 @@ pub struct ExternalDependencyChecker<'a> {
 
 impl<'a> ExternalDependencyChecker<'a> {
     pub fn new(
-        project_config: &'a ProjectConfig,
         project_info: &'a ProjectInfo,
         module_mappings: &'a HashMap<String, Vec<String>>,
         stdlib_modules: &'a HashSet<String>,
         excluded_external_modules: &'a HashSet<String>,
     ) -> Self {
         Self {
-            project_config,
             project_info,
             module_mappings,
             stdlib_modules,

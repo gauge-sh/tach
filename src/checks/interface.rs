@@ -29,12 +29,8 @@ pub struct InterfaceChecker<'a> {
 }
 
 impl<'a> InterfaceChecker<'a> {
-    pub fn new(
-        project_config: &'a ProjectConfig,
-        module_tree: &'a ModuleTree,
-        interfaces: &[InterfaceConfig],
-    ) -> Self {
-        let compiled = CompiledInterfaces::build(interfaces);
+    pub fn new(project_config: &'a ProjectConfig, module_tree: &'a ModuleTree) -> Self {
+        let compiled = CompiledInterfaces::build(project_config.all_interfaces());
 
         Self {
             project_config,

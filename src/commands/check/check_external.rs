@@ -1,8 +1,8 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
 use crate::config::ProjectConfig;
 use crate::diagnostics::{
-    CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticPipeline,
-    FileChecker, FileProcessor, Result as DiagnosticResult,
+    CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
+    DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
 };
 use crate::external::parsing::{parse_pyproject_toml, ProjectInfo};
 use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
@@ -22,12 +22,9 @@ use super::error::CheckError;
 pub type Result<T> = std::result::Result<T, CheckError>;
 
 struct CheckExternalPipeline<'a> {
-    project_root: &'a Path,
     source_roots: &'a [PathBuf],
     project_config: &'a ProjectConfig,
-    project_info: &'a ProjectInfo,
     module_mappings: &'a HashMap<String, Vec<String>>,
-    stdlib_modules: Vec<&'a str>,
     excluded_external_modules: &'a HashSet<String>,
     seen_dependencies: DashSet<String>,
     external_dependency_checker: ExternalDependencyChecker<'a>,
@@ -36,7 +33,6 @@ struct CheckExternalPipeline<'a> {
 
 impl<'a> CheckExternalPipeline<'a> {
     pub fn new(
-        project_root: &'a Path,
         source_roots: &'a [PathBuf],
         project_config: &'a ProjectConfig,
         project_info: &'a ProjectInfo,
@@ -45,16 +41,12 @@ impl<'a> CheckExternalPipeline<'a> {
         excluded_external_modules: &'a HashSet<String>,
     ) -> Self {
         Self {
-            project_root,
             source_roots,
             project_config,
-            project_info,
             module_mappings,
-            stdlib_modules: stdlib_modules.iter().map(|s| s.as_str()).collect(),
             excluded_external_modules,
             seen_dependencies: DashSet::new(),
             external_dependency_checker: ExternalDependencyChecker::new(
-                project_config,
                 project_info,
                 module_mappings,
                 &stdlib_modules,
@@ -143,7 +135,6 @@ pub fn check(
                 }
             };
             let pipeline = CheckExternalPipeline::new(
-                &project_root,
                 &source_roots,
                 project_config,
                 &project_info,
@@ -165,13 +156,39 @@ pub fn check(
                                 return vec![];
                             }
 
-                            pipeline
-                                .diagnostics(ProjectFile::new(
-                                    &project_root,
-                                    source_root,
-                                    &file_path,
-                                ))
-                                .unwrap_or_default()
+                            match pipeline.diagnostics(ProjectFile::new(
+                                &project_root,
+                                source_root,
+                                &file_path,
+                            )) {
+                                Ok(diagnostics) => diagnostics,
+                                Err(DiagnosticError::Io(_))
+                                | Err(DiagnosticError::Filesystem(_)) => {
+                                    vec![Diagnostic::new_global_warning(
+                                        DiagnosticDetails::Configuration(
+                                            ConfigurationDiagnostic::SkippedFileIoError {
+                                                file_path: file_path.display().to_string(),
+                                            },
+                                        ),
+                                    )]
+                                }
+                                Err(DiagnosticError::ImportParse(_)) => {
+                                    vec![Diagnostic::new_global_warning(
+                                        DiagnosticDetails::Configuration(
+                                            ConfigurationDiagnostic::SkippedFileSyntaxError {
+                                                file_path: file_path.display().to_string(),
+                                            },
+                                        ),
+                                    )]
+                                }
+                                Err(_) => vec![Diagnostic::new_global_warning(
+                                    DiagnosticDetails::Configuration(
+                                        ConfigurationDiagnostic::SkippedUnknownError {
+                                            file_path: file_path.display().to_string(),
+                                        },
+                                    ),
+                                )],
+                            }
                         })
                 })
                 .collect();

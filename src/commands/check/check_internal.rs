@@ -203,11 +203,7 @@ pub fn check(
     };
 
     let interface_checker = if interfaces {
-        let interface_checker = InterfaceChecker::new(
-            project_config,
-            &module_tree,
-            &project_config.all_interfaces().cloned().collect::<Vec<_>>(),
-        );
+        let interface_checker = InterfaceChecker::new(project_config, &module_tree);
         // This is expensive
         Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
     } else {
@@ -236,7 +232,34 @@ pub fn check(
                 }
 
                 let internal_file = ProjectFile::new(&project_root, source_root, &file_path);
-                pipeline.diagnostics(internal_file).unwrap_or_default()
+                match pipeline.diagnostics(internal_file) {
+                    Ok(diagnostics) => diagnostics,
+                    Err(DiagnosticError::Io(_)) | Err(DiagnosticError::Filesystem(_)) => {
+                        vec![Diagnostic::new_global_warning(
+                            DiagnosticDetails::Configuration(
+                                ConfigurationDiagnostic::SkippedFileIoError {
+                                    file_path: file_path.display().to_string(),
+                                },
+                            ),
+                        )]
+                    }
+                    Err(DiagnosticError::ImportParse(_)) => {
+                        vec![Diagnostic::new_global_warning(
+                            DiagnosticDetails::Configuration(
+                                ConfigurationDiagnostic::SkippedFileSyntaxError {
+                                    file_path: file_path.display().to_string(),
+                                },
+                            ),
+                        )]
+                    }
+                    Err(_) => vec![Diagnostic::new_global_warning(
+                        DiagnosticDetails::Configuration(
+                            ConfigurationDiagnostic::SkippedUnknownError {
+                                file_path: file_path.display().to_string(),
+                            },
+                        ),
+                    )],
+                }
             })
     });
 
