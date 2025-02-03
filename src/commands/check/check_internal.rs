@@ -7,7 +7,7 @@ use rayon::prelude::*;
 
 use super::error::CheckError;
 use crate::{
-    checks::{IgnoreDirectiveChecker, InterfaceChecker, InternalDependencyChecker},
+    checks::{IgnoreDirectivePostProcessor, InterfaceChecker, InternalDependencyChecker},
     config::{root_module::RootModuleTreatment, ProjectConfig},
     diagnostics::{
         ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
@@ -31,7 +31,7 @@ struct CheckInternalPipeline<'a> {
     found_imports: &'a AtomicBool,
     dependency_checker: Option<InternalDependencyChecker<'a>>,
     interface_checker: Option<InterfaceChecker<'a>>,
-    ignore_directive_checker: Option<IgnoreDirectiveChecker<'a>>,
+    ignore_directive_post_processor: Option<IgnoreDirectivePostProcessor<'a>>,
 }
 
 impl<'a> CheckInternalPipeline<'a> {
@@ -50,7 +50,7 @@ impl<'a> CheckInternalPipeline<'a> {
             found_imports,
             dependency_checker: None,
             interface_checker: None,
-            ignore_directive_checker: None,
+            ignore_directive_post_processor: None,
         }
     }
 
@@ -70,11 +70,11 @@ impl<'a> CheckInternalPipeline<'a> {
         self
     }
 
-    pub fn with_ignore_directive_checker(
+    pub fn with_ignore_directive_post_processor(
         mut self,
-        ignore_directive_checker: Option<IgnoreDirectiveChecker<'a>>,
+        ignore_directive_post_processor: Option<IgnoreDirectivePostProcessor<'a>>,
     ) -> Self {
-        self.ignore_directive_checker = ignore_directive_checker;
+        self.ignore_directive_post_processor = ignore_directive_post_processor;
         self
     }
 }
@@ -146,17 +146,13 @@ impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
                 .map_or(Ok(vec![]), |checker| checker.check(processed_file))?,
         );
 
-        diagnostics.extend(
-            self.ignore_directive_checker
-                .as_ref()
-                .map_or(vec![], |checker| {
-                    checker.check(
-                        &processed_file.project_imports.ignore_directives,
-                        &diagnostics,
-                        processed_file.relative_file_path(),
-                    )
-                }),
-        );
+        if let Some(post_processor) = self.ignore_directive_post_processor.as_ref() {
+            post_processor.process_diagnostics(
+                &processed_file.project_imports.ignore_directives,
+                &mut diagnostics,
+                processed_file.relative_file_path(),
+            );
+        }
 
         Ok(diagnostics)
     }
@@ -237,7 +233,7 @@ pub fn check(
     )
     .with_dependency_checker(dependency_checker)
     .with_interface_checker(interface_checker)
-    .with_ignore_directive_checker(Some(IgnoreDirectiveChecker::new(project_config)));
+    .with_ignore_directive_post_processor(Some(IgnoreDirectivePostProcessor::new(project_config)));
 
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(&source_root.display().to_string())

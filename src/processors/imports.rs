@@ -17,6 +17,7 @@ use ruff_python_ast::visitor::Visitor;
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use thiserror::Error;
 
+use crate::diagnostics::Diagnostic;
 use crate::python::{error::ParsingError, parsing::parse_python_source};
 use crate::{exclusion, filesystem};
 
@@ -206,7 +207,29 @@ impl IntoPy<PyObject> for NormalizedImport {
 pub struct IgnoreDirective {
     pub modules: Vec<String>,
     pub reason: String,
-    pub line_no: usize,
+    pub line_no: usize,         // Where is the directive literally written
+    pub ignored_line_no: usize, // Where is the directive being applied
+}
+
+impl IgnoreDirective {
+    pub fn matches_diagnostic(&self, diagnostic: &Diagnostic) -> bool {
+        // If the diagnostic is not on the line that the directive is being applied, it is not a match
+        if Some(self.ignored_line_no) != diagnostic.line_number() {
+            return false;
+        }
+
+        // If the directive is a blanket ignore, it matches any diagnostic
+        if self.modules.is_empty() {
+            return true;
+        }
+
+        // If applicable, check if the diagnostic has specified a matching module path
+        diagnostic.import_mod_path().is_none_or(|import_mod_path| {
+            self.modules
+                .iter()
+                .any(|module| import_mod_path.ends_with(module))
+        })
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -243,8 +266,8 @@ impl IgnoreDirectives {
         self.directives.is_empty()
     }
 
-    pub fn add_directive(&mut self, directive: IgnoreDirective, ignored_line_no: usize) {
-        match self.directives.entry(ignored_line_no) {
+    pub fn add_directive(&mut self, directive: IgnoreDirective) {
+        match self.directives.entry(directive.ignored_line_no) {
             Entry::Occupied(_) => {
                 self.redundant_directives.push(directive);
             }
@@ -322,17 +345,18 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
                     .collect()
             };
 
+            let mut ignored_line_no = normal_lineno;
+            if line.trim_start().starts_with('#') {
+                ignored_line_no = normal_lineno + 1;
+            }
             let directive = IgnoreDirective {
                 modules,
                 reason,
                 line_no: normal_lineno,
+                ignored_line_no,
             };
 
-            if line.trim_start().starts_with('#') {
-                ignores.add_directive(directive, normal_lineno + 1);
-            } else {
-                ignores.add_directive(directive, normal_lineno);
-            }
+            ignores.add_directive(directive);
         }
     }
 

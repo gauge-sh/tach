@@ -4,11 +4,11 @@ use crate::config::{ProjectConfig, RuleSetting};
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::processors::imports::{IgnoreDirective, IgnoreDirectives};
 
-pub struct IgnoreDirectiveChecker<'a> {
+pub struct IgnoreDirectivePostProcessor<'a> {
     project_config: &'a ProjectConfig,
 }
 
-impl<'a> IgnoreDirectiveChecker<'a> {
+impl<'a> IgnoreDirectivePostProcessor<'a> {
     pub fn new(project_config: &'a ProjectConfig) -> Self {
         Self { project_config }
     }
@@ -38,9 +38,10 @@ impl<'a> IgnoreDirectiveChecker<'a> {
             return None;
         }
 
-        if !diagnostics.iter().any(|diagnostic| {
-            diagnostic.line_number() == Some(ignore_directive.line_no) && diagnostic.is_code()
-        }) {
+        if !diagnostics
+            .iter()
+            .any(|diagnostic| ignore_directive.matches_diagnostic(diagnostic))
+        {
             Some(self.get_unused_ignore_directive_diagnostic(ignore_directive, relative_file_path))
         } else {
             None
@@ -85,7 +86,7 @@ impl<'a> IgnoreDirectiveChecker<'a> {
         .collect()
     }
 
-    pub fn check(
+    fn check_ignore_directives(
         &self,
         ignore_directives: &IgnoreDirectives,
         existing_diagnostics: &Vec<Diagnostic>,
@@ -106,5 +107,32 @@ impl<'a> IgnoreDirectiveChecker<'a> {
         }
 
         diagnostics
+    }
+
+    fn remove_ignored_diagnostics(
+        &self,
+        ignore_directives: &IgnoreDirectives,
+        diagnostics: &mut Vec<Diagnostic>,
+    ) {
+        for ignore_directive in ignore_directives.active_directives() {
+            diagnostics.retain(|diagnostic| !ignore_directive.matches_diagnostic(diagnostic));
+        }
+    }
+
+    pub fn process_diagnostics(
+        &self,
+        ignore_directives: &IgnoreDirectives,
+        diagnostics: &mut Vec<Diagnostic>,
+        relative_file_path: &Path,
+    ) {
+        // Check for diagnostics related to ignore directives
+        let ignore_directive_diagnostics =
+            self.check_ignore_directives(ignore_directives, diagnostics, relative_file_path);
+
+        // Remove ignored diagnostics
+        self.remove_ignored_diagnostics(ignore_directives, diagnostics);
+
+        // Add the new diagnostics to the list
+        diagnostics.extend(ignore_directive_diagnostics);
     }
 }

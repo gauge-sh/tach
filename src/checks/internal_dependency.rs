@@ -33,10 +33,11 @@ impl<'a> InternalDependencyChecker<'a> {
 
     fn check_layers(
         &self,
-        import_mod_path: &str,
+        import: &NormalizedImport,
         layers: &[String],
         source_module_config: &ModuleConfig,
         target_module_config: &ModuleConfig,
+        relative_file_path: &Path,
     ) -> LayerCheckResult {
         match (&source_module_config.layer, &target_module_config.layer) {
             (Some(source_layer), Some(target_layer)) => {
@@ -50,9 +51,11 @@ impl<'a> InternalDependencyChecker<'a> {
                         } else if source_index < target_index {
                             LayerCheckResult::Ok
                         } else {
-                            LayerCheckResult::LayerViolation(Diagnostic::new_global_error(
+                            LayerCheckResult::LayerViolation(Diagnostic::new_located_error(
+                                relative_file_path.to_path_buf(),
+                                import.line_no,
                                 DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
-                                    import_mod_path: import_mod_path.to_string(),
+                                    import_mod_path: import.module_path.to_string(),
                                     usage_module: source_module_config.path.clone(),
                                     usage_layer: source_layer.clone(),
                                     definition_module: target_module_config.path.clone(),
@@ -101,10 +104,11 @@ impl<'a> InternalDependencyChecker<'a> {
 
         // Layer check should take precedence over other dependency checks
         match self.check_layers(
-            &import.module_path,
+            import,
             layers,
             file_module_config,
             import_module_config,
+            relative_file_path,
         ) {
             LayerCheckResult::Ok => return Ok(vec![]), // Higher layers can unconditionally import lower layers
             LayerCheckResult::LayerViolation(e) | LayerCheckResult::UnknownLayer(e) => {
