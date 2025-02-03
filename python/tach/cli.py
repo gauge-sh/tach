@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from tach import __version__, cache, extension, icons
 from tach import filesystem as fs
+from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.errors import (
@@ -562,7 +563,7 @@ def tach_check_external(
         },
     )
     try:
-        diagnostics = extension.check_external_dependencies(
+        diagnostics = check_external(
             project_root=project_root,
             project_config=project_config,
             exclude_paths=exclude_paths,
