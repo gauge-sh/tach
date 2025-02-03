@@ -15,7 +15,7 @@ _VALID_TACH_TOML = pathlib.Path(__file__).parent / "example" / "valid" / "tach.t
 @pytest.fixture
 def mock_check(mocker) -> Mock:
     mock = Mock(return_value=[])  # default to a return with no errors
-    mocker.patch("tach.cli.check", mock)
+    mocker.patch("tach.extension.check", mock)
     return mock
 
 
