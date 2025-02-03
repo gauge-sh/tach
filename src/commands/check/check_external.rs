@@ -1,20 +1,120 @@
+use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
+use crate::config::ProjectConfig;
+use crate::diagnostics::{
+    CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticPipeline,
+    FileChecker, FileProcessor, Result as DiagnosticResult,
+};
+use crate::external::parsing::{parse_pyproject_toml, ProjectInfo};
+use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
+use crate::interrupt::check_interrupt;
+use crate::modules::ModuleNode;
+use crate::processors::file_module::FileModuleExternal;
+use crate::processors::imports::get_external_imports;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-use crate::config::ProjectConfig;
-use crate::external::parsing::parse_pyproject_toml;
-use crate::filesystem;
-use crate::filesystem::relative_to;
-use crate::processors::imports;
+use dashmap::DashSet;
+use rayon::prelude::*;
 
-use super::checks::{
-    check_import_external, check_missing_ignore_directive_reason,
-    check_unused_ignore_directive_external, ImportProcessResult,
-};
-use super::error::ExternalCheckError;
-use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
+use super::error::CheckError;
 
-pub type Result<T> = std::result::Result<T, ExternalCheckError>;
+pub type Result<T> = std::result::Result<T, CheckError>;
+
+struct CheckExternalPipeline<'a> {
+    project_root: &'a Path,
+    source_roots: &'a [PathBuf],
+    project_config: &'a ProjectConfig,
+    project_info: &'a ProjectInfo,
+    module_mappings: &'a HashMap<String, Vec<String>>,
+    stdlib_modules: Vec<&'a str>,
+    excluded_external_modules: &'a HashSet<String>,
+    seen_dependencies: DashSet<String>,
+    external_dependency_checker: ExternalDependencyChecker<'a>,
+    ignore_directive_post_processor: IgnoreDirectivePostProcessor<'a>,
+}
+
+impl<'a> CheckExternalPipeline<'a> {
+    pub fn new(
+        project_root: &'a Path,
+        source_roots: &'a [PathBuf],
+        project_config: &'a ProjectConfig,
+        project_info: &'a ProjectInfo,
+        module_mappings: &'a HashMap<String, Vec<String>>,
+        stdlib_modules: &'a HashSet<String>,
+        excluded_external_modules: &'a HashSet<String>,
+    ) -> Self {
+        Self {
+            project_root,
+            source_roots,
+            project_config,
+            project_info,
+            module_mappings,
+            stdlib_modules: stdlib_modules.iter().map(|s| s.as_str()).collect(),
+            excluded_external_modules,
+            seen_dependencies: DashSet::new(),
+            external_dependency_checker: ExternalDependencyChecker::new(
+                project_config,
+                project_info,
+                module_mappings,
+                &stdlib_modules,
+                excluded_external_modules,
+            ),
+            ignore_directive_post_processor: IgnoreDirectivePostProcessor::new(project_config),
+        }
+    }
+}
+
+impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
+    type ProcessedFile = FileModuleExternal<'a>;
+
+    fn process(&'a self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
+        // NOTE: check-external does not currently make use of the module tree,
+        // but it is very likely to do so in the future.
+        let file_module = Arc::new(ModuleNode::empty());
+
+        let external_imports = get_external_imports(
+            self.source_roots,
+            file_path.as_ref(),
+            self.project_config.ignore_type_checking_imports,
+        )?;
+
+        external_imports
+            .all_imports_with_distribution_names(self.module_mappings)
+            .for_each(|import| {
+                import
+                    .distribution_names
+                    .iter()
+                    .for_each(|distribution_name| {
+                        self.seen_dependencies.insert(distribution_name.clone());
+                    });
+            });
+
+        Ok(FileModuleExternal::new(
+            file_path,
+            file_module,
+            external_imports,
+        ))
+    }
+}
+
+impl<'a> FileChecker<'a> for CheckExternalPipeline<'a> {
+    type ProcessedFile = FileModuleExternal<'a>;
+    type Output = Vec<Diagnostic>;
+
+    fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
+        let mut diagnostics = Vec::new();
+        diagnostics.extend(self.external_dependency_checker.check(processed_file)?);
+
+        self.ignore_directive_post_processor.process_diagnostics(
+            &processed_file.imports.ignore_directives,
+            &mut diagnostics,
+            processed_file.relative_file_path(),
+        );
+
+        Ok(diagnostics)
+    }
+}
 
 pub fn check(
     project_root: &Path,
@@ -26,111 +126,80 @@ pub fn check(
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
-    let mut diagnostics = vec![];
-    for pyproject in filesystem::walk_pyprojects(project_root.to_str().unwrap()) {
-        let project_info = parse_pyproject_toml(&pyproject)?;
-        let mut all_dependencies = project_info.dependencies.clone();
-        for source_root in &project_info.source_paths {
-            for file_path in filesystem::walk_pyfiles(source_root.to_str().unwrap()) {
-                let absolute_file_path = source_root.join(&file_path);
 
-                if let Ok(project_imports) = imports::get_external_imports(
-                    &source_roots,
-                    &absolute_file_path,
-                    project_config.ignore_type_checking_imports,
-                ) {
-                    for import in project_imports.active_imports() {
-                        match check_import_external(
-                            import,
-                            &project_info,
-                            module_mappings,
-                            &excluded_external_modules,
-                            &stdlib_modules,
-                        ) {
-                            ImportProcessResult::UndeclaredDependency(module_name) => {
-                                diagnostics.push(Diagnostic::new_located_error(
-                                    relative_to(&absolute_file_path, project_root)?,
-                                    import.import_line_no,
-                                    DiagnosticDetails::Code(
-                                        CodeDiagnostic::UndeclaredExternalDependency {
-                                            import_mod_path: module_name,
-                                        },
-                                    ),
-                                ));
-                            }
-                            ImportProcessResult::UsedDependencies(deps)
-                            | ImportProcessResult::Excluded(deps) => {
-                                for dep in deps {
-                                    all_dependencies.remove(&dep);
-                                }
-                            }
-                        }
-                    }
-
-                    for directive_ignored_import in project_imports.directive_ignored_imports() {
-                        match check_missing_ignore_directive_reason(
-                            &directive_ignored_import,
-                            project_config,
-                        ) {
-                            Ok(()) => {}
-                            Err(diagnostic) => {
-                                diagnostics.push(diagnostic.into_located(
-                                    relative_to(&absolute_file_path, project_root)?,
-                                    directive_ignored_import.import.line_no,
-                                ));
-                            }
-                        }
-
-                        match check_unused_ignore_directive_external(
-                            &directive_ignored_import,
-                            &project_info,
-                            module_mappings,
-                            &excluded_external_modules,
-                            &stdlib_modules,
-                            project_config,
-                        ) {
-                            Ok(()) => {}
-                            Err(diagnostic) => {
-                                diagnostics.push(diagnostic.into_located(
-                                    relative_to(&absolute_file_path, project_root)?,
-                                    directive_ignored_import.import.line_no,
-                                ));
-                            }
-                        }
-                    }
-
-                    for unused_directive in project_imports.unused_ignore_directives() {
-                        if let Ok(severity) =
-                            (&project_config.rules.unused_ignore_directives).try_into()
-                        {
-                            diagnostics.push(Diagnostic::new_located(
-                                severity,
-                                DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
-                                relative_to(&absolute_file_path, project_root)?,
-                                unused_directive.line_no,
-                            ));
-                        }
-                    }
+    let diagnostics = walk_pyprojects(project_root.to_string_lossy().as_ref())
+        .par_bridge()
+        .flat_map(|pyproject| {
+            let project_info = match parse_pyproject_toml(&pyproject) {
+                Ok(project_info) => project_info,
+                Err(_) => {
+                    return vec![Diagnostic::new_global_error(
+                        DiagnosticDetails::Configuration(
+                            ConfigurationDiagnostic::SkippedPyProjectParsingError {
+                                file_path: pyproject.to_string_lossy().to_string(),
+                            },
+                        ),
+                    )];
                 }
-            }
-        }
+            };
+            let pipeline = CheckExternalPipeline::new(
+                &project_root,
+                &source_roots,
+                project_config,
+                &project_info,
+                &module_mappings,
+                &stdlib_modules,
+                &excluded_external_modules,
+            );
+            let mut project_diagnostics: Vec<Diagnostic> = project_info
+                .source_paths
+                .par_iter()
+                .flat_map(|source_root| {
+                    walk_pyfiles(&source_root.display().to_string())
+                        .par_bridge()
+                        .flat_map(|file_path| {
+                            if check_interrupt().is_err() {
+                                // Since files are being processed in parallel,
+                                // this will essentially short-circuit all remaining files.
+                                // Then, we check for an interrupt right after, and return the Err if it is set
+                                return vec![];
+                            }
 
-        diagnostics.extend(
-            all_dependencies
+                            pipeline
+                                .diagnostics(ProjectFile::new(
+                                    &project_root,
+                                    source_root,
+                                    &file_path,
+                                ))
+                                .unwrap_or_default()
+                        })
+                })
+                .collect();
+
+            let all_seen_dependencies: HashSet<String> =
+                pipeline.seen_dependencies.into_iter().collect();
+            let unused_dependency_diagnostics = project_info
+                .dependencies
+                .difference(&all_seen_dependencies)
                 .into_iter()
-                .filter(|dep| !excluded_external_modules.contains(dep)) // 'exclude' should hide unused errors unconditionally
+                .filter(|&dep| !pipeline.excluded_external_modules.contains(dep)) // 'exclude' should hide unused errors unconditionally
                 .map(|dep| {
                     Diagnostic::new_global_error(DiagnosticDetails::Code(
                         CodeDiagnostic::UnusedExternalDependency {
-                            package_module_name: dep,
+                            package_module_name: dep.clone(),
                         },
                     ))
-                })
-                .collect::<Vec<_>>(),
-        );
+                });
+
+            project_diagnostics.extend(unused_dependency_diagnostics);
+            project_diagnostics
+        });
+
+    if check_interrupt().is_err() {
+        return Err(CheckError::Interrupt);
     }
 
-    Ok(diagnostics)
+    Ok(diagnostics.collect())
 }
 
 #[cfg(test)]

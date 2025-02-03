@@ -34,6 +34,7 @@ parking_lot = "0.12.3"
 itertools = "0.14.0"
 toml_edit = "0.22.23"
 console = "0.15.10"
+dashmap = { version = "6.1.0", features = ["inline"] }
 
 [features]
 extension-module = ["pyo3/extension-module"]

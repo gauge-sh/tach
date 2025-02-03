@@ -14,11 +14,11 @@ use crate::{
         DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
     },
     exclusion::set_excluded_paths,
-    filesystem::{self as fs},
+    filesystem::{self as fs, ProjectFile},
     interrupt::check_interrupt,
     modules::{build_module_tree, error::ModuleTreeError, ModuleTree},
+    processors::file_module::FileModuleInternal,
     processors::imports::{get_project_imports, NormalizedImports},
-    processors::internal_file::{InternalFile, ProcessedInternalFile},
 };
 
 pub type Result<T> = std::result::Result<T, CheckError>;
@@ -31,7 +31,7 @@ struct CheckInternalPipeline<'a> {
     found_imports: &'a AtomicBool,
     dependency_checker: Option<InternalDependencyChecker<'a>>,
     interface_checker: Option<InterfaceChecker<'a>>,
-    ignore_directive_post_processor: Option<IgnoreDirectivePostProcessor<'a>>,
+    ignore_directive_post_processor: IgnoreDirectivePostProcessor<'a>,
 }
 
 impl<'a> CheckInternalPipeline<'a> {
@@ -50,7 +50,7 @@ impl<'a> CheckInternalPipeline<'a> {
             found_imports,
             dependency_checker: None,
             interface_checker: None,
-            ignore_directive_post_processor: None,
+            ignore_directive_post_processor: IgnoreDirectivePostProcessor::new(project_config),
         }
     }
 
@@ -69,20 +69,12 @@ impl<'a> CheckInternalPipeline<'a> {
         self.interface_checker = interface_checker;
         self
     }
-
-    pub fn with_ignore_directive_post_processor(
-        mut self,
-        ignore_directive_post_processor: Option<IgnoreDirectivePostProcessor<'a>>,
-    ) -> Self {
-        self.ignore_directive_post_processor = ignore_directive_post_processor;
-        self
-    }
 }
 
-impl<'a> FileProcessor<'a, InternalFile<'a>> for CheckInternalPipeline<'a> {
-    type ProcessedFile = ProcessedInternalFile<'a>;
+impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckInternalPipeline<'a> {
+    type ProcessedFile = FileModuleInternal<'a>;
 
-    fn process(&'a self, file_path: InternalFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
+    fn process(&'a self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
         let mod_path = fs::file_to_module_path(self.source_roots, file_path.as_ref())?;
         let file_module =
             self.module_tree
@@ -92,7 +84,7 @@ impl<'a> FileProcessor<'a, InternalFile<'a>> for CheckInternalPipeline<'a> {
                 ))?;
 
         if file_module.is_unchecked() {
-            return Ok(ProcessedInternalFile::new(
+            return Ok(FileModuleInternal::new(
                 file_path,
                 file_module,
                 NormalizedImports::empty(),
@@ -100,7 +92,7 @@ impl<'a> FileProcessor<'a, InternalFile<'a>> for CheckInternalPipeline<'a> {
         }
 
         if file_module.is_root() && self.project_config.root_module == RootModuleTreatment::Ignore {
-            return Ok(ProcessedInternalFile::new(
+            return Ok(FileModuleInternal::new(
                 file_path,
                 file_module,
                 NormalizedImports::empty(),
@@ -120,7 +112,7 @@ impl<'a> FileProcessor<'a, InternalFile<'a>> for CheckInternalPipeline<'a> {
             self.found_imports.store(true, Ordering::Relaxed);
         }
 
-        Ok(ProcessedInternalFile::new(
+        Ok(FileModuleInternal::new(
             file_path,
             file_module,
             project_imports,
@@ -129,7 +121,7 @@ impl<'a> FileProcessor<'a, InternalFile<'a>> for CheckInternalPipeline<'a> {
 }
 
 impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
-    type ProcessedFile = ProcessedInternalFile<'a>;
+    type ProcessedFile = FileModuleInternal<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
@@ -146,13 +138,11 @@ impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
                 .map_or(Ok(vec![]), |checker| checker.check(processed_file))?,
         );
 
-        if let Some(post_processor) = self.ignore_directive_post_processor.as_ref() {
-            post_processor.process_diagnostics(
-                &processed_file.project_imports.ignore_directives,
-                &mut diagnostics,
-                processed_file.relative_file_path(),
-            );
-        }
+        self.ignore_directive_post_processor.process_diagnostics(
+            &processed_file.imports.ignore_directives,
+            &mut diagnostics,
+            processed_file.relative_file_path(),
+        );
 
         Ok(diagnostics)
     }
@@ -232,8 +222,7 @@ pub fn check(
         &found_imports,
     )
     .with_dependency_checker(dependency_checker)
-    .with_interface_checker(interface_checker)
-    .with_ignore_directive_post_processor(Some(IgnoreDirectivePostProcessor::new(project_config)));
+    .with_interface_checker(interface_checker);
 
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(&source_root.display().to_string())
@@ -246,7 +235,7 @@ pub fn check(
                     return vec![];
                 }
 
-                let internal_file = InternalFile::new(&project_root, source_root, &file_path);
+                let internal_file = ProjectFile::new(&project_root, source_root, &file_path);
                 pipeline.diagnostics(internal_file).unwrap_or_default()
             })
     });

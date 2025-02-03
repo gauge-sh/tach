@@ -1,6 +1,5 @@
 pub mod check_external;
 pub mod check_internal;
-pub mod checks;
 pub mod error;
 pub mod format;
 

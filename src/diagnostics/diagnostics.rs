@@ -57,6 +57,9 @@ pub enum ConfigurationDiagnostic {
 
     #[error("Skipped '{file_path}' due to an I/O error.")]
     SkippedFileIoError { file_path: String },
+
+    #[error("Skipped '{file_path}' due to a parsing error.")]
+    SkippedPyProjectParsingError { file_path: String },
 }
 
 #[derive(Error, Debug, Clone, Serialize, PartialEq)]

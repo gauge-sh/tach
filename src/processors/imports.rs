@@ -18,6 +18,7 @@ use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use thiserror::Error;
 
 use crate::diagnostics::Diagnostic;
+use crate::external::parsing::normalize_package_name;
 use crate::python::{error::ParsingError, parsing::parse_python_source};
 use crate::{exclusion, filesystem};
 
@@ -90,6 +91,10 @@ impl<State> NormalizedImports<State> {
 
     pub fn all_imports(&self) -> impl Iterator<Item = &NormalizedImport> {
         self.imports.iter()
+    }
+
+    pub fn into_imports(self) -> impl Iterator<Item = NormalizedImport> {
+        self.imports.into_iter()
     }
 
     pub fn active_imports(&self) -> impl Iterator<Item = &NormalizedImport> {
@@ -184,6 +189,37 @@ impl NormalizedImports<AllImports> {
             ignore_directives: filtered_directives,
             _state: PhantomData,
         }
+    }
+}
+
+pub struct ExternalImportWithDistributionNames<'a> {
+    pub distribution_names: Vec<String>,
+    pub import: &'a NormalizedImport,
+}
+
+impl<'a> NormalizedImports<ExternalImports> {
+    pub fn all_imports_with_distribution_names(
+        &'a self,
+        module_mappings: &'a HashMap<String, Vec<String>>,
+    ) -> impl Iterator<Item = ExternalImportWithDistributionNames<'a>> {
+        self.all_imports().map(|import| {
+            let top_level_module_name = import.top_level_module_name().to_string();
+            let default_distribution_names = vec![top_level_module_name.clone()];
+            let distribution_names: Vec<String> = module_mappings
+                .get(&top_level_module_name)
+                .map(|dist_names| {
+                    dist_names
+                        .iter()
+                        .map(|dist_name| normalize_package_name(dist_name))
+                        .collect()
+                })
+                .unwrap_or(default_distribution_names);
+
+            ExternalImportWithDistributionNames {
+                distribution_names,
+                import,
+            }
+        })
     }
 }
 

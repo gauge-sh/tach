@@ -10,8 +10,8 @@ use crate::interfaces::compiled::CompiledInterfaces;
 use crate::interfaces::data_types::{TypeCheckCache, TypeCheckResult};
 use crate::interfaces::error::InterfaceError;
 use crate::modules::ModuleTree;
+use crate::processors::file_module::FileModuleInternal;
 use crate::processors::imports::NormalizedImport;
-use crate::processors::internal_file::ProcessedInternalFile;
 
 #[derive(Debug)]
 pub enum InterfaceCheckResult {
@@ -88,7 +88,7 @@ impl<'a> InterfaceChecker<'a> {
     fn check_interfaces(
         &self,
         import: &NormalizedImport,
-        internal_file: &ProcessedInternalFile,
+        internal_file: &FileModuleInternal,
     ) -> DiagnosticResult<Vec<Diagnostic>> {
         if let Some(import_module_config) = self
             .module_tree
@@ -96,7 +96,7 @@ impl<'a> InterfaceChecker<'a> {
             .as_ref()
             .and_then(|module| module.config.as_ref())
         {
-            if import_module_config == internal_file.file_module_config() {
+            if import_module_config == internal_file.module_config() {
                 return Ok(vec![]);
             }
 
@@ -118,7 +118,7 @@ impl<'a> InterfaceChecker<'a> {
                     import.line_no,
                     DiagnosticDetails::Code(CodeDiagnostic::PrivateImport {
                         import_mod_path: import.module_path.to_string(),
-                        usage_module: internal_file.file_module_config().path.to_string(),
+                        usage_module: internal_file.module_config().path.to_string(),
                         definition_module: import_module_config.path.to_string(),
                     }),
                 )]),
@@ -129,7 +129,7 @@ impl<'a> InterfaceChecker<'a> {
                     import.line_no,
                     DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport {
                         import_mod_path: import.module_path.to_string(),
-                        usage_module: internal_file.file_module_config().path.to_string(),
+                        usage_module: internal_file.module_config().path.to_string(),
                         definition_module: import_module_config.path.to_string(),
                         expected_data_type: expected.to_string(),
                     }),
@@ -154,12 +154,12 @@ impl<'a> InterfaceChecker<'a> {
 }
 
 impl<'a> FileChecker<'a> for InterfaceChecker<'a> {
-    type ProcessedFile = ProcessedInternalFile<'a>;
+    type ProcessedFile = FileModuleInternal<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, input: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = vec![];
-        for import in input.project_imports.all_imports() {
+        for import in input.imports.all_imports() {
             diagnostics.extend(self.check_interfaces(import, input)?);
         }
 

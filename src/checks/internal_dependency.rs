@@ -5,7 +5,7 @@ use crate::{
         Result as DiagnosticResult,
     },
     modules::ModuleTree,
-    processors::{imports::NormalizedImport, internal_file::ProcessedInternalFile},
+    processors::{file_module::FileModuleInternal, imports::NormalizedImport},
 };
 use std::path::Path;
 
@@ -159,7 +159,7 @@ impl<'a> InternalDependencyChecker<'a> {
     fn check_import(
         &self,
         import: &NormalizedImport,
-        internal_file: &ProcessedInternalFile,
+        internal_file: &FileModuleInternal,
     ) -> DiagnosticResult<Vec<Diagnostic>> {
         if let Some(import_module_config) = self
             .module_tree
@@ -176,7 +176,7 @@ impl<'a> InternalDependencyChecker<'a> {
             self.check_dependencies(
                 internal_file.relative_file_path(),
                 import,
-                internal_file.file_module_config(),
+                internal_file.module_config(),
                 import_module_config,
                 &self.project_config.layers,
             )
@@ -191,12 +191,12 @@ impl<'a> InternalDependencyChecker<'a> {
 }
 
 impl<'a> FileChecker<'a> for InternalDependencyChecker<'a> {
-    type ProcessedFile = ProcessedInternalFile<'a>;
+    type ProcessedFile = FileModuleInternal<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = Vec::new();
-        for import in processed_file.project_imports.all_imports() {
+        for import in processed_file.imports.all_imports() {
             diagnostics.extend(self.check_import(import, processed_file)?);
         }
 
