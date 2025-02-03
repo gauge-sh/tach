@@ -5,4 +5,4 @@ pub mod format;
 
 pub use check_external::check as check_external;
 pub use check_internal::check as check_internal;
-pub use error::{CheckError, ExternalCheckError};
+pub use error::CheckError;

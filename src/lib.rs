@@ -66,12 +66,6 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
-impl From<check::ExternalCheckError> for PyErr {
-    fn from(err: check::ExternalCheckError) -> Self {
-        PyOSError::new_err(err.to_string())
-    }
-}
-
 impl From<check::CheckError> for PyErr {
     fn from(err: check::CheckError) -> Self {
         match err {

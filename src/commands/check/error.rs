@@ -1,14 +1,10 @@
-use std::io;
-
 use thiserror::Error;
 
 use crate::diagnostics::DiagnosticError;
 use crate::exclusion;
-use crate::external;
 use crate::filesystem as fs;
 use crate::interfaces::error::InterfaceError;
 use crate::modules;
-use crate::processors::imports;
 
 #[derive(Error, Debug)]
 pub enum CheckError {
@@ -28,16 +24,4 @@ pub enum CheckError {
     Interrupt,
     #[error("Diagnostic error: {0}")]
     Diagnostic(#[from] DiagnosticError),
-}
-
-#[derive(Error, Debug)]
-pub enum ExternalCheckError {
-    #[error("Parsing error: {0}")]
-    Parse(#[from] external::ParsingError),
-    #[error("Import parsing error: {0}")]
-    ImportParse(#[from] imports::ImportParseError),
-    #[error("IO error: {0}")]
-    Io(#[from] io::Error),
-    #[error("Filesystem error: {0}")]
-    Filesystem(#[from] fs::FileSystemError),
 }
