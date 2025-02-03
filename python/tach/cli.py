@@ -402,13 +402,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     ## tach server
-    server_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "server",
         prog=f"{TOOL_NAME} server",
         help="Start the Language Server Protocol (LSP) server",
         description="Start the Language Server Protocol (LSP) server",
     )
-    server_parser.add_argument(
+    parser.add_argument(
         "-c",
         "--config",
         type=Path,
