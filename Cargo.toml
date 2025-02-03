@@ -32,7 +32,7 @@ ctrlc = "3.4.5"
 rayon = "1.10.0"
 parking_lot = "0.12.3"
 itertools = "0.14.0"
-toml_edit = "0.22.22"
+toml_edit = "0.22.23"
 console = "0.15.10"
 
 [features]
