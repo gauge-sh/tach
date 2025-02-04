@@ -285,6 +285,3 @@ exclude = [
 [rules]
 unused_ignore_directives = "error"
 require_ignore_directive_reasons = "error"
-
-[plugins.django]
-settings_module = "django.conf.settings"
