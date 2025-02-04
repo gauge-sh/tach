@@ -9,10 +9,7 @@ use crate::modules::error::ModuleTreeError;
 use crate::modules::{ModuleNode, ModuleTree};
 
 use super::file_module::FileModule;
-use super::import::{
-    get_external_imports, get_project_imports, ExternalImports, NormalizedImport,
-    NormalizedImports, ProjectImports,
-};
+use super::import::NormalizedImport;
 use super::reference::SourceCodeReference;
 
 #[derive(Debug)]
@@ -55,7 +52,7 @@ impl<'a> InternalDependencyExtractor<'a> {
 }
 
 impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> {
-    type ProcessedFile = FileModule<'a, ProjectImports>;
+    type ProcessedFile = FileModule<'a>;
 
     fn process(&self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
         let mod_path = filesystem::file_to_module_path(self.source_roots, file_path.as_ref())?;
@@ -65,35 +62,20 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
             .ok_or(ModuleTreeError::ModuleNotFound(mod_path))?;
 
         if module.is_unchecked() {
-            return Ok(FileModule::<ProjectImports>::new(
-                file_path,
-                module,
-                NormalizedImports::empty(),
-                vec![],
-            ));
+            return Ok(FileModule::new(file_path, module));
         }
 
         if module.is_root() && self.project_config.root_module == RootModuleTreatment::Ignore {
-            return Ok(FileModule::<ProjectImports>::new(
-                file_path,
-                module,
-                NormalizedImports::empty(),
-                vec![],
-            ));
+            return Ok(FileModule::new(file_path, module));
         }
 
-        let project_imports = get_project_imports(
-            self.source_roots,
-            file_path.as_ref(),
-            self.project_config.ignore_type_checking_imports,
-            self.project_config.include_string_imports,
-        )?;
-        Ok(FileModule::<ProjectImports>::new(
-            file_path,
-            module,
-            project_imports,
-            vec![],
-        ))
+        // let project_imports = get_project_imports(
+        //     self.source_roots,
+        //     file_path.as_ref(),
+        //     self.project_config.ignore_type_checking_imports,
+        //     self.project_config.include_string_imports,
+        // )?;
+        Ok(FileModule::new(file_path, module))
     }
 }
 
@@ -113,20 +95,15 @@ impl<'a> ExternalDependencyExtractor<'a> {
 }
 
 impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> {
-    type ProcessedFile = FileModule<'a, ExternalImports>;
+    type ProcessedFile = FileModule<'a>;
 
     fn process(&self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
         let module = Arc::new(ModuleNode::empty());
-        let external_imports = get_external_imports(
-            self.source_roots,
-            file_path.as_ref(),
-            self.project_config.ignore_type_checking_imports,
-        )?;
-        Ok(FileModule::<ExternalImports>::new(
-            file_path,
-            module,
-            external_imports,
-            vec![],
-        ))
+        // let external_imports = get_external_imports(
+        //     self.source_roots,
+        //     file_path.as_ref(),
+        //     self.project_config.ignore_type_checking_imports,
+        // )?;
+        Ok(FileModule::new(file_path, module))
     }
 }

@@ -1,4 +1,5 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
+use crate::commands::helpers::import::get_external_imports;
 use crate::config::ProjectConfig;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
@@ -8,8 +9,8 @@ use crate::external::parsing::{parse_pyproject_toml, ProjectInfo};
 use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
 use crate::interrupt::check_interrupt;
 use crate::modules::ModuleNode;
-use crate::processors::file_module::FileModuleExternal;
-use crate::processors::import::get_external_imports;
+use crate::processors::file_module::FileModule;
+use crate::processors::import::with_distribution_names;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -58,7 +59,7 @@ impl<'a> CheckExternalPipeline<'a> {
 }
 
 impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
-    type ProcessedFile = FileModuleExternal<'a>;
+    type ProcessedFile = FileModule<'a>;
 
     fn process(&'a self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
         // NOTE: check-external does not currently make use of the module tree,
@@ -72,8 +73,8 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
         )?;
 
         // Track all external dependencies seen in imports
-        external_imports
-            .all_imports_with_distribution_names(self.module_mappings)
+        with_distribution_names(external_imports.iter(), self.module_mappings)
+            .into_iter()
             .for_each(|import| {
                 import
                     .distribution_names
@@ -83,17 +84,12 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
                     });
             });
 
-        Ok(FileModuleExternal::new(
-            file_path,
-            file_module,
-            external_imports,
-            vec![],
-        ))
+        Ok(FileModule::new(file_path, file_module))
     }
 }
 
 impl<'a> FileChecker<'a> for CheckExternalPipeline<'a> {
-    type ProcessedFile = FileModuleExternal<'a>;
+    type ProcessedFile = FileModule<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
@@ -101,7 +97,7 @@ impl<'a> FileChecker<'a> for CheckExternalPipeline<'a> {
         diagnostics.extend(self.external_dependency_checker.check(processed_file)?);
 
         self.ignore_directive_post_processor.process_diagnostics(
-            &processed_file.imports.ignore_directives,
+            &processed_file.ignore_directives,
             &mut diagnostics,
             processed_file.relative_file_path(),
         );

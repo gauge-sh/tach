@@ -177,14 +177,12 @@ fn get_project_imports(
 ) -> processors::import::Result<Vec<processors::import::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(processors::import::get_project_imports(
+    commands::helpers::import::get_project_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
         include_string_imports,
-    )?
-    .into_active_imports()
-    .imports)
+    )
 }
 
 /// Get third-party imports from file_path
@@ -197,13 +195,11 @@ fn get_external_imports(
 ) -> processors::import::Result<Vec<processors::import::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(processors::import::get_external_imports(
+    commands::helpers::import::get_external_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
-    )?
-    .into_active_imports()
-    .imports)
+    )
 }
 
 /// Set excluded paths globally.

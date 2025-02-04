@@ -17,7 +17,7 @@ use crate::{
     filesystem::{self as fs, ProjectFile},
     interrupt::check_interrupt,
     modules::{build_module_tree, ModuleTree},
-    processors::{FileModuleInternal, InternalDependencyExtractor},
+    processors::{FileModule, InternalDependencyExtractor},
 };
 
 pub type Result<T> = std::result::Result<T, CheckError>;
@@ -68,12 +68,14 @@ impl<'a> CheckInternalPipeline<'a> {
 }
 
 impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckInternalPipeline<'a> {
-    type ProcessedFile = FileModuleInternal<'a>;
+    type ProcessedFile = FileModule<'a>;
 
     fn process(&'a self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
         let file_module = self.dependency_extractor.process(file_path)?;
 
-        if !file_module.imports.is_empty() && !self.found_imports.load(Ordering::Relaxed) {
+        if file_module.imports().peekable().peek().is_some()
+            && !self.found_imports.load(Ordering::Relaxed)
+        {
             // Only attempt to write if we haven't found imports yet.
             // This avoids any potential lock contention.
             self.found_imports.store(true, Ordering::Relaxed);
@@ -84,7 +86,7 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckInternalPipeline<'a> {
 }
 
 impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
-    type ProcessedFile = FileModuleInternal<'a>;
+    type ProcessedFile = FileModule<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
@@ -102,7 +104,7 @@ impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
         );
 
         self.ignore_directive_post_processor.process_diagnostics(
-            &processed_file.imports.ignore_directives,
+            &processed_file.ignore_directives,
             &mut diagnostics,
             processed_file.relative_file_path(),
         );

@@ -10,7 +10,7 @@ use crate::interfaces::compiled::CompiledInterfaces;
 use crate::interfaces::data_types::{TypeCheckCache, TypeCheckResult};
 use crate::interfaces::error::InterfaceError;
 use crate::modules::ModuleTree;
-use crate::processors::file_module::FileModuleInternal;
+use crate::processors::file_module::FileModule;
 use crate::processors::import::NormalizedImport;
 
 #[derive(Debug)]
@@ -84,7 +84,7 @@ impl<'a> InterfaceChecker<'a> {
     fn check_interfaces(
         &self,
         import: &NormalizedImport,
-        internal_file: &FileModuleInternal,
+        internal_file: &FileModule,
     ) -> DiagnosticResult<Vec<Diagnostic>> {
         if let Some(import_module_config) = self
             .module_tree
@@ -150,12 +150,12 @@ impl<'a> InterfaceChecker<'a> {
 }
 
 impl<'a> FileChecker<'a> for InterfaceChecker<'a> {
-    type ProcessedFile = FileModuleInternal<'a>;
+    type ProcessedFile = FileModule<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, input: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = vec![];
-        for import in input.imports.all_imports() {
+        for import in input.imports() {
             diagnostics.extend(self.check_interfaces(import, input)?);
         }
 
