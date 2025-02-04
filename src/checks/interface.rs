@@ -11,7 +11,7 @@ use crate::interfaces::data_types::{TypeCheckCache, TypeCheckResult};
 use crate::interfaces::error::InterfaceError;
 use crate::modules::ModuleTree;
 use crate::processors::file_module::FileModuleInternal;
-use crate::processors::imports::NormalizedImport;
+use crate::processors::import::NormalizedImport;
 
 #[derive(Debug)]
 pub enum InterfaceCheckResult {

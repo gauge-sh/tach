@@ -9,7 +9,7 @@ use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
 use crate::interrupt::check_interrupt;
 use crate::modules::ModuleNode;
 use crate::processors::file_module::FileModuleExternal;
-use crate::processors::imports::get_external_imports;
+use crate::processors::import::get_external_imports;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -71,6 +71,7 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
             self.project_config.ignore_type_checking_imports,
         )?;
 
+        // Track all external dependencies seen in imports
         external_imports
             .all_imports_with_distribution_names(self.module_mappings)
             .for_each(|import| {
@@ -86,6 +87,7 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
             file_path,
             file_module,
             external_imports,
+            vec![],
         ))
     }
 }

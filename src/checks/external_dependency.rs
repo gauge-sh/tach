@@ -4,7 +4,7 @@ use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::diagnostics::{FileChecker, Result as DiagnosticResult};
 use crate::external::parsing::ProjectInfo;
 use crate::processors::file_module::FileModuleExternal;
-use crate::processors::imports::ExternalImportWithDistributionNames;
+use crate::processors::import::ExternalImportWithDistributionNames;
 
 pub struct ExternalDependencyChecker<'a> {
     project_info: &'a ProjectInfo,

@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use super::error::CheckError;
 use crate::{
     checks::{IgnoreDirectivePostProcessor, InterfaceChecker, InternalDependencyChecker},
-    config::{root_module::RootModuleTreatment, ProjectConfig},
+    config::ProjectConfig,
     diagnostics::{
         ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
         DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
@@ -16,19 +16,15 @@ use crate::{
     exclusion::set_excluded_paths,
     filesystem::{self as fs, ProjectFile},
     interrupt::check_interrupt,
-    modules::{build_module_tree, error::ModuleTreeError, ModuleTree},
-    processors::file_module::FileModuleInternal,
-    processors::imports::{get_project_imports, NormalizedImports},
+    modules::{build_module_tree, ModuleTree},
+    processors::{FileModuleInternal, InternalDependencyExtractor},
 };
 
 pub type Result<T> = std::result::Result<T, CheckError>;
 
 struct CheckInternalPipeline<'a> {
-    _project_root: &'a Path,
-    project_config: &'a ProjectConfig,
-    source_roots: &'a [PathBuf],
-    module_tree: &'a ModuleTree,
     found_imports: &'a AtomicBool,
+    dependency_extractor: InternalDependencyExtractor<'a>,
     dependency_checker: Option<InternalDependencyChecker<'a>>,
     interface_checker: Option<InterfaceChecker<'a>>,
     ignore_directive_post_processor: IgnoreDirectivePostProcessor<'a>,
@@ -36,18 +32,18 @@ struct CheckInternalPipeline<'a> {
 
 impl<'a> CheckInternalPipeline<'a> {
     pub fn new(
-        project_root: &'a Path,
         project_config: &'a ProjectConfig,
         source_roots: &'a [PathBuf],
         module_tree: &'a ModuleTree,
         found_imports: &'a AtomicBool,
     ) -> Self {
         Self {
-            _project_root: project_root,
-            project_config,
-            source_roots,
-            module_tree,
             found_imports,
+            dependency_extractor: InternalDependencyExtractor::new(
+                source_roots,
+                module_tree,
+                project_config,
+            ),
             dependency_checker: None,
             interface_checker: None,
             ignore_directive_post_processor: IgnoreDirectivePostProcessor::new(project_config),
@@ -75,48 +71,15 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckInternalPipeline<'a> {
     type ProcessedFile = FileModuleInternal<'a>;
 
     fn process(&'a self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
-        let mod_path = fs::file_to_module_path(self.source_roots, file_path.as_ref())?;
-        let file_module =
-            self.module_tree
-                .find_nearest(&mod_path)
-                .ok_or(DiagnosticError::ModuleTree(
-                    ModuleTreeError::ModuleNotFound(mod_path.to_string()),
-                ))?;
+        let file_module = self.dependency_extractor.process(file_path)?;
 
-        if file_module.is_unchecked() {
-            return Ok(FileModuleInternal::new(
-                file_path,
-                file_module,
-                NormalizedImports::empty(),
-            ));
-        }
-
-        if file_module.is_root() && self.project_config.root_module == RootModuleTreatment::Ignore {
-            return Ok(FileModuleInternal::new(
-                file_path,
-                file_module,
-                NormalizedImports::empty(),
-            ));
-        }
-
-        let project_imports = get_project_imports(
-            self.source_roots,
-            file_path.as_ref(),
-            self.project_config.ignore_type_checking_imports,
-            self.project_config.include_string_imports,
-        )?;
-
-        if !project_imports.imports.is_empty() && !self.found_imports.load(Ordering::Relaxed) {
+        if !file_module.imports.is_empty() && !self.found_imports.load(Ordering::Relaxed) {
             // Only attempt to write if we haven't found imports yet.
             // This avoids any potential lock contention.
             self.found_imports.store(true, Ordering::Relaxed);
         }
 
-        Ok(FileModuleInternal::new(
-            file_path,
-            file_module,
-            project_imports,
-        ))
+        Ok(file_module)
     }
 }
 
@@ -210,15 +173,10 @@ pub fn check(
         None
     };
 
-    let pipeline = CheckInternalPipeline::new(
-        &project_root,
-        project_config,
-        &source_roots,
-        &module_tree,
-        &found_imports,
-    )
-    .with_dependency_checker(dependency_checker)
-    .with_interface_checker(interface_checker);
+    let pipeline =
+        CheckInternalPipeline::new(project_config, &source_roots, &module_tree, &found_imports)
+            .with_dependency_checker(dependency_checker)
+            .with_interface_checker(interface_checker);
 
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(&source_root.display().to_string())

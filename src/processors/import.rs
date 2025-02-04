@@ -81,6 +81,10 @@ impl<State> NormalizedImports<State> {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.imports.is_empty()
+    }
+
     pub fn new(imports: Vec<NormalizedImport>, ignore_directives: IgnoreDirectives) -> Self {
         Self {
             imports,
@@ -95,12 +99,6 @@ impl<State> NormalizedImports<State> {
 
     pub fn into_imports(self) -> impl Iterator<Item = NormalizedImport> {
         self.imports.into_iter()
-    }
-
-    pub fn active_imports(&self) -> impl Iterator<Item = &NormalizedImport> {
-        self.imports
-            .iter()
-            .filter(|import| !self.ignore_directives.is_ignored(import))
     }
 
     pub fn into_active_imports(self) -> NormalizedImports {

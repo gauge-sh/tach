@@ -15,7 +15,6 @@ pub mod modularity;
 pub mod modules;
 pub mod parsing;
 pub mod pattern;
-pub mod plugins;
 pub mod processors;
 pub mod python;
 pub mod tests;
@@ -35,10 +34,10 @@ mod errors {
     pyo3::import_exception!(tach.errors, TachSetupError);
 }
 
-impl From<processors::imports::ImportParseError> for PyErr {
-    fn from(err: processors::imports::ImportParseError) -> Self {
+impl From<processors::import::ImportParseError> for PyErr {
+    fn from(err: processors::import::ImportParseError) -> Self {
         match err {
-            processors::imports::ImportParseError::Parsing { file: _, source: _ } => {
+            processors::import::ImportParseError::Parsing { file: _, source: _ } => {
                 PySyntaxError::new_err(err.to_string())
             }
             _ => PyOSError::new_err(err.to_string()),
@@ -175,10 +174,10 @@ fn get_project_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
-) -> processors::imports::Result<Vec<processors::imports::NormalizedImport>> {
+) -> processors::import::Result<Vec<processors::import::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(processors::imports::get_project_imports(
+    Ok(processors::import::get_project_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
@@ -195,10 +194,10 @@ fn get_external_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> processors::imports::Result<Vec<processors::imports::NormalizedImport>> {
+) -> processors::import::Result<Vec<processors::import::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(processors::imports::get_external_imports(
+    Ok(processors::import::get_external_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,

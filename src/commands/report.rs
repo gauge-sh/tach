@@ -17,7 +17,7 @@ use crate::filesystem::{
 };
 use crate::interrupt::check_interrupt;
 use crate::modules::{build_module_tree, error::ModuleTreeError};
-use crate::processors::imports::{get_project_imports, ImportParseError, NormalizedImport};
+use crate::processors::import::{get_project_imports, ImportParseError, NormalizedImport};
 
 struct Dependency {
     file_path: PathBuf,

@@ -5,13 +5,15 @@ use std::{path::Path, sync::Arc};
 use crate::filesystem::ProjectFile;
 use crate::{config::ModuleConfig, modules::ModuleNode};
 
-use super::imports::{AllImports, ExternalImports, NormalizedImports, ProjectImports};
+use super::dependency::Dependency;
+use super::import::{AllImports, ExternalImports, NormalizedImports, ProjectImports};
 
 #[derive(Debug)]
 pub struct FileModule<'a, State = AllImports> {
     pub file: ProjectFile<'a>,
     pub module: Arc<ModuleNode>,
     pub imports: NormalizedImports<State>,
+    pub dependencies: Vec<Dependency<'a>>,
     _state: PhantomData<State>,
 }
 
@@ -36,11 +38,13 @@ impl<'a> FileModule<'a, AllImports> {
         file: ProjectFile<'a>,
         module: Arc<ModuleNode>,
         imports: NormalizedImports<AllImports>,
+        dependencies: Vec<Dependency<'a>>,
     ) -> Self {
         Self {
             file,
             module,
             imports,
+            dependencies,
             _state: PhantomData,
         }
     }
@@ -50,6 +54,7 @@ impl<'a> FileModule<'a, AllImports> {
             file: self.file,
             module: self.module,
             imports: self.imports.into_project_imports(source_roots),
+            dependencies: self.dependencies, // TODO: filter dependencies
             _state: PhantomData,
         }
     }
@@ -59,6 +64,7 @@ impl<'a> FileModule<'a, AllImports> {
             file: self.file,
             module: self.module,
             imports: self.imports.into_external_imports(source_roots),
+            dependencies: self.dependencies, // TODO: filter dependencies
             _state: PhantomData,
         }
     }
@@ -71,11 +77,13 @@ impl<'a> FileModuleInternal<'a> {
         file: ProjectFile<'a>,
         module: Arc<ModuleNode>,
         imports: NormalizedImports<ProjectImports>,
+        dependencies: Vec<Dependency<'a>>,
     ) -> Self {
         Self {
             file,
             module,
             imports,
+            dependencies,
             _state: PhantomData,
         }
     }
@@ -88,11 +96,13 @@ impl<'a> FileModuleExternal<'a> {
         file: ProjectFile<'a>,
         module: Arc<ModuleNode>,
         imports: NormalizedImports<ExternalImports>,
+        dependencies: Vec<Dependency<'a>>,
     ) -> Self {
         Self {
             file,
             module,
             imports,
+            dependencies,
             _state: PhantomData,
         }
     }

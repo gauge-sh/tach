@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::config::{ProjectConfig, RuleSetting};
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
-use crate::processors::imports::{IgnoreDirective, IgnoreDirectives};
+use crate::processors::import::{IgnoreDirective, IgnoreDirectives};
 
 pub struct IgnoreDirectivePostProcessor<'a> {
     project_config: &'a ProjectConfig,

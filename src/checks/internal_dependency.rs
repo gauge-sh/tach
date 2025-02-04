@@ -5,7 +5,7 @@ use crate::{
         Result as DiagnosticResult,
     },
     modules::ModuleTree,
-    processors::{file_module::FileModuleInternal, imports::NormalizedImport},
+    processors::{file_module::FileModuleInternal, import::NormalizedImport},
 };
 use std::path::Path;
 
