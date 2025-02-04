@@ -1,5 +1,4 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
-use crate::commands::helpers::import::get_external_imports;
 use crate::config::ProjectConfig;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
@@ -8,13 +7,11 @@ use crate::diagnostics::{
 use crate::external::parsing::{parse_pyproject_toml, ProjectInfo};
 use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
 use crate::interrupt::check_interrupt;
-use crate::modules::ModuleNode;
 use crate::processors::file_module::FileModule;
 use crate::processors::import::with_distribution_names;
 use crate::processors::ExternalDependencyExtractor;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use dashmap::DashSet;
 use rayon::prelude::*;

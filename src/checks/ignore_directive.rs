@@ -31,7 +31,7 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
     fn check_unused_ignore_directive(
         &self,
         ignore_directive: &IgnoreDirective,
-        diagnostics: &Vec<Diagnostic>,
+        diagnostics: &[Diagnostic],
         relative_file_path: &Path,
     ) -> Option<Diagnostic> {
         if self.project_config.rules.unused_ignore_directives == RuleSetting::Off {
