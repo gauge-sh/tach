@@ -52,6 +52,7 @@ pub struct AllImports;
 pub struct ProjectImports;
 pub struct ExternalImports;
 
+#[derive(Debug)]
 pub struct ExternalImportWithDistributionNames<'a> {
     pub distribution_names: Vec<String>,
     pub import: &'a NormalizedImport,
@@ -301,11 +302,10 @@ pub fn get_normalized_imports<P: AsRef<Path>>(
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
 ) -> Result<Vec<NormalizedImport>> {
-    let file_ast =
-        parse_python_source(&file_contents).map_err(|err| ImportParseError::Parsing {
-            file: file_path.as_ref().to_string_lossy().to_string(),
-            source: err,
-        })?;
+    let file_ast = parse_python_source(file_contents).map_err(|err| ImportParseError::Parsing {
+        file: file_path.as_ref().to_string_lossy().to_string(),
+        source: err,
+    })?;
     let is_package = file_path
         .as_ref()
         .to_string_lossy()
@@ -314,12 +314,12 @@ pub fn get_normalized_imports<P: AsRef<Path>>(
         filesystem::file_to_module_path(source_roots, file_path.as_ref()).ok();
     let mut import_visitor = ImportVisitor::new(
         file_mod_path,
-        Locator::new(&file_contents),
+        Locator::new(file_contents),
         is_package,
         ignore_type_checking_imports,
     );
     let mut string_import_visitor =
-        StringImportVisitor::new(source_roots, Locator::new(&file_contents));
+        StringImportVisitor::new(source_roots, Locator::new(file_contents));
 
     match file_ast {
         Mod::Module(ref module) => {

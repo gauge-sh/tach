@@ -9,7 +9,7 @@ use crate::modules::error::ModuleTreeError;
 use crate::modules::{ModuleNode, ModuleTree};
 
 use super::file_module::FileModule;
-use super::import::NormalizedImport;
+use super::import::{get_normalized_imports, NormalizedImport};
 use super::reference::SourceCodeReference;
 
 #[derive(Debug)]
@@ -69,13 +69,24 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
             return Ok(FileModule::new(file_path, module));
         }
 
-        // let project_imports = get_project_imports(
-        //     self.source_roots,
-        //     file_path.as_ref(),
-        //     self.project_config.ignore_type_checking_imports,
-        //     self.project_config.include_string_imports,
-        // )?;
-        Ok(FileModule::new(file_path, module))
+        let file_contents = filesystem::read_file_content(file_path.as_ref())?;
+        let normalized_imports = get_normalized_imports(
+            self.source_roots,
+            file_path.as_ref(),
+            &file_contents,
+            self.project_config.ignore_type_checking_imports,
+            self.project_config.include_string_imports,
+        )?;
+        let mut file_module = FileModule::new(file_path, module);
+        file_module.extend_dependencies(
+            normalized_imports
+                .into_iter()
+                .filter(|import| {
+                    filesystem::is_project_import(self.source_roots, &import.module_path)
+                })
+                .map(Dependency::Import),
+        );
+        Ok(file_module)
     }
 }
 
@@ -98,12 +109,26 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
     type ProcessedFile = FileModule<'a>;
 
     fn process(&self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
+        // NOTE: check-external does not currently make use of the module tree,
+        // but it is very likely to do so in the future.
         let module = Arc::new(ModuleNode::empty());
-        // let external_imports = get_external_imports(
-        //     self.source_roots,
-        //     file_path.as_ref(),
-        //     self.project_config.ignore_type_checking_imports,
-        // )?;
-        Ok(FileModule::new(file_path, module))
+        let file_contents = filesystem::read_file_content(file_path.as_ref())?;
+        let normalized_imports = get_normalized_imports(
+            self.source_roots,
+            file_path.as_ref(),
+            &file_contents,
+            self.project_config.ignore_type_checking_imports,
+            false,
+        )?;
+        let mut file_module = FileModule::new(file_path, module);
+        file_module.extend_dependencies(
+            normalized_imports
+                .into_iter()
+                .filter(|import| {
+                    !filesystem::is_project_import(self.source_roots, &import.module_path)
+                })
+                .map(Dependency::Import),
+        );
+        Ok(file_module)
     }
 }

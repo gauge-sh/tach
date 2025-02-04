@@ -33,6 +33,10 @@ impl<'a> FileModule<'a> {
         &self.file.relative_file_path
     }
 
+    pub fn extend_dependencies(&mut self, dependencies: impl IntoIterator<Item = Dependency<'a>>) {
+        self.dependencies.extend(dependencies);
+    }
+
     pub fn imports(&self) -> impl Iterator<Item = &NormalizedImport> {
         self.dependencies.iter().filter_map(|dependency| {
             if let Dependency::Import(import) = dependency {
