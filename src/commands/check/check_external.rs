@@ -281,7 +281,7 @@ mod tests {
         assert_eq!(result.len(), 3);
         assert!(result.iter().any(|d| d.details()
             == &DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
-                import_mod_path: "git".to_string()
+                dependency: "git".to_string()
             })));
         assert!(result.iter().any(|d| d.details()
             == &DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {

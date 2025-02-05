@@ -68,46 +68,48 @@ pub enum ConfigurationDiagnostic {
 #[derive(Error, Debug, Clone, Serialize, PartialEq)]
 #[pyclass(module = "tach.extension")]
 pub enum CodeDiagnostic {
-    #[error("Module '{definition_module}' has a defined public interface. Only imports from the public interface of this module are allowed. The import '{import_mod_path}' (in module '{usage_module}') is not public.")]
-    PrivateImport {
-        import_mod_path: String,
+    #[error(
+        "The path '{dependency}' is not part of the public interface for '{definition_module}'."
+    )]
+    PrivateDependency {
+        dependency: String,
         definition_module: String,
         usage_module: String,
     },
 
-    #[error("The import '{import_mod_path}' (from module '{definition_module}') matches an interface but does not match the expected data type ('{expected_data_type}').")]
+    #[error("The dependency '{dependency}' (from module '{definition_module}') matches an interface but does not match the expected data type ('{expected_data_type}').")]
     InvalidDataTypeExport {
-        import_mod_path: String,
+        dependency: String,
         definition_module: String,
         usage_module: String,
         expected_data_type: String,
     },
 
-    #[error("Cannot import '{import_mod_path}'. Module '{usage_module}' cannot depend on '{definition_module}'.")]
-    InvalidImport {
-        import_mod_path: String,
+    #[error("Cannot use '{dependency}'. Module '{usage_module}' cannot depend on '{definition_module}'.")]
+    UndeclaredDependency {
+        dependency: String,
         usage_module: String,
         definition_module: String,
     },
 
-    #[error("Import '{import_mod_path}' is deprecated. Module '{usage_module}' should not depend on '{definition_module}'.")]
-    DeprecatedImport {
-        import_mod_path: String,
+    #[error("Dependency '{dependency}' is deprecated. Module '{usage_module}' should not depend on '{definition_module}'.")]
+    DeprecatedDependency {
+        dependency: String,
         usage_module: String,
         definition_module: String,
     },
 
-    #[error("Cannot import '{import_mod_path}'. Layer '{usage_layer}' ('{usage_module}') is lower than layer '{definition_layer}' ('{definition_module}').")]
+    #[error("Cannot use '{dependency}'. Layer '{usage_layer}' ('{usage_module}') is lower than layer '{definition_layer}' ('{definition_module}').")]
     LayerViolation {
-        import_mod_path: String,
+        dependency: String,
         usage_module: String,
         usage_layer: String,
         definition_module: String,
         definition_layer: String,
     },
 
-    #[error("Import '{import_mod_path}' is unnecessarily ignored by a directive.")]
-    UnnecessarilyIgnoredImport { import_mod_path: String },
+    #[error("Dependency '{dependency}' is unnecessarily ignored by a directive.")]
+    UnnecessarilyIgnoredDependency { dependency: String },
 
     #[error("Ignore directive is unused.")]
     UnusedIgnoreDirective(),
@@ -115,47 +117,38 @@ pub enum CodeDiagnostic {
     #[error("Ignore directive is missing a reason.")]
     MissingIgnoreDirectiveReason(),
 
-    #[error("Import '{import_mod_path}' does not match any declared dependency.")]
-    UndeclaredExternalDependency { import_mod_path: String },
+    #[error("Dependency '{dependency}' is not declared in the project.")]
+    UndeclaredExternalDependency { dependency: String },
 
     #[error("External package '{package_module_name}' is not used.")]
     UnusedExternalDependency { package_module_name: String },
 }
 
 impl CodeDiagnostic {
-    pub fn import_mod_path(&self) -> Option<&str> {
+    pub fn dependency(&self) -> Option<&str> {
         match self {
-            CodeDiagnostic::PrivateImport {
-                import_mod_path, ..
-            }
-            | CodeDiagnostic::InvalidDataTypeExport {
-                import_mod_path, ..
-            }
-            | CodeDiagnostic::InvalidImport {
-                import_mod_path, ..
-            }
-            | CodeDiagnostic::DeprecatedImport {
-                import_mod_path, ..
-            }
-            | CodeDiagnostic::LayerViolation {
-                import_mod_path, ..
-            }
-            | CodeDiagnostic::UnnecessarilyIgnoredImport {
-                import_mod_path, ..
-            } => Some(import_mod_path),
+            CodeDiagnostic::PrivateDependency { dependency, .. }
+            | CodeDiagnostic::InvalidDataTypeExport { dependency, .. }
+            | CodeDiagnostic::UndeclaredDependency { dependency, .. }
+            | CodeDiagnostic::DeprecatedDependency { dependency, .. }
+            | CodeDiagnostic::LayerViolation { dependency, .. }
+            | CodeDiagnostic::UnnecessarilyIgnoredDependency { dependency, .. } => Some(dependency),
             CodeDiagnostic::UnusedIgnoreDirective() => None,
             CodeDiagnostic::MissingIgnoreDirectiveReason() => None,
-            CodeDiagnostic::UndeclaredExternalDependency { .. } => None,
-            CodeDiagnostic::UnusedExternalDependency { .. } => None,
+            CodeDiagnostic::UndeclaredExternalDependency { dependency, .. } => Some(dependency),
+            CodeDiagnostic::UnusedExternalDependency {
+                package_module_name,
+                ..
+            } => Some(package_module_name),
         }
     }
 
     pub fn usage_module(&self) -> Option<&str> {
         match self {
-            CodeDiagnostic::PrivateImport { usage_module, .. }
+            CodeDiagnostic::PrivateDependency { usage_module, .. }
             | CodeDiagnostic::InvalidDataTypeExport { usage_module, .. }
-            | CodeDiagnostic::InvalidImport { usage_module, .. }
-            | CodeDiagnostic::DeprecatedImport { usage_module, .. }
+            | CodeDiagnostic::UndeclaredDependency { usage_module, .. }
+            | CodeDiagnostic::DeprecatedDependency { usage_module, .. }
             | CodeDiagnostic::LayerViolation { usage_module, .. } => Some(usage_module),
             _ => None,
         }
@@ -163,16 +156,16 @@ impl CodeDiagnostic {
 
     pub fn definition_module(&self) -> Option<&str> {
         match self {
-            CodeDiagnostic::PrivateImport {
+            CodeDiagnostic::PrivateDependency {
                 definition_module, ..
             }
             | CodeDiagnostic::InvalidDataTypeExport {
                 definition_module, ..
             }
-            | CodeDiagnostic::InvalidImport {
+            | CodeDiagnostic::UndeclaredDependency {
                 definition_module, ..
             }
-            | CodeDiagnostic::DeprecatedImport {
+            | CodeDiagnostic::DeprecatedDependency {
                 definition_module, ..
             }
             | CodeDiagnostic::LayerViolation {
@@ -314,9 +307,9 @@ impl Diagnostic {
         }
     }
 
-    pub fn import_mod_path(&self) -> Option<&str> {
+    pub fn dependency(&self) -> Option<&str> {
         match self.details() {
-            DiagnosticDetails::Code(details) => details.import_mod_path(),
+            DiagnosticDetails::Code(details) => details.dependency(),
             _ => None,
         }
     }
@@ -349,8 +342,8 @@ impl Diagnostic {
     pub fn is_dependency_error(&self) -> bool {
         matches!(
             self.details(),
-            DiagnosticDetails::Code(CodeDiagnostic::InvalidImport { .. })
-                | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport { .. })
+            DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency { .. })
+                | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency { .. })
                 | DiagnosticDetails::Code(CodeDiagnostic::LayerViolation { .. })
         )
     }
@@ -358,7 +351,7 @@ impl Diagnostic {
     pub fn is_interface_error(&self) -> bool {
         matches!(
             self.details(),
-            DiagnosticDetails::Code(CodeDiagnostic::PrivateImport { .. })
+            DiagnosticDetails::Code(CodeDiagnostic::PrivateDependency { .. })
                 | DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport { .. })
         )
     }
@@ -366,7 +359,7 @@ impl Diagnostic {
     pub fn is_deprecated(&self) -> bool {
         matches!(
             self.details(),
-            DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport { .. })
+            DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency { .. })
         )
     }
 

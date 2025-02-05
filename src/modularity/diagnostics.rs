@@ -45,7 +45,7 @@ impl TryFrom<Diagnostic> for UsageError {
             value.is_dependency_error(),
             value.file_path(),
             value.line_number(),
-            value.import_mod_path(),
+            value.dependency(),
             value.usage_module(),
             value.definition_module(),
         ) {
