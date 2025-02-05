@@ -7,12 +7,11 @@ use crate::diagnostics::{
 use crate::external::parsing::{parse_pyproject_toml, ProjectInfo};
 use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
 use crate::interrupt::check_interrupt;
-use crate::modules::ModuleNode;
-use crate::processors::file_module::FileModuleExternal;
-use crate::processors::imports::get_external_imports;
+use crate::processors::file_module::FileModule;
+use crate::processors::import::with_distribution_names;
+use crate::processors::ExternalDependencyExtractor;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use dashmap::DashSet;
 use rayon::prelude::*;
@@ -22,12 +21,11 @@ use super::error::CheckError;
 pub type Result<T> = std::result::Result<T, CheckError>;
 
 struct CheckExternalPipeline<'a> {
-    source_roots: &'a [PathBuf],
-    project_config: &'a ProjectConfig,
     module_mappings: &'a HashMap<String, Vec<String>>,
     excluded_external_modules: &'a HashSet<String>,
     seen_dependencies: DashSet<String>,
-    external_dependency_checker: ExternalDependencyChecker<'a>,
+    dependency_extractor: ExternalDependencyExtractor<'a>,
+    dependency_checker: ExternalDependencyChecker<'a>,
     ignore_directive_post_processor: IgnoreDirectivePostProcessor<'a>,
 }
 
@@ -41,12 +39,11 @@ impl<'a> CheckExternalPipeline<'a> {
         excluded_external_modules: &'a HashSet<String>,
     ) -> Self {
         Self {
-            source_roots,
-            project_config,
             module_mappings,
             excluded_external_modules,
             seen_dependencies: DashSet::new(),
-            external_dependency_checker: ExternalDependencyChecker::new(
+            dependency_extractor: ExternalDependencyExtractor::new(source_roots, project_config),
+            dependency_checker: ExternalDependencyChecker::new(
                 project_info,
                 module_mappings,
                 stdlib_modules,
@@ -58,21 +55,14 @@ impl<'a> CheckExternalPipeline<'a> {
 }
 
 impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
-    type ProcessedFile = FileModuleExternal<'a>;
+    type ProcessedFile = FileModule<'a>;
 
     fn process(&'a self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
-        // NOTE: check-external does not currently make use of the module tree,
-        // but it is very likely to do so in the future.
-        let file_module = Arc::new(ModuleNode::empty());
+        let file_module = self.dependency_extractor.process(file_path)?;
 
-        let external_imports = get_external_imports(
-            self.source_roots,
-            file_path.as_ref(),
-            self.project_config.ignore_type_checking_imports,
-        )?;
-
-        external_imports
-            .all_imports_with_distribution_names(self.module_mappings)
+        // Track all external dependencies seen in imports
+        with_distribution_names(file_module.imports(), self.module_mappings)
+            .into_iter()
             .for_each(|import| {
                 import
                     .distribution_names
@@ -82,24 +72,20 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
                     });
             });
 
-        Ok(FileModuleExternal::new(
-            file_path,
-            file_module,
-            external_imports,
-        ))
+        Ok(file_module)
     }
 }
 
 impl<'a> FileChecker<'a> for CheckExternalPipeline<'a> {
-    type ProcessedFile = FileModuleExternal<'a>;
+    type ProcessedFile = FileModule<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = Vec::new();
-        diagnostics.extend(self.external_dependency_checker.check(processed_file)?);
+        diagnostics.extend(self.dependency_checker.check(processed_file)?);
 
         self.ignore_directive_post_processor.process_diagnostics(
-            &processed_file.imports.ignore_directives,
+            &processed_file.ignore_directives,
             &mut diagnostics,
             processed_file.relative_file_path(),
         );

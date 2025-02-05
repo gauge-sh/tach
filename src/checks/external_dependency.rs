@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::diagnostics::{FileChecker, Result as DiagnosticResult};
 use crate::external::parsing::ProjectInfo;
-use crate::processors::file_module::FileModuleExternal;
-use crate::processors::imports::ExternalImportWithDistributionNames;
+use crate::processors::file_module::FileModule;
+use crate::processors::import::{with_distribution_names, ExternalImportWithDistributionNames};
 
 pub struct ExternalDependencyChecker<'a> {
     project_info: &'a ProjectInfo,
@@ -31,7 +31,7 @@ impl<'a> ExternalDependencyChecker<'a> {
     fn check_import(
         &'a self,
         import: ExternalImportWithDistributionNames<'a>,
-        processed_file: &FileModuleExternal<'a>,
+        processed_file: &FileModule<'a>,
     ) -> Option<Diagnostic> {
         if import
             .distribution_names
@@ -64,15 +64,12 @@ impl<'a> ExternalDependencyChecker<'a> {
 }
 
 impl<'a> FileChecker<'a> for ExternalDependencyChecker<'a> {
-    type ProcessedFile = FileModuleExternal<'a>;
+    type ProcessedFile = FileModule<'a>;
     type Output = Vec<Diagnostic>;
 
     fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = Vec::new();
-        for import in processed_file
-            .imports
-            .all_imports_with_distribution_names(self.module_mappings)
-        {
+        for import in with_distribution_names(processed_file.imports(), self.module_mappings) {
             if let Some(diagnostic) = self.check_import(import, processed_file) {
                 diagnostics.push(diagnostic);
             }

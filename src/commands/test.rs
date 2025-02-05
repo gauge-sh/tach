@@ -8,7 +8,8 @@ use thiserror::Error;
 use crate::config::{ModuleConfig, ProjectConfig};
 use crate::filesystem::{self as fs};
 use crate::modules::{build_module_tree, ModuleTree};
-use crate::processors::imports::get_project_imports;
+
+use super::helpers::import::get_project_imports;
 
 #[derive(Error, Debug)]
 pub enum TestError {
@@ -90,7 +91,7 @@ impl TachPytestPluginHandler {
             get_project_imports(&self.source_roots, &file_path, true, false).unwrap();
         let mut should_remove = true;
 
-        for import in project_imports.imports {
+        for import in project_imports {
             if let Some(nearest_module) = self.module_tree.find_nearest(&import.module_path) {
                 if self.affected_modules.contains(&nearest_module.full_path) {
                     // If the module is affected, break early and don't remove the item

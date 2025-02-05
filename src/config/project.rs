@@ -12,6 +12,7 @@ use super::error::ConfigError;
 use super::external::ExternalDependencyConfig;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
+use super::plugins::PluginsConfig;
 use super::root_module::RootModuleTreatment;
 use super::rules::RulesConfig;
 use super::utils::*;
@@ -69,6 +70,9 @@ pub struct ProjectConfig {
     #[serde(default, skip_serializing_if = "RulesConfig::is_default")]
     #[pyo3(get)]
     pub rules: RulesConfig,
+    #[serde(default, skip_serializing_if = "PluginsConfig::is_default")]
+    #[pyo3(get)]
+    pub plugins: PluginsConfig,
     #[serde(skip)]
     pub domains: Vec<LocatedDomainConfig>,
     #[serde(skip)]
@@ -117,6 +121,7 @@ impl Default for ProjectConfig {
             use_regex_matching: Default::default(),
             root_module: Default::default(),
             rules: Default::default(),
+            plugins: Default::default(),
             domains: Default::default(),
             pending_edits: Default::default(),
             location: Default::default(),

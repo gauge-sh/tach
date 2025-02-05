@@ -17,7 +17,9 @@ use crate::filesystem::{
 };
 use crate::interrupt::check_interrupt;
 use crate::modules::{build_module_tree, error::ModuleTreeError};
-use crate::processors::imports::{get_project_imports, ImportParseError, NormalizedImport};
+use crate::processors::import::{ImportParseError, NormalizedImport};
+
+use super::helpers::import::get_project_imports;
 
 struct Dependency {
     file_path: PathBuf,
@@ -272,7 +274,6 @@ pub fn create_dependency_report(
                             // Add dependencies
                             dependencies.extend(
                                 project_imports
-                                    .imports
                                     .iter()
                                     .filter_map(|import| {
                                         if let Some(import_module) =
@@ -312,7 +313,6 @@ pub fn create_dependency_report(
                             // Add usages
                             usages.extend(
                                 project_imports
-                                    .imports
                                     .iter()
                                     .filter(|import| {
                                         if !is_module_prefix(&module_path, &import.module_path) {

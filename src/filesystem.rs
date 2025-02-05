@@ -227,6 +227,11 @@ pub fn module_path_is_included_in_paths(
     })
 }
 
+pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> bool {
+    let resolved_module = module_to_file_path(source_roots, mod_path, true);
+    resolved_module.is_some_and(|module| !is_path_excluded(&module.file_path))
+}
+
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     let mut file = fs::File::open(path.as_ref())?;
     let mut content = String::new();

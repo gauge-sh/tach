@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::config::{ProjectConfig, RuleSetting};
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
-use crate::processors::imports::{IgnoreDirective, IgnoreDirectives};
+use crate::processors::ignore_directive::{IgnoreDirective, IgnoreDirectives};
 
 pub struct IgnoreDirectivePostProcessor<'a> {
     project_config: &'a ProjectConfig,
@@ -31,7 +31,7 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
     fn check_unused_ignore_directive(
         &self,
         ignore_directive: &IgnoreDirective,
-        diagnostics: &Vec<Diagnostic>,
+        diagnostics: &[Diagnostic],
         relative_file_path: &Path,
     ) -> Option<Diagnostic> {
         if self.project_config.rules.unused_ignore_directives == RuleSetting::Off {
