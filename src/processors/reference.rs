@@ -1,10 +1,16 @@
+use ruff_text_size::TextSize;
+
 #[derive(Debug)]
-pub struct SourceCodeReference<'a> {
-    pub content: &'a str,
+pub struct SourceCodeReference {
+    pub module_path: String,
+    pub offset: TextSize,
 }
 
-impl<'a> SourceCodeReference<'a> {
-    pub fn new(content: &'a str) -> Self {
-        Self { content }
+impl SourceCodeReference {
+    pub fn new(module_path: String, offset: TextSize) -> Self {
+        Self {
+            module_path,
+            offset,
+        }
     }
 }

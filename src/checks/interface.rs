@@ -11,7 +11,7 @@ use crate::interfaces::data_types::{TypeCheckCache, TypeCheckResult};
 use crate::interfaces::error::InterfaceError;
 use crate::modules::ModuleTree;
 use crate::processors::file_module::FileModule;
-use crate::processors::import::NormalizedImport;
+use crate::processors::Dependency;
 
 #[derive(Debug)]
 pub enum InterfaceCheckResult {
@@ -83,50 +83,50 @@ impl<'a> InterfaceChecker<'a> {
 
     fn check_interfaces(
         &self,
-        import: &NormalizedImport,
-        internal_file: &FileModule,
+        dependency: &Dependency,
+        file_module: &FileModule,
     ) -> DiagnosticResult<Vec<Diagnostic>> {
-        if let Some(import_module_config) = self
+        if let Some(dependency_module_config) = self
             .module_tree
-            .find_nearest(&import.module_path)
+            .find_nearest(dependency.module_path())
             .as_ref()
             .and_then(|module| module.config.as_ref())
         {
-            if import_module_config == internal_file.module_config() {
+            if dependency_module_config == file_module.module_config() {
                 return Ok(vec![]);
             }
 
-            if import_module_config.is_root()
+            if dependency_module_config.is_root()
                 && self.project_config.root_module == RootModuleTreatment::Ignore
             {
                 return Ok(vec![]);
             }
 
-            let import_member = import
-                .module_path
-                .strip_prefix(&import_module_config.path)
+            let import_member = dependency
+                .module_path()
+                .strip_prefix(&dependency_module_config.path)
                 .and_then(|s| s.strip_prefix('.'))
                 .unwrap_or("");
-            let check_result = self.check_member(import_member, &import_module_config.path);
+            let check_result = self.check_member(import_member, &dependency_module_config.path);
             match check_result {
                 InterfaceCheckResult::NotExposed => Ok(vec![Diagnostic::new_located_error(
-                    internal_file.relative_file_path().to_path_buf(),
-                    import.line_no,
+                    file_module.relative_file_path().to_path_buf(),
+                    file_module.line_number(dependency.offset()),
                     DiagnosticDetails::Code(CodeDiagnostic::PrivateImport {
-                        import_mod_path: import.module_path.to_string(),
-                        usage_module: internal_file.module_config().path.to_string(),
-                        definition_module: import_module_config.path.to_string(),
+                        import_mod_path: dependency.module_path().to_string(),
+                        usage_module: file_module.module_config().path.to_string(),
+                        definition_module: dependency_module_config.path.to_string(),
                     }),
                 )]),
                 InterfaceCheckResult::Exposed {
                     type_check_result: TypeCheckResult::DidNotMatchInterface { expected },
                 } => Ok(vec![Diagnostic::new_located_error(
-                    internal_file.relative_file_path().to_path_buf(),
-                    import.line_no,
+                    file_module.relative_file_path().to_path_buf(),
+                    file_module.line_number(dependency.offset()),
                     DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport {
-                        import_mod_path: import.module_path.to_string(),
-                        usage_module: internal_file.module_config().path.to_string(),
-                        definition_module: import_module_config.path.to_string(),
+                        import_mod_path: dependency.module_path().to_string(),
+                        usage_module: file_module.module_config().path.to_string(),
+                        definition_module: dependency_module_config.path.to_string(),
                         expected_data_type: expected.to_string(),
                     }),
                 )]),
@@ -142,7 +142,7 @@ impl<'a> InterfaceChecker<'a> {
         } else {
             Ok(vec![Diagnostic::new_global_error(
                 DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleConfigNotFound {
-                    module_path: import.module_path.to_string(),
+                    module_path: dependency.module_path().to_string(),
                 }),
             )])
         }
@@ -155,8 +155,8 @@ impl<'a> FileChecker<'a> for InterfaceChecker<'a> {
 
     fn check(&'a self, input: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = vec![];
-        for import in input.imports() {
-            diagnostics.extend(self.check_interfaces(import, input)?);
+        for dependency in input.dependencies.iter() {
+            diagnostics.extend(self.check_interfaces(dependency, input)?);
         }
 
         Ok(diagnostics)

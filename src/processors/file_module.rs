@@ -1,28 +1,46 @@
+use ruff_linter::Locator;
+use ruff_source_file::LineIndex;
+use ruff_text_size::TextSize;
 use std::{path::Path, sync::Arc};
 
 use crate::filesystem::ProjectFile;
 use crate::{config::ModuleConfig, modules::ModuleNode};
 
 use super::dependency::Dependency;
-use super::ignore_directive::IgnoreDirectives;
+use super::ignore_directive::{get_ignore_directives, IgnoreDirectives};
 use super::import::NormalizedImport;
 use super::reference::SourceCodeReference;
+
 #[derive(Debug)]
 pub struct FileModule<'a> {
     pub file: ProjectFile<'a>,
     pub module: Arc<ModuleNode>,
     pub ignore_directives: IgnoreDirectives,
-    pub dependencies: Vec<Dependency<'a>>,
+    pub dependencies: Vec<Dependency>,
+    line_index: LineIndex,
 }
 
 impl<'a> FileModule<'a> {
     pub fn new(file: ProjectFile<'a>, module: Arc<ModuleNode>) -> Self {
         Self {
+            ignore_directives: get_ignore_directives(&file.contents),
+            line_index: Locator::new(&file.contents).to_index().clone(),
             file,
             module,
-            ignore_directives: IgnoreDirectives::empty(),
             dependencies: vec![],
         }
+    }
+
+    pub fn file_path(&self) -> &Path {
+        &self.file.file_path
+    }
+
+    pub fn contents(&self) -> &str {
+        &self.file.contents
+    }
+
+    pub fn line_number(&self, offset: TextSize) -> usize {
+        self.line_index.line_index(offset).get()
     }
 
     pub fn module_config(&self) -> &ModuleConfig {
@@ -33,7 +51,7 @@ impl<'a> FileModule<'a> {
         &self.file.relative_file_path
     }
 
-    pub fn extend_dependencies(&mut self, dependencies: impl IntoIterator<Item = Dependency<'a>>) {
+    pub fn extend_dependencies(&mut self, dependencies: impl IntoIterator<Item = Dependency>) {
         self.dependencies.extend(dependencies);
     }
 

@@ -271,17 +271,24 @@ pub struct ProjectFile<'a> {
     pub source_root: &'a Path,
     pub file_path: PathBuf,
     pub relative_file_path: PathBuf,
+    pub contents: String,
 }
 
 impl<'a> ProjectFile<'a> {
-    pub fn new(project_root: &'a Path, source_root: &'a Path, file_path: &'a Path) -> Self {
+    pub fn try_new(
+        project_root: &'a Path,
+        source_root: &'a Path,
+        file_path: &'a Path,
+    ) -> Result<Self> {
         let absolute_file_path = source_root.join(file_path);
-        Self {
+        let contents = read_file_content(&absolute_file_path)?;
+        Ok(Self {
             project_root,
             source_root,
-            relative_file_path: relative_to(&absolute_file_path, project_root).unwrap(),
+            relative_file_path: relative_to(&absolute_file_path, project_root)?,
             file_path: absolute_file_path,
-        }
+            contents,
+        })
     }
 }
 

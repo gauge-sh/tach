@@ -52,7 +52,7 @@ impl<'a> ExternalDependencyChecker<'a> {
         if !is_declared {
             Some(Diagnostic::new_located_error(
                 processed_file.relative_file_path().to_path_buf(),
-                import.import.import_line_no,
+                processed_file.line_number(import.import.import_offset),
                 DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
                     import_mod_path: import.import.top_level_module_name().to_string(),
                 }),

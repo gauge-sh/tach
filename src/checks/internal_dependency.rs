@@ -5,7 +5,7 @@ use crate::{
         Result as DiagnosticResult,
     },
     modules::ModuleTree,
-    processors::{file_module::FileModule, import::NormalizedImport},
+    processors::{file_module::FileModule, Dependency},
 };
 use std::path::Path;
 
@@ -33,7 +33,8 @@ impl<'a> InternalDependencyChecker<'a> {
 
     fn check_layers(
         &self,
-        import: &NormalizedImport,
+        file_module: &FileModule,
+        dependency: &Dependency,
         layers: &[String],
         source_module_config: &ModuleConfig,
         target_module_config: &ModuleConfig,
@@ -53,9 +54,9 @@ impl<'a> InternalDependencyChecker<'a> {
                         } else {
                             LayerCheckResult::LayerViolation(Diagnostic::new_located_error(
                                 relative_file_path.to_path_buf(),
-                                import.line_no,
+                                file_module.line_number(dependency.offset()),
                                 DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
-                                    import_mod_path: import.module_path.to_string(),
+                                    import_mod_path: dependency.module_path().to_string(),
                                     usage_module: source_module_config.path.clone(),
                                     usage_layer: source_layer.clone(),
                                     definition_module: target_module_config.path.clone(),
@@ -90,24 +91,26 @@ impl<'a> InternalDependencyChecker<'a> {
         }
     }
 
-    fn check_dependencies(
+    fn check_dependency_rules(
         &self,
-        relative_file_path: &Path,
-        import: &NormalizedImport,
-        file_module_config: &ModuleConfig,
-        import_module_config: &ModuleConfig,
+        file_module: &FileModule,
+        dependency: &Dependency,
+        dependency_module_config: &ModuleConfig,
         layers: &[String],
     ) -> DiagnosticResult<Vec<Diagnostic>> {
-        if import_module_config == file_module_config {
+        let file_module_config = file_module.module_config();
+        if dependency_module_config == file_module_config {
             return Ok(vec![]);
         }
 
-        // Layer check should take precedence over other dependency checks
+        let relative_file_path = file_module.relative_file_path();
+        // Layer check should take precedence over other depends_on checks
         match self.check_layers(
-            import,
+            file_module,
+            dependency,
             layers,
             file_module_config,
-            import_module_config,
+            dependency_module_config,
             relative_file_path,
         ) {
             LayerCheckResult::Ok => return Ok(vec![]), // Higher layers can unconditionally import lower layers
@@ -121,69 +124,68 @@ impl<'a> InternalDependencyChecker<'a> {
             return Ok(vec![]);
         }
 
-        if import_module_config.utility {
+        if dependency_module_config.utility {
             return Ok(vec![]);
         }
 
         let file_nearest_module_path = &file_module_config.path;
-        let import_nearest_module_path = &import_module_config.path;
+        let dependency_nearest_module_path = &dependency_module_config.path;
 
         match file_module_config
             .dependencies_iter()
-            .find(|dep| &dep.path == import_nearest_module_path)
+            .find(|dep| &dep.path == dependency_nearest_module_path)
         {
             Some(DependencyConfig {
                 deprecated: true, ..
             }) => Ok(vec![Diagnostic::new_located_warning(
                 relative_file_path.to_path_buf(),
-                import.line_no,
+                file_module.line_number(dependency.offset()),
                 DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport {
-                    import_mod_path: import.module_path.to_string(),
+                    import_mod_path: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
-                    definition_module: import_nearest_module_path.to_string(),
+                    definition_module: dependency_nearest_module_path.to_string(),
                 }),
             )]),
             Some(_) => Ok(vec![]),
             None => Ok(vec![Diagnostic::new_located_error(
                 relative_file_path.to_path_buf(),
-                import.line_no,
+                file_module.line_number(dependency.offset()),
                 DiagnosticDetails::Code(CodeDiagnostic::InvalidImport {
-                    import_mod_path: import.module_path.to_string(),
+                    import_mod_path: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
-                    definition_module: import_nearest_module_path.to_string(),
+                    definition_module: dependency_nearest_module_path.to_string(),
                 }),
             )]),
         }
     }
 
-    fn check_import(
+    fn check_dependency(
         &self,
-        import: &NormalizedImport,
-        internal_file: &FileModule,
+        dependency: &Dependency,
+        file_module: &FileModule,
     ) -> DiagnosticResult<Vec<Diagnostic>> {
-        if let Some(import_module_config) = self
+        if let Some(dependency_module_config) = self
             .module_tree
-            .find_nearest(&import.module_path)
+            .find_nearest(dependency.module_path())
             .as_ref()
             .and_then(|module| module.config.as_ref())
         {
-            if import_module_config.is_root()
+            if dependency_module_config.is_root()
                 && self.project_config.root_module == RootModuleTreatment::Ignore
             {
                 return Ok(vec![]);
             }
 
-            self.check_dependencies(
-                internal_file.relative_file_path(),
-                import,
-                internal_file.module_config(),
-                import_module_config,
+            self.check_dependency_rules(
+                file_module,
+                dependency,
+                dependency_module_config,
                 &self.project_config.layers,
             )
         } else {
             Ok(vec![Diagnostic::new_global_error(
                 DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleConfigNotFound {
-                    module_path: import.module_path.to_string(),
+                    module_path: dependency.module_path().to_string(),
                 }),
             )])
         }
@@ -196,8 +198,8 @@ impl<'a> FileChecker<'a> for InternalDependencyChecker<'a> {
 
     fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
         let mut diagnostics = Vec::new();
-        for import in processed_file.imports() {
-            diagnostics.extend(self.check_import(import, processed_file)?);
+        for dependency in processed_file.dependencies.iter() {
+            diagnostics.extend(self.check_dependency(dependency, processed_file)?);
         }
 
         Ok(diagnostics)

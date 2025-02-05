@@ -12,4 +12,6 @@ pub enum ParsingError {
     Io(#[from] io::Error),
     #[error("Filesystem error: {0}")]
     Filesystem(#[from] FileSystemError),
+    #[error("Invalid syntax")]
+    InvalidSyntax,
 }
