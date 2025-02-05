@@ -191,8 +191,21 @@ pub fn check(
                     return vec![];
                 }
 
-                let internal_file = ProjectFile::new(&project_root, source_root, &file_path);
-                match pipeline.diagnostics(internal_file) {
+                let project_file =
+                    match ProjectFile::try_new(&project_root, source_root, &file_path) {
+                        Ok(project_file) => project_file,
+                        Err(_) => {
+                            return vec![Diagnostic::new_global_warning(
+                                DiagnosticDetails::Configuration(
+                                    ConfigurationDiagnostic::SkippedFileIoError {
+                                        file_path: file_path.display().to_string(),
+                                    },
+                                ),
+                            )]
+                        }
+                    };
+
+                match pipeline.diagnostics(project_file) {
                     Ok(diagnostics) => diagnostics,
                     Err(DiagnosticError::Io(_)) | Err(DiagnosticError::Filesystem(_)) => {
                         vec![Diagnostic::new_global_warning(

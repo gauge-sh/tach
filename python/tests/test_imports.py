@@ -10,6 +10,11 @@ from tach.constants import DEFAULT_EXCLUDE_PATHS
 from tach.extension import get_project_imports, set_excluded_paths
 
 
+def _get_project_imports(*args, **kwargs):
+    result = get_project_imports(*args, **kwargs)
+    return list(map(lambda x: (x.module_path, x.line_number), result))
+
+
 # Utility function to create temporary files with content
 def create_temp_file(directory, filename, content):
     filepath = os.path.join(directory, filename)
@@ -81,7 +86,7 @@ import file3
 
 
 def test_regular_imports(temp_project):
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "file1.py"),
         ignore_type_checking_imports=True,
@@ -92,7 +97,7 @@ def test_regular_imports(temp_project):
 
 
 def test_relative_imports(temp_project):
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "local/file2.py"),
         ignore_type_checking_imports=True,
@@ -103,7 +108,7 @@ def test_relative_imports(temp_project):
 
 
 def test_ignore_type_checking_imports(temp_project):
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "file3.py"),
         ignore_type_checking_imports=True,
@@ -114,7 +119,7 @@ def test_ignore_type_checking_imports(temp_project):
 
 
 def test_include_type_checking_imports(temp_project):
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "file3.py"),
         ignore_type_checking_imports=False,
@@ -132,7 +137,7 @@ if TYPE_CHECKING:
 from ..file1 import x
 """
     create_temp_file(temp_project, "local/file4.py", mixed_content)
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "local/file4.py"),
         ignore_type_checking_imports=True,
@@ -141,7 +146,7 @@ from ..file1 import x
     expected = [("file1.x", 5)]
     assert result == expected
 
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "local/file4.py"),
         ignore_type_checking_imports=False,
@@ -157,7 +162,7 @@ import os
 from external_module import something
 """
     create_temp_file(temp_project, "file5.py", external_content)
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "file5.py"),
         ignore_type_checking_imports=True,
@@ -174,7 +179,7 @@ from file1 import c
 from external_module import something
 """
     create_temp_file(temp_project, "file6.py", mixed_content)
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "file6.py"),
         ignore_type_checking_imports=True,
@@ -187,7 +192,7 @@ from external_module import something
 
 
 def test_ignored_imports(temp_project):
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "file4.py"),
         ignore_type_checking_imports=True,
@@ -211,7 +216,7 @@ from external_module import something
     path_outside_source_root = tmp_path / "outside_src_root.py"
     path_outside_source_root.write_text(mixed_content)
 
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(path_outside_source_root),
         ignore_type_checking_imports=True,
@@ -245,7 +250,7 @@ def child_function():
         temp_project / "parent" / "child", "child_module.py", child_file_content
     )
 
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "parent" / "child" / "child_module.py"),
         ignore_type_checking_imports=True,
@@ -269,7 +274,7 @@ from local.m.n import k, l
 """
     create_temp_file(temp_project, "ignore_test.py", content)
 
-    result = get_project_imports(
+    result = _get_project_imports(
         [str(temp_project)],
         str(temp_project / "ignore_test.py"),
         ignore_type_checking_imports=True,

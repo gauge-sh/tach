@@ -1,17 +1,21 @@
 from pathlib import Path
 from typing import Literal
 
+class PythonImport:
+    module_path: str
+    line_number: int
+
 def get_project_imports(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
-) -> list[tuple[str, int]]: ...
+) -> list[PythonImport]: ...
 def get_external_imports(
     source_roots: list[str],
     file_path: str,
     ignore_type_checking_imports: bool,
-) -> list[tuple[str, int]]: ...
+) -> list[PythonImport]: ...
 def set_excluded_paths(
     project_root: str, exclude_paths: list[str], use_regex_matching: bool
 ) -> None: ...

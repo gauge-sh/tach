@@ -4,18 +4,21 @@ use thiserror::Error;
 
 use crate::external;
 use crate::filesystem as fs;
-use crate::interfaces::error::InterfaceError;
+use crate::interfaces;
 use crate::modules;
 use crate::processors::import;
+use crate::python;
 
 #[derive(Error, Debug)]
 pub enum DiagnosticError {
     #[error("Module tree error: {0}")]
     ModuleTree(#[from] modules::error::ModuleTreeError),
     #[error("Interface error: {0}")]
-    Interface(#[from] InterfaceError),
+    Interface(#[from] interfaces::error::InterfaceError),
     #[error("Parsing error: {0}")]
-    Parse(#[from] external::ParsingError),
+    ExternalParse(#[from] external::ParsingError),
+    #[error("Python parsing error: {0}")]
+    PythonParse(#[from] python::error::ParsingError),
     #[error("Import parsing error: {0}")]
     ImportParse(#[from] import::ImportParseError),
     #[error("IO error: {0}")]

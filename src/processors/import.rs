@@ -2,13 +2,10 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 
-use pyo3::conversion::IntoPy;
-use pyo3::PyObject;
-
-use ruff_linter::Locator;
 use ruff_python_ast::statement_visitor::{walk_stmt, StatementVisitor};
 use ruff_python_ast::visitor::Visitor;
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
+use ruff_text_size::TextSize;
 use thiserror::Error;
 
 use crate::external::parsing::normalize_package_name;
@@ -29,13 +26,13 @@ pub enum ImportParseError {
 
 pub type Result<T> = std::result::Result<T, ImportParseError>;
 
-/// An import with a normalized module path and located line number
+/// An import with a normalized module path
 #[derive(Debug, Clone)]
 pub struct NormalizedImport {
     pub module_path: String,        // Global module path
     pub alias_path: Option<String>, // (for relative imports) alias path
-    pub import_line_no: usize,      // Line number of the import statement
-    pub line_no: usize,             // Line number of the alias
+    pub import_offset: TextSize,    // Source location of the import statement
+    pub alias_offset: TextSize,     // Source location of the alias
     pub is_absolute: bool,          // Whether the import is absolute
 }
 
@@ -45,6 +42,47 @@ impl NormalizedImport {
             .split('.')
             .next()
             .expect("Normalized import module path is empty")
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LocatedImport {
+    pub import: NormalizedImport,
+    pub import_line_number: usize,
+    pub alias_line_number: usize,
+}
+
+impl LocatedImport {
+    pub fn new(
+        import_line_number: usize,
+        alias_line_number: usize,
+        import: NormalizedImport,
+    ) -> Self {
+        Self {
+            import,
+            import_line_number,
+            alias_line_number,
+        }
+    }
+
+    pub fn module_path(&self) -> &str {
+        &self.import.module_path
+    }
+
+    pub fn alias_path(&self) -> Option<&str> {
+        self.import.alias_path.as_deref()
+    }
+
+    pub fn import_line_number(&self) -> usize {
+        self.import_line_number
+    }
+
+    pub fn alias_line_number(&self) -> usize {
+        self.alias_line_number
+    }
+
+    pub fn is_absolute(&self) -> bool {
+        self.import.is_absolute
     }
 }
 
@@ -87,30 +125,21 @@ where
         .collect()
 }
 
-impl IntoPy<PyObject> for NormalizedImport {
-    fn into_py(self, py: pyo3::prelude::Python<'_>) -> PyObject {
-        (self.module_path, self.line_no).into_py(py)
-    }
-}
-
-pub struct ImportVisitor<'a> {
+pub struct ImportVisitor {
     file_mod_path: Option<String>,
-    locator: Locator<'a>,
     is_package: bool,
     ignore_type_checking_imports: bool,
     pub normalized_imports: Vec<NormalizedImport>,
 }
 
-impl<'a> ImportVisitor<'a> {
+impl ImportVisitor {
     pub fn new(
         file_mod_path: Option<String>,
-        locator: Locator<'a>,
         is_package: bool,
         ignore_type_checking_imports: bool,
     ) -> Self {
         ImportVisitor {
             file_mod_path,
-            locator,
             is_package,
             ignore_type_checking_imports,
             normalized_imports: Default::default(),
@@ -122,17 +151,13 @@ impl<'a> ImportVisitor<'a> {
         import_statement: &StmtImport,
     ) -> Vec<NormalizedImport> {
         let mut normalized_imports = vec![];
-        let line_no = self
-            .locator
-            .compute_line_index(import_statement.range.start())
-            .get();
 
         for alias in &import_statement.names {
             let import = NormalizedImport {
                 module_path: alias.name.to_string(),
                 alias_path: None,
-                line_no: self.locator.compute_line_index(alias.range.start()).get(),
-                import_line_no: line_no,
+                alias_offset: alias.range.start(),
+                import_offset: import_statement.range.start(),
                 is_absolute: true,
             };
             normalized_imports.push(import);
@@ -196,18 +221,13 @@ impl<'a> ImportVisitor<'a> {
             base_path_parts.join(".")
         };
 
-        let line_no = self
-            .locator
-            .compute_line_index(import_statement.range.start())
-            .get();
-
         for name in &import_statement.names {
             let global_mod_path = format!("{}.{}", base_mod_path, name.name.as_str());
             let import = NormalizedImport {
                 module_path: global_mod_path,
                 alias_path: Some(name.asname.as_ref().unwrap_or(&name.name).to_string()),
-                line_no: self.locator.compute_line_index(name.range.start()).get(),
-                import_line_no: line_no,
+                alias_offset: name.range.start(),
+                import_offset: import_statement.range.start(),
                 is_absolute: false,
             };
 
@@ -239,8 +259,8 @@ impl<'a> ImportVisitor<'a> {
     }
 }
 
-impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
-    fn visit_stmt(&mut self, stmt: &'a Stmt) {
+impl StatementVisitor<'_> for ImportVisitor {
+    fn visit_stmt(&mut self, stmt: &Stmt) {
         match stmt {
             Stmt::Import(statement) => self.visit_stmt_import(statement),
             Stmt::ImportFrom(statement) => self.visit_stmt_import_from(statement),
@@ -256,22 +276,20 @@ impl<'a> StatementVisitor<'a> for ImportVisitor<'a> {
 
 struct StringImportVisitor<'a> {
     source_roots: &'a [PathBuf],
-    locator: Locator<'a>,
     pub normalized_imports: Vec<NormalizedImport>,
 }
 
 impl<'a> StringImportVisitor<'a> {
-    fn new(source_roots: &'a [PathBuf], locator: Locator<'a>) -> Self {
+    fn new(source_roots: &'a [PathBuf]) -> Self {
         StringImportVisitor {
             source_roots,
-            locator,
             normalized_imports: vec![],
         }
     }
 }
 
-impl<'a> Visitor<'a> for StringImportVisitor<'a> {
-    fn visit_string_literal(&mut self, string_literal: &'a ruff_python_ast::StringLiteral) {
+impl Visitor<'_> for StringImportVisitor<'_> {
+    fn visit_string_literal(&mut self, string_literal: &ruff_python_ast::StringLiteral) {
         // DEFAULT python-infer-string-imports-min-dots is 2
         if string_literal.value.chars().filter(|&c| c == '.').count() < 2 {
             return;
@@ -280,46 +298,33 @@ impl<'a> Visitor<'a> for StringImportVisitor<'a> {
         let resolved_module =
             filesystem::module_to_file_path(self.source_roots, &string_literal.value, true);
         if resolved_module.is_some() {
-            let line_no = self
-                .locator
-                .compute_line_index(string_literal.range.start())
-                .get();
             self.normalized_imports.push(NormalizedImport {
                 module_path: string_literal.value.to_string(),
                 alias_path: None,
-                line_no,
-                import_line_no: line_no,
+                alias_offset: string_literal.range.start(),
+                import_offset: string_literal.range.start(),
                 is_absolute: true,
             });
         }
     }
 }
 
-pub fn get_normalized_imports<P: AsRef<Path>>(
+pub fn get_normalized_imports_from_ast<P: AsRef<Path>>(
     source_roots: &[PathBuf],
     file_path: P,
-    file_contents: &str,
+    file_ast: &Mod,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
 ) -> Result<Vec<NormalizedImport>> {
-    let file_ast = parse_python_source(file_contents).map_err(|err| ImportParseError::Parsing {
-        file: file_path.as_ref().to_string_lossy().to_string(),
-        source: err,
-    })?;
     let is_package = file_path
         .as_ref()
         .to_string_lossy()
         .ends_with("__init__.py");
     let file_mod_path: Option<String> =
         filesystem::file_to_module_path(source_roots, file_path.as_ref()).ok();
-    let mut import_visitor = ImportVisitor::new(
-        file_mod_path,
-        Locator::new(file_contents),
-        is_package,
-        ignore_type_checking_imports,
-    );
-    let mut string_import_visitor =
-        StringImportVisitor::new(source_roots, Locator::new(file_contents));
+    let mut import_visitor =
+        ImportVisitor::new(file_mod_path, is_package, ignore_type_checking_imports);
+    let mut string_import_visitor = StringImportVisitor::new(source_roots);
 
     match file_ast {
         Mod::Module(ref module) => {
@@ -343,4 +348,24 @@ pub fn get_normalized_imports<P: AsRef<Path>>(
     } else {
         Ok(import_visitor.normalized_imports)
     }
+}
+
+pub fn get_normalized_imports<P: AsRef<Path>>(
+    source_roots: &[PathBuf],
+    file_path: P,
+    file_contents: &str,
+    ignore_type_checking_imports: bool,
+    include_string_imports: bool,
+) -> Result<Vec<NormalizedImport>> {
+    let file_ast = parse_python_source(file_contents).map_err(|err| ImportParseError::Parsing {
+        file: file_path.as_ref().to_string_lossy().to_string(),
+        source: err,
+    })?;
+    get_normalized_imports_from_ast(
+        source_roots,
+        file_path,
+        &file_ast,
+        ignore_type_checking_imports,
+        include_string_imports,
+    )
 }

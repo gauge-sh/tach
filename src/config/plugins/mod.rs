@@ -1,4 +1,4 @@
 mod all;
-mod django;
+pub mod django;
 
 pub use all::PluginsConfig;

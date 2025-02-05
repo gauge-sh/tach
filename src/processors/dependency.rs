@@ -1,31 +1,50 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use ruff_text_size::TextSize;
+
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
 use crate::diagnostics::{FileProcessor, Result as DiagnosticResult};
 use crate::filesystem::{self, ProjectFile};
 use crate::modules::error::ModuleTreeError;
 use crate::modules::{ModuleNode, ModuleTree};
+use crate::python::parsing::parse_python_source;
 
 use super::file_module::FileModule;
-use super::import::{get_normalized_imports, NormalizedImport};
+use super::import::{get_normalized_imports, get_normalized_imports_from_ast, NormalizedImport};
 use super::reference::SourceCodeReference;
 
 #[derive(Debug)]
-pub enum Dependency<'a> {
+pub enum Dependency {
     Import(NormalizedImport),
-    Reference(SourceCodeReference<'a>),
+    Reference(SourceCodeReference),
 }
 
-impl From<NormalizedImport> for Dependency<'_> {
+impl Dependency {
+    pub fn module_path(&self) -> &str {
+        match self {
+            Dependency::Import(import) => &import.module_path,
+            Dependency::Reference(reference) => &reference.module_path,
+        }
+    }
+
+    pub fn offset(&self) -> TextSize {
+        match self {
+            Dependency::Import(import) => import.alias_offset,
+            Dependency::Reference(reference) => reference.offset,
+        }
+    }
+}
+
+impl From<NormalizedImport> for Dependency {
     fn from(normalized_import: NormalizedImport) -> Self {
         Dependency::Import(normalized_import)
     }
 }
 
-impl<'a> From<SourceCodeReference<'a>> for Dependency<'a> {
-    fn from(source_code_reference: SourceCodeReference<'a>) -> Self {
+impl From<SourceCodeReference> for Dependency {
+    fn from(source_code_reference: SourceCodeReference) -> Self {
         Dependency::Reference(source_code_reference)
     }
 }
@@ -69,23 +88,31 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
             return Ok(FileModule::new(file_path, module));
         }
 
-        let file_contents = filesystem::read_file_content(file_path.as_ref())?;
-        let normalized_imports = get_normalized_imports(
+        let mut file_module = FileModule::new(file_path, module);
+        let file_ast = parse_python_source(file_module.contents())?;
+
+        let project_imports: Vec<Dependency> = get_normalized_imports_from_ast(
             self.source_roots,
-            file_path.as_ref(),
-            &file_contents,
+            file_module.file_path(),
+            &file_ast,
             self.project_config.ignore_type_checking_imports,
             self.project_config.include_string_imports,
-        )?;
-        let mut file_module = FileModule::new(file_path, module);
-        file_module.extend_dependencies(
-            normalized_imports
-                .into_iter()
-                .filter(|import| {
-                    filesystem::is_project_import(self.source_roots, &import.module_path)
-                })
-                .map(Dependency::Import),
-        );
+        )?
+        .into_iter()
+        .filter_map(|import| {
+            if filesystem::is_project_import(self.source_roots, &import.module_path) {
+                Some(Dependency::Import(import))
+            } else {
+                // Remove directives that match irrelevant imports
+                file_module
+                    .ignore_directives
+                    .remove_matching_directives(file_module.line_number(import.import_offset));
+                None
+            }
+        })
+        .collect();
+
+        file_module.extend_dependencies(project_imports);
         Ok(file_module)
     }
 }
@@ -112,23 +139,28 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
         // NOTE: check-external does not currently make use of the module tree,
         // but it is very likely to do so in the future.
         let module = Arc::new(ModuleNode::empty());
-        let file_contents = filesystem::read_file_content(file_path.as_ref())?;
-        let normalized_imports = get_normalized_imports(
+        let mut file_module = FileModule::new(file_path, module);
+        let external_imports: Vec<Dependency> = get_normalized_imports(
             self.source_roots,
-            file_path.as_ref(),
-            &file_contents,
+            file_module.file_path(),
+            file_module.contents(),
             self.project_config.ignore_type_checking_imports,
             false,
-        )?;
-        let mut file_module = FileModule::new(file_path, module);
-        file_module.extend_dependencies(
-            normalized_imports
-                .into_iter()
-                .filter(|import| {
-                    !filesystem::is_project_import(self.source_roots, &import.module_path)
-                })
-                .map(Dependency::Import),
-        );
+        )?
+        .into_iter()
+        .filter_map(|import| {
+            if !filesystem::is_project_import(self.source_roots, &import.module_path) {
+                Some(Dependency::Import(import))
+            } else {
+                // Remove directives that match irrelevant imports
+                file_module
+                    .ignore_directives
+                    .remove_matching_directives(file_module.line_number(import.import_offset));
+                None
+            }
+        })
+        .collect();
+        file_module.extend_dependencies(external_imports);
         Ok(file_module)
     }
 }

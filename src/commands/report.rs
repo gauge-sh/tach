@@ -17,14 +17,14 @@ use crate::filesystem::{
 };
 use crate::interrupt::check_interrupt;
 use crate::modules::{build_module_tree, error::ModuleTreeError};
-use crate::processors::import::{ImportParseError, NormalizedImport};
+use crate::processors::import::{ImportParseError, LocatedImport};
 
-use super::helpers::import::get_project_imports;
+use super::helpers::import::get_located_project_imports;
 
 struct Dependency {
     file_path: PathBuf,
     absolute_path: PathBuf,
-    import: NormalizedImport,
+    import: LocatedImport,
     source_module: String,
     target_module: String,
 }
@@ -51,7 +51,10 @@ pub type Result<T> = std::result::Result<T, ReportCreationError>;
 fn compare_dependencies(left: &Dependency, right: &Dependency) -> Ordering {
     let path_cmp = left.file_path.cmp(&right.file_path);
     if path_cmp == Ordering::Equal {
-        return left.import.line_no.cmp(&right.import.line_no);
+        return left
+            .import
+            .alias_line_number()
+            .cmp(&right.import.alias_line_number());
     }
     path_cmp
 }
@@ -77,7 +80,7 @@ impl DependencyReport {
         let clickable_link = create_clickable_link(
             &dependency.file_path,
             &dependency.absolute_path,
-            &dependency.import.line_no,
+            &dependency.import.alias_line_number(),
         );
         format!(
             "{green}{clickable_link}{end_color}: {cyan}Import '{import_mod_path}'{end_color}",
@@ -85,7 +88,7 @@ impl DependencyReport {
             clickable_link = clickable_link,
             end_color = BColors::ENDC,
             cyan = BColors::OKCYAN,
-            import_mod_path = dependency.import.module_path
+            import_mod_path = dependency.import.module_path()
         )
     }
 
@@ -259,7 +262,7 @@ pub fn create_dependency_report(
                 };
                 let file_module = module_tree.find_nearest(&file_module_path);
 
-                match get_project_imports(
+                match get_located_project_imports(
                     &source_roots,
                     &absolute_pyfile,
                     project_config.ignore_type_checking_imports,
@@ -277,7 +280,7 @@ pub fn create_dependency_report(
                                     .iter()
                                     .filter_map(|import| {
                                         if let Some(import_module) =
-                                            module_tree.find_nearest(&import.module_path)
+                                            module_tree.find_nearest(import.module_path())
                                         {
                                             if import_module == target_module {
                                                 return None;
@@ -315,7 +318,7 @@ pub fn create_dependency_report(
                                 project_imports
                                     .iter()
                                     .filter(|import| {
-                                        if !is_module_prefix(&module_path, &import.module_path) {
+                                        if !is_module_prefix(&module_path, import.module_path()) {
                                             return false;
                                         }
                                         file_module.as_ref().is_some_and(|m| {

@@ -138,7 +138,7 @@ def get_external_dependencies(
     excluded_modules = excluded_modules or set()
     external_dependencies: list[ExternalDependency] = []
     for external_import in external_imports:
-        external_package = get_package_name(external_import[0])
+        external_package = get_package_name(external_import.module_path)
         if external_package in excluded_modules:
             continue
 
@@ -148,9 +148,9 @@ def get_external_dependencies(
         external_dependencies.append(
             ExternalDependency(
                 absolute_file_path=Path(file_path),
-                import_module_path=external_import[0],
-                import_line_number=external_import[1],
-                package_name=normalize_package_name(external_import[0]),
+                import_module_path=external_import.module_path,
+                import_line_number=external_import.line_number,
+                package_name=normalize_package_name(external_import.module_path),
             )
         )
     return external_dependencies

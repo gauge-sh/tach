@@ -89,6 +89,7 @@ impl From<python::error::ParsingError> for PyErr {
             }
             python::error::ParsingError::Io(err) => PyOSError::new_err(err.to_string()),
             python::error::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
+            python::error::ParsingError::InvalidSyntax => PySyntaxError::new_err(err.to_string()),
         }
     }
 }
@@ -174,10 +175,10 @@ fn get_project_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
-) -> processors::import::Result<Vec<processors::import::NormalizedImport>> {
+) -> processors::import::Result<Vec<processors::import::LocatedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    commands::helpers::import::get_project_imports(
+    commands::helpers::import::get_located_project_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
@@ -192,10 +193,10 @@ fn get_external_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> processors::import::Result<Vec<processors::import::NormalizedImport>> {
+) -> processors::import::Result<Vec<processors::import::LocatedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    commands::helpers::import::get_external_imports(
+    commands::helpers::import::get_located_external_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,

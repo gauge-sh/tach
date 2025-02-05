@@ -7,7 +7,7 @@ use regex::Regex;
 
 use crate::diagnostics::Diagnostic;
 
-use super::import::NormalizedImport;
+use super::import::LocatedImport;
 
 #[derive(Debug, Clone)]
 pub struct IgnoreDirective {
@@ -83,27 +83,30 @@ impl IgnoreDirectives {
         self.directives.get(line_no)
     }
 
-    pub fn is_ignored(&self, normalized_import: &NormalizedImport) -> bool {
+    pub fn is_ignored(&self, normalized_import: &LocatedImport) -> bool {
         self.directives
-            .get(&normalized_import.import_line_no)
+            .get(&normalized_import.import_line_number())
             .is_some_and(|directive| {
-                if normalized_import.is_absolute {
-                    directive.modules.is_empty()
-                        || directive.modules.contains(&normalized_import.module_path)
-                } else {
+                if normalized_import.is_absolute() {
                     directive.modules.is_empty()
                         || directive
                             .modules
-                            .contains(normalized_import.alias_path.as_ref().unwrap())
+                            .iter()
+                            .any(|module_path| module_path == normalized_import.module_path())
+                } else {
+                    directive.modules.is_empty()
+                        || directive.modules.iter().any(|module_path| {
+                            Some(module_path.as_str()) == normalized_import.alias_path()
+                        })
                 }
             })
     }
 
-    pub fn remove_matching_directives(&mut self, normalized_import: &NormalizedImport) {
+    pub fn remove_matching_directives(&mut self, import_line_no: usize) {
         self.directives
-            .retain(|line_no, _directive| *line_no != normalized_import.import_line_no);
+            .retain(|line_no, _directive| *line_no != import_line_no);
         self.redundant_directives
-            .retain(|directive| directive.line_no != normalized_import.import_line_no);
+            .retain(|directive| directive.line_no != import_line_no);
     }
 }
 

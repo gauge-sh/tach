@@ -258,8 +258,7 @@ def build_usages(
             include_string_imports=project_config.include_string_imports,
         )
         for project_import in imports:
-            import_mod_path, line = project_import
-            import_containing_module = get_containing_module(import_mod_path)
+            import_containing_module = get_containing_module(project_import.module_path)
             if (
                 import_containing_module is None
                 or import_containing_module == pyfile_containing_module
@@ -269,9 +268,9 @@ def build_usages(
             usages.append(
                 Usage(
                     module_path=import_containing_module,
-                    full_path=import_mod_path,
+                    full_path=project_import.module_path,
                     filepath=str(pyfile),
-                    line=line,
+                    line=project_import.line_number,
                     containing_module_path=pyfile_containing_module,
                 )
             )
