@@ -189,21 +189,26 @@ pub fn check(
                 })
                 .collect();
 
-            let all_seen_dependencies: HashSet<String> =
-                pipeline.seen_dependencies.into_iter().collect();
-            let unused_dependency_diagnostics = project_info
-                .dependencies
-                .difference(&all_seen_dependencies)
-                .filter(|&dep| !pipeline.excluded_external_modules.contains(dep)) // 'exclude' should hide unused errors unconditionally
-                .map(|dep| {
-                    Diagnostic::new_global_error(DiagnosticDetails::Code(
-                        CodeDiagnostic::UnusedExternalDependency {
-                            package_module_name: dep.clone(),
-                        },
-                    ))
-                });
+            if !project_config.rules.unused_external_dependencies.is_off() {
+                let all_seen_dependencies: HashSet<String> =
+                    pipeline.seen_dependencies.into_iter().collect();
+                let unused_dependency_diagnostics = project_info
+                    .dependencies
+                    .difference(&all_seen_dependencies)
+                    .filter(|&dep| !pipeline.excluded_external_modules.contains(dep)) // 'exclude' should hide unused errors unconditionally
+                    .map(|dep| {
+                        Diagnostic::new_global(
+                            (&project_config.rules.unused_external_dependencies)
+                                .try_into()
+                                .unwrap(),
+                            DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
+                                package_module_name: dep.clone(),
+                            }),
+                        )
+                    });
 
-            project_diagnostics.extend(unused_dependency_diagnostics);
+                project_diagnostics.extend(unused_dependency_diagnostics);
+            }
             project_diagnostics
         });
 
