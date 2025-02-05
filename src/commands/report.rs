@@ -15,9 +15,9 @@ use crate::config::ProjectConfig;
 use crate::filesystem::{
     file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
 };
-use crate::imports::{get_project_imports, ImportParseError, NormalizedImport};
 use crate::interrupt::check_interrupt;
 use crate::modules::{build_module_tree, error::ModuleTreeError};
+use crate::processors::imports::{get_project_imports, ImportParseError, NormalizedImport};
 
 struct Dependency {
     file_path: PathBuf,
@@ -318,9 +318,8 @@ pub fn create_dependency_report(
                                         if !is_module_prefix(&module_path, &import.module_path) {
                                             return false;
                                         }
-                                        file_module.as_ref().map_or(false, |m| {
-                                            include_usage_modules.as_ref().map_or(
-                                                true,
+                                        file_module.as_ref().is_some_and(|m| {
+                                            include_usage_modules.as_ref().is_none_or(
                                                 |included_modules| {
                                                     included_modules.contains(&m.full_path)
                                                 },

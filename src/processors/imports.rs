@@ -1,5 +1,5 @@
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::iter;
 use std::marker::PhantomData;
@@ -17,6 +17,8 @@ use ruff_python_ast::visitor::Visitor;
 use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use thiserror::Error;
 
+use crate::diagnostics::Diagnostic;
+use crate::external::parsing::normalize_package_name;
 use crate::python::{error::ParsingError, parsing::parse_python_source};
 use crate::{exclusion, filesystem};
 
@@ -71,12 +73,28 @@ pub struct NormalizedImports<State = AllImports> {
 }
 
 impl<State> NormalizedImports<State> {
+    pub fn empty() -> Self {
+        Self {
+            imports: vec![],
+            ignore_directives: IgnoreDirectives::empty(),
+            _state: PhantomData,
+        }
+    }
+
     pub fn new(imports: Vec<NormalizedImport>, ignore_directives: IgnoreDirectives) -> Self {
         Self {
             imports,
             ignore_directives,
             _state: PhantomData,
         }
+    }
+
+    pub fn all_imports(&self) -> impl Iterator<Item = &NormalizedImport> {
+        self.imports.iter()
+    }
+
+    pub fn into_imports(self) -> impl Iterator<Item = NormalizedImport> {
+        self.imports.into_iter()
     }
 
     pub fn active_imports(&self) -> impl Iterator<Item = &NormalizedImport> {
@@ -96,33 +114,6 @@ impl<State> NormalizedImports<State> {
             _state: PhantomData,
         }
     }
-
-    pub fn directive_ignored_imports(&self) -> impl Iterator<Item = DirectiveIgnoredImport> {
-        self.imports
-            .iter()
-            .filter(|&import| self.ignore_directives.is_ignored(import))
-            .map(|import| DirectiveIgnoredImport {
-                import,
-                reason: self
-                    .ignore_directives
-                    .get(&import.import_line_no)
-                    .unwrap()
-                    .reason
-                    .clone(),
-            })
-    }
-
-    pub fn unused_ignore_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
-        let mut directive_lines: HashSet<usize> =
-            HashSet::from_iter(self.ignore_directives.lines().cloned());
-        self.imports.iter().for_each(|import| {
-            directive_lines.remove(&import.import_line_no);
-        });
-        directive_lines
-            .into_iter()
-            .map(|line| self.ignore_directives.get(&line).unwrap())
-            .chain(self.ignore_directives.redundant_directives())
-    }
 }
 
 impl NormalizedImports<AllImports> {
@@ -131,8 +122,7 @@ impl NormalizedImports<AllImports> {
         source_roots: &[PathBuf],
     ) -> (Vec<NormalizedImport>, Vec<NormalizedImport>) {
         self.imports.into_iter().partition(|normalized_import| {
-            is_project_import(source_roots, &normalized_import.module_path)
-                .map_or(false, |is_project| is_project)
+            is_project_import(source_roots, &normalized_import.module_path).unwrap_or(false)
         })
     }
 
@@ -175,6 +165,37 @@ impl NormalizedImports<AllImports> {
     }
 }
 
+pub struct ExternalImportWithDistributionNames<'a> {
+    pub distribution_names: Vec<String>,
+    pub import: &'a NormalizedImport,
+}
+
+impl<'a> NormalizedImports<ExternalImports> {
+    pub fn all_imports_with_distribution_names(
+        &'a self,
+        module_mappings: &'a HashMap<String, Vec<String>>,
+    ) -> impl Iterator<Item = ExternalImportWithDistributionNames<'a>> {
+        self.all_imports().map(|import| {
+            let top_level_module_name = import.top_level_module_name().to_string();
+            let default_distribution_names = vec![top_level_module_name.clone()];
+            let distribution_names: Vec<String> = module_mappings
+                .get(&top_level_module_name)
+                .map(|dist_names| {
+                    dist_names
+                        .iter()
+                        .map(|dist_name| normalize_package_name(dist_name))
+                        .collect()
+                })
+                .unwrap_or(default_distribution_names);
+
+            ExternalImportWithDistributionNames {
+                distribution_names,
+                import,
+            }
+        })
+    }
+}
+
 impl<State> Extend<NormalizedImports<State>> for NormalizedImports<State> {
     fn extend<T: IntoIterator<Item = NormalizedImports<State>>>(&mut self, iter: T) {
         for normalized_imports in iter {
@@ -195,7 +216,29 @@ impl IntoPy<PyObject> for NormalizedImport {
 pub struct IgnoreDirective {
     pub modules: Vec<String>,
     pub reason: String,
-    pub line_no: usize,
+    pub line_no: usize,         // Where is the directive literally written
+    pub ignored_line_no: usize, // Where is the directive being applied
+}
+
+impl IgnoreDirective {
+    pub fn matches_diagnostic(&self, diagnostic: &Diagnostic) -> bool {
+        // If the diagnostic is not on the line that the directive is being applied, it is not a match
+        if Some(self.ignored_line_no) != diagnostic.line_number() {
+            return false;
+        }
+
+        // If the directive is a blanket ignore, it matches any diagnostic
+        if self.modules.is_empty() {
+            return true;
+        }
+
+        // If applicable, check if the diagnostic has specified a matching module path
+        diagnostic.import_mod_path().is_none_or(|import_mod_path| {
+            self.modules
+                .iter()
+                .any(|module| import_mod_path.ends_with(module))
+        })
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -205,8 +248,19 @@ pub struct IgnoreDirectives {
 }
 
 impl IgnoreDirectives {
-    pub fn lines(&self) -> impl Iterator<Item = &usize> {
-        self.directives.keys()
+    pub fn empty() -> Self {
+        Self {
+            directives: HashMap::new(),
+            redundant_directives: Vec::new(),
+        }
+    }
+
+    pub fn active_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
+        self.directives.values()
+    }
+
+    pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
+        self.redundant_directives.iter()
     }
 
     pub fn len(&self) -> usize {
@@ -217,8 +271,8 @@ impl IgnoreDirectives {
         self.directives.is_empty()
     }
 
-    pub fn add_directive(&mut self, directive: IgnoreDirective, ignored_line_no: usize) {
-        match self.directives.entry(ignored_line_no) {
+    pub fn add_directive(&mut self, directive: IgnoreDirective) {
+        match self.directives.entry(directive.ignored_line_no) {
             Entry::Occupied(_) => {
                 self.redundant_directives.push(directive);
             }
@@ -235,7 +289,7 @@ impl IgnoreDirectives {
     pub fn is_ignored(&self, normalized_import: &NormalizedImport) -> bool {
         self.directives
             .get(&normalized_import.import_line_no)
-            .map_or(false, |directive| {
+            .is_some_and(|directive| {
                 if normalized_import.is_absolute {
                     directive.modules.is_empty()
                         || directive.modules.contains(&normalized_import.module_path)
@@ -253,10 +307,6 @@ impl IgnoreDirectives {
             .retain(|line_no, _directive| *line_no != normalized_import.import_line_no);
         self.redundant_directives
             .retain(|directive| directive.line_no != normalized_import.import_line_no);
-    }
-
-    pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
-        self.redundant_directives.iter()
     }
 }
 
@@ -300,17 +350,18 @@ fn get_ignore_directives(file_content: &str) -> IgnoreDirectives {
                     .collect()
             };
 
+            let mut ignored_line_no = normal_lineno;
+            if line.trim_start().starts_with('#') {
+                ignored_line_no = normal_lineno + 1;
+            }
             let directive = IgnoreDirective {
                 modules,
                 reason,
                 line_no: normal_lineno,
+                ignored_line_no,
             };
 
-            if line.trim_start().starts_with('#') {
-                ignores.add_directive(directive, normal_lineno + 1);
-            } else {
-                ignores.add_directive(directive, normal_lineno);
-            }
+            ignores.add_directive(directive);
         }
     }
 
@@ -524,29 +575,32 @@ pub fn is_project_import<P: AsRef<Path>>(source_roots: &[P], mod_path: &str) -> 
     let resolved_module = filesystem::module_to_file_path(source_roots, mod_path, true);
     if let Some(module) = resolved_module {
         // This appears to be a project import, verify it is not excluded
-        Ok(!exclusion::is_path_excluded(module.file_path))
+        Ok(!exclusion::is_path_excluded(&module.file_path))
     } else {
         // This is not a project import
         Ok(false)
     }
 }
 
-pub fn get_normalized_imports(
+pub fn get_normalized_imports<P: AsRef<Path>>(
     source_roots: &[PathBuf],
-    file_path: &PathBuf,
+    file_path: P,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
 ) -> Result<NormalizedImports> {
-    let file_contents = filesystem::read_file_content(file_path)?;
+    let file_contents = filesystem::read_file_content(file_path.as_ref())?;
     let file_ast =
         parse_python_source(&file_contents).map_err(|err| ImportParseError::Parsing {
-            file: file_path.to_str().unwrap().to_string(),
+            file: file_path.as_ref().to_string_lossy().to_string(),
             source: err,
         })?;
-    let is_package = file_path.ends_with("__init__.py");
+    let is_package = file_path
+        .as_ref()
+        .to_string_lossy()
+        .ends_with("__init__.py");
     let ignore_directives = get_ignore_directives(file_contents.as_str());
     let file_mod_path: Option<String> =
-        filesystem::file_to_module_path(source_roots, file_path).ok();
+        filesystem::file_to_module_path(source_roots, file_path.as_ref()).ok();
     let mut import_visitor = ImportVisitor::new(
         file_mod_path,
         Locator::new(&file_contents),
@@ -583,28 +637,32 @@ pub fn get_normalized_imports(
     }
 }
 
-pub fn get_project_imports(
+pub fn get_project_imports<P: AsRef<Path>>(
     source_roots: &[PathBuf],
-    file_path: &PathBuf,
+    file_path: P,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
 ) -> Result<NormalizedImports<ProjectImports>> {
     let normalized_imports = get_normalized_imports(
         source_roots,
-        file_path,
+        file_path.as_ref(),
         ignore_type_checking_imports,
         include_string_imports,
     )?;
     Ok(normalized_imports.into_project_imports(source_roots))
 }
 
-pub fn get_external_imports(
+pub fn get_external_imports<P: AsRef<Path>>(
     source_roots: &[PathBuf],
-    file_path: &PathBuf,
+    file_path: P,
     ignore_type_checking_imports: bool,
 ) -> Result<NormalizedImports<ExternalImports>> {
-    let normalized_imports =
-        get_normalized_imports(source_roots, file_path, ignore_type_checking_imports, false)?;
+    let normalized_imports = get_normalized_imports(
+        source_roots,
+        file_path.as_ref(),
+        ignore_type_checking_imports,
+        false,
+    )?;
     Ok(normalized_imports.into_external_imports(source_roots))
 }
 

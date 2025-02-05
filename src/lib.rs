@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod checks;
 pub mod cli;
 pub mod colors;
 pub mod commands;
@@ -7,7 +8,6 @@ pub mod diagnostics;
 pub mod exclusion;
 pub mod external;
 pub mod filesystem;
-pub mod imports;
 pub mod interfaces;
 pub mod interrupt;
 pub mod lsp;
@@ -15,6 +15,7 @@ pub mod modularity;
 pub mod modules;
 pub mod parsing;
 pub mod pattern;
+pub mod processors;
 pub mod python;
 pub mod tests;
 
@@ -33,10 +34,10 @@ mod errors {
     pyo3::import_exception!(tach.errors, TachSetupError);
 }
 
-impl From<imports::ImportParseError> for PyErr {
-    fn from(err: imports::ImportParseError) -> Self {
+impl From<processors::imports::ImportParseError> for PyErr {
+    fn from(err: processors::imports::ImportParseError) -> Self {
         match err {
-            imports::ImportParseError::Parsing { file: _, source: _ } => {
+            processors::imports::ImportParseError::Parsing { file: _, source: _ } => {
                 PySyntaxError::new_err(err.to_string())
             }
             _ => PyOSError::new_err(err.to_string()),
@@ -62,12 +63,6 @@ impl From<report::ReportCreationError> for PyErr {
 impl From<cache::CacheError> for PyErr {
     fn from(err: cache::CacheError) -> Self {
         PyValueError::new_err(err.to_string())
-    }
-}
-
-impl From<check::ExternalCheckError> for PyErr {
-    fn from(err: check::ExternalCheckError) -> Self {
-        PyOSError::new_err(err.to_string())
     }
 }
 
@@ -171,26 +166,6 @@ fn dump_project_config_to_toml(
     parsing::config::dump_project_config_to_toml(config).map_err(sync::SyncError::TomlSerialize)
 }
 
-#[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
-fn get_normalized_imports(
-    source_roots: Vec<String>,
-    file_path: String,
-    ignore_type_checking_imports: bool,
-    include_string_imports: bool,
-) -> imports::Result<Vec<imports::NormalizedImport>> {
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    let file_path = PathBuf::from(file_path);
-    Ok(imports::get_normalized_imports(
-        &source_roots,
-        &file_path,
-        ignore_type_checking_imports,
-        include_string_imports,
-    )?
-    .into_active_imports()
-    .imports)
-}
-
 /// Get first-party imports from file_path
 #[pyfunction]
 #[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
@@ -199,10 +174,10 @@ fn get_project_imports(
     file_path: String,
     ignore_type_checking_imports: bool,
     include_string_imports: bool,
-) -> imports::Result<Vec<imports::NormalizedImport>> {
+) -> processors::imports::Result<Vec<processors::imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(imports::get_project_imports(
+    Ok(processors::imports::get_project_imports(
         &source_roots,
         &file_path,
         ignore_type_checking_imports,
@@ -219,14 +194,16 @@ fn get_external_imports(
     source_roots: Vec<String>,
     file_path: String,
     ignore_type_checking_imports: bool,
-) -> imports::Result<Vec<imports::NormalizedImport>> {
+) -> processors::imports::Result<Vec<processors::imports::NormalizedImport>> {
     let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     let file_path = PathBuf::from(file_path);
-    Ok(
-        imports::get_external_imports(&source_roots, &file_path, ignore_type_checking_imports)?
-            .into_active_imports()
-            .imports,
-    )
+    Ok(processors::imports::get_external_imports(
+        &source_roots,
+        &file_path,
+        ignore_type_checking_imports,
+    )?
+    .into_active_imports()
+    .imports)
 }
 
 /// Set excluded paths globally.
@@ -408,7 +385,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(get_normalized_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(set_excluded_paths, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_external_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_dependency_report, m)?)?;

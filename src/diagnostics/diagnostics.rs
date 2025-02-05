@@ -40,8 +40,8 @@ pub enum ConfigurationDiagnostic {
     #[error("Module containing '{file_mod_path}' not found in project.")]
     ModuleNotFound { file_mod_path: String },
 
-    #[error("Could not find module configuration.")]
-    ModuleConfigNotFound(),
+    #[error("Could not find module configuration for module '{module_path}'.")]
+    ModuleConfigNotFound { module_path: String },
 
     #[error("Layer '{layer}' is not defined in the project.")]
     UnknownLayer { layer: String },
@@ -57,6 +57,12 @@ pub enum ConfigurationDiagnostic {
 
     #[error("Skipped '{file_path}' due to an I/O error.")]
     SkippedFileIoError { file_path: String },
+
+    #[error("Skipped '{file_path}' due to a parsing error.")]
+    SkippedPyProjectParsingError { file_path: String },
+
+    #[error("Skipped '{file_path}' due to an unknown error.")]
+    SkippedUnknownError { file_path: String },
 }
 
 #[derive(Error, Debug, Clone, Serialize, PartialEq)]
@@ -106,8 +112,8 @@ pub enum CodeDiagnostic {
     #[error("Ignore directive is unused.")]
     UnusedIgnoreDirective(),
 
-    #[error("Import '{import_mod_path}' is ignored without providing a reason.")]
-    MissingIgnoreDirectiveReason { import_mod_path: String },
+    #[error("Ignore directive is missing a reason.")]
+    MissingIgnoreDirectiveReason(),
 
     #[error("Import '{import_mod_path}' does not match any declared dependency.")]
     UndeclaredExternalDependency { import_mod_path: String },
@@ -137,8 +143,8 @@ impl CodeDiagnostic {
             | CodeDiagnostic::UnnecessarilyIgnoredImport {
                 import_mod_path, ..
             } => Some(import_mod_path),
-            CodeDiagnostic::UnusedIgnoreDirective { .. } => None,
-            CodeDiagnostic::MissingIgnoreDirectiveReason { .. } => None,
+            CodeDiagnostic::UnusedIgnoreDirective() => None,
+            CodeDiagnostic::MissingIgnoreDirectiveReason() => None,
             CodeDiagnostic::UndeclaredExternalDependency { .. } => None,
             CodeDiagnostic::UnusedExternalDependency { .. } => None,
         }

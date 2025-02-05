@@ -7,8 +7,8 @@ use thiserror::Error;
 
 use crate::config::{ModuleConfig, ProjectConfig};
 use crate::filesystem::{self as fs};
-use crate::imports::get_project_imports;
 use crate::modules::{build_module_tree, ModuleTree};
+use crate::processors::imports::get_project_imports;
 
 #[derive(Error, Debug)]
 pub enum TestError {
