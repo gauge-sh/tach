@@ -118,7 +118,7 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
         let mut dependencies: Vec<Dependency> = vec![];
         let file_ast = parse_python_source(file_module.contents())?;
 
-        let project_imports: Vec<Dependency> = get_normalized_imports_from_ast(
+        let project_imports = get_normalized_imports_from_ast(
             self.source_roots,
             file_module.file_path(),
             &file_ast,
@@ -136,8 +136,7 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
                     .remove_matching_directives(file_module.line_number(import.import_offset));
                 None
             }
-        })
-        .collect();
+        });
         dependencies.extend(project_imports);
 
         if self.django_metadata.is_some() {
