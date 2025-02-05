@@ -68,7 +68,9 @@ pub enum ConfigurationDiagnostic {
 #[derive(Error, Debug, Clone, Serialize, PartialEq)]
 #[pyclass(module = "tach.extension")]
 pub enum CodeDiagnostic {
-    #[error("Dependency '{dependency}' (in module '{usage_module}') is not public. Module '{definition_module}' has a defined public interface. Only dependencies on the public interface of this module are allowed.")]
+    #[error(
+        "The path '{dependency}' is not part of the public interface for '{definition_module}'."
+    )]
     PrivateDependency {
         dependency: String,
         definition_module: String,
