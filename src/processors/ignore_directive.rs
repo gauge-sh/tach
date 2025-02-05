@@ -30,7 +30,7 @@ impl IgnoreDirective {
         }
 
         // If applicable, check if the diagnostic has specified a matching module path
-        diagnostic.import_mod_path().is_none_or(|import_mod_path| {
+        diagnostic.dependency().is_none_or(|import_mod_path| {
             self.modules
                 .iter()
                 .any(|module| import_mod_path.ends_with(module))

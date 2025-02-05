@@ -205,7 +205,7 @@ def test_distributed_config_example_dir(example_dir, capfd):
 
     captured = capfd.readouterr()
     assert FAIL in captured.err or "FAIL" in captured.err
-    assert "Cannot import 'project.module_one.module_one'" in captured.err
+    assert "Cannot use 'project.module_one.module_one'" in captured.err
     assert (
         "Module 'project.top_level' cannot depend on 'project.module_one'"
         in captured.err

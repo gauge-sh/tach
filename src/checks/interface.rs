@@ -112,8 +112,8 @@ impl<'a> InterfaceChecker<'a> {
                 InterfaceCheckResult::NotExposed => Ok(vec![Diagnostic::new_located_error(
                     file_module.relative_file_path().to_path_buf(),
                     file_module.line_number(dependency.offset()),
-                    DiagnosticDetails::Code(CodeDiagnostic::PrivateImport {
-                        import_mod_path: dependency.module_path().to_string(),
+                    DiagnosticDetails::Code(CodeDiagnostic::PrivateDependency {
+                        dependency: dependency.module_path().to_string(),
                         usage_module: file_module.module_config().path.to_string(),
                         definition_module: dependency_module_config.path.to_string(),
                     }),
@@ -124,7 +124,7 @@ impl<'a> InterfaceChecker<'a> {
                     file_module.relative_file_path().to_path_buf(),
                     file_module.line_number(dependency.offset()),
                     DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport {
-                        import_mod_path: dependency.module_path().to_string(),
+                        dependency: dependency.module_path().to_string(),
                         usage_module: file_module.module_config().path.to_string(),
                         definition_module: dependency_module_config.path.to_string(),
                         expected_data_type: expected.to_string(),

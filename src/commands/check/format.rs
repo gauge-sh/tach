@@ -21,14 +21,14 @@ impl From<&DiagnosticDetails> for DiagnosticGroupKind {
         match details {
             DiagnosticDetails::Configuration(..) => Self::Configuration,
             DiagnosticDetails::Code(code_diagnostic_details) => match code_diagnostic_details {
-                CodeDiagnostic::InvalidImport { .. } => Self::InternalDependency,
-                CodeDiagnostic::DeprecatedImport { .. } => Self::InternalDependency,
+                CodeDiagnostic::UndeclaredDependency { .. } => Self::InternalDependency,
+                CodeDiagnostic::DeprecatedDependency { .. } => Self::InternalDependency,
                 CodeDiagnostic::LayerViolation { .. } => Self::InternalDependency,
-                CodeDiagnostic::PrivateImport { .. } => Self::Interface,
+                CodeDiagnostic::PrivateDependency { .. } => Self::Interface,
                 CodeDiagnostic::InvalidDataTypeExport { .. } => Self::Interface,
                 CodeDiagnostic::UndeclaredExternalDependency { .. } => Self::ExternalDependency,
                 CodeDiagnostic::UnusedExternalDependency { .. } => Self::ExternalDependency,
-                CodeDiagnostic::UnnecessarilyIgnoredImport { .. } => Self::Other,
+                CodeDiagnostic::UnnecessarilyIgnoredDependency { .. } => Self::Other,
                 CodeDiagnostic::UnusedIgnoreDirective() => Self::Other,
                 CodeDiagnostic::MissingIgnoreDirectiveReason() => Self::Other,
             },

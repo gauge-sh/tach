@@ -56,7 +56,7 @@ impl<'a> InternalDependencyChecker<'a> {
                                 relative_file_path.to_path_buf(),
                                 file_module.line_number(dependency.offset()),
                                 DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
-                                    import_mod_path: dependency.module_path().to_string(),
+                                    dependency: dependency.module_path().to_string(),
                                     usage_module: source_module_config.path.clone(),
                                     usage_layer: source_layer.clone(),
                                     definition_module: target_module_config.path.clone(),
@@ -140,8 +140,8 @@ impl<'a> InternalDependencyChecker<'a> {
             }) => Ok(vec![Diagnostic::new_located_warning(
                 relative_file_path.to_path_buf(),
                 file_module.line_number(dependency.offset()),
-                DiagnosticDetails::Code(CodeDiagnostic::DeprecatedImport {
-                    import_mod_path: dependency.module_path().to_string(),
+                DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency {
+                    dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
                     definition_module: dependency_nearest_module_path.to_string(),
                 }),
@@ -150,8 +150,8 @@ impl<'a> InternalDependencyChecker<'a> {
             None => Ok(vec![Diagnostic::new_located_error(
                 relative_file_path.to_path_buf(),
                 file_module.line_number(dependency.offset()),
-                DiagnosticDetails::Code(CodeDiagnostic::InvalidImport {
-                    import_mod_path: dependency.module_path().to_string(),
+                DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency {
+                    dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
                     definition_module: dependency_nearest_module_path.to_string(),
                 }),
