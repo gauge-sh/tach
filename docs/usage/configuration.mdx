@@ -10,7 +10,9 @@ This is the project-level configuration file which should be in the root of your
 
 `modules` defines the modules in your project - [see details](#modules).
 
-`interfaces` defines the interfaces of modules in your project - [see details](#interfaces).
+`interfaces` defines the interfaces of modules in your project (optional) - [see details](#interfaces).
+
+`layers` defines the layers of modules in your project (optional) - [see details](#layers).
 
 `exclude` accepts a list of directory patterns to exclude from checking. These should be glob paths which match from the beginning of a given file path. For example: `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
 
@@ -48,12 +50,19 @@ exact = true
 ignore_type_checking_imports = true
 forbid_circular_dependencies = true
 
+layers = [
+  "ui",
+  "commands",
+  "core"
+]
+
 [[modules]]
 path = "tach"
 depends_on = []
 
 [[modules]]
 path = "tach.__main__"
+layer = "ui"
 
 [[modules]]
 path = "tach.errors"
@@ -63,6 +72,7 @@ utility = true
 [[modules]]
 path = "tach.parsing"
 depends_on = ["tach", "tach.filesystem"]
+layer = "core"
 visibility = ["tach.check"]
 
 [[modules]]
@@ -72,6 +82,7 @@ depends_on = [
     "tach.filesystem",
     "tach.parsing",
 ]
+layer = "commands"
 
 [[interfaces]]
 expose = ["types.*"]
@@ -136,6 +147,8 @@ More specifically:
 - `expose`: a list of regex patterns which define the public interface
 - `from` (optional): a list of regex patterns which define the modules which adopt this interface
 
+[More details here.](../usage/interfaces)
+
 <Note>
 If an interface entry does not specify `from`, all modules will adopt the interface.
 </Note>
@@ -143,6 +156,33 @@ If an interface entry does not specify `from`, all modules will adopt the interf
 <Note>
 A module can match multiple interface entries - if an import matches _any_ of the entries, it will be considered valid.
 </Note>
+
+## Layers
+
+An ordered list of layers can be configured at the top level of `tach.toml`,
+and [modules](#modules) can each be assigned to a specific layer.
+
+```toml
+layers = [
+  "ui",
+  "commands",
+  "core"
+]
+
+[[modules]]
+path = "tach.check"
+layer = "commands"
+
+[[modules]]
+path = "tach.cache"
+layer = "core"
+```
+
+The configuration above defines three layers, with `ui` being the highest layer, and `core` being the lowest layer.
+It also tags `tach.check` as a module in the `commands` layer, and `tach.cache` in `core`.
+
+[More details here.](../usage/layers)
+
 
 ## The Root Module
 
@@ -221,7 +261,7 @@ To indicate this structure to Tach, set:
 source_roots = ["backend"]
 ```
 
-in your `tach.toml`, or use [`tach mod`](commands#tach-mod) and mark the `backend` folder as the only source root.
+in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the `backend` folder as the only source root.
 
 ### Example: Monorepo
 
@@ -283,17 +323,11 @@ source_roots = [
 ]
 ```
 
-in your `tach.toml`, or use [`tach mod`](commands#tach-mod) and mark the same folders as source root.
+in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the same folders as source root.
 
 In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
 
 ## `tach.domain.toml`
-
-<Warning>
-This feature is in **beta**. The exact behavior and syntax of this configuration is subject to change and should not be considered stable.
-
-If it seems useful, we'd love to hear your feedback! E-mail us at founders@gauge.sh
-</Warning>
 
 Tach allows splitting your configuration into 'domains', or sub-folders of your project.
 You can define modules and interfaces in a `tach.domain.toml` file which lives right next to the module code itself.

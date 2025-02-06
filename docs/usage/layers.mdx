@@ -1,0 +1,66 @@
+---
+title: Layers
+---
+
+An ordered list of layers can be configured at the top level of [`tach.toml`](../usage/configuration#layers),
+and [modules](../usage/configuration#modules) can each be assigned to a specific layer.
+
+## How does it work?
+
+[Layered architecture](https://www.oreilly.com/library/view/software-architecture-patterns/9781491971437/ch01.html) is often
+an effective starting point for modularizing an application.
+
+The idea is straightforward:
+**Higher layers may import from lower layers, but lower layers may NOT import from higher layers.**
+
+Defining this architecture is more concise and flexible than specifying all module dependencies
+with `depends_on`, which makes it easier to adopt in an existing project.
+
+Tach allows defining and enforcing a layered architecture with any number of vertically-stacked layers.
+
+When a module is assigned to a layer, this module:
+- may freely depend on modules in **lower layers**, *without declaring these dependencies*
+- must explicitly declare dependencies in **its own layer**
+- may never depend on modules in **higher layers**, *even if they are declared*
+
+## Example
+
+We can use the Tach codebase itself as an example of a 3-tier layered architecture:
+
+```toml
+layers = [
+  "ui",
+  "commands",
+  "core"
+]
+
+[[modules]]
+path = "tach.check"
+layer = "commands"
+
+[[modules]]
+path = "tach.cache"
+depends_on = ["tach.filesystem"]
+layer = "core"
+
+[[modules]]
+path = "tach.filesystem"
+depends_on = []
+layer = "core"
+```
+
+In the configuration above, three layers are defined.
+They are similar to the classic `Presentation` - `Business Logic` - `Data` which are often found in web applications,
+but a bit different given that Tach is a CLI program.
+
+In Tach, the highest layer is `UI`, which includes code related to the CLI and other entrypoints to start the program.
+
+Just below this, the `Commands` layer contains high-level business logic which implements each of the CLI commands.
+
+At the bottom is the `Core` layer, which contains utilities, libraries, and broadly relevant data structures.
+
+Given this configuration, `tach.check` does not need to declare a dependency on `tach.cache` or `tach.filesystem` to use it,
+because the `Commands` layer is higher than the `Core` layer.
+
+However, `tach.cache` needs to explicitly declare its dependency on `tach.filesystem`, because they
+are *both* in the `Core` layer.
