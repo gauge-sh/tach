@@ -30,6 +30,7 @@ from tach.extension import (
     format_diagnostics,
     run_server,
     serialize_diagnostics_json,
+    sync_project,
     update_computation_cache,
 )
 from tach.filesystem import install_pre_commit
@@ -42,7 +43,6 @@ from tach.show import (
     generate_module_graph_mermaid,
     generate_show_url,
 )
-from tach.sync import sync_project
 from tach.test import run_affected_tests
 
 if TYPE_CHECKING:
@@ -452,10 +452,9 @@ def check_cache_for_action(
     project_root: Path, project_config: ProjectConfig, action: str
 ) -> CachedOutput:
     cache_key = create_computation_cache_key(
-        project_root=str(project_root),
+        project_root=project_root,
         source_roots=[
-            str(project_root / source_root)
-            for source_root in project_config.source_roots
+            project_root / source_root for source_root in project_config.source_roots
         ],
         action=action,
         py_interpreter_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
@@ -464,7 +463,7 @@ def check_cache_for_action(
         backend=project_config.cache.backend,
     )
     cache_result = check_computation_cache(
-        project_root=str(project_root), cache_key=cache_key
+        project_root=project_root, cache_key=cache_key
     )
     if cache_result:
         return CachedOutput(
@@ -478,7 +477,6 @@ def check_cache_for_action(
 def tach_check(
     project_config: ProjectConfig,
     project_root: Path,
-    exclude_paths: list[str],
     exact: bool = False,
     dependencies: bool = True,
     interfaces: bool = True,
@@ -501,7 +499,6 @@ def tach_check(
             project_config=project_config,
             dependencies=dependencies,
             interfaces=interfaces,
-            exclude_paths=exclude_paths,
         )
         has_errors = any(diagnostic.is_error() for diagnostic in diagnostics)
 
@@ -524,7 +521,6 @@ def tach_check(
             unused_dependencies = detect_unused_dependencies(
                 project_root=project_root,
                 project_config=project_config,
-                exclude_paths=exclude_paths,
             )
             if unused_dependencies:
                 print_unused_dependencies(unused_dependencies)
@@ -551,7 +547,6 @@ def tach_check(
 def tach_check_external(
     project_config: ProjectConfig,
     project_root: Path,
-    exclude_paths: list[str],
 ):
     logger.info(
         "tach check-external called",
@@ -565,7 +560,6 @@ def tach_check_external(
         diagnostics = check_external(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=exclude_paths,
         )
 
         if diagnostics:
@@ -633,7 +627,6 @@ def tach_mod(
 def tach_sync(
     project_config: ProjectConfig,
     project_root: Path,
-    exclude_paths: list[str],
     add: bool = False,
 ):
     logger.info(
@@ -649,7 +642,6 @@ def tach_sync(
         sync_project(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=exclude_paths,
             add=add,
         )
     except Exception as e:
@@ -708,7 +700,6 @@ def tach_report(
     usages: bool = False,
     external: bool = False,
     raw: bool = False,
-    exclude_paths: list[str] | None = None,
 ):
     logger.info(
         "tach report called",
@@ -742,7 +733,6 @@ def tach_report(
                     skip_dependencies=not generate_dependencies,
                     skip_usages=not generate_usages,
                     raw=raw,
-                    exclude_paths=exclude_paths,
                 )
             )
 
@@ -753,7 +743,6 @@ def tach_report(
                     Path(path),
                     raw=raw,
                     project_config=project_config,
-                    exclude_paths=exclude_paths,
                 )
             )
 
@@ -901,7 +890,7 @@ def tach_test(
 
         if results.tests_ran_to_completion:
             update_computation_cache(
-                str(project_root),
+                project_root,
                 cache_key=cached_output.key,
                 value=(
                     [
@@ -1071,7 +1060,7 @@ def main() -> None:
 
     # Exclude paths on the CLI extend those from the project config
     try:
-        exclude_paths = extend_and_validate(
+        project_config.exclude = extend_and_validate(
             exclude_paths, project_config.exclude, project_config.use_regex_matching
         )
     except TachConfigError as e:
@@ -1083,7 +1072,6 @@ def main() -> None:
             project_config=project_config,
             project_root=project_root,
             add=args.add,
-            exclude_paths=exclude_paths,
         )
     elif args.command == "check":
         if args.dependencies or args.interfaces:
@@ -1093,7 +1081,6 @@ def main() -> None:
                 dependencies=args.dependencies,
                 interfaces=args.interfaces,
                 exact=args.exact,
-                exclude_paths=exclude_paths,
                 output_format=args.output,
             )
         else:
@@ -1101,14 +1088,12 @@ def main() -> None:
                 project_config=project_config,
                 project_root=project_root,
                 exact=args.exact,
-                exclude_paths=exclude_paths,
                 output_format=args.output,
             )
     elif args.command == "check-external":
         tach_check_external(
             project_config=project_config,
             project_root=project_root,
-            exclude_paths=exclude_paths,
         )
     elif args.command == "report":
         include_dependency_modules = (
@@ -1127,7 +1112,6 @@ def main() -> None:
             usages=args.usages,
             external=args.external,
             raw=args.raw,
-            exclude_paths=exclude_paths,
         )
     elif args.command == "show":
         tach_show(

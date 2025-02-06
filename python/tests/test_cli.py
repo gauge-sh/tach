@@ -33,7 +33,6 @@ def test_execute_with_config(capfd, mock_check, mock_project_config):
         cli.tach_check(
             project_root=Path(),
             project_config=mock_project_config,
-            exclude_paths=mock_project_config.exclude,
         )
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
@@ -54,11 +53,10 @@ def test_execute_with_valid_exclude(capfd, mock_check, mock_project_config):
     with pytest.raises(SystemExit) as sys_exit:
         # Test with a valid path as mocked
         args, _ = cli.parse_arguments(["check", "--exclude", "valid_dir"])
-        exclude_paths = args.exclude.split(",")
+        mock_project_config.exclude = args.exclude.split(",")
         cli.tach_check(
             project_root=Path(),
             project_config=mock_project_config,
-            exclude_paths=exclude_paths,
         )
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0

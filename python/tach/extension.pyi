@@ -6,23 +6,21 @@ class PythonImport:
     line_number: int
 
 def get_project_imports(
-    source_roots: list[str],
-    file_path: str,
-    ignore_type_checking_imports: bool,
-    include_string_imports: bool,
+    project_root: Path,
+    source_roots: list[Path],
+    file_path: Path,
+    project_config: ProjectConfig,
 ) -> list[PythonImport]: ...
 def get_external_imports(
-    source_roots: list[str],
-    file_path: str,
-    ignore_type_checking_imports: bool,
-) -> list[PythonImport]: ...
-def set_excluded_paths(
-    project_root: str, exclude_paths: list[str], use_regex_matching: bool
-) -> None: ...
-def create_dependency_report(
-    project_root: str,
+    project_root: Path,
+    source_roots: list[Path],
+    file_path: Path,
     project_config: ProjectConfig,
-    path: str,
+) -> list[PythonImport]: ...
+def create_dependency_report(
+    project_root: Path,
+    project_config: ProjectConfig,
+    path: Path,
     include_dependency_modules: list[str] | None,
     include_usage_modules: list[str] | None,
     skip_dependencies: bool,
@@ -30,8 +28,8 @@ def create_dependency_report(
     raw: bool,
 ) -> str: ...
 def create_computation_cache_key(
-    project_root: str,
-    source_roots: list[str],
+    project_root: Path,
+    source_roots: list[Path],
     action: str,
     py_interpreter_version: str,
     file_dependencies: list[str],
@@ -39,10 +37,10 @@ def create_computation_cache_key(
     backend: str,
 ) -> str: ...
 def check_computation_cache(
-    project_root: str, cache_key: str
+    project_root: Path, cache_key: str
 ) -> tuple[list[tuple[int, str]], int] | None: ...
 def update_computation_cache(
-    project_root: str, cache_key: str, value: tuple[list[tuple[int, str]], int]
+    project_root: Path, cache_key: str, value: tuple[list[tuple[int, str]], int]
 ) -> None: ...
 def parse_project_config(filepath: Path) -> tuple[ProjectConfig, bool]: ...
 def dump_project_config_to_toml(project_config: ProjectConfig) -> str: ...
@@ -51,10 +49,9 @@ def check(
     project_config: ProjectConfig,
     dependencies: bool,
     interfaces: bool,
-    exclude_paths: list[str],
 ) -> list[Diagnostic]: ...
 def check_external_dependencies(
-    project_root: str,
+    project_root: Path,
     project_config: ProjectConfig,
     module_mappings: dict[str, list[str]],
     stdlib_modules: list[str],
@@ -66,12 +63,10 @@ def format_diagnostics(
 def detect_unused_dependencies(
     project_root: Path,
     project_config: ProjectConfig,
-    exclude_paths: list[str],
 ) -> list[UnusedDependencies]: ...
 def sync_project(
     project_root: Path,
     project_config: ProjectConfig,
-    exclude_paths: list[str],
     add: bool = False,
 ) -> None: ...
 def run_server(project_root: Path, project_config: ProjectConfig) -> None: ...

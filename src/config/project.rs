@@ -41,10 +41,10 @@ pub struct ProjectConfig {
     #[pyo3(get)]
     pub external: ExternalDependencyConfig,
     #[serde(default)]
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub exclude: Vec<String>,
     #[serde(default = "default_source_roots")]
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub source_roots: Vec<PathBuf>,
     #[serde(default, skip_serializing_if = "is_false")]
     #[pyo3(get)]
@@ -53,16 +53,16 @@ pub struct ProjectConfig {
     #[pyo3(get)]
     pub disable_logging: bool,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub ignore_type_checking_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub include_string_imports: bool,
     #[serde(default, skip_serializing_if = "is_false")]
     #[pyo3(get)]
     pub forbid_circular_dependencies: bool,
     #[serde(default, skip_serializing_if = "is_false")]
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub use_regex_matching: bool,
     #[serde(default, skip_serializing_if = "RootModuleTreatment::is_default")]
     #[pyo3(get)]

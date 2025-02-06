@@ -20,7 +20,6 @@ def test_valid_example_dir(example_dir, capfd):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 0
     captured = capfd.readouterr()
@@ -36,7 +35,6 @@ def test_valid_example_dir_monorepo(example_dir):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 0
 
@@ -58,7 +56,6 @@ def test_check_json_output(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
     assert exc_info.value.code == 0
@@ -85,7 +82,6 @@ def test_check_json_with_errors(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
 
@@ -110,7 +106,6 @@ def test_check_circular_dependency_text(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -134,7 +129,6 @@ def test_check_circular_dependency_json(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
     assert exc_info.value.code == 1
@@ -157,7 +151,6 @@ def test_check_visibility_error_text(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -179,7 +172,6 @@ def test_check_visibility_error_json(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
     assert exc_info.value.code == 1
@@ -199,7 +191,6 @@ def test_distributed_config_example_dir(example_dir, capfd):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -267,7 +258,6 @@ def test_many_features_example_dir(example_dir, capfd):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -338,7 +328,6 @@ def test_many_features_example_dir__external(example_dir, capfd):
         tach_check_external(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 

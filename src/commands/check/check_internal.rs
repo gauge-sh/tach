@@ -1,5 +1,5 @@
 use std::{
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -13,7 +13,7 @@ use crate::{
         ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
         DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
     },
-    exclusion::set_excluded_paths,
+    exclusion::PathExclusions,
     filesystem::{self as fs, ProjectFile},
     interrupt::check_interrupt,
     modules::{build_module_tree, ModuleTree},
@@ -35,6 +35,7 @@ impl<'a> CheckInternalPipeline<'a> {
         project_config: &'a ProjectConfig,
         source_roots: &'a [PathBuf],
         module_tree: &'a ModuleTree,
+        exclusions: &'a PathExclusions,
         found_imports: &'a AtomicBool,
     ) -> Self {
         Self {
@@ -43,6 +44,7 @@ impl<'a> CheckInternalPipeline<'a> {
                 source_roots,
                 module_tree,
                 project_config,
+                exclusions,
             ),
             dependency_checker: None,
             interface_checker: None,
@@ -118,7 +120,6 @@ pub fn check(
     project_config: &ProjectConfig,
     dependencies: bool,
     interfaces: bool,
-    exclude_paths: Vec<String>,
 ) -> Result<Vec<Diagnostic>> {
     if !dependencies && !interfaces {
         return Err(CheckError::NoChecksEnabled());
@@ -132,7 +133,6 @@ pub fn check(
 
     let mut warnings = Vec::new();
     let found_imports = AtomicBool::new(false);
-    let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
     let (valid_modules, invalid_modules) = fs::validate_project_modules(
         &source_roots,
@@ -155,12 +155,6 @@ pub fn check(
         project_config.root_module.clone(),
     )?;
 
-    set_excluded_paths(
-        Path::new(&project_root),
-        &exclude_paths,
-        project_config.use_regex_matching,
-    )?;
-
     let dependency_checker = if dependencies {
         Some(InternalDependencyChecker::new(project_config, &module_tree))
     } else {
@@ -175,13 +169,23 @@ pub fn check(
         None
     };
 
-    let pipeline =
-        CheckInternalPipeline::new(project_config, &source_roots, &module_tree, &found_imports)
-            .with_dependency_checker(dependency_checker)
-            .with_interface_checker(interface_checker);
+    let exclusions = PathExclusions::new(
+        &project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
+    let pipeline = CheckInternalPipeline::new(
+        project_config,
+        &source_roots,
+        &module_tree,
+        &exclusions,
+        &found_imports,
+    )
+    .with_dependency_checker(dependency_checker)
+    .with_interface_checker(interface_checker);
 
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
-        fs::walk_pyfiles(&source_root.display().to_string())
+        fs::walk_pyfiles(&source_root.display().to_string(), &exclusions)
             .par_bridge()
             .flat_map(|file_path| {
                 if check_interrupt().is_err() {

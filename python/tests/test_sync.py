@@ -24,7 +24,6 @@ def test_valid_example_dir(example_dir, capfd):
             tach_sync(
                 project_root=temp_project_root,
                 project_config=project_config,
-                exclude_paths=project_config.exclude,
                 add=True,
             )
 
@@ -57,7 +56,6 @@ def test_distributed_config_dir(example_dir, capfd):
             tach_sync(
                 project_root=temp_project_root,
                 project_config=project_config,
-                exclude_paths=project_config.exclude,
             )
 
         assert exc_info.value.code == 0
@@ -93,7 +91,6 @@ def test_many_features_example_dir(example_dir, capfd):
             tach_sync(
                 project_root=temp_project_root,
                 project_config=project_config,
-                exclude_paths=project_config.exclude,
             )
 
         assert exc_info.value.code == 0

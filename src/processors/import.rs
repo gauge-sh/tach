@@ -9,8 +9,8 @@ use ruff_text_size::TextSize;
 use thiserror::Error;
 
 use crate::external::parsing::normalize_package_name;
-use crate::filesystem;
 use crate::python::{error::ParsingError, parsing::parse_python_source};
+use crate::{exclusion, filesystem};
 
 #[derive(Error, Debug)]
 pub enum ImportParseError {
@@ -22,6 +22,8 @@ pub enum ImportParseError {
     },
     #[error("Failed to parse project imports.\n{0}")]
     Filesystem(#[from] filesystem::FileSystemError),
+    #[error("Failed to build exclude patterns.\n{0}")]
+    ExclusionPatterns(#[from] exclusion::PathExclusionError),
 }
 
 pub type Result<T> = std::result::Result<T, ImportParseError>;
