@@ -1,3 +1,5 @@
+import django
+
 OTHER_FIELD = "value"
 
 INSTALLED_APPS = [

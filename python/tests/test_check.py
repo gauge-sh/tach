@@ -5,7 +5,7 @@ from unittest.mock import NonCallableMagicMock
 
 import pytest
 
-from tach.cli import tach_check
+from tach.cli import tach_check, tach_check_external
 from tach.errors import TachCircularDependencyError, TachVisibilityError
 from tach.extension import Diagnostic
 from tach.icons import FAIL, SUCCESS, WARNING
@@ -214,7 +214,7 @@ def test_distributed_config_example_dir(example_dir, capfd):
 
 
 def _check_expected_messages(section_text: str, expected_messages: list[tuple]) -> None:
-    """Helper to verify all expected messages appear in a section of output text.
+    """Helper to verify all expected messages appear in a section of output text, in the given order.
 
     Args:
         section_text: The text section to check
@@ -233,6 +233,28 @@ def _check_expected_messages(section_text: str, expected_messages: list[tuple]) 
 
     assert current_substrs is None, (
         f"Not all expected messages were found: {list(substrs)} in section: {section_text}"
+    )
+
+
+def _check_expected_messages_unordered(
+    section_text: str, expected_messages: list[tuple]
+) -> None:
+    """Helper to verify all expected messages appear in a section of output text.
+
+    Args:
+        section_text: The text section to check
+        expected_messages: List of tuples containing substrings that should appear together in a line
+    """
+    lines = iter(section_text.split("\n"))
+    substr_tuples = set(expected_messages)
+    for line in lines:
+        for substr_tuple in substr_tuples:
+            if all(substr.lower() in line.lower() for substr in substr_tuple):
+                substr_tuples.remove(substr_tuple)
+                break
+
+    assert not substr_tuples, (
+        f"Not all expected messages were found: {list(substr_tuples)} in section: {section_text}"
     )
 
 
@@ -305,3 +327,50 @@ def test_many_features_example_dir(example_dir, capfd):
     _check_expected_messages(general_section, expected_general)
     _check_expected_messages(interfaces_section, expected_interfaces)
     _check_expected_messages(dependencies_section, expected_dependencies)
+
+
+def test_many_features_example_dir__external(example_dir, capfd):
+    project_root = example_dir / "many_features"
+    project_config = parse_project_config(root=project_root)
+    assert project_config is not None
+
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check_external(
+            project_root=project_root,
+            project_config=project_config,
+            exclude_paths=project_config.exclude,
+        )
+    assert exc_info.value.code == 1
+
+    captured = capfd.readouterr()
+    general_header = captured.err.index("General\n")
+    external_header = captured.err.index("External Dependencies\n")
+
+    general_section = captured.err[general_header:external_header]
+    external_section = captured.err[external_header:]
+
+    expected_general = [
+        ("[WARN]", "real_src/main.py", "ignore directive", "missing a reason"),
+        (
+            "[WARN]",
+            "real_src/module1/__init__.py",
+            "ignore directive",
+            "missing a reason",
+        ),
+        ("[FAIL]", "real_src/module1/__init__.py", "ignore directive", "unused"),
+    ]
+
+    expected_external = [
+        ("[FAIL]", "prompt_toolkit", "not used"),
+        ("[FAIL]", "importlib_metadata", "not used"),
+        ("[FAIL]", "tomli_w", "not used"),
+        ("[FAIL]", "pydot", "not used"),
+        ("[FAIL]", "rich", "not used"),
+        ("[FAIL]", "networkx", "not used"),
+        ("[FAIL]", "stdlib_list", "not used"),
+        ("[FAIL]", "real_src/django_settings.py", "django", "not declared"),
+        ("[FAIL]", "real_src/module3/content.py", "django", "not declared"),
+    ]
+
+    _check_expected_messages(general_section, expected_general)
+    _check_expected_messages_unordered(external_section, expected_external)
