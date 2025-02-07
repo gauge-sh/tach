@@ -34,6 +34,7 @@ from tach.extension import (
     update_computation_cache,
 )
 from tach.filesystem import install_pre_commit
+from tach.init import init_project
 from tach.logging import CallInfo, init_logging, logger
 from tach.modularity import export_report, upload_report_to_gauge
 from tach.parsing import extend_and_validate, parse_project_config
@@ -417,6 +418,19 @@ def build_parser() -> argparse.ArgumentParser:
         prog=f"{TOOL_NAME} server",
         help="Start the Language Server Protocol (LSP) server",
         description="Start the Language Server Protocol (LSP) server",
+    )
+
+    ## tach init
+    init_parser = subparsers.add_parser(
+        "init",
+        prog=f"{TOOL_NAME} init",
+        help="Initialize a new project",
+        description="Initialize a new project",
+    )
+    init_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force re-initialization if project is already configured.",
     )
 
     return parser
@@ -983,6 +997,18 @@ def tach_server(project_config: ProjectConfig, project_root: Path):
         sys.exit(1)
 
 
+def tach_init(project_root: Path, force: bool = False):
+    logger.info(
+        "tach init called",
+        extra={"data": CallInfo(function="tach_init")},
+    )
+    try:
+        init_project(project_root, force=force)
+    except TachError as e:
+        print(f"Failed to initialize project: {e}")
+        sys.exit(1)
+
+
 def current_version_is_behind(latest_version: str) -> bool:
     try:
         current_version_parts = list(map(int, __version__.split(".")[:3]))
@@ -1024,6 +1050,9 @@ def main() -> None:
             depth=args.depth,
             exclude_paths=exclude_paths,
         )
+        return
+    elif args.command == "init":
+        tach_init(project_root, force=args.force)
         return
     elif args.command == "install":
         try:

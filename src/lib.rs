@@ -305,6 +305,7 @@ fn detect_unused_dependencies(
 }
 
 #[pyfunction]
+#[pyo3(signature = (project_root, project_config, add = false))]
 pub fn sync_project(
     project_root: PathBuf,
     project_config: config::ProjectConfig,
