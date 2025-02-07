@@ -898,12 +898,12 @@ def tach_test(
         if cached_output.exists:
             # Early exit, cached terminal output was found
             console.print(
-                f"{BCOLORS.OKGREEN}============ Cached results found!  ============{BCOLORS.ENDC}",
+                "============ Cached results found!  ============",
                 style="green",
             )
             cached_output.replay()
             console.print(
-                f"{BCOLORS.OKGREEN}============ END Cached results  ============{BCOLORS.ENDC}",
+                "============ END Cached results  ============",
                 style="green",
             )
             sys.exit(cached_output.exit_code)
