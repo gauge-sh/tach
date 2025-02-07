@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict, dataclass
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
 
 from tach.constants import GAUGE_API_BASE_URL
 from tach.extension import serialize_modules_json
+from tach.modularity import Module, Usage, build_modules, build_usages
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -14,6 +16,54 @@ if TYPE_CHECKING:
     import pydot  # type: ignore
 
     from tach.extension import ProjectConfig
+
+
+@dataclass
+class ShowReport:
+    modules: list[Module]
+    usages: list[Usage]
+
+
+def generate_show_report(
+    project_root: Path,
+    project_config: ProjectConfig,
+    included_paths: list[Path],
+) -> ShowReport:
+    modules = build_modules(project_config=project_config)
+    usages = build_usages(
+        project_root=project_root,
+        project_config=project_config,
+    )
+    return ShowReport(modules=modules, usages=usages)
+
+
+def upload_show_report(
+    project_root: Path,
+    project_config: ProjectConfig,
+    included_paths: list[Path],
+) -> str | None:
+    show_report = generate_show_report(
+        project_root=project_root,
+        project_config=project_config,
+        included_paths=included_paths,
+    )
+    json_data = json.dumps(asdict(show_report))
+    json_bytes = json_data.encode("utf-8")
+    req = request.Request(
+        f"{GAUGE_API_BASE_URL}/api/show/graph/1.4",
+        data=json_bytes,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        # Send the request and read the response
+        with request.urlopen(req) as response:
+            response_data = response.read().decode("utf-8")
+            response_json = json.loads(response_data)
+            uid = response_json.get("uid")
+            return f"{GAUGE_API_BASE_URL}/show?uid={uid}"
+    except (UnicodeDecodeError, JSONDecodeError, error.URLError) as e:
+        print(f"Error: {e}")
+        return None
 
 
 def generate_show_url(

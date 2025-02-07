@@ -40,7 +40,7 @@ from tach.report import external_dependency_report, report
 from tach.show import (
     generate_module_graph_dot_file,
     generate_module_graph_mermaid,
-    generate_show_url,
+    upload_show_report,
 )
 from tach.sync import sync_project
 from tach.test import run_affected_tests
@@ -799,7 +799,11 @@ def tach_show(
             map(lambda path: project_root / path, included_paths or [])
         )
         if is_web:
-            result = generate_show_url(project_config, included_paths=included_paths)
+            result = upload_show_report(
+                project_root=project_root,
+                project_config=project_config,
+                included_paths=included_paths,
+            )
             if result:
                 print("View your dependency graph here:")
                 print(result)

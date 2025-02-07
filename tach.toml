@@ -122,8 +122,13 @@ depends_on = [
 layer = "ui"
 
 [[modules]]
-paths = ["tach.test", "tach.sync", "tach.report", "tach.show", "tach.modularity", "tach.mod"]
+paths = ["tach.test", "tach.sync", "tach.report", "tach.modularity", "tach.mod"]
 depends_on = []
+layer = "commands"
+
+[[modules]]
+path = "tach.show"
+depends_on =["tach.modularity"]
 layer = "commands"
 
 [[modules]]
@@ -136,6 +141,10 @@ utility = true
 expose = [
     "export_report",
     "upload_report_to_gauge",
+    "Usage",
+    "Module",
+    "build_modules",
+    "build_usages",
 ]
 from = [
     "tach.modularity",
@@ -237,9 +246,9 @@ from = [
 
 [[interfaces]]
 expose = [
-    "generate_show_url",
     "generate_module_graph_dot_file",
     "generate_module_graph_mermaid",
+    "upload_show_report",
 ]
 from = [
     "tach.show",

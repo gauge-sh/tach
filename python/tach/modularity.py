@@ -221,9 +221,8 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
     return modules
 
 
-def build_usages(
-    project_root: Path, source_roots: list[Path], project_config: ProjectConfig
-) -> list[Usage]:
+def build_usages(project_root: Path, project_config: ProjectConfig) -> list[Usage]:
+    source_roots = [project_root / root for root in project_config.source_roots]
     module_paths = sorted(
         (module.path for module in project_config.all_modules()),
         key=lambda path: len(path.split(".")),
@@ -292,10 +291,9 @@ def generate_modularity_report(
         commit=branch_info.commit,
         full_configuration=project_config.serialize_json(),
     )
-    source_roots = [project_root / root for root in project_config.source_roots]
 
     report.modules = build_modules(project_config)
-    report.usages = build_usages(project_root, source_roots, project_config)
+    report.usages = build_usages(project_root, project_config)
     exclude_paths = extend_and_validate(
         None, project_config.exclude, project_config.use_regex_matching
     )
