@@ -122,7 +122,7 @@ depends_on = [
 layer = "ui"
 
 [[modules]]
-paths = ["tach.test", "tach.sync", "tach.report", "tach.show", "tach.modularity", "tach.mod"]
+paths = ["tach.test", "tach.report", "tach.show", "tach.modularity", "tach.mod"]
 depends_on = []
 layer = "commands"
 
@@ -251,14 +251,6 @@ expose = [
 ]
 from = [
     "tach.start",
-]
-
-[[interfaces]]
-expose = [
-    "sync_project",
-]
-from = [
-    "tach.sync",
 ]
 
 [[interfaces]]

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import Mock, NonCallableMagicMock
+from unittest.mock import Mock
 
 import pytest
 
+from tach.extension import ProjectConfig
 from tach.report import external_dependency_report
 
 
 @pytest.fixture
 def project_config():
-    p = NonCallableMagicMock()
+    p = ProjectConfig()
     p.source_roots = [
         Path("src/pack-a/src"),
         Path("src/pack-b/src"),

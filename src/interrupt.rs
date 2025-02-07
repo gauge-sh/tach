@@ -67,12 +67,20 @@ pub fn setup_interrupt_handler() {
     .expect("Error setting Ctrl-C handler");
 }
 
+#[cfg(not(test))]
 pub fn check_interrupt() -> Result<(), &'static str> {
     if INTERRUPT_SIGNAL.load(Ordering::SeqCst) {
         Err("Operation cancelled by user")
     } else {
         Ok(())
     }
+}
+
+#[cfg(test)]
+pub fn check_interrupt() -> Result<(), &'static str> {
+    // This is the test implementation of check_interrupt,
+    // so that all tests outside of this module never receive an interrupt
+    Ok(())
 }
 
 pub fn get_interrupt_channel() -> Receiver<()> {
@@ -84,6 +92,21 @@ mod tests {
     use super::*;
     use rstest::*;
     use serial_test::serial;
+
+    mod real_interrupts {
+        use super::*;
+
+        // This is the real implementation of check_interrupt, specifically for this test module
+        pub(crate) fn check_interrupt() -> Result<(), &'static str> {
+            if INTERRUPT_SIGNAL.load(Ordering::SeqCst) {
+                Err("Operation cancelled by user")
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    use real_interrupts::check_interrupt;
 
     #[fixture]
     fn reset_interrupt_signal() {

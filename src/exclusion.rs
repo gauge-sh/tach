@@ -1,6 +1,4 @@
 use itertools::Itertools;
-use once_cell::sync::Lazy;
-use parking_lot::RwLock;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
@@ -26,31 +24,34 @@ pub enum PathExclusionError {
 
 pub type Result<T> = std::result::Result<T, PathExclusionError>;
 
+#[derive(Debug)]
 pub struct PathExclusions {
     project_root: PathBuf,
     patterns: Vec<PatternMatcher>,
 }
 
-static PATH_EXCLUSIONS_SINGLETON: Lazy<RwLock<Option<PathExclusions>>> =
-    Lazy::new(|| RwLock::new(None));
-
-pub fn set_excluded_paths(
-    project_root: &Path,
-    exclude_paths: &[PathBuf],
-    use_regex_matching: bool,
-) -> Result<()> {
-    let mut exclusions = PATH_EXCLUSIONS_SINGLETON.write();
-    *exclusions = Some(PathExclusions::try_from_with_mode(
-        project_root,
-        exclude_paths.into(),
-        use_regex_matching,
-    )?);
-    Ok(())
-}
-
 impl PathExclusions {
+    pub fn new<P: AsRef<Path>>(
+        project_root: P,
+        exclude_paths: &[String],
+        use_regex_matching: bool,
+    ) -> Result<Self> {
+        let mut patterns: Vec<PatternMatcher> = vec![];
+        for pattern in exclude_paths.iter() {
+            patterns.push(if use_regex_matching {
+                PatternMatcher::from_regex(pattern)?
+            } else {
+                PatternMatcher::from_glob(pattern)?
+            });
+        }
+        Ok(Self {
+            project_root: project_root.as_ref().to_path_buf(),
+            patterns,
+        })
+    }
+
     // Input MUST be an absolute path within the project root
-    fn is_path_excluded<P: AsRef<Path>>(&self, path: P) -> bool {
+    pub fn is_path_excluded<P: AsRef<Path>>(&self, path: P) -> bool {
         // This is for portability across OS
         // Exclude patterns in 'tach.toml' are universally written with forward slashes,
         // so we force our relative path to have forward slashes before checking for a match.
@@ -66,31 +67,4 @@ impl PathExclusions {
             .iter()
             .any(|p| p.matches(&path_with_forward_slashes))
     }
-
-    fn try_from_with_mode<P: AsRef<Path>>(
-        project_root: P,
-        from: Vec<PathBuf>,
-        use_regex_matching: bool,
-    ) -> Result<Self> {
-        let mut patterns: Vec<PatternMatcher> = vec![];
-        for pattern in from.iter() {
-            let pattern_str = pattern.to_str().unwrap();
-            patterns.push(if use_regex_matching {
-                PatternMatcher::from_regex(pattern_str)?
-            } else {
-                PatternMatcher::from_glob(pattern_str)?
-            });
-        }
-        Ok(Self {
-            project_root: project_root.as_ref().to_path_buf(),
-            patterns,
-        })
-    }
-}
-
-pub fn is_path_excluded<P: AsRef<Path>>(path: P) -> bool {
-    PATH_EXCLUSIONS_SINGLETON
-        .read()
-        .as_ref()
-        .is_some_and(|path_exclusions| path_exclusions.is_path_excluded(path))
 }

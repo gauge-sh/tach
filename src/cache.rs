@@ -7,6 +7,7 @@ use std::{env, fs};
 use thiserror::Error;
 use toml::Value;
 
+use crate::exclusion::PathExclusions;
 use crate::filesystem::{self, walk_pyfiles};
 
 #[derive(Error, Debug)]
@@ -134,8 +135,10 @@ pub fn create_computation_cache_key(
     env_dependencies: Vec<String>,
     _backend: String,
 ) -> String {
+    // Exclusions are not applied when building cache keys
+    let exclusions = PathExclusions::new(project_root, &[], false).unwrap();
     let source_pyfiles = source_roots.iter().flat_map(|root| {
-        walk_pyfiles(root.to_str().unwrap())
+        walk_pyfiles(root.to_str().unwrap(), &exclusions)
             .flat_map(move |path| fs::read(root.join(path)).unwrap())
     });
     let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());
@@ -155,7 +158,7 @@ pub fn create_computation_cache_key(
 }
 
 pub fn check_computation_cache(
-    project_root: String,
+    project_root: &PathBuf,
     cache_key: String,
 ) -> Result<Option<ComputationCacheValue>> {
     let cache = build_computation_cache(project_root)?;
@@ -164,7 +167,7 @@ pub fn check_computation_cache(
 }
 
 pub fn update_computation_cache(
-    project_root: String,
+    project_root: &PathBuf,
     cache_key: String,
     value: ComputationCacheValue,
 ) -> Result<Option<ComputationCacheValue>> {
