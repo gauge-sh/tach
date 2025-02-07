@@ -8,7 +8,14 @@ from urllib import error, request
 
 from tach.constants import GAUGE_API_BASE_URL
 from tach.extension import serialize_modules_json
-from tach.modularity import Module, Usage, build_modules, build_usages
+from tach.modularity import (
+    Module,
+    Usage,
+    UsageError,
+    build_diagnostics,
+    build_modules,
+    build_usages,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -22,6 +29,7 @@ if TYPE_CHECKING:
 class ShowReport:
     modules: list[Module]
     usages: list[Usage]
+    diagnostics: list[UsageError]
 
 
 def generate_show_report(
@@ -29,12 +37,19 @@ def generate_show_report(
     project_config: ProjectConfig,
     included_paths: list[Path],
 ) -> ShowReport:
-    modules = build_modules(project_config=project_config)
+    modules = build_modules(
+        project_config=project_config, included_paths=included_paths
+    )
     usages = build_usages(
         project_root=project_root,
         project_config=project_config,
+        included_paths=included_paths,
     )
-    return ShowReport(modules=modules, usages=usages)
+    diagnostics = build_diagnostics(
+        project_root=project_root,
+        project_config=project_config,
+    )
+    return ShowReport(modules=modules, usages=usages, diagnostics=diagnostics)
 
 
 def upload_show_report(
