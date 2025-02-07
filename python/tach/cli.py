@@ -8,6 +8,8 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from rich.console import Console
+
 from tach import __version__, cache, icons
 from tach import filesystem as fs
 from tach.check_external import check_external
@@ -49,22 +51,25 @@ from tach.test import run_affected_tests
 if TYPE_CHECKING:
     from tach.extension import UnusedDependencies
 
+console = Console(highlight=False)
+console_err = Console(highlight=False, stderr=True)
+
 
 def print_unused_dependencies(
     all_unused_dependencies: list[UnusedDependencies],
 ) -> None:
     constraint_messages = "\n".join(
-        f"\t{BCOLORS.WARNING}'{unused_dependencies.path}' does not depend on: {[dependency.path for dependency in unused_dependencies.dependencies]}{BCOLORS.ENDC}"
+        f"\t'{unused_dependencies.path}' does not depend on: {[dependency.path for dependency in unused_dependencies.dependencies]}"
         for unused_dependencies in all_unused_dependencies
     )
-    print(
-        f"{icons.FAIL}: {BCOLORS.FAIL}Found unused dependencies: {BCOLORS.ENDC}\n"
-        + constraint_messages
+    console.print(
+        f"{icons.FAIL}: [red]Found unused dependencies:[/]\n"
+        + f"[yellow]{constraint_messages}[/]"
     )
-    print(
-        f"{BCOLORS.WARNING}\nRemove the unused dependencies from {CONFIG_FILE_NAME}.toml, "
+    console.print(
+        f"\n[yellow]Remove the unused dependencies from {CONFIG_FILE_NAME}.toml, "
         f"or consider running '{TOOL_NAME} sync' to update module configuration and "
-        f"remove all unused dependencies.\n{BCOLORS.ENDC}"
+        f"remove all unused dependencies.[/]\n"
     )
 
 
@@ -72,34 +77,36 @@ def print_no_config_found(output_format: str = "text") -> None:
     if output_format == "json":
         json.dump({"error": "No config file found"}, sys.stdout)
     else:
-        print(
-            f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.toml not found. Do you need to run {BCOLORS.ENDC}'tach mod'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
-            file=sys.stderr,
+        console_err.print(
+            f"{CONFIG_FILE_NAME}.toml not found. Do you need to run [cyan]'tach mod'[/]?",
+            style="red",
         )
 
 
 def print_no_modules_found() -> None:
-    print(
-        f"{BCOLORS.FAIL} No modules defined in {CONFIG_FILE_NAME}.toml. Do you need to run {BCOLORS.ENDC}'tach mod'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
-        file=sys.stderr,
+    console_err.print(
+        f"No modules defined in {CONFIG_FILE_NAME}.toml. Do you need to run [cyan]'tach mod'[/]?",
+        style="red",
     )
 
 
 def print_no_dependencies_found() -> None:
-    print(
-        f"{BCOLORS.FAIL} No dependencies defined in {CONFIG_FILE_NAME}.toml. You may need to run {BCOLORS.ENDC}'tach sync'{BCOLORS.FAIL} or check your python source root.{BCOLORS.ENDC}",
-        file=sys.stderr,
+    console_err.print(
+        f"No dependencies defined in {CONFIG_FILE_NAME}.toml. You may need to run [cyan]'tach sync'[/] or check your python source root.",
+        style="red",
     )
 
 
 def print_show_web_suggestion(is_mermaid: bool = False) -> None:
     if is_mermaid:
-        print(
-            f"{BCOLORS.OKCYAN}NOTE: You are generating a Mermaid graph locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need to use Mermaid.js: https://mermaid.js.org/config/usage.html\n{BCOLORS.ENDC}"
+        console.print(
+            "NOTE: You are generating a Mermaid graph locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need to use Mermaid.js: https://mermaid.js.org/config/usage.html\n",
+            style="cyan",
         )
     else:
-        print(
-            f"{BCOLORS.OKCYAN}NOTE: You are generating a DOT file locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need a program like GraphViz: https://www.graphviz.org/download/\n{BCOLORS.ENDC}"
+        console.print(
+            "NOTE: You are generating a DOT file locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need a program like GraphViz: https://www.graphviz.org/download/\n",
+            style="cyan",
         )
 
 
@@ -107,12 +114,14 @@ def print_generated_module_graph_file(
     output_filepath: Path, is_mermaid: bool = False
 ) -> None:
     if is_mermaid:
-        print(
-            f"{BCOLORS.OKGREEN}Generated a Mermaid file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
+        console.print(
+            f"Generated a Mermaid file containing your module graph at '{output_filepath}'",
+            style="green",
         )
     else:
-        print(
-            f"{BCOLORS.OKGREEN}Generated a DOT file containing your module graph at '{output_filepath}'{BCOLORS.ENDC}"
+        console.print(
+            f"Generated a DOT file containing your module graph at '{output_filepath}'",
+            style="green",
         )
 
 
@@ -124,17 +133,16 @@ def print_circular_dependency_error(
             {"error": "Circular dependency", "dependencies": module_paths}, sys.stdout
         )
     else:
-        print(
+        console_err.print(
             "\n".join(
                 [
-                    f"{icons.FAIL} {BCOLORS.FAIL}Circular dependency detected for module {BCOLORS.ENDC}'{module_path}'"
+                    f"{icons.FAIL} [red]Circular dependency detected for module [/]'{module_path}'"
                     for module_path in module_paths
                 ]
             )
-            + f"\n\n{BCOLORS.WARNING}Resolve circular dependencies.\n"
+            + f"\n\n[yellow]Resolve circular dependencies.\n"
             f"Remove or unset 'forbid_circular_dependencies' from "
-            f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.{BCOLORS.ENDC}",
-            file=sys.stderr,
+            f"'{CONFIG_FILE_NAME}.toml' to allow circular dependencies.[/]",
         )
 
 
@@ -148,12 +156,11 @@ def print_visibility_errors(
         )
     else:
         for dependent_module, dependency_module, visibility in visibility_errors:
-            print(
-                f"{icons.FAIL} {BCOLORS.FAIL}Module configuration error:{BCOLORS.ENDC} {BCOLORS.WARNING}'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.{BCOLORS.ENDC}"
+            console_err.print(
+                f"{icons.FAIL} [red]Module configuration error:[/]{BCOLORS.ENDC} {BCOLORS.WARNING}'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.{BCOLORS.ENDC}"
                 "\n"
                 f"{BCOLORS.WARNING}Adjust 'visibility' for '{dependency_module}' to include '{dependent_module}', or remove the dependency.{BCOLORS.ENDC}"
                 "\n",
-                file=sys.stderr,
             )
 
 
@@ -554,7 +561,9 @@ def tach_check(
         sys.exit(1)
 
     if exit_code == 0 and output_format == "text":
-        print(f"{icons.SUCCESS} {BCOLORS.OKGREEN}All modules validated!{BCOLORS.ENDC}")
+        console.print(
+            f"{icons.SUCCESS} [green]All modules validated![/]", style="green"
+        )
     sys.exit(exit_code)
 
 
@@ -586,8 +595,9 @@ def tach_check_external(
         if has_errors:
             sys.exit(1)
         else:
-            print(
-                f"{icons.SUCCESS} {BCOLORS.OKGREEN}All external dependencies validated!{BCOLORS.ENDC}"
+            console.print(
+                f"{icons.SUCCESS} [green]All external dependencies validated![/]",
+                style="green",
             )
             sys.exit(0)
 
@@ -629,11 +639,12 @@ def tach_mod(
         sys.exit(1)
 
     if warnings:
-        print("\n".join(warnings))
+        console_err.print("\n".join(warnings))
     if saved_changes:
-        print(
-            f"{icons.SUCCESS} {BCOLORS.OKGREEN}Set modules! You may want to run '{TOOL_NAME} sync' "
-            f"to automatically set boundaries.{BCOLORS.ENDC}"
+        console.print(
+            f"{icons.SUCCESS} [green]Set modules! You may want to run '{TOOL_NAME} sync' "
+            f"to automatically set boundaries.[/]",
+            style="green",
         )
     sys.exit(0)
 
@@ -662,7 +673,7 @@ def tach_sync(
         print(str(e))
         sys.exit(1)
 
-    print(f"{icons.SUCCESS} {BCOLORS.OKGREEN}Synced dependencies.{BCOLORS.ENDC}")
+    console.print(f"{icons.SUCCESS} [green]Synced dependencies.[/]", style="green")
     sys.exit(0)
 
 
@@ -693,13 +704,15 @@ def tach_install(project_root: Path, target: InstallTarget) -> None:
         sys.exit(1)
 
     if installed:
-        print(
-            f"{icons.SUCCESS} {BCOLORS.OKGREEN}Pre-commit hook installed to '.git/hooks/pre-commit'.{BCOLORS.ENDC}"
+        console.print(
+            f"{icons.SUCCESS} [green]Pre-commit hook installed to '.git/hooks/pre-commit'.[/]",
+            style="green",
         )
         sys.exit(0)
     else:
-        print(
-            f"{BCOLORS.WARNING}Pre-commit hook could not be installed: {warning} {BCOLORS.ENDC}"
+        console.print(
+            f"[yellow]Pre-commit hook could not be installed: {warning}[/]",
+            style="yellow",
         )
         sys.exit(1)
 
@@ -786,8 +799,9 @@ def tach_show(
     )
 
     if is_web and is_mermaid:
-        print(
-            f"{BCOLORS.WARNING}Passing --web generates a remote graph; ignoring '--mermaid' flag.{BCOLORS.ENDC}"
+        console.print(
+            "[yellow]Passing --web generates a remote graph; ignoring '--mermaid' flag.[/]",
+            style="yellow",
         )
 
     if project_config.has_no_modules():
@@ -804,8 +818,8 @@ def tach_show(
         if is_web:
             result = generate_show_url(project_config, included_paths=included_paths)
             if result:
-                print("View your dependency graph here:")
-                print(result)
+                console.print("View your dependency graph here:")
+                console.print(result)
                 sys.exit(0)
             else:
                 sys.exit(1)
@@ -883,12 +897,14 @@ def tach_test(
         )
         if cached_output.exists:
             # Early exit, cached terminal output was found
-            print(
-                f"{BCOLORS.OKGREEN}============ Cached results found!  ============{BCOLORS.ENDC}"
+            console.print(
+                f"{BCOLORS.OKGREEN}============ Cached results found!  ============{BCOLORS.ENDC}",
+                style="green",
             )
             cached_output.replay()
-            print(
-                f"{BCOLORS.OKGREEN}============ END Cached results  ============{BCOLORS.ENDC}"
+            console.print(
+                f"{BCOLORS.OKGREEN}============ END Cached results  ============{BCOLORS.ENDC}",
+                style="green",
             )
             sys.exit(cached_output.exit_code)
 
@@ -1005,7 +1021,8 @@ def tach_init(project_root: Path, force: bool = False):
     try:
         init_project(project_root, force=force)
     except TachError as e:
-        print(f"Failed to initialize project: {e}")
+        # Error may contain rich markup
+        console_err.print(str(e))
         sys.exit(1)
 
 
@@ -1036,9 +1053,10 @@ def main() -> None:
 
     latest_version = cache.get_latest_version()
     if latest_version and current_version_is_behind(latest_version):
-        print(
-            f"{BCOLORS.WARNING}WARNING: there is a new {TOOL_NAME} version available"
-            f" ({__version__} -> {latest_version}). Upgrade to remove this warning.{BCOLORS.ENDC}"
+        console.print(
+            f"WARNING: there is a new {TOOL_NAME} version available"
+            f" ({__version__} -> {latest_version}). Upgrade to remove this warning.",
+            style="yellow",
         )
 
     exclude_paths = args.exclude.split(",") if getattr(args, "exclude", None) else None
@@ -1070,21 +1088,23 @@ def main() -> None:
 
     # Deprecation warnings
     if project_config.use_regex_matching:
-        print(
-            f"{BCOLORS.WARNING}WARNING: regex matching for exclude paths is deprecated. "
-            + f"Update your exclude paths in {CONFIG_FILE_NAME}.toml to use glob patterns instead, and remove the 'use_regex_matching' setting.{BCOLORS.ENDC}"
-            + "\n"
+        console.print(
+            "WARNING: regex matching for exclude paths is deprecated. "
+            + f"Update your exclude paths in {CONFIG_FILE_NAME}.toml to use glob patterns instead, and remove the 'use_regex_matching' setting."
+            + "\n",
+            style="yellow",
         )
     if (
         project_config.root_module == "ignore"
         and project_config.has_root_module_reference()
     ):
-        print(
-            f"{BCOLORS.WARNING}WARNING: root module treatment is set to 'ignore' (default as of 0.23.0), but '<root>' appears in your configuration."
+        console.print(
+            "WARNING: root module treatment is set to 'ignore' (default as of 0.23.0), but '<root>' appears in your configuration."
             + f"\n\nRun '{TOOL_NAME} sync' to remove the root module from your dependencies,"
             + f" or update 'root_module' in {CONFIG_FILE_NAME}.toml to 'allow' or 'forbid' instead."
             + f"\nDocumentation: https://docs.gauge.sh/usage/configuration#the-root-module{BCOLORS.ENDC}"
-            + "\n"
+            + "\n",
+            style="yellow",
         )
 
     # Exclude paths on the CLI extend those from the project config
