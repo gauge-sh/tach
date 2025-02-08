@@ -71,7 +71,7 @@ def show_project(project_config: ProjectConfig):
         show_url = generate_show_url(project_config)
         if show_url:
             console.print(
-                "[green]View your dependency graph here:[/]\n"
+                "\n[cyan]View your dependency graph here:[/]\n"
                 f"[blue underline]{show_url}[/]"
             )
         else:
@@ -144,12 +144,13 @@ def init_project(project_root: Path, force: bool = False):
     try:
         project_config = setup_modules(project_root, project_config)
     except errors.TachInitCancelledError:
+        console.print("[yellow]Initialization cancelled.[/]")
         return
 
     show_project(project_config)
 
     console.print(
-        "[yellow]Tach is now configured for this project!"
-        " You can run [cyan]'tach check'[/] to validate your configuration.[/]\n"
-        "[yellow]Documentation is available at [blue underline]https://docs.gauge.sh[/]"
+        "\n[green]Tach is now configured for this project!"
+        " Run [cyan]'tach check'[/] to validate your configuration.[/]\n\n"
+        "[green]Full documentation is available at [blue underline]https://docs.gauge.sh[/]"
     )
