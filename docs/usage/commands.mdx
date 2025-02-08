@@ -2,9 +2,26 @@
 title: Commands
 ---
 
+## tach init
+
+Tach provides a guided setup process in `tach init`. This command will provide guidance and perform validation,
+while walking through `tach mod`, `tach sync` and `tach show`.
+
+New users should start with this command.
+
+```bash
+usage: tach init [-h] [--force]
+
+Initialize a new project
+
+options:
+  -h, --help  show this help message and exit
+  --force     Force re-initialization if project is already configured.
+```
+
 ## tach mod
 
-Tach comes bundled with a command to set up your initial boundaries - `tach mod`.
+Tach provides an interactive editor for configuring your module boundaries - `tach mod`.
 
 ```bash
 usage: tach mod [-h] [-d [DEPTH]] [-e file_or_path,...]
