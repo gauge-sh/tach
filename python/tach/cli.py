@@ -8,12 +8,11 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from rich.console import Console
-
 from tach import __version__, cache, icons
 from tach import filesystem as fs
 from tach.check_external import check_external
 from tach.colors import BCOLORS
+from tach.console import console, console_err
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.errors import (
     TachCircularDependencyError,
@@ -51,8 +50,16 @@ from tach.test import run_affected_tests
 if TYPE_CHECKING:
     from tach.extension import UnusedDependencies
 
-console = Console(highlight=False)
-console_err = Console(highlight=False, stderr=True)
+
+import signal
+
+
+def handle_sigint(_signum: int, _frame: Any) -> None:
+    print("Exiting...")
+    sys.exit(1)
+
+
+signal.signal(signal.SIGINT, handle_sigint)
 
 
 def print_unused_dependencies(

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 
 from tach import errors
 from tach import filesystem as fs
+from tach.console import console
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.extension import ProjectConfig, parse_project_config, sync_project
 from tach.mod import mod_edit_interactive
@@ -15,8 +15,6 @@ from tach.show import generate_show_url
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-console = Console()
 
 
 def mark_modules(project_root: Path, project_config: ProjectConfig) -> ProjectConfig:
@@ -97,9 +95,16 @@ def setup_modules(project_root: Path, project_config: ProjectConfig) -> ProjectC
     return project_config
 
 
-def init_project(project_root: Path, force: bool = False):
+def get_all_existing_config_files(project_root: Path) -> list[Path]:
     current_config_path = fs.get_project_config_path(project_root)
-    if current_config_path:
+    return list(
+        filter(None, (current_config_path, *project_root.rglob("tach.domain.toml")))
+    )
+
+
+def init_project(project_root: Path, force: bool = False):
+    config_files = get_all_existing_config_files(project_root)
+    if config_files:
         if not force:
             raise errors.TachError(
                 f"[yellow]Project already initialized. Use [cyan]`{TOOL_NAME} init --force`[/] to reinitialize.[/]"
@@ -115,15 +120,24 @@ def init_project(project_root: Path, force: bool = False):
 
         if Confirm.ask("", default=False, show_default=False):
             try:
-                current_config_path.unlink()
-                for domain_file in project_root.rglob("tach.domain.toml"):
-                    domain_file.unlink()
+                for config_file in config_files:
+                    config_file.unlink()
             except OSError:
                 raise errors.TachError("[red]Failed to remove configuration file.[/]")
         else:
             raise errors.TachError(
                 "[red]Refusing to overwrite existing project configuration.[/]"
             )
+
+    console.print(
+        Panel(
+            "Welcome to Tach! Let's get started by selecting the modules you want to include in your project.\n"
+            "We will use [cyan]'tach mod'[/] to interactively mark which files or folders should be tracked. You can learn more at [blue underline]https://docs.gauge.sh/usage/faq[/]",
+            style="yellow",
+        )
+    )
+    console.print("\nPress [cyan]'Enter'[/] to get started.", style="cyan")
+    console.input()
 
     project_config = ProjectConfig()
 
