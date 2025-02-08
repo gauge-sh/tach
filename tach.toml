@@ -29,6 +29,16 @@ depends_on = [
 layer = "ui"
 
 [[modules]]
+path = "tach.init"
+depends_on = ["tach.show", "tach.mod"]
+layer = "commands"
+
+[[modules]]
+path = "tach.console"
+depends_on = []
+utility = true
+
+[[modules]]
 path = "tach.cache"
 depends_on = [
     "tach",
