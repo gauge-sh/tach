@@ -23,7 +23,8 @@ Tach is inspired by the [modular monolith](https://www.milanjovanovic.tech/blog/
 Here's an example:
 
 
-![tach_demo_1_16_25](https://github.com/user-attachments/assets/88770da4-f71b-41a9-9526-27b76a2d49d7)
+![tach_latest_demo](https://github.com/user-attachments/assets/012aa1e7-49a5-476e-8ee0-b43654e4beb4)
+
 
 Tach can enforce:
 
