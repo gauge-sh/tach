@@ -57,7 +57,9 @@ def print_unused_dependencies(
     )
 
 
-def print_no_config_found(output_format: str = "text", *, config_file_name: str = CONFIG_FILE_NAME) -> None:
+def print_no_config_found(
+    output_format: str = "text", *, config_file_name: str = CONFIG_FILE_NAME
+) -> None:
     if output_format == "json":
         json.dump({"error": "No config file found"}, sys.stdout)
     else:
@@ -1065,7 +1067,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
 
     # All other commands require project config
     if project_config is None:
-        print_no_config_found(config_file_name)
+        print_no_config_found(config_file_name=config_file_name)
         sys.exit(1)
 
     # Deprecation warnings
