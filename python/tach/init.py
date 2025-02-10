@@ -11,7 +11,7 @@ from tach.console import console
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.extension import ProjectConfig, parse_project_config, sync_project
 from tach.mod import mod_edit_interactive
-from tach.show import generate_show_url
+from tach.show import upload_show_report
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -66,9 +66,9 @@ def prompt_to_show_project() -> bool:
     return Confirm.ask("", default=False, show_default=False)
 
 
-def show_project(project_config: ProjectConfig):
+def show_project(project_config: ProjectConfig, project_root: Path):
     if prompt_to_show_project():
-        show_url = generate_show_url(project_config)
+        show_url = upload_show_report(project_root, project_config, included_paths=[])
         if show_url:
             console.print(
                 "\n[cyan]View your dependency graph here:[/]\n"
@@ -147,7 +147,7 @@ def init_project(project_root: Path, force: bool = False):
         console.print("[yellow]Initialization cancelled.[/]")
         return
 
-    show_project(project_config)
+    show_project(project_config, project_root)
 
     console.print(
         "\n[green]Tach is now configured for this project!"

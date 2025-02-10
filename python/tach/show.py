@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from urllib import error, request
 
 from tach.constants import GAUGE_API_BASE_URL
-from tach.extension import serialize_modules_json
 from tach.modularity import (
     Module,
     Usage,
@@ -81,36 +80,6 @@ def upload_show_report(
         return None
 
 
-def generate_show_url(
-    project_config: ProjectConfig,
-    included_paths: list[Path] | None = None,
-) -> str | None:
-    included_paths = included_paths or []
-    modules = project_config.filtered_modules(included_paths)
-    for module in modules:
-        if module.depends_on is None:
-            # This is a hack to avoid bumping the API version
-            module.depends_on = []
-    json_data = serialize_modules_json(modules)
-    json_bytes = json_data.encode("utf-8")
-    req = request.Request(
-        f"{GAUGE_API_BASE_URL}/api/show/graph/1.3",
-        data=json_bytes,
-        headers={"Content-Type": "application/json"},
-    )
-
-    try:
-        # Send the request and read the response
-        with request.urlopen(req) as response:
-            response_data = response.read().decode("utf-8")
-            response_json = json.loads(response_data)
-            uid = response_json.get("uid")
-            return f"{GAUGE_API_BASE_URL}/show?uid={uid}"
-    except (UnicodeDecodeError, JSONDecodeError, error.URLError) as e:
-        print(f"Error: {e}")
-        return None
-
-
 def generate_module_graph_dot_file(
     project_config: ProjectConfig,
     output_filepath: Path,
@@ -162,7 +131,7 @@ def generate_module_graph_mermaid(
 
 
 __all__ = [
-    "generate_show_url",
+    "upload_show_report",
     "generate_module_graph_dot_file",
     "generate_module_graph_mermaid",
 ]
