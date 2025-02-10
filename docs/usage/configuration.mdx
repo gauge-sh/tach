@@ -456,22 +456,14 @@ In most cases you should not need to specify `rename` manually (see the Note bel
 
 ## Rules
 
-Tach allows configuring the severity of certain issues.
+Tach allows configuring the severity of certain issues. Each entry in the `rules` table can be set to `error`, `warn`, or `off`.
 
-The `unused_ignore_directives` rule determines whether unnecessary [`tach-ignore`](tach-ignore) comments trigger a warning, an error, or nothing at all.
+The available rules and their defaults are listed below.
 
-Example:
-```py
-# tach-ignore valid_import_fn
-from other.valid import valid_import_fn
-```
+- `unused_ignore_directives` (**default**: `warn`): catch `tach-ignore` comments which are unused (e.g. do not suppress any errors or warnings)
+- `require_ignore_directive_reasons` (**default**: `off`): require every `tach-ignore` comment to have a reason
+- `unused_external_dependencies` (**default**: `error`): catch declared 3rd party dependencies which are not imported in your code
 
-```toml
-[rules]
-# "warn" is the default for this rule,
-# other options are "error", "off"
-unused_ignore_directives = "warn"
-```
 
 ## Cache
 
