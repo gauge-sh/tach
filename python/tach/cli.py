@@ -1063,11 +1063,10 @@ def try_parse_project_config(
 def main(argv: list[str] = sys.argv[1:]) -> None:
     args, parser = parse_arguments(argv)
     project_root = fs.find_project_config_root() or Path.cwd()
-
     using_custom_config = args.command == "server" and args.config
     config_file_name = CONFIG_FILE_NAME if not using_custom_config else args.config.stem
     if using_custom_config:
-        project_root = args.config.parent
+        project_root = args.config.parent.resolve()
         project_config = try_parse_project_config(
             project_root, file_name=args.config.stem
         )
