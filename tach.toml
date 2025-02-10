@@ -19,7 +19,7 @@ forbid_circular_dependencies = true
 
 [[modules]]
 path = "tach"
-depends_on = []
+depends_on = ["tach.filesystem", "tach.extension", "tach.show", "tach.mod"]
 
 [[modules]]
 path = "tach.__main__"
@@ -122,7 +122,7 @@ depends_on = [
 layer = "ui"
 
 [[modules]]
-paths = ["tach.test", "tach.sync", "tach.report", "tach.show", "tach.modularity", "tach.mod"]
+paths = ["tach.test", "tach.report", "tach.show", "tach.modularity", "tach.mod"]
 depends_on = []
 layer = "commands"
 
