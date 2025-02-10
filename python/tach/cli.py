@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from tach import __version__, cache, icons
+from tach import __version__, cache, extension, icons
 from tach import filesystem as fs
 from tach.check_external import check_external
 from tach.colors import BCOLORS
@@ -22,18 +22,7 @@ from tach.errors import (
     TachSetupError,
     TachVisibilityError,
 )
-from tach.extension import (
-    ProjectConfig,
-    check,
-    check_computation_cache,
-    create_computation_cache_key,
-    detect_unused_dependencies,
-    format_diagnostics,
-    run_server,
-    serialize_diagnostics_json,
-    sync_project,
-    update_computation_cache,
-)
+from tach.extension import ProjectConfig
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.logging import CallInfo, init_logging, logger
@@ -80,12 +69,14 @@ def print_unused_dependencies(
     )
 
 
-def print_no_config_found(output_format: str = "text") -> None:
+def print_no_config_found(
+    output_format: str = "text", *, config_file_name: str = CONFIG_FILE_NAME
+) -> None:
     if output_format == "json":
         json.dump({"error": "No config file found"}, sys.stdout)
     else:
         console_err.print(
-            f"{CONFIG_FILE_NAME}.toml not found. Do you need to run [cyan]'tach mod'[/]?",
+            f"{config_file_name}.toml not found. Do you need to run [cyan]'tach mod'[/]?",
             style="red",
         )
 
@@ -427,13 +418,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     ## tach server
-    subparsers.add_parser(
+    server_parser = subparsers.add_parser(
         "server",
         prog=f"{TOOL_NAME} server",
         help="Start the Language Server Protocol (LSP) server",
         description="Start the Language Server Protocol (LSP) server",
     )
-
+    server_parser.add_argument(
+        "-c",
+        "--config",
+        type=Path,
+        nargs="?",
+        default=None,
+        help="Path to the config file",
+    )
     ## tach init
     init_parser = subparsers.add_parser(
         "init",
@@ -479,7 +477,7 @@ class CachedOutput:
 def check_cache_for_action(
     project_root: Path, project_config: ProjectConfig, action: str
 ) -> CachedOutput:
-    cache_key = create_computation_cache_key(
+    cache_key = extension.create_computation_cache_key(
         project_root=project_root,
         source_roots=[
             project_root / source_root for source_root in project_config.source_roots
@@ -490,7 +488,7 @@ def check_cache_for_action(
         env_dependencies=project_config.cache.env_dependencies,
         backend=project_config.cache.backend,
     )
-    cache_result = check_computation_cache(
+    cache_result = extension.check_computation_cache(
         project_root=project_root, cache_key=cache_key
     )
     if cache_result:
@@ -522,7 +520,7 @@ def tach_check(
     try:
         exact |= project_config.exact
 
-        diagnostics = check(
+        diagnostics = extension.check(
             project_root=project_root,
             project_config=project_config,
             dependencies=dependencies,
@@ -532,21 +530,25 @@ def tach_check(
 
         if output_format == "json":
             try:
-                print(serialize_diagnostics_json(diagnostics, pretty_print=True))
+                print(
+                    extension.serialize_diagnostics_json(diagnostics, pretty_print=True)
+                )
             except ValueError as e:
                 json.dump({"error": str(e)}, sys.stdout)
             sys.exit(1 if has_errors else 0)
 
         if diagnostics:
             print(
-                format_diagnostics(project_root=project_root, diagnostics=diagnostics),
+                extension.format_diagnostics(
+                    project_root=project_root, diagnostics=diagnostics
+                ),
                 file=sys.stderr,
             )
         exit_code = 1 if has_errors else 0
 
         # If we're checking in exact mode, we want to verify that there are no unused dependencies
         if dependencies and exact:
-            unused_dependencies = detect_unused_dependencies(
+            unused_dependencies = extension.detect_unused_dependencies(
                 project_root=project_root,
                 project_config=project_config,
             )
@@ -591,10 +593,11 @@ def tach_check_external(
             project_root=project_root,
             project_config=project_config,
         )
-
         if diagnostics:
             print(
-                format_diagnostics(project_root=project_root, diagnostics=diagnostics),
+                extension.format_diagnostics(
+                    project_root=project_root, diagnostics=diagnostics
+                ),
                 file=sys.stderr,
             )
 
@@ -671,7 +674,7 @@ def tach_sync(
         },
     )
     try:
-        sync_project(
+        extension.sync_project(
             project_root=project_root,
             project_config=project_config,
             add=add,
@@ -926,7 +929,7 @@ def tach_test(
         )
 
         if results.tests_ran_to_completion:
-            update_computation_cache(
+            extension.update_computation_cache(
                 project_root,
                 cache_key=cached_output.key,
                 value=(
@@ -1006,7 +1009,10 @@ def tach_upload(
         sys.exit(1)
 
 
-def tach_server(project_config: ProjectConfig, project_root: Path):
+def tach_server(
+    project_config: ProjectConfig,
+    project_root: Path,
+) -> None:
     logger.info(
         "tach server called",
         extra={
@@ -1014,7 +1020,7 @@ def tach_server(project_config: ProjectConfig, project_root: Path):
         },
     )
     try:
-        run_server(project_root, project_config)
+        extension.run_server(project_root, project_config)
     except TachSetupError as e:
         print(f"Failed to setup LSP server: {e}")
         sys.exit(1)
@@ -1042,18 +1048,30 @@ def current_version_is_behind(latest_version: str) -> bool:
         return False
 
 
-def try_parse_project_config(project_root: Path) -> ProjectConfig | None:
+def try_parse_project_config(
+    project_root: Path,
+    *,
+    file_name: str = CONFIG_FILE_NAME,
+) -> ProjectConfig | None:
     try:
-        return parse_project_config(project_root)
+        return parse_project_config(project_root, file_name=file_name)
     except Exception as e:
         print(f"Failed to parse project config: {e}")
         sys.exit(1)
 
 
-def main() -> None:
-    args, parser = parse_arguments(sys.argv[1:])
+def main(argv: list[str] = sys.argv[1:]) -> None:
+    args, parser = parse_arguments(argv)
     project_root = fs.find_project_config_root() or Path.cwd()
-    project_config = try_parse_project_config(project_root)
+    using_custom_config = args.command == "server" and args.config
+    config_file_name = CONFIG_FILE_NAME if not using_custom_config else args.config.stem
+    if using_custom_config:
+        project_root = args.config.parent.resolve()
+        project_config = try_parse_project_config(
+            project_root, file_name=args.config.stem
+        )
+    else:
+        project_config = try_parse_project_config(project_root)
 
     if project_config is None or not project_config.disable_logging:
         init_logging(project_root)
@@ -1090,7 +1108,7 @@ def main() -> None:
 
     # All other commands require project config
     if project_config is None:
-        print_no_config_found()
+        print_no_config_found(config_file_name=config_file_name)
         sys.exit(1)
 
     # Deprecation warnings
@@ -1201,7 +1219,10 @@ def main() -> None:
             force=args.force,
         )
     elif args.command == "server":
-        tach_server(project_config=project_config, project_root=project_root)
+        tach_server(
+            project_config=project_config,
+            project_root=project_root,
+        )
     else:
         print("Unrecognized command")
         parser.print_help()
