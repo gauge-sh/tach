@@ -15,7 +15,7 @@ from tach.colors import BCOLORS
 from tach.console import console, console_err
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.errors import (
-    TachCircularDependencyError,
+    TachCircularDependencyError,  # tach-ignore(ok)
     TachClosedBetaError,
     TachConfigError,
     TachError,
