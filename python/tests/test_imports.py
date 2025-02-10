@@ -6,8 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from tach.constants import DEFAULT_EXCLUDE_PATHS
-from tach.extension import get_project_imports, set_excluded_paths
+from tach.extension import ProjectConfig, get_project_imports
+
+
+def _get_project_imports(*args, **kwargs):
+    result = get_project_imports(*args, **kwargs)
+    return list(map(lambda x: (x.module_path, x.line_number), result))
 
 
 # Utility function to create temporary files with content
@@ -19,13 +23,19 @@ def create_temp_file(directory, filename, content):
 
 
 @pytest.fixture
+def mock_project_config():
+    config = ProjectConfig()
+    config.exclude = []
+    config.use_regex_matching = False
+    config.ignore_type_checking_imports = True
+    config.include_string_imports = False
+    return config
+
+
+@pytest.fixture
 def temp_project():
     with tempfile.TemporaryDirectory() as project_root:
         project_root = Path(project_root)
-        # This is tech debt!!
-        set_excluded_paths(
-            str(project_root), DEFAULT_EXCLUDE_PATHS, use_regex_matching=True
-        )
 
         # Creating some sample Python files in a nested structure
         (project_root / "a" / "b").mkdir(parents=True, exist_ok=True)
@@ -80,51 +90,52 @@ import file3
         yield project_root
 
 
-def test_regular_imports(temp_project):
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "file1.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+def test_regular_imports(temp_project, mock_project_config):
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "file1.py",
+        mock_project_config,
     )
     expected = [("local.file2.b", 3)]
     assert result == expected
 
 
-def test_relative_imports(temp_project):
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "local/file2.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+def test_relative_imports(temp_project, mock_project_config):
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "local/file2.py",
+        mock_project_config,
     )
     expected = [("file1.y", 2)]
     assert result == expected
 
 
-def test_ignore_type_checking_imports(temp_project):
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "file3.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+def test_ignore_type_checking_imports(temp_project, mock_project_config):
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "file3.py",
+        mock_project_config,
     )
     expected = []
     assert result == expected
 
 
-def test_include_type_checking_imports(temp_project):
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "file3.py"),
-        ignore_type_checking_imports=False,
-        include_string_imports=False,
+def test_include_type_checking_imports(temp_project, mock_project_config):
+    mock_project_config.ignore_type_checking_imports = False
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "file3.py",
+        mock_project_config,
     )
     expected = [("local.file2.c", 3)]
     assert result == expected
 
 
-def test_mixed_imports(temp_project):
+def test_mixed_imports(temp_project, mock_project_config):
     mixed_content = """
 import sys
 if TYPE_CHECKING:
@@ -132,53 +143,54 @@ if TYPE_CHECKING:
 from ..file1 import x
 """
     create_temp_file(temp_project, "local/file4.py", mixed_content)
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "local/file4.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "local/file4.py",
+        mock_project_config,
     )
     expected = [("file1.x", 5)]
     assert result == expected
 
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "local/file4.py"),
-        ignore_type_checking_imports=False,
-        include_string_imports=False,
+    mock_project_config.ignore_type_checking_imports = False
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "local/file4.py",
+        mock_project_config,
     )
     expected = [("local.file2.c", 4), ("file1.x", 5)]
     assert result == expected
 
 
-def test_external_imports(temp_project):
+def test_external_imports(temp_project, mock_project_config):
     external_content = """
 import os
 from external_module import something
 """
     create_temp_file(temp_project, "file5.py", external_content)
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "file5.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "file5.py",
+        mock_project_config,
     )
     expected = []  # 'os' and 'external_module' are not within the project root
     assert result == expected
 
 
-def test_external_and_internal_imports(temp_project):
+def test_external_and_internal_imports(temp_project, mock_project_config):
     mixed_content = """
 import os
 from file1 import c
 from external_module import something
 """
     create_temp_file(temp_project, "file6.py", mixed_content)
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "file6.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "file6.py",
+        mock_project_config,
     )
     expected = [
         ("file1.c", 3),
@@ -186,12 +198,12 @@ from external_module import something
     assert result == expected
 
 
-def test_ignored_imports(temp_project):
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "file4.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+def test_ignored_imports(temp_project, mock_project_config):
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "file4.py",
+        mock_project_config,
     )
     expected = [
         ("local.g.h.j", 7),  # only 'i' is ignored, 'j' is included
@@ -201,7 +213,7 @@ def test_ignored_imports(temp_project):
     assert result == expected
 
 
-def test_file_outside_source_root(temp_project, tmp_path):
+def test_file_outside_source_root(temp_project, tmp_path, mock_project_config):
     mixed_content = """
 import os
 from file1 import c
@@ -211,11 +223,11 @@ from external_module import something
     path_outside_source_root = tmp_path / "outside_src_root.py"
     path_outside_source_root.write_text(mixed_content)
 
-    result = get_project_imports(
-        [str(temp_project)],
-        str(path_outside_source_root),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        path_outside_source_root,
+        mock_project_config,
     )
     expected = [
         ("file1.c", 3),
@@ -223,7 +235,7 @@ from external_module import something
     assert result == expected
 
 
-def test_relative_import_from_parent(temp_project):
+def test_relative_import_from_parent(temp_project, mock_project_config):
     # Create a nested directory structure
     (temp_project / "parent" / "child").mkdir(parents=True, exist_ok=True)
 
@@ -245,17 +257,17 @@ def child_function():
         temp_project / "parent" / "child", "child_module.py", child_file_content
     )
 
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "parent" / "child" / "child_module.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "parent" / "child" / "child_module.py",
+        mock_project_config,
     )
     expected = [("parent.parent_module", 2)]
     assert result == expected
 
 
-def test_ignore_comments(temp_project):
+def test_ignore_comments(temp_project, mock_project_config):
     """Test different variations of tach-ignore comments"""
     content = """
 # tach-ignore(skip all imports on next line)
@@ -269,11 +281,11 @@ from local.m.n import k, l
 """
     create_temp_file(temp_project, "ignore_test.py", content)
 
-    result = get_project_imports(
-        [str(temp_project)],
-        str(temp_project / "ignore_test.py"),
-        ignore_type_checking_imports=True,
-        include_string_imports=False,
+    result = _get_project_imports(
+        temp_project,
+        [temp_project],
+        temp_project / "ignore_test.py",
+        mock_project_config,
     )
     expected = [
         ("local.g.h.j", 6),  # only 'i' is ignored

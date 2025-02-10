@@ -13,7 +13,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
 use crate::config::ModuleConfig;
-use crate::exclusion::is_path_excluded;
+use crate::exclusion::PathExclusions;
 
 #[derive(Error, Debug)]
 pub enum FileSystemError {
@@ -227,6 +227,15 @@ pub fn module_path_is_included_in_paths(
     })
 }
 
+pub fn is_project_import<P: AsRef<Path>>(
+    source_roots: &[P],
+    mod_path: &str,
+    exclusions: &PathExclusions,
+) -> bool {
+    let resolved_module = module_to_file_path(source_roots, mod_path, true);
+    resolved_module.is_some_and(|module| !exclusions.is_path_excluded(&module.file_path))
+}
+
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     let mut file = fs::File::open(path.as_ref())?;
     let mut content = String::new();
@@ -242,8 +251,8 @@ fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-fn direntry_is_excluded(entry: &DirEntry) -> bool {
-    is_path_excluded(entry.path())
+fn direntry_is_excluded(entry: &DirEntry, exclusions: &PathExclusions) -> bool {
+    exclusions.is_path_excluded(entry.path())
 }
 
 fn direntry_is_tach_project(entry: &DirEntry) -> bool {
@@ -260,11 +269,49 @@ fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
     }
 }
 
-pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
+#[derive(Debug)]
+pub struct ProjectFile<'a> {
+    pub project_root: &'a Path,
+    pub source_root: &'a Path,
+    pub file_path: PathBuf,
+    pub relative_file_path: PathBuf,
+    pub contents: String,
+}
+
+impl<'a> ProjectFile<'a> {
+    pub fn try_new(
+        project_root: &'a Path,
+        source_root: &'a Path,
+        file_path: &'a Path,
+    ) -> Result<Self> {
+        let absolute_file_path = source_root.join(file_path);
+        let contents = read_file_content(&absolute_file_path)?;
+        Ok(Self {
+            project_root,
+            source_root,
+            relative_file_path: relative_to(&absolute_file_path, project_root)?,
+            file_path: absolute_file_path,
+            contents,
+        })
+    }
+}
+
+impl AsRef<Path> for ProjectFile<'_> {
+    fn as_ref(&self) -> &Path {
+        &self.file_path
+    }
+}
+
+pub fn walk_pyfiles<'a>(
+    root: &str,
+    exclusions: &'a PathExclusions,
+) -> impl Iterator<Item = PathBuf> + 'a {
     let prefix_root = root.to_string();
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e) && is_pyfile_or_dir(e))
+        .filter_entry(|e| {
+            !is_hidden(e) && !direntry_is_excluded(e, exclusions) && is_pyfile_or_dir(e)
+        })
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
         .map(move |entry| {
@@ -276,10 +323,13 @@ pub fn walk_pyfiles(root: &str) -> impl Iterator<Item = PathBuf> {
         })
 }
 
-pub fn walk_pyprojects(root: &str) -> impl Iterator<Item = PathBuf> {
+pub fn walk_pyprojects<'a>(
+    root: &str,
+    exclusions: &'a PathExclusions,
+) -> impl Iterator<Item = PathBuf> + 'a {
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e))
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file())
         .filter(|entry| entry.file_name() == "pyproject.toml")

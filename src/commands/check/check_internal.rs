@@ -1,167 +1,118 @@
-use super::checks::{
-    check_import_internal, check_missing_ignore_directive_reason,
-    check_unused_ignore_directive_internal,
-};
-use super::error::CheckError;
-use crate::diagnostics::{CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails};
-use crate::filesystem::relative_to;
-
 use std::{
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::atomic::{AtomicBool, Ordering},
-    sync::Arc,
 };
 
 use rayon::prelude::*;
 
-use crate::modules::error::ModuleTreeError;
+use super::error::CheckError;
 use crate::{
-    config::{root_module::RootModuleTreatment, ProjectConfig},
-    exclusion::set_excluded_paths,
-    filesystem as fs,
-    imports::{get_project_imports, ImportParseError},
-    interfaces::InterfaceChecker,
+    checks::{IgnoreDirectivePostProcessor, InterfaceChecker, InternalDependencyChecker},
+    config::ProjectConfig,
+    diagnostics::{
+        ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
+        DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
+    },
+    exclusion::PathExclusions,
+    filesystem::{self as fs, ProjectFile},
     interrupt::check_interrupt,
     modules::{build_module_tree, ModuleTree},
+    processors::{FileModule, InternalDependencyExtractor},
 };
 
 pub type Result<T> = std::result::Result<T, CheckError>;
 
-fn process_file(
-    file_path: PathBuf,
-    project_root: &Path,
-    source_root: &Path,
-    source_roots: &[PathBuf],
-    module_tree: &ModuleTree,
-    project_config: &ProjectConfig,
-    interface_checker: &Option<InterfaceChecker>,
-    check_dependencies: bool,
-    found_imports: &AtomicBool,
-) -> Result<Vec<Diagnostic>> {
-    let abs_file_path = &source_root.join(&file_path);
-    let relative_file_path = relative_to(abs_file_path, project_root)?;
-    let mod_path = fs::file_to_module_path(source_roots, abs_file_path)?;
-    let nearest_module = module_tree
-        .find_nearest(&mod_path)
-        .ok_or(CheckError::ModuleTree(ModuleTreeError::ModuleNotFound(
-            mod_path.to_string(),
-        )))?;
+struct CheckInternalPipeline<'a> {
+    found_imports: &'a AtomicBool,
+    dependency_extractor: InternalDependencyExtractor<'a>,
+    dependency_checker: Option<InternalDependencyChecker<'a>>,
+    interface_checker: Option<InterfaceChecker<'a>>,
+    ignore_directive_post_processor: IgnoreDirectivePostProcessor<'a>,
+}
 
-    if nearest_module.is_unchecked() {
-        return Ok(vec![]);
-    }
-
-    if nearest_module.is_root() && project_config.root_module == RootModuleTreatment::Ignore {
-        return Ok(vec![]);
-    }
-
-    let mut diagnostics = vec![];
-    let project_imports = match get_project_imports(
-        source_roots,
-        abs_file_path,
-        project_config.ignore_type_checking_imports,
-        project_config.include_string_imports,
-    ) {
-        Ok(project_imports) => {
-            if !project_imports.imports.is_empty() && !found_imports.load(Ordering::Relaxed) {
-                // Only attempt to write if we haven't found imports yet.
-                // This avoids any potential lock contention.
-                found_imports.store(true, Ordering::Relaxed);
-            }
-            project_imports
-        }
-        Err(ImportParseError::Parsing { .. }) => {
-            return Ok(vec![Diagnostic::new_global_warning(
-                DiagnosticDetails::Configuration(ConfigurationDiagnostic::SkippedFileSyntaxError {
-                    file_path: relative_file_path.display().to_string(),
-                }),
-            )]);
-        }
-        Err(ImportParseError::Filesystem(_)) => {
-            return Ok(vec![Diagnostic::new_global_warning(
-                DiagnosticDetails::Configuration(ConfigurationDiagnostic::SkippedFileIoError {
-                    file_path: relative_file_path.display().to_string(),
-                }),
-            )]);
-        }
-    };
-
-    project_imports.active_imports().for_each(|import| {
-        if let Err(import_diagnostics) = check_import_internal(
-            &import.module_path,
-            module_tree,
-            Arc::clone(&nearest_module),
-            &project_config.layers,
-            project_config.root_module.clone(),
-            interface_checker,
-            check_dependencies,
-        ) {
-            import_diagnostics
-                .into_iter()
-                .for_each(|diagnostic| match &diagnostic {
-                    Diagnostic::Global {
-                        details: DiagnosticDetails::Code(_),
-                        ..
-                    } => {
-                        diagnostics.push(
-                            diagnostic.into_located(relative_file_path.clone(), import.line_no),
-                        );
-                    }
-                    Diagnostic::Global {
-                        details: DiagnosticDetails::Configuration(_),
-                        ..
-                    } => {
-                        diagnostics.push(diagnostic);
-                    }
-                    _ => {}
-                });
-        }
-    });
-
-    project_imports
-        .directive_ignored_imports()
-        .for_each(|directive_ignored_import| {
-            match check_unused_ignore_directive_internal(
-                &directive_ignored_import,
+impl<'a> CheckInternalPipeline<'a> {
+    pub fn new(
+        project_config: &'a ProjectConfig,
+        source_roots: &'a [PathBuf],
+        module_tree: &'a ModuleTree,
+        exclusions: &'a PathExclusions,
+        found_imports: &'a AtomicBool,
+    ) -> Self {
+        Self {
+            found_imports,
+            dependency_extractor: InternalDependencyExtractor::new(
+                source_roots,
                 module_tree,
-                Arc::clone(&nearest_module),
                 project_config,
-                interface_checker,
-                check_dependencies,
-            ) {
-                Ok(()) => {}
-                Err(diagnostic) => {
-                    diagnostics.push(diagnostic.into_located(
-                        relative_file_path.clone(),
-                        directive_ignored_import.import.line_no,
-                    ));
-                }
-            }
-            match check_missing_ignore_directive_reason(&directive_ignored_import, project_config) {
-                Ok(()) => {}
-                Err(diagnostic) => {
-                    diagnostics.push(diagnostic.into_located(
-                        relative_file_path.clone(),
-                        directive_ignored_import.import.line_no,
-                    ));
-                }
-            }
-        });
+                exclusions,
+            ),
+            dependency_checker: None,
+            interface_checker: None,
+            ignore_directive_post_processor: IgnoreDirectivePostProcessor::new(project_config),
+        }
+    }
 
-    project_imports
-        .unused_ignore_directives()
-        .for_each(|ignore_directive| {
-            if let Ok(severity) = (&project_config.rules.unused_ignore_directives).try_into() {
-                diagnostics.push(Diagnostic::new_located(
-                    severity,
-                    DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
-                    relative_file_path.clone(),
-                    ignore_directive.line_no,
-                ));
-            }
-        });
+    pub fn with_dependency_checker(
+        mut self,
+        dependency_checker: Option<InternalDependencyChecker<'a>>,
+    ) -> Self {
+        self.dependency_checker = dependency_checker;
+        self
+    }
 
-    Ok(diagnostics)
+    pub fn with_interface_checker(
+        mut self,
+        interface_checker: Option<InterfaceChecker<'a>>,
+    ) -> Self {
+        self.interface_checker = interface_checker;
+        self
+    }
+}
+
+impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckInternalPipeline<'a> {
+    type ProcessedFile = FileModule<'a>;
+
+    fn process(&'a self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
+        let file_module = self.dependency_extractor.process(file_path)?;
+
+        if file_module.imports().peekable().peek().is_some()
+            && !self.found_imports.load(Ordering::Relaxed)
+        {
+            // Only attempt to write if we haven't found imports yet.
+            // This avoids any potential lock contention.
+            self.found_imports.store(true, Ordering::Relaxed);
+        }
+
+        Ok(file_module)
+    }
+}
+
+impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
+    type ProcessedFile = FileModule<'a>;
+    type Output = Vec<Diagnostic>;
+
+    fn check(&'a self, processed_file: &Self::ProcessedFile) -> DiagnosticResult<Self::Output> {
+        let mut diagnostics = Vec::new();
+        diagnostics.extend(
+            self.dependency_checker
+                .as_ref()
+                .map_or(Ok(vec![]), |checker| checker.check(processed_file))?,
+        );
+
+        diagnostics.extend(
+            self.interface_checker
+                .as_ref()
+                .map_or(Ok(vec![]), |checker| checker.check(processed_file))?,
+        );
+
+        self.ignore_directive_post_processor.process_diagnostics(
+            &processed_file.ignore_directives,
+            &mut diagnostics,
+            processed_file.relative_file_path(),
+        );
+
+        Ok(diagnostics)
+    }
 }
 
 pub fn check(
@@ -169,7 +120,6 @@ pub fn check(
     project_config: &ProjectConfig,
     dependencies: bool,
     interfaces: bool,
-    exclude_paths: Vec<String>,
 ) -> Result<Vec<Diagnostic>> {
     if !dependencies && !interfaces {
         return Err(CheckError::NoChecksEnabled());
@@ -183,7 +133,6 @@ pub fn check(
 
     let mut warnings = Vec::new();
     let found_imports = AtomicBool::new(false);
-    let exclude_paths = exclude_paths.iter().map(PathBuf::from).collect::<Vec<_>>();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
     let (valid_modules, invalid_modules) = fs::validate_project_modules(
         &source_roots,
@@ -206,23 +155,37 @@ pub fn check(
         project_config.root_module.clone(),
     )?;
 
-    set_excluded_paths(
-        Path::new(&project_root),
-        &exclude_paths,
-        project_config.use_regex_matching,
-    )?;
+    let dependency_checker = if dependencies {
+        Some(InternalDependencyChecker::new(project_config, &module_tree))
+    } else {
+        None
+    };
 
     let interface_checker = if interfaces {
-        let interface_checker =
-            InterfaceChecker::new(&project_config.all_interfaces().cloned().collect::<Vec<_>>());
+        let interface_checker = InterfaceChecker::new(project_config, &module_tree);
         // This is expensive
         Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
     } else {
         None
     };
 
+    let exclusions = PathExclusions::new(
+        &project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
+    let pipeline = CheckInternalPipeline::new(
+        project_config,
+        &source_roots,
+        &module_tree,
+        &exclusions,
+        &found_imports,
+    )
+    .with_dependency_checker(dependency_checker)
+    .with_interface_checker(interface_checker);
+
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
-        fs::walk_pyfiles(&source_root.display().to_string())
+        fs::walk_pyfiles(&source_root.display().to_string(), &exclusions)
             .par_bridge()
             .flat_map(|file_path| {
                 if check_interrupt().is_err() {
@@ -231,18 +194,49 @@ pub fn check(
                     // Then, we check for an interrupt right after, and return the Err if it is set
                     return vec![];
                 }
-                process_file(
-                    file_path,
-                    &project_root,
-                    source_root,
-                    &source_roots,
-                    &module_tree,
-                    project_config,
-                    &interface_checker,
-                    dependencies,
-                    &found_imports,
-                )
-                .unwrap_or_default()
+
+                let project_file =
+                    match ProjectFile::try_new(&project_root, source_root, &file_path) {
+                        Ok(project_file) => project_file,
+                        Err(_) => {
+                            return vec![Diagnostic::new_global_warning(
+                                DiagnosticDetails::Configuration(
+                                    ConfigurationDiagnostic::SkippedFileIoError {
+                                        file_path: file_path.display().to_string(),
+                                    },
+                                ),
+                            )]
+                        }
+                    };
+
+                match pipeline.diagnostics(project_file) {
+                    Ok(diagnostics) => diagnostics,
+                    Err(DiagnosticError::Io(_)) | Err(DiagnosticError::Filesystem(_)) => {
+                        vec![Diagnostic::new_global_warning(
+                            DiagnosticDetails::Configuration(
+                                ConfigurationDiagnostic::SkippedFileIoError {
+                                    file_path: file_path.display().to_string(),
+                                },
+                            ),
+                        )]
+                    }
+                    Err(DiagnosticError::ImportParse(_)) => {
+                        vec![Diagnostic::new_global_warning(
+                            DiagnosticDetails::Configuration(
+                                ConfigurationDiagnostic::SkippedFileSyntaxError {
+                                    file_path: file_path.display().to_string(),
+                                },
+                            ),
+                        )]
+                    }
+                    Err(_) => vec![Diagnostic::new_global_warning(
+                        DiagnosticDetails::Configuration(
+                            ConfigurationDiagnostic::SkippedUnknownError {
+                                file_path: file_path.display().to_string(),
+                            },
+                        ),
+                    )],
+                }
             })
     });
 

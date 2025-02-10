@@ -1,0 +1,7 @@
+[root]
+depends_on = []
+layer = "mid"
+
+[[interfaces]]
+expose = []
+from = ["<domain_root>"]

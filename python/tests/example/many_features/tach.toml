@@ -1,0 +1,37 @@
+exclude = ["src", "**/tests"]
+exact = true
+forbid_circular_dependencies = true
+
+source_roots = [
+    "real_src",
+    "other_src_root"
+]
+
+layers = [
+    "high",
+    "mid",
+    "low",
+    "lowest",
+    "hightest"
+]
+
+[[modules]]
+path = "module4"
+depends_on = []
+layer = "hightest"
+
+[[modules]]
+path = "module2"
+depends_on = []
+layer = "high"
+
+[[modules]]
+path = "outer_module"
+unchecked = true
+
+[rules]
+unused_ignore_directives = "error"
+require_ignore_directive_reasons = "warn"
+
+[plugins.django]
+settings_module = "django_settings"

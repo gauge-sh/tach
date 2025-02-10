@@ -7,8 +7,9 @@ use thiserror::Error;
 
 use crate::config::{ModuleConfig, ProjectConfig};
 use crate::filesystem::{self as fs};
-use crate::imports::get_project_imports;
 use crate::modules::{build_module_tree, ModuleTree};
+
+use super::helpers::import::get_located_project_imports;
 
 #[derive(Error, Debug)]
 pub enum TestError {
@@ -22,7 +23,9 @@ pub type Result<T> = std::result::Result<T, TestError>;
 
 #[pyclass(module = "tach.extension")]
 pub struct TachPytestPluginHandler {
+    project_root: PathBuf,
     source_roots: Vec<PathBuf>,
+    project_config: ProjectConfig,
     module_tree: ModuleTree,
     affected_modules: HashSet<String>,
     #[pyo3(get)]
@@ -40,7 +43,7 @@ impl TachPytestPluginHandler {
     #[new]
     fn new(
         project_root: PathBuf,
-        project_config: &ProjectConfig,
+        project_config: ProjectConfig,
         changed_files: Vec<PathBuf>,
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
@@ -66,11 +69,13 @@ impl TachPytestPluginHandler {
         .unwrap();
 
         let affected_modules =
-            get_affected_modules(&project_root, project_config, changed_files, &module_tree)
+            get_affected_modules(&project_root, &project_config, changed_files, &module_tree)
                 .unwrap();
 
         Self {
+            project_root,
             source_roots,
+            project_config,
             module_tree,
             affected_modules,
             all_affected_modules,
@@ -85,13 +90,17 @@ impl TachPytestPluginHandler {
     }
 
     pub fn should_remove_items(&self, file_path: PathBuf) -> bool {
-        // TODO: Remove unwrap
-        let project_imports =
-            get_project_imports(&self.source_roots, &file_path, true, false).unwrap();
+        let project_imports = get_located_project_imports(
+            &self.project_root,
+            &self.source_roots,
+            &file_path,
+            &self.project_config,
+        )
+        .unwrap_or_default();
         let mut should_remove = true;
 
-        for import in project_imports.imports {
-            if let Some(nearest_module) = self.module_tree.find_nearest(&import.module_path) {
+        for import in project_imports {
+            if let Some(nearest_module) = self.module_tree.find_nearest(import.module_path()) {
                 if self.affected_modules.contains(&nearest_module.full_path) {
                     // If the module is affected, break early and don't remove the item
                     should_remove = false;

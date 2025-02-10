@@ -163,13 +163,8 @@ impl LSPServer {
         eprintln!("Linting for diagnostics: {uri_pathbuf:?}");
         eprintln!("Project root: {}", self.project_root.display());
 
-        let check_result = check_internal(
-            self.project_root.clone(),
-            &self.project_config,
-            true,
-            true,
-            self.project_config.exclude.clone(),
-        )?;
+        let check_result =
+            check_internal(self.project_root.clone(), &self.project_config, true, true)?;
         let diagnostics = check_result
             .into_iter()
             .filter_map(|e| {

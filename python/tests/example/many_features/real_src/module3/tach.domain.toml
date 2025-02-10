@@ -1,0 +1,13 @@
+[root]
+depends_on = []
+layer = "low"
+
+[[modules]]
+path = "submodule1"
+depends_on = []
+layer = "low"
+utility = true
+
+[[interfaces]]
+expose = ["content"]
+from = ["<domain_root>"]

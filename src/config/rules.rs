@@ -19,11 +19,11 @@ impl RuleSetting {
         *self == Self::Warn
     }
 
-    fn _error() -> Self {
+    fn error() -> Self {
         Self::Error
     }
 
-    fn _is_error(&self) -> bool {
+    fn is_error(&self) -> bool {
         *self == Self::Error
     }
 
@@ -31,7 +31,7 @@ impl RuleSetting {
         Self::Off
     }
 
-    fn is_off(&self) -> bool {
+    pub fn is_off(&self) -> bool {
         *self == Self::Off
     }
 }
@@ -59,6 +59,11 @@ pub struct RulesConfig {
         skip_serializing_if = "RuleSetting::is_off"
     )]
     pub require_ignore_directive_reasons: RuleSetting,
+    #[serde(
+        default = "RuleSetting::error",
+        skip_serializing_if = "RuleSetting::is_error"
+    )]
+    pub unused_external_dependencies: RuleSetting,
 }
 
 impl Default for RulesConfig {
@@ -66,6 +71,7 @@ impl Default for RulesConfig {
         Self {
             unused_ignore_directives: RuleSetting::warn(),
             require_ignore_directive_reasons: RuleSetting::off(),
+            unused_external_dependencies: RuleSetting::error(),
         }
     }
 }

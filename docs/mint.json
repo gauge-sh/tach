@@ -51,6 +51,7 @@
         "usage/commands",
         "usage/configuration",
         "usage/interfaces",
+        "usage/layers",
         "usage/deprecate",
         "usage/tach-ignore",
         "usage/unchecked-modules",

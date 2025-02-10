@@ -1,4 +1,5 @@
 pub mod cache;
+pub mod checks;
 pub mod cli;
 pub mod colors;
 pub mod commands;
@@ -7,7 +8,6 @@ pub mod diagnostics;
 pub mod exclusion;
 pub mod external;
 pub mod filesystem;
-pub mod imports;
 pub mod interfaces;
 pub mod interrupt;
 pub mod lsp;
@@ -15,6 +15,7 @@ pub mod modularity;
 pub mod modules;
 pub mod parsing;
 pub mod pattern;
+pub mod processors;
 pub mod python;
 pub mod tests;
 
@@ -33,10 +34,10 @@ mod errors {
     pyo3::import_exception!(tach.errors, TachSetupError);
 }
 
-impl From<imports::ImportParseError> for PyErr {
-    fn from(err: imports::ImportParseError) -> Self {
+impl From<processors::import::ImportParseError> for PyErr {
+    fn from(err: processors::import::ImportParseError) -> Self {
         match err {
-            imports::ImportParseError::Parsing { file: _, source: _ } => {
+            processors::import::ImportParseError::Parsing { file: _, source: _ } => {
                 PySyntaxError::new_err(err.to_string())
             }
             _ => PyOSError::new_err(err.to_string()),
@@ -65,12 +66,6 @@ impl From<cache::CacheError> for PyErr {
     }
 }
 
-impl From<check::ExternalCheckError> for PyErr {
-    fn from(err: check::ExternalCheckError) -> Self {
-        PyOSError::new_err(err.to_string())
-    }
-}
-
 impl From<check::CheckError> for PyErr {
     fn from(err: check::CheckError) -> Self {
         match err {
@@ -94,6 +89,7 @@ impl From<python::error::ParsingError> for PyErr {
             }
             python::error::ParsingError::Io(err) => PyOSError::new_err(err.to_string()),
             python::error::ParsingError::Filesystem(err) => PyOSError::new_err(err.to_string()),
+            python::error::ParsingError::InvalidSyntax => PySyntaxError::new_err(err.to_string()),
         }
     }
 }
@@ -155,7 +151,6 @@ impl IntoPy<PyObject> for modules::error::VisibilityErrorInfo {
 
 /// Parse project config
 #[pyfunction]
-#[pyo3(signature = (filepath))]
 fn parse_project_config(
     filepath: PathBuf,
 ) -> parsing::config::Result<(config::ProjectConfig, bool)> {
@@ -171,89 +166,46 @@ fn dump_project_config_to_toml(
     parsing::config::dump_project_config_to_toml(config).map_err(sync::SyncError::TomlSerialize)
 }
 
-#[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
-fn get_normalized_imports(
-    source_roots: Vec<String>,
-    file_path: String,
-    ignore_type_checking_imports: bool,
-    include_string_imports: bool,
-) -> imports::Result<Vec<imports::NormalizedImport>> {
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    let file_path = PathBuf::from(file_path);
-    Ok(imports::get_normalized_imports(
-        &source_roots,
-        &file_path,
-        ignore_type_checking_imports,
-        include_string_imports,
-    )?
-    .into_active_imports()
-    .imports)
-}
-
 /// Get first-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false, include_string_imports=false))]
 fn get_project_imports(
-    source_roots: Vec<String>,
-    file_path: String,
-    ignore_type_checking_imports: bool,
-    include_string_imports: bool,
-) -> imports::Result<Vec<imports::NormalizedImport>> {
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    let file_path = PathBuf::from(file_path);
-    Ok(imports::get_project_imports(
+    project_root: PathBuf,
+    source_roots: Vec<PathBuf>,
+    file_path: PathBuf,
+    project_config: config::ProjectConfig,
+) -> processors::import::Result<Vec<processors::import::LocatedImport>> {
+    commands::helpers::import::get_located_project_imports(
+        &project_root,
         &source_roots,
         &file_path,
-        ignore_type_checking_imports,
-        include_string_imports,
-    )?
-    .into_active_imports()
-    .imports)
+        &project_config,
+    )
 }
 
 /// Get third-party imports from file_path
 #[pyfunction]
-#[pyo3(signature = (source_roots, file_path, ignore_type_checking_imports=false))]
 fn get_external_imports(
-    source_roots: Vec<String>,
-    file_path: String,
-    ignore_type_checking_imports: bool,
-) -> imports::Result<Vec<imports::NormalizedImport>> {
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
-    let file_path = PathBuf::from(file_path);
-    Ok(
-        imports::get_external_imports(&source_roots, &file_path, ignore_type_checking_imports)?
-            .into_active_imports()
-            .imports,
+    project_root: PathBuf,
+    source_roots: Vec<PathBuf>,
+    file_path: PathBuf,
+    project_config: config::ProjectConfig,
+) -> processors::import::Result<Vec<processors::import::LocatedImport>> {
+    commands::helpers::import::get_located_external_imports(
+        &project_root,
+        &source_roots,
+        &file_path,
+        &project_config,
     )
-}
-
-/// Set excluded paths globally.
-/// This is called separately in order to set up a singleton instance holding regex/glob patterns,
-/// since they would be expensive to build for every call.
-#[pyfunction]
-#[pyo3(signature = (project_root, exclude_paths, use_regex_matching))]
-fn set_excluded_paths(
-    project_root: String,
-    exclude_paths: Vec<String>,
-    use_regex_matching: bool,
-) -> exclusion::Result<()> {
-    let project_root = PathBuf::from(project_root);
-    let exclude_paths: Vec<PathBuf> = exclude_paths.iter().map(PathBuf::from).collect();
-    exclusion::set_excluded_paths(&project_root, &exclude_paths, use_regex_matching)
 }
 
 /// Validate external dependency imports against pyproject.toml dependencies
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, module_mappings, stdlib_modules))]
 fn check_external_dependencies(
-    project_root: String,
+    project_root: PathBuf,
     project_config: config::ProjectConfig,
     module_mappings: HashMap<String, Vec<String>>,
     stdlib_modules: Vec<String>,
 ) -> check::check_external::Result<Vec<diagnostics::Diagnostic>> {
-    let project_root = PathBuf::from(project_root);
     check::check_external::check(
         &project_root,
         &project_config,
@@ -266,21 +218,19 @@ fn check_external_dependencies(
 #[pyfunction]
 #[pyo3(signature = (project_root, project_config, path, include_dependency_modules, include_usage_modules, skip_dependencies, skip_usages, raw))]
 fn create_dependency_report(
-    project_root: String,
+    project_root: PathBuf,
     project_config: &config::ProjectConfig,
-    path: String,
+    path: PathBuf,
     include_dependency_modules: Option<Vec<String>>,
     include_usage_modules: Option<Vec<String>>,
     skip_dependencies: bool,
     skip_usages: bool,
     raw: bool,
 ) -> report::Result<String> {
-    let project_root = PathBuf::from(project_root);
-    let file_path = PathBuf::from(path);
     report::create_dependency_report(
         &project_root,
         project_config,
-        &file_path,
+        &path,
         include_dependency_modules,
         include_usage_modules,
         skip_dependencies,
@@ -290,18 +240,15 @@ fn create_dependency_report(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, source_roots, action, py_interpreter_version, file_dependencies, env_dependencies, backend))]
 fn create_computation_cache_key(
-    project_root: String,
-    source_roots: Vec<String>,
+    project_root: PathBuf,
+    source_roots: Vec<PathBuf>,
     action: String,
     py_interpreter_version: String,
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     backend: String,
 ) -> String {
-    let project_root = PathBuf::from(project_root);
-    let source_roots: Vec<PathBuf> = source_roots.iter().map(PathBuf::from).collect();
     cache::create_computation_cache_key(
         &project_root,
         &source_roots,
@@ -314,40 +261,31 @@ fn create_computation_cache_key(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, cache_key))]
 fn check_computation_cache(
-    project_root: String,
+    project_root: PathBuf,
     cache_key: String,
 ) -> cache::Result<Option<cache::ComputationCacheValue>> {
-    cache::check_computation_cache(project_root, cache_key)
+    cache::check_computation_cache(&project_root, cache_key)
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, cache_key, value))]
 fn update_computation_cache(
-    project_root: String,
+    project_root: PathBuf,
     cache_key: String,
     value: cache::ComputationCacheValue,
 ) -> cache::Result<Option<cache::ComputationCacheValue>> {
-    cache::update_computation_cache(project_root, cache_key, value)
+    cache::update_computation_cache(&project_root, cache_key, value)
 }
 
 #[pyfunction]
-#[pyo3(name = "check", signature = (project_root, project_config, dependencies, interfaces, exclude_paths))]
+#[pyo3(name = "check")]
 fn check_internal(
     project_root: PathBuf,
     project_config: &config::ProjectConfig,
     dependencies: bool,
     interfaces: bool,
-    exclude_paths: Vec<String>,
 ) -> check::check_internal::Result<Vec<diagnostics::Diagnostic>> {
-    check::check_internal(
-        project_root,
-        project_config,
-        dependencies,
-        interfaces,
-        exclude_paths,
-    )
+    check::check_internal(project_root, project_config, dependencies, interfaces)
 }
 
 #[pyfunction]
@@ -359,28 +297,24 @@ pub fn format_diagnostics(
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, exclude_paths))]
 fn detect_unused_dependencies(
     project_root: PathBuf,
     project_config: &mut config::ProjectConfig,
-    exclude_paths: Vec<String>,
 ) -> Result<Vec<sync::UnusedDependencies>, sync::SyncError> {
-    sync::detect_unused_dependencies(project_root, project_config, exclude_paths)
+    sync::detect_unused_dependencies(project_root, project_config)
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config, exclude_paths, add))]
+#[pyo3(signature = (project_root, project_config, add = false))]
 pub fn sync_project(
     project_root: PathBuf,
     project_config: config::ProjectConfig,
-    exclude_paths: Vec<String>,
     add: bool,
 ) -> Result<(), sync::SyncError> {
-    sync::sync_project(project_root, project_config, exclude_paths, add)
+    sync::sync_project(project_root, project_config, add)
 }
 
 #[pyfunction]
-#[pyo3(signature = (project_root, project_config))]
 fn run_server(
     project_root: PathBuf,
     project_config: config::ProjectConfig,
@@ -389,7 +323,6 @@ fn run_server(
 }
 
 #[pyfunction]
-#[pyo3(signature = (modules))]
 fn serialize_modules_json(modules: Vec<config::ModuleConfig>) -> String {
     config::serialize_modules_json(&modules)
 }
@@ -408,8 +341,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(get_normalized_imports, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(set_excluded_paths, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_external_dependencies, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_dependency_report, m)?)?;
     m.add_function(wrap_pyfunction_bound!(create_computation_cache_key, m)?)?;

@@ -29,10 +29,10 @@ pub struct CompiledInterfaces {
     interfaces: Vec<CompiledInterface>,
 }
 
-impl CompiledInterfaces {
-    pub fn build(interfaces: &[InterfaceConfig]) -> Self {
+impl<'a> CompiledInterfaces {
+    pub fn build(interfaces: impl IntoIterator<Item = &'a InterfaceConfig>) -> Self {
         let compiled = interfaces
-            .iter()
+            .into_iter()
             .map(|interface| CompiledInterface {
                 data_types: interface.data_types.clone(),
                 from_modules: interface

@@ -30,7 +30,7 @@ pub fn extract_dependencies(toml_value: &Value) -> HashSet<String> {
     let has_project_deps = toml_value
         .get("project")
         .and_then(|p| p.get("dependencies"))
-        .map_or(false, |deps| {
+        .is_some_and(|deps| {
             extract_deps_from_value(&mut dependencies, deps);
             true
         });

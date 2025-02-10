@@ -252,14 +252,13 @@ def build_usages(
         )
         pyfile_containing_module = get_containing_module(pyfile_mod_path)
         imports = get_project_imports(
-            source_roots=list(map(str, source_roots)),
-            file_path=str(project_root / pyfile),
-            ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-            include_string_imports=project_config.include_string_imports,
+            project_root=project_root,
+            source_roots=source_roots,
+            file_path=pyfile,
+            project_config=project_config,
         )
         for project_import in imports:
-            import_mod_path, line = project_import
-            import_containing_module = get_containing_module(import_mod_path)
+            import_containing_module = get_containing_module(project_import.module_path)
             if (
                 import_containing_module is None
                 or import_containing_module == pyfile_containing_module
@@ -269,9 +268,9 @@ def build_usages(
             usages.append(
                 Usage(
                     module_path=import_containing_module,
-                    full_path=import_mod_path,
+                    full_path=project_import.module_path,
                     filepath=str(pyfile),
-                    line=line,
+                    line=project_import.line_number,
                     containing_module_path=pyfile_containing_module,
                 )
             )
@@ -297,13 +296,12 @@ def generate_modularity_report(
 
     report.modules = build_modules(project_config)
     report.usages = build_usages(project_root, source_roots, project_config)
-    exclude_paths = extend_and_validate(
+    project_config.exclude = extend_and_validate(
         None, project_config.exclude, project_config.use_regex_matching
     )
     check_diagnostics = check(
         project_root=project_root,
         project_config=project_config,
-        exclude_paths=exclude_paths,
         dependencies=True,
         interfaces=True,
     )

@@ -108,7 +108,6 @@ def test_report_valid_domain_two(example_valid_dir):
     )
 
     dependencies, usages = result.split("Usages of 'domain_two'")
-    assert "domain_four.ok" in dependencies
     assert "domain_three.x" in dependencies
     assert "domain_two.x" in usages
 

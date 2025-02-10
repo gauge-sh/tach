@@ -47,7 +47,7 @@ impl ModuleNode {
     }
 
     pub fn is_unchecked(&self) -> bool {
-        self.config.as_ref().map_or(false, |c| c.unchecked)
+        self.config.as_ref().is_some_and(|c| c.unchecked)
     }
 
     pub fn fill(&mut self, config: ModuleConfig, full_path: String) {

@@ -3,6 +3,7 @@ use regex;
 
 use crate::exclusion::PathExclusionError;
 
+#[derive(Debug)]
 pub enum PatternMatcher {
     Regex(regex::Regex),
     Glob(glob::Pattern),

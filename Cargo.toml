@@ -1,6 +1,6 @@
 [package]
 name = "tach"
-version = "0.24.0"
+version = "0.25.1"
 edition = "2021"
 
 [lib]
@@ -16,6 +16,8 @@ walkdir = "2.5.0"
 ruff_python_ast = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
 ruff_python_parser = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
 ruff_linter = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
+ruff_source_file = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
+ruff_text_size = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
 cached = { version = "0.54.0", features = ["disk_store"] }
 globset = "0.4.15"
 toml = "0.8.19"
@@ -32,8 +34,9 @@ ctrlc = "3.4.5"
 rayon = "1.10.0"
 parking_lot = "0.12.3"
 itertools = "0.14.0"
-toml_edit = "0.22.22"
+toml_edit = "0.22.23"
 console = "0.15.10"
+dashmap = { version = "6.1.0", features = ["inline"] }
 
 [features]
 extension-module = ["pyo3/extension-module"]
