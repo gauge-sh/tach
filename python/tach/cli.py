@@ -57,12 +57,12 @@ def print_unused_dependencies(
     )
 
 
-def print_no_config_found(output_format: str = "text") -> None:
+def print_no_config_found(output_format: str = "text", *, config_file_name: str = CONFIG_FILE_NAME) -> None:
     if output_format == "json":
         json.dump({"error": "No config file found"}, sys.stdout)
     else:
         print(
-            f"{BCOLORS.FAIL} {CONFIG_FILE_NAME}.toml not found. Do you need to run {BCOLORS.ENDC}'tach mod'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
+            f"{BCOLORS.FAIL} {config_file_name}.toml not found. Do you need to run {BCOLORS.ENDC}'tach mod'{BCOLORS.FAIL}?{BCOLORS.ENDC}",
             file=sys.stderr,
         )
 
@@ -1024,9 +1024,12 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
     args, parser = parse_arguments(argv)
     project_root = fs.find_project_config_root() or Path.cwd()
 
-    if args.command == "server" and args.config:
+    using_custom_config = args.command == "server" and args.config
+    config_file_name = CONFIG_FILE_NAME if not using_custom_config else args.config.stem
+    if using_custom_config:
+        project_root = args.config.parent
         project_config = try_parse_project_config(
-            args.config.parent, file_name=args.config.stem
+            project_root, file_name=args.config.stem
         )
     else:
         project_config = try_parse_project_config(project_root)
@@ -1062,7 +1065,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
 
     # All other commands require project config
     if project_config is None:
-        print_no_config_found()
+        print_no_config_found(config_file_name)
         sys.exit(1)
 
     # Deprecation warnings
