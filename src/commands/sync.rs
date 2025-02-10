@@ -83,18 +83,11 @@ pub struct UnusedDependencies {
 pub fn detect_unused_dependencies(
     project_root: PathBuf,
     project_config: &mut ProjectConfig,
-    exclude_paths: Vec<String>,
 ) -> Result<Vec<UnusedDependencies>, SyncError> {
     // This is a shortcut to finding all cross-module dependencies
     // TODO: dedicated function
     let cleared_project_config = project_config.with_dependencies_removed();
-    let check_result = check_internal(
-        project_root,
-        &cleared_project_config,
-        true,
-        false,
-        exclude_paths,
-    )?;
+    let check_result = check_internal(project_root, &cleared_project_config, true, false)?;
     let detected_dependencies = detect_dependencies(&check_result);
 
     let mut unused_dependencies: Vec<UnusedDependencies> = vec![];
@@ -134,19 +127,12 @@ pub fn detect_unused_dependencies(
 fn sync_dependency_constraints(
     project_root: PathBuf,
     project_config: &mut ProjectConfig,
-    exclude_paths: Vec<String>,
     prune: bool,
 ) -> Result<(), SyncError> {
     // This is a shortcut to finding all cross-module dependencies
     // TODO: dedicated function
     let cleared_project_config = project_config.with_dependencies_removed();
-    let check_result = check_internal(
-        project_root,
-        &cleared_project_config,
-        true,
-        false,
-        exclude_paths,
-    )?;
+    let check_result = check_internal(project_root, &cleared_project_config, true, false)?;
     let detected_dependencies = detect_dependencies(&check_result);
 
     // Root module is a special case -- it may not be in module paths and still implicitly detect dependencies
@@ -223,11 +209,10 @@ fn sync_dependency_constraints(
 pub fn sync_project(
     project_root: PathBuf,
     mut project_config: ProjectConfig,
-    exclude_paths: Vec<String>,
     add: bool,
 ) -> Result<(), SyncError> {
     // This may queue edits to the project config
-    sync_dependency_constraints(project_root, &mut project_config, exclude_paths, !add)?;
+    sync_dependency_constraints(project_root, &mut project_config, !add)?;
 
     project_config.apply_edits()?;
 

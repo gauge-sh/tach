@@ -83,8 +83,9 @@ def upload_show_report(
 
 def generate_show_url(
     project_config: ProjectConfig,
-    included_paths: list[Path],
+    included_paths: list[Path] | None = None,
 ) -> str | None:
+    included_paths = included_paths or []
     modules = project_config.filtered_modules(included_paths)
     for module in modules:
         if module.depends_on is None:

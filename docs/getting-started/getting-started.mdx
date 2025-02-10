@@ -10,40 +10,22 @@ pip install tach
 
 ### Setup
 
-Tach allows you to configure where you want to place module boundaries in your project.
+Tach will guide you through initial project setup.
 
-You can do this interactively - run:
-
+Run:
 ```bash
- tach mod
-# Up/Down: Navigate  Enter: Mark/unmark module  Right: Expand  Left: Collapse  Ctrl + Up: Jump to parent
-# Ctrl + s: Exit and save  Ctrl + c: Exit without saving  Ctrl + a: Mark/unmark all
+ tach init
 ```
 
-Mark each module boundary with 'Enter'. You can mark all of your top-level Python source packages, or just a few which you want to isolate.
+After an introductory message, you will see a file tree interface allowing you to interactively configure your project.
 
-If your Python code lives below your project root, or if you are working in a monorepo with multiple Python packages, mark your Python [source roots](../usage/configuration#source-roots) using the 's' key.
-This will create the config file for your project, `tach.toml`.
+Use the arrow keys to navigate, and mark each module boundary with 'Enter'. You can mark all of your top-level Python packages, or just a few that you want to track.
 
-Once you've marked all the modules you want to enforce dependencies between, run:
-
-```bash
-tach sync
-```
-
-Dependencies that exist between each module you've marked will be written to `tach.toml`.
-
-Check out what Tach has found!
-
-```
-cat tach.toml
-```
-
-Note: Your 'project root' directory (where `tach.toml` is) will be treated as a module boundary, and can show up as `<root>`.
+If your Python code lives below your project root, or if you are working in a monorepo with multiple Python packages, mark your Python [source roots](https://docs.gauge.sh/usage/configuration#source-roots) using the 's' key.
 
 ### Enforcement
 
-Tach comes with a command to enforce the boundaries that you just set up! From the root of your Python project, run:
+Tach comes with a cli command to enforce the boundaries that you just set up! From the root of your Python project, run:
 
 ```bash
 tach check
@@ -55,20 +37,20 @@ You will see:
 ✅ All modules validated!
 ```
 
-You can validate that Tach is working by either:
+You can validate that Tach is working by:
 
-1. Commenting out an item in a `depends_on` key in `tach.toml`
+1. Removing an item from the `depends_on` key in `tach.toml`, or marking it as [deprecated](https://docs.gauge.sh/usage/deprecate)
 2. By adding an import between modules that didn't previously import from each other.
 
 Give both a try and run `tach check` again. This will generate an error:
 
 ```bash
-❌ tach/check.py[L8]: Cannot import 'tach.filesystem'. Module 'tach' cannot depend on 'tach.filesystem'.
+❌ tach/check.py[L8]: Cannot use 'tach.filesystem'. Module 'tach' cannot depend on 'tach.filesystem'.
 ```
 
 Each error indicates an import which violates your dependencies. If your terminal supports hyperlinks, click on the file path to go directly to the error.
 
-Tach can easily be added to your CI pipeline, [pre-commit hooks](../usage/commands#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach).
+When an error is detected, `tach check` will exit with a non-zero code. It can be easily integrated with CI/CD, [Pre-commit hooks](https://docs.gauge.sh/usage/commands#tach-install), and [VS Code](https://marketplace.visualstudio.com/items?itemName=Gauge.tach), and more!
 
 ### Extras
 

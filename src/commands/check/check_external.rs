@@ -4,6 +4,7 @@ use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
     DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
 };
+use crate::exclusion::PathExclusions;
 use crate::external::parsing::{parse_pyproject_toml, ProjectInfo};
 use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
 use crate::interrupt::check_interrupt;
@@ -37,12 +38,17 @@ impl<'a> CheckExternalPipeline<'a> {
         module_mappings: &'a HashMap<String, Vec<String>>,
         stdlib_modules: &'a HashSet<String>,
         excluded_external_modules: &'a HashSet<String>,
+        exclusions: &'a PathExclusions,
     ) -> Self {
         Self {
             module_mappings,
             excluded_external_modules,
             seen_dependencies: DashSet::new(),
-            dependency_extractor: ExternalDependencyExtractor::new(source_roots, project_config),
+            dependency_extractor: ExternalDependencyExtractor::new(
+                source_roots,
+                project_config,
+                exclusions,
+            ),
             dependency_checker: ExternalDependencyChecker::new(
                 project_info,
                 module_mappings,
@@ -104,8 +110,13 @@ pub fn check(
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
+    let exclusions = PathExclusions::new(
+        project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
 
-    let diagnostics = walk_pyprojects(project_root.to_string_lossy().as_ref())
+    let diagnostics = walk_pyprojects(project_root.to_string_lossy().as_ref(), &exclusions)
         .par_bridge()
         .flat_map(|pyproject| {
             let project_info = match parse_pyproject_toml(&pyproject) {
@@ -127,12 +138,13 @@ pub fn check(
                 module_mappings,
                 &stdlib_modules,
                 &excluded_external_modules,
+                &exclusions,
             );
             let mut project_diagnostics: Vec<Diagnostic> = project_info
                 .source_paths
                 .par_iter()
                 .flat_map(|source_root| {
-                    walk_pyfiles(&source_root.display().to_string())
+                    walk_pyfiles(&source_root.display().to_string(), &exclusions)
                         .par_bridge()
                         .flat_map(|file_path| {
                             if check_interrupt().is_err() {

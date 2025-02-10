@@ -9,7 +9,6 @@ from tach.colors import BCOLORS
 from tach.extension import (
     create_dependency_report,
     get_external_imports,
-    set_excluded_paths,
 )
 from tach.filesystem import walk_pyfiles
 from tach.utils.display import create_clickable_link
@@ -33,7 +32,6 @@ def report(
     skip_dependencies: bool = False,
     skip_usages: bool = False,
     raw: bool = False,
-    exclude_paths: list[str] | None = None,
 ) -> str:
     if not project_root.is_dir():
         raise errors.TachSetupError(
@@ -43,22 +41,15 @@ def report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
-    # This informs the Rust extension ahead-of-time which paths are excluded.
-    set_excluded_paths(
-        project_root=str(project_root),
-        exclude_paths=exclude_paths or [],
-        use_regex_matching=project_config.use_regex_matching,
-    )
-
     # We prefer resolving symlinks and relative paths in Python
     # because Rust's canonicalize adds an 'extended length path' prefix on Windows
     # which breaks downstream code that compares to Python-resolved paths
     path = path.resolve().relative_to(project_root)
     try:
         return create_dependency_report(
-            project_root=str(project_root),
+            project_root=project_root,
             project_config=project_config,
-            path=str(path),
+            path=path,
             include_dependency_modules=include_dependency_modules,
             include_usage_modules=include_usage_modules,
             skip_dependencies=skip_dependencies,
@@ -124,15 +115,17 @@ def render_external_dependency_report(
 
 
 def get_external_dependencies(
-    source_roots: list[str],
-    file_path: str,
-    ignore_type_checking_imports: bool,
+    project_root: Path,
+    source_roots: list[Path],
+    file_path: Path,
+    project_config: ProjectConfig,
     excluded_modules: set[str] | None = None,
 ) -> list[ExternalDependency]:
     external_imports = get_external_imports(
+        project_root=project_root,
         source_roots=source_roots,
         file_path=file_path,
-        ignore_type_checking_imports=ignore_type_checking_imports,
+        project_config=project_config,
     )
 
     excluded_modules = excluded_modules or set()
@@ -161,7 +154,6 @@ def external_dependency_report(
     path: Path,
     project_config: ProjectConfig,
     raw: bool = False,
-    exclude_paths: list[str] | None = None,
 ) -> str:
     if not project_root.is_dir():
         raise errors.TachSetupError(
@@ -171,29 +163,24 @@ def external_dependency_report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
-    if exclude_paths and is_path_excluded(
-        exclude_paths,
+    if project_config.exclude and is_path_excluded(
+        project_config.exclude,
         path,
         use_regex_matching=project_config.use_regex_matching,
     ):
         raise errors.TachError(f"The path '{path}' is excluded.")
 
-    # This informs the Rust extension ahead-of-time which paths are excluded.
-    set_excluded_paths(
-        project_root=str(project_root),
-        exclude_paths=exclude_paths or [],
-        use_regex_matching=project_config.use_regex_matching,
-    )
     source_roots = [
-        str(project_root / source_root) for source_root in project_config.source_roots
+        project_root / source_root for source_root in project_config.source_roots
     ]
 
     if path.is_file():
         external_dependencies = get_external_dependencies(
+            project_root=project_root,
             source_roots=source_roots,
-            file_path=str(path.resolve()),
+            file_path=path.resolve(),
             excluded_modules=set(project_config.external.exclude),
-            ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+            project_config=project_config,
         )
         return render_external_dependency_report(path, external_dependencies, raw=raw)
 
@@ -201,15 +188,16 @@ def external_dependency_report(
     for pyfile in walk_pyfiles(
         path,
         project_root=project_root,
-        exclude_paths=exclude_paths,
+        exclude_paths=project_config.exclude,
         use_regex_matching=project_config.use_regex_matching,
     ):
         all_external_dependencies.extend(
             get_external_dependencies(
+                project_root=project_root,
                 source_roots=source_roots,
-                file_path=str(path.resolve() / pyfile),
+                file_path=path.resolve() / pyfile,
                 excluded_modules=set(project_config.external.exclude),
-                ignore_type_checking_imports=project_config.ignore_type_checking_imports,
+                project_config=project_config,
             )
         )
 

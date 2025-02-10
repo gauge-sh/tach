@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use pyo3::prelude::*;
 use ruff_linter::Locator;
 
+use crate::config::ProjectConfig;
+use crate::exclusion::PathExclusions;
 use crate::filesystem;
 use crate::processors::ignore_directive::get_ignore_directives;
 use crate::processors::import::{get_normalized_imports, LocatedImport, Result};
@@ -24,10 +26,10 @@ impl IntoPy<PyObject> for LocatedImport {
 }
 
 pub fn get_located_project_imports<P: AsRef<Path>>(
+    project_root: &PathBuf,
     source_roots: &[PathBuf],
     file_path: P,
-    ignore_type_checking_imports: bool,
-    include_string_imports: bool,
+    project_config: &ProjectConfig,
 ) -> Result<Vec<LocatedImport>> {
     let file_contents = filesystem::read_file_content(file_path.as_ref())?;
     let line_index = Locator::new(&file_contents).to_index().clone();
@@ -35,10 +37,17 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
         source_roots,
         file_path.as_ref(),
         &file_contents,
-        ignore_type_checking_imports,
-        include_string_imports,
+        project_config.ignore_type_checking_imports,
+        project_config.include_string_imports,
     )?;
     let ignore_directives = get_ignore_directives(&file_contents);
+
+    let exclusions = PathExclusions::new(
+        project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
+
     Ok(normalized_imports
         .into_iter()
         .map(|import| {
@@ -50,15 +59,16 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
         })
         .filter(|import| {
             !ignore_directives.is_ignored(import)
-                && filesystem::is_project_import(source_roots, import.module_path())
+                && filesystem::is_project_import(source_roots, import.module_path(), &exclusions)
         })
         .collect())
 }
 
 pub fn get_located_external_imports<P: AsRef<Path>>(
+    project_root: &PathBuf,
     source_roots: &[PathBuf],
     file_path: P,
-    ignore_type_checking_imports: bool,
+    project_config: &ProjectConfig,
 ) -> Result<Vec<LocatedImport>> {
     let file_contents = filesystem::read_file_content(file_path.as_ref())?;
     let line_index = Locator::new(&file_contents).to_index().clone();
@@ -66,10 +76,15 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
         source_roots,
         file_path.as_ref(),
         &file_contents,
-        ignore_type_checking_imports,
+        project_config.ignore_type_checking_imports,
         false,
     )?;
     let ignore_directives = get_ignore_directives(&file_contents);
+    let exclusions = PathExclusions::new(
+        project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
     Ok(normalized_imports
         .into_iter()
         .map(|import| {
@@ -81,7 +96,7 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
         })
         .filter(|import| {
             !ignore_directives.is_ignored(import)
-                && !filesystem::is_project_import(source_roots, import.module_path())
+                && !filesystem::is_project_import(source_roots, import.module_path(), &exclusions)
         })
         .collect())
 }

@@ -268,10 +268,10 @@ def build_usages(
         )
         pyfile_containing_module = get_containing_module(pyfile_mod_path)
         imports = get_project_imports(
-            source_roots=list(map(str, source_roots)),
-            file_path=str(project_root / pyfile),
-            ignore_type_checking_imports=project_config.ignore_type_checking_imports,
-            include_string_imports=project_config.include_string_imports,
+            project_root=project_root,
+            source_roots=source_roots,
+            file_path=pyfile,
+            project_config=project_config,
         )
         for project_import in imports:
             import_containing_module = get_containing_module(project_import.module_path)
@@ -332,7 +332,7 @@ def generate_modularity_report(
     )
 
     report.modules = build_modules(project_config)
-    report.usages = build_usages(project_root, project_config)
+    report.usages = build_usages(project_root, source_roots, project_config)
     report.diagnostics = build_diagnostics(
         project_root=project_root,
         project_config=project_config,

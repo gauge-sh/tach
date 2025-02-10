@@ -83,8 +83,12 @@ def migrate_deprecated_yaml_config(filepath: Path) -> ProjectConfig:
     return project_config
 
 
-def parse_project_config(root: Path) -> ProjectConfig | None:
-    file_path = fs.get_project_config_path(root)
+def parse_project_config(
+    root: Path,
+    *,
+    file_name: str = CONFIG_FILE_NAME,
+) -> ProjectConfig | None:
+    file_path = fs.get_project_config_path(root, file_name=file_name)
     if file_path:
         # Standard TOML config found
         project_config, ext_migrated = ext_parse_project_config(file_path)

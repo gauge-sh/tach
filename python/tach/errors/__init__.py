@@ -23,3 +23,6 @@ class TachVisibilityError(TachError):
     def __init__(self, visibility_errors: list[tuple[str, str, list[str]]]):
         self.visibility_errors = visibility_errors
         super().__init__("Visibility error")
+
+
+class TachInitCancelledError(TachError): ...

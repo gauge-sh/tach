@@ -7,6 +7,7 @@ use crate::config::plugins::django::DjangoConfig;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
 use crate::diagnostics::{FileProcessor, Result as DiagnosticResult};
+use crate::exclusion::PathExclusions;
 use crate::filesystem::{self, ProjectFile};
 use crate::modules::error::ModuleTreeError;
 use crate::modules::{ModuleNode, ModuleTree};
@@ -72,6 +73,7 @@ pub struct InternalDependencyExtractor<'a> {
     module_tree: &'a ModuleTree,
     source_roots: &'a [PathBuf],
     project_config: &'a ProjectConfig,
+    exclusions: &'a PathExclusions,
     django_metadata: Option<DjangoMetadata<'a>>,
 }
 
@@ -80,6 +82,7 @@ impl<'a> InternalDependencyExtractor<'a> {
         source_roots: &'a [PathBuf],
         module_tree: &'a ModuleTree,
         project_config: &'a ProjectConfig,
+        exclusions: &'a PathExclusions,
     ) -> Self {
         let django_metadata = project_config
             .plugins
@@ -91,6 +94,7 @@ impl<'a> InternalDependencyExtractor<'a> {
             source_roots,
             module_tree,
             project_config,
+            exclusions,
             django_metadata,
         }
     }
@@ -127,7 +131,11 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
         )?
         .into_iter()
         .filter_map(|import| {
-            if filesystem::is_project_import(self.source_roots, &import.module_path) {
+            if filesystem::is_project_import(
+                self.source_roots,
+                &import.module_path,
+                self.exclusions,
+            ) {
                 Some(Dependency::Import(import))
             } else {
                 // Remove directives that match irrelevant imports
@@ -156,13 +164,19 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
 pub struct ExternalDependencyExtractor<'a> {
     source_roots: &'a [PathBuf],
     project_config: &'a ProjectConfig,
+    exclusions: &'a PathExclusions,
 }
 
 impl<'a> ExternalDependencyExtractor<'a> {
-    pub fn new(source_roots: &'a [PathBuf], project_config: &'a ProjectConfig) -> Self {
+    pub fn new(
+        source_roots: &'a [PathBuf],
+        project_config: &'a ProjectConfig,
+        exclusions: &'a PathExclusions,
+    ) -> Self {
         Self {
             source_roots,
             project_config,
+            exclusions,
         }
     }
 }
@@ -184,7 +198,11 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
         )?
         .into_iter()
         .filter_map(|import| {
-            if !filesystem::is_project_import(self.source_roots, &import.module_path) {
+            if !filesystem::is_project_import(
+                self.source_roots,
+                &import.module_path,
+                self.exclusions,
+            ) {
                 Some(Dependency::Import(import))
             } else {
                 // Remove directives that match irrelevant imports

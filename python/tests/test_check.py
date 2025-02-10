@@ -20,7 +20,6 @@ def test_valid_example_dir(example_dir, capfd):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 0
     captured = capfd.readouterr()
@@ -36,7 +35,6 @@ def test_valid_example_dir_monorepo(example_dir):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 0
 
@@ -49,16 +47,15 @@ def test_check_json_output(example_dir, capfd, mocker):
     mock_diagnostics = [NonCallableMagicMock(spec=Diagnostic)]
     mock_diagnostics[0].is_error.return_value = False
     mocker.patch(
-        "tach.cli.serialize_diagnostics_json",
+        "tach.extension.serialize_diagnostics_json",
         return_value=json.dumps([{"hello": "world"}]),
     )
-    mocker.patch("tach.cli.check", return_value=mock_diagnostics)
+    mocker.patch("tach.extension.check", return_value=mock_diagnostics)
 
     with pytest.raises(SystemExit) as exc_info:
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
     assert exc_info.value.code == 0
@@ -74,18 +71,17 @@ def test_check_json_with_errors(example_dir, capfd, mocker):
 
     mock_diagnostics = [NonCallableMagicMock(spec=Diagnostic)]
     mocker.patch(
-        "tach.cli.serialize_diagnostics_json",
+        "tach.extension.serialize_diagnostics_json",
         return_value=json.dumps(
             {"errors": ["error1", "error2"], "warnings": ["warning1"]}
         ),
     )
-    mocker.patch("tach.cli.check", return_value=mock_diagnostics)
+    mocker.patch("tach.extension.check", return_value=mock_diagnostics)
 
     with pytest.raises(SystemExit):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
 
@@ -102,7 +98,7 @@ def test_check_circular_dependency_text(example_dir, capfd, mocker):
     assert project_config is not None
 
     mocker.patch(
-        "tach.cli.check",
+        "tach.extension.check",
         side_effect=TachCircularDependencyError(["mod1", "mod2", "mod1"]),
     )
 
@@ -110,7 +106,6 @@ def test_check_circular_dependency_text(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -126,7 +121,7 @@ def test_check_circular_dependency_json(example_dir, capfd, mocker):
     assert project_config is not None
 
     mocker.patch(
-        "tach.cli.check",
+        "tach.extension.check",
         side_effect=TachCircularDependencyError(["mod1", "mod2", "mod1"]),
     )
 
@@ -134,7 +129,6 @@ def test_check_circular_dependency_json(example_dir, capfd, mocker):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
     assert exc_info.value.code == 1
@@ -151,13 +145,14 @@ def test_check_visibility_error_text(example_dir, capfd, mocker):
     assert project_config is not None
 
     visibility_errors = [("mod1", "mod2", ["public"])]
-    mocker.patch("tach.cli.check", side_effect=TachVisibilityError(visibility_errors))
+    mocker.patch(
+        "tach.extension.check", side_effect=TachVisibilityError(visibility_errors)
+    )
 
     with pytest.raises(SystemExit) as exc_info:
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -173,13 +168,14 @@ def test_check_visibility_error_json(example_dir, capfd, mocker):
     assert project_config is not None
 
     visibility_errors = [("mod1", "mod2", ["public"])]
-    mocker.patch("tach.cli.check", side_effect=TachVisibilityError(visibility_errors))
+    mocker.patch(
+        "tach.extension.check", side_effect=TachVisibilityError(visibility_errors)
+    )
 
     with pytest.raises(SystemExit) as exc_info:
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
             output_format="json",
         )
     assert exc_info.value.code == 1
@@ -199,7 +195,6 @@ def test_distributed_config_example_dir(example_dir, capfd):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -267,7 +262,6 @@ def test_many_features_example_dir(example_dir, capfd):
         tach_check(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
@@ -338,7 +332,6 @@ def test_many_features_example_dir__external(example_dir, capfd):
         tach_check_external(
             project_root=project_root,
             project_config=project_config,
-            exclude_paths=project_config.exclude,
         )
     assert exc_info.value.code == 1
 
