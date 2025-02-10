@@ -298,13 +298,12 @@ def build_diagnostics(
     project_root: Path,
     project_config: ProjectConfig,
 ) -> list[UsageError]:
-    exclude_paths = extend_and_validate(
+    project_config.exclude = extend_and_validate(
         None, project_config.exclude, project_config.use_regex_matching
     )
     check_diagnostics = check(
         project_root=project_root,
         project_config=project_config,
-        exclude_paths=exclude_paths,
         dependencies=True,
         interfaces=True,
     )
