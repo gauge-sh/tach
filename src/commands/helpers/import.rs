@@ -4,10 +4,11 @@ use pyo3::prelude::*;
 use ruff_linter::Locator;
 
 use crate::config::ProjectConfig;
+use crate::dependencies::import::LocatedImport;
 use crate::exclusion::PathExclusions;
 use crate::filesystem;
 use crate::processors::ignore_directive::get_ignore_directives;
-use crate::processors::import::{get_normalized_imports, LocatedImport, Result};
+use crate::processors::import::{get_normalized_imports, Result};
 
 #[pyclass(get_all)]
 pub struct PythonImport {

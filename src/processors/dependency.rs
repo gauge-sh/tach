@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ruff_text_size::TextSize;
-
 use crate::config::plugins::django::DjangoConfig;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
@@ -15,42 +13,8 @@ use crate::python::parsing::parse_python_source;
 
 use super::django::fkey::{get_foreign_key_references, get_known_apps};
 use super::file_module::FileModule;
-use super::import::{get_normalized_imports, get_normalized_imports_from_ast, NormalizedImport};
-use super::reference::SourceCodeReference;
-
-#[derive(Debug)]
-pub enum Dependency {
-    Import(NormalizedImport),
-    Reference(SourceCodeReference),
-}
-
-impl Dependency {
-    pub fn module_path(&self) -> &str {
-        match self {
-            Dependency::Import(import) => &import.module_path,
-            Dependency::Reference(reference) => &reference.module_path,
-        }
-    }
-
-    pub fn offset(&self) -> TextSize {
-        match self {
-            Dependency::Import(import) => import.alias_offset,
-            Dependency::Reference(reference) => reference.offset,
-        }
-    }
-}
-
-impl From<NormalizedImport> for Dependency {
-    fn from(normalized_import: NormalizedImport) -> Self {
-        Dependency::Import(normalized_import)
-    }
-}
-
-impl From<SourceCodeReference> for Dependency {
-    fn from(source_code_reference: SourceCodeReference) -> Self {
-        Dependency::Reference(source_code_reference)
-    }
-}
+use super::import::{get_normalized_imports, get_normalized_imports_from_ast};
+use crate::dependencies::Dependency;
 
 #[derive(Debug)]
 pub struct DjangoMetadata<'a> {

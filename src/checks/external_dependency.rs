@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::dependencies::import::{with_distribution_names, ExternalImportWithDistributionNames};
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::diagnostics::{FileChecker, Result as DiagnosticResult};
 use crate::external::parsing::ProjectInfo;
 use crate::processors::file_module::FileModule;
-use crate::processors::import::{with_distribution_names, ExternalImportWithDistributionNames};
 
 pub struct ExternalDependencyChecker<'a> {
     project_info: &'a ProjectInfo,
@@ -52,7 +52,8 @@ impl<'a> ExternalDependencyChecker<'a> {
         if !is_declared {
             Some(Diagnostic::new_located_error(
                 processed_file.relative_file_path().to_path_buf(),
-                processed_file.line_number(import.import.import_offset),
+                processed_file.line_number(import.import.alias_offset),
+                Some(processed_file.line_number(import.import.import_offset)),
                 DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
                     dependency: import.import.top_level_module_name().to_string(),
                 }),

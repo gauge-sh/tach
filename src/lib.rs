@@ -4,6 +4,7 @@ pub mod cli;
 pub mod colors;
 pub mod commands;
 pub mod config;
+pub mod dependencies;
 pub mod diagnostics;
 pub mod exclusion;
 pub mod external;
@@ -173,7 +174,7 @@ fn get_project_imports(
     source_roots: Vec<PathBuf>,
     file_path: PathBuf,
     project_config: config::ProjectConfig,
-) -> processors::import::Result<Vec<processors::import::LocatedImport>> {
+) -> processors::import::Result<Vec<dependencies::LocatedImport>> {
     commands::helpers::import::get_located_project_imports(
         &project_root,
         &source_roots,
@@ -189,7 +190,7 @@ fn get_external_imports(
     source_roots: Vec<PathBuf>,
     file_path: PathBuf,
     project_config: config::ProjectConfig,
-) -> processors::import::Result<Vec<processors::import::LocatedImport>> {
+) -> processors::import::Result<Vec<dependencies::LocatedImport>> {
     commands::helpers::import::get_located_external_imports(
         &project_root,
         &source_roots,

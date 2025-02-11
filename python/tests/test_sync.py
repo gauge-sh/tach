@@ -101,7 +101,7 @@ def test_many_features_example_dir(example_dir, capfd):
         assert project_config is not None
 
         modules = project_config.filtered_modules([])
-        assert len(modules) == 9
+        assert len(modules) == 10
 
         module2 = next(module for module in modules if module.path == "module2")
         assert set(map(lambda dep: dep.path, module2.depends_on)) == {"outer_module"}

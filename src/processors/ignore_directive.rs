@@ -5,9 +5,8 @@ use std::fmt::Debug;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use crate::dependencies::LocatedImport;
 use crate::diagnostics::Diagnostic;
-
-use super::import::LocatedImport;
 
 #[derive(Debug, Clone)]
 pub struct IgnoreDirective {
@@ -36,7 +35,9 @@ impl IgnoreDirective {
 
     pub fn matches_diagnostic(&self, diagnostic: &Diagnostic) -> bool {
         // If the diagnostic is not on the line that the directive is being applied, it is not a match
-        if Some(self.ignored_line_no) != diagnostic.line_number() {
+        if Some(self.ignored_line_no) != diagnostic.line_number()
+            && Some(self.ignored_line_no) != diagnostic.original_line_number()
+        {
             return false;
         }
 
@@ -46,10 +47,10 @@ impl IgnoreDirective {
         }
 
         // If applicable, check if the diagnostic has specified a matching module path
-        diagnostic.dependency().is_none_or(|import_mod_path| {
+        diagnostic.dependency().is_none_or(|dependency_path| {
             self.modules
                 .iter()
-                .any(|module| import_mod_path.ends_with(module))
+                .any(|module| dependency_path.ends_with(module))
         })
     }
 }

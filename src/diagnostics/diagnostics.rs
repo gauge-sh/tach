@@ -201,7 +201,8 @@ pub enum Diagnostic {
     },
     Located {
         file_path: PathBuf,
-        line_number: usize,
+        line_number: usize, // Line number where the diagnostic should be attached
+        original_line_number: Option<usize>, // Optional line number to point to the origin of the diagnostic
         severity: Severity,
         details: DiagnosticDetails,
     },
@@ -223,26 +224,20 @@ impl Diagnostic {
             details,
             file_path,
             line_number,
-        }
-    }
-
-    pub fn into_located(self, file_path: PathBuf, line_number: usize) -> Self {
-        match self {
-            Self::Global { severity, details } => {
-                Self::new_located(severity, details, file_path, line_number)
-            }
-            Self::Located { .. } => self,
+            original_line_number: None,
         }
     }
 
     pub fn new_located_error(
         file_path: PathBuf,
         line_number: usize,
+        original_line_number: Option<usize>,
         details: DiagnosticDetails,
     ) -> Self {
         Self::Located {
             file_path,
             line_number,
+            original_line_number,
             severity: Severity::Error,
             details,
         }
@@ -251,11 +246,13 @@ impl Diagnostic {
     pub fn new_located_warning(
         file_path: PathBuf,
         line_number: usize,
+        original_line_number: Option<usize>,
         details: DiagnosticDetails,
     ) -> Self {
         Self::Located {
             file_path,
             line_number,
+            original_line_number,
             severity: Severity::Warning,
             details,
         }
@@ -304,6 +301,16 @@ impl Diagnostic {
         match self {
             Self::Global { .. } => None,
             Self::Located { line_number, .. } => Some(*line_number),
+        }
+    }
+
+    pub fn original_line_number(&self) -> Option<usize> {
+        match self {
+            Self::Global { .. } => None,
+            Self::Located {
+                original_line_number,
+                ..
+            } => *original_line_number,
         }
     }
 

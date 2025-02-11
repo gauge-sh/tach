@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::{ModuleConfig, ProjectConfig};
+use crate::dependencies::Dependency;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, FileChecker,
     Result as DiagnosticResult,
@@ -11,7 +12,6 @@ use crate::interfaces::data_types::{TypeCheckCache, TypeCheckResult};
 use crate::interfaces::error::InterfaceError;
 use crate::modules::ModuleTree;
 use crate::processors::file_module::FileModule;
-use crate::processors::Dependency;
 
 #[derive(Debug)]
 pub enum InterfaceCheckResult {
@@ -112,6 +112,9 @@ impl<'a> InterfaceChecker<'a> {
                 InterfaceCheckResult::NotExposed => Ok(vec![Diagnostic::new_located_error(
                     file_module.relative_file_path().to_path_buf(),
                     file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
                     DiagnosticDetails::Code(CodeDiagnostic::PrivateDependency {
                         dependency: dependency.module_path().to_string(),
                         usage_module: file_module.module_config().path.to_string(),
@@ -123,6 +126,9 @@ impl<'a> InterfaceChecker<'a> {
                 } => Ok(vec![Diagnostic::new_located_error(
                     file_module.relative_file_path().to_path_buf(),
                     file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
                     DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport {
                         dependency: dependency.module_path().to_string(),
                         usage_module: file_module.module_config().path.to_string(),

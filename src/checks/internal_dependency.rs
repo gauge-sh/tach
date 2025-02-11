@@ -1,11 +1,12 @@
 use crate::{
     config::{root_module::RootModuleTreatment, DependencyConfig, ModuleConfig, ProjectConfig},
+    dependencies::Dependency,
     diagnostics::{
         CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, FileChecker,
         Result as DiagnosticResult,
     },
     modules::ModuleTree,
-    processors::{file_module::FileModule, Dependency},
+    processors::FileModule,
 };
 use std::path::Path;
 
@@ -55,6 +56,9 @@ impl<'a> InternalDependencyChecker<'a> {
                             LayerCheckResult::LayerViolation(Diagnostic::new_located_error(
                                 relative_file_path.to_path_buf(),
                                 file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
                                 DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
                                     dependency: dependency.module_path().to_string(),
                                     usage_module: source_module_config.path.clone(),
@@ -140,6 +144,9 @@ impl<'a> InternalDependencyChecker<'a> {
             }) => Ok(vec![Diagnostic::new_located_warning(
                 relative_file_path.to_path_buf(),
                 file_module.line_number(dependency.offset()),
+                dependency
+                    .original_line_offset()
+                    .map(|offset| file_module.line_number(offset)),
                 DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency {
                     dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
@@ -150,6 +157,9 @@ impl<'a> InternalDependencyChecker<'a> {
             None => Ok(vec![Diagnostic::new_located_error(
                 relative_file_path.to_path_buf(),
                 file_module.line_number(dependency.offset()),
+                dependency
+                    .original_line_offset()
+                    .map(|offset| file_module.line_number(offset)),
                 DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency {
                     dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),

@@ -12,13 +12,14 @@ use crate::colors::*;
 use crate::cli::create_clickable_link;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
+use crate::dependencies::LocatedImport;
 use crate::exclusion::{PathExclusionError, PathExclusions};
 use crate::filesystem::{
     file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
 };
 use crate::interrupt::check_interrupt;
 use crate::modules::{build_module_tree, error::ModuleTreeError};
-use crate::processors::import::{ImportParseError, LocatedImport};
+use crate::processors::import::ImportParseError;
 
 use super::helpers::import::get_located_project_imports;
 
