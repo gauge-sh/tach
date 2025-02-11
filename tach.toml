@@ -274,13 +274,6 @@ from = [
     "tach.start",
 ]
 
-[[interfaces]]
-expose = [
-    "sync_project",
-]
-from = [
-    "tach.sync",
-]
 
 [[interfaces]]
 expose = [
