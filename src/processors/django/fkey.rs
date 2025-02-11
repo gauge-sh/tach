@@ -5,8 +5,8 @@ use ruff_python_ast::Mod;
 use thiserror::Error;
 
 use crate::config::plugins::django::DjangoConfig;
+use crate::dependencies::SourceCodeReference;
 use crate::filesystem;
-use crate::processors::reference::SourceCodeReference;
 use crate::python::error::ParsingError;
 use crate::python::parsing::parse_python_source;
 

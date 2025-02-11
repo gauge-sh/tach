@@ -6,10 +6,8 @@ use std::{path::Path, sync::Arc};
 use crate::filesystem::ProjectFile;
 use crate::{config::ModuleConfig, modules::ModuleNode};
 
-use super::dependency::Dependency;
-use super::ignore_directive::{get_ignore_directives, IgnoreDirectives};
-use super::import::NormalizedImport;
-use super::reference::SourceCodeReference;
+use crate::dependencies::{Dependency, NormalizedImport, SourceCodeReference};
+use crate::processors::ignore_directive::{get_ignore_directives, IgnoreDirectives};
 
 #[derive(Debug)]
 pub struct FileModule<'a> {

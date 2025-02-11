@@ -8,6 +8,11 @@ depends_on = []
 layer = "low"
 utility = true
 
+[[modules]]
+path = "submodule2"
+depends_on = []
+layer = "low"
+
 [[interfaces]]
 expose = ["content"]
 from = ["<domain_root>"]

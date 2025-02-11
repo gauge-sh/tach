@@ -1,5 +1,6 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
 use crate::config::ProjectConfig;
+use crate::dependencies::import::with_distribution_names;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
     DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
@@ -9,7 +10,6 @@ use crate::external::parsing::{parse_pyproject_toml, ProjectInfo};
 use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
 use crate::interrupt::check_interrupt;
 use crate::processors::file_module::FileModule;
-use crate::processors::import::with_distribution_names;
 use crate::processors::ExternalDependencyExtractor;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};

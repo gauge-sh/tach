@@ -5,9 +5,8 @@ use std::fmt::Debug;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use crate::dependencies::LocatedImport;
 use crate::diagnostics::Diagnostic;
-
-use super::import::LocatedImport;
 
 #[derive(Debug, Clone)]
 pub struct IgnoreDirective {
@@ -18,9 +17,27 @@ pub struct IgnoreDirective {
 }
 
 impl IgnoreDirective {
+    pub fn matches_located_import(&self, import: &LocatedImport) -> bool {
+        if import.is_absolute() {
+            self.modules.is_empty()
+                || self
+                    .modules
+                    .iter()
+                    .any(|module_path| module_path == import.module_path())
+        } else {
+            self.modules.is_empty()
+                || self
+                    .modules
+                    .iter()
+                    .any(|module_path| Some(module_path.as_str()) == import.alias_path())
+        }
+    }
+
     pub fn matches_diagnostic(&self, diagnostic: &Diagnostic) -> bool {
         // If the diagnostic is not on the line that the directive is being applied, it is not a match
-        if Some(self.ignored_line_no) != diagnostic.line_number() {
+        if Some(self.ignored_line_no) != diagnostic.line_number()
+            && Some(self.ignored_line_no) != diagnostic.original_line_number()
+        {
             return false;
         }
 
@@ -30,10 +47,10 @@ impl IgnoreDirective {
         }
 
         // If applicable, check if the diagnostic has specified a matching module path
-        diagnostic.dependency().is_none_or(|import_mod_path| {
+        diagnostic.dependency().is_none_or(|dependency_path| {
             self.modules
                 .iter()
-                .any(|module| import_mod_path.ends_with(module))
+                .any(|module| dependency_path.ends_with(module))
         })
     }
 }
@@ -52,8 +69,10 @@ impl IgnoreDirectives {
         }
     }
 
-    pub fn active_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
-        self.directives.values()
+    pub fn sorted_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
+        let mut directives = self.directives.values().collect::<Vec<_>>();
+        directives.sort_by_key(|directive| directive.ignored_line_no);
+        directives.into_iter()
     }
 
     pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
@@ -86,20 +105,7 @@ impl IgnoreDirectives {
     pub fn is_ignored(&self, normalized_import: &LocatedImport) -> bool {
         self.directives
             .get(&normalized_import.import_line_number())
-            .is_some_and(|directive| {
-                if normalized_import.is_absolute() {
-                    directive.modules.is_empty()
-                        || directive
-                            .modules
-                            .iter()
-                            .any(|module_path| module_path == normalized_import.module_path())
-                } else {
-                    directive.modules.is_empty()
-                        || directive.modules.iter().any(|module_path| {
-                            Some(module_path.as_str()) == normalized_import.alias_path()
-                        })
-                }
-            })
+            .is_some_and(|directive| directive.matches_located_import(normalized_import))
     }
 
     pub fn remove_matching_directives(&mut self, import_line_no: usize) {

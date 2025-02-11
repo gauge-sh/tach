@@ -243,10 +243,15 @@ def _check_expected_messages_unordered(
     lines = iter(section_text.split("\n"))
     substr_tuples = set(expected_messages)
     for line in lines:
-        for substr_tuple in substr_tuples:
-            if all(substr.lower() in line.lower() for substr in substr_tuple):
-                substr_tuples.remove(substr_tuple)
-                break
+        if "[WARN]" in line or "[FAIL]" in line:
+            matched = False
+            for substr_tuple in substr_tuples:
+                if all(substr.lower() in line.lower() for substr in substr_tuple):
+                    substr_tuples.remove(substr_tuple)
+                    matched = True
+                    break
+            if not matched:
+                assert False, f"Unexpected warning/error line: {line}"
 
     assert not substr_tuples, (
         f"Not all expected messages were found: {list(substr_tuples)} in section: {section_text}"
@@ -288,6 +293,20 @@ def test_many_features_example_dir(example_dir, capfd):
             "missing a reason",
         ),
         ("[WARN]", "real_src/main.py", "ignore directive", "missing a reason"),
+        (
+            "[FAIL]",
+            "other_src_root/module4/service.py",
+            "L6",
+            "ignore directive",
+            "unused",
+        ),
+        (
+            "[FAIL]",
+            "other_src_root/module4/service.py",
+            "L12",
+            "ignore directive",
+            "unused",
+        ),
         ("[FAIL]", "other_src_root/module1/api.py", "ignore directive", "unused"),
         ("[FAIL]", "real_src/main.py", "ignore directive", "unused"),
     ]
@@ -318,9 +337,9 @@ def test_many_features_example_dir(example_dir, capfd):
         ("[FAIL]", "real_src/module3/__init__.py", "'low'", "lower than", "'mid'"),
     ]
 
-    _check_expected_messages(general_section, expected_general)
-    _check_expected_messages(interfaces_section, expected_interfaces)
-    _check_expected_messages(dependencies_section, expected_dependencies)
+    _check_expected_messages_unordered(general_section, expected_general)
+    _check_expected_messages_unordered(interfaces_section, expected_interfaces)
+    _check_expected_messages_unordered(dependencies_section, expected_dependencies)
 
 
 def test_many_features_example_dir__external(example_dir, capfd):
@@ -365,5 +384,5 @@ def test_many_features_example_dir__external(example_dir, capfd):
         ("[FAIL]", "real_src/module3/content.py", "django", "not declared"),
     ]
 
-    _check_expected_messages(general_section, expected_general)
+    _check_expected_messages_unordered(general_section, expected_general)
     _check_expected_messages_unordered(external_section, expected_external)
