@@ -19,7 +19,7 @@ forbid_circular_dependencies = true
 
 [[modules]]
 path = "tach"
-depends_on = ["tach.filesystem", "tach.extension", "tach.show", "tach.mod"]
+depends_on = []
 
 [[modules]]
 path = "tach.__main__"
@@ -27,6 +27,17 @@ depends_on = [
     "tach.start",
 ]
 layer = "ui"
+
+
+[[modules]]
+path = "tach.init"
+depends_on = ["tach.show", "tach.mod"]
+layer = "commands"
+
+[[modules]]
+path = "tach.console"
+depends_on = []
+utility = true
 
 [[modules]]
 path = "tach.cache"
@@ -153,9 +164,6 @@ from = [
 [[interfaces]]
 expose = [
     "__version__",
-    "console.console",
-    "console.console_err",
-    "init.init_project",
 ]
 from = [
     "tach",
