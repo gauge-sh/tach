@@ -69,8 +69,10 @@ impl IgnoreDirectives {
         }
     }
 
-    pub fn active_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
-        self.directives.values()
+    pub fn sorted_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {
+        let mut directives = self.directives.values().collect::<Vec<_>>();
+        directives.sort_by_key(|directive| directive.ignored_line_no);
+        directives.into_iter()
     }
 
     pub fn redundant_directives(&self) -> impl Iterator<Item = &IgnoreDirective> {

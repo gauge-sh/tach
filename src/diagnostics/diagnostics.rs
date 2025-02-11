@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::config::RuleSetting;
 
-#[derive(Debug, Clone, Eq, PartialOrd, Ord, Serialize, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialOrd, Ord, Serialize, PartialEq)]
 #[pyclass(eq, eq_int, module = "tach.extension")]
 pub enum Severity {
     Error,
@@ -285,8 +285,8 @@ impl Diagnostic {
 
     pub fn severity(&self) -> Severity {
         match self {
-            Self::Global { severity, .. } => severity.clone(),
-            Self::Located { severity, .. } => severity.clone(),
+            Self::Global { severity, .. } => *severity,
+            Self::Located { severity, .. } => *severity,
         }
     }
 

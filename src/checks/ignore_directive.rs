@@ -1,7 +1,8 @@
+use std::collections::HashSet;
 use std::path::Path;
 
 use crate::config::{ProjectConfig, RuleSetting};
-use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
+use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails, Severity};
 use crate::processors::ignore_directive::{IgnoreDirective, IgnoreDirectives};
 
 pub struct IgnoreDirectivePostProcessor<'a> {
@@ -17,11 +18,10 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
         &self,
         ignore_directive: &IgnoreDirective,
         relative_file_path: &Path,
+        severity: Severity,
     ) -> Diagnostic {
         Diagnostic::new_located(
-            (&self.project_config.rules.unused_ignore_directives)
-                .try_into()
-                .unwrap(),
+            severity,
             DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
             relative_file_path.to_path_buf(),
             ignore_directive.line_no,
@@ -33,16 +33,30 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
         ignore_directive: &IgnoreDirective,
         diagnostics: &[Diagnostic],
         relative_file_path: &Path,
+        severity: Severity,
+        matched_diagnostic_indices: &mut HashSet<usize>,
     ) -> Option<Diagnostic> {
-        if self.project_config.rules.unused_ignore_directives == RuleSetting::Off {
-            return None;
-        }
-
-        if !diagnostics
+        let mut found: bool = false;
+        // Tag all indices which match the ignore directive, also note whether we found any
+        diagnostics
             .iter()
-            .any(|diagnostic| ignore_directive.matches_diagnostic(diagnostic))
-        {
-            Some(self.get_unused_ignore_directive_diagnostic(ignore_directive, relative_file_path))
+            .enumerate()
+            .for_each(|(index, diagnostic)| {
+                if ignore_directive.matches_diagnostic(diagnostic)
+                    && !matched_diagnostic_indices.contains(&index)
+                {
+                    matched_diagnostic_indices.insert(index);
+                    found = true;
+                }
+            });
+
+        // If we didn't find any, this ignore directive is unused
+        if !found {
+            Some(self.get_unused_ignore_directive_diagnostic(
+                ignore_directive,
+                relative_file_path,
+                severity,
+            ))
         } else {
             None
         }
@@ -71,52 +85,43 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
         }
     }
 
-    fn check_ignore_directive(
+    fn handle_ignore_directive(
         &self,
         ignore_directive: &IgnoreDirective,
-        diagnostics: &Vec<Diagnostic>,
+        diagnostics: &mut Vec<Diagnostic>,
         relative_file_path: &Path,
-    ) -> Vec<Diagnostic> {
-        vec![
-            self.check_unused_ignore_directive(ignore_directive, diagnostics, relative_file_path),
-            self.check_missing_ignore_directive_reason(ignore_directive, relative_file_path),
-        ]
-        .into_iter()
-        .flatten()
-        .collect()
-    }
+        matched_diagnostic_indices: &mut HashSet<usize>,
+    ) {
+        if let Some(diagnostic) =
+            self.check_missing_ignore_directive_reason(ignore_directive, relative_file_path)
+        {
+            diagnostics.push(diagnostic)
+        }
 
-    fn check_ignore_directives(
-        &self,
-        ignore_directives: &IgnoreDirectives,
-        existing_diagnostics: &Vec<Diagnostic>,
-        relative_file_path: &Path,
-    ) -> Vec<Diagnostic> {
-        let mut diagnostics = Vec::new();
-        for ignore_directive in ignore_directives.active_directives() {
-            diagnostics.extend(self.check_ignore_directive(
+        if let Ok(severity) = (&self.project_config.rules.unused_ignore_directives).try_into() {
+            if let Some(diagnostic) = self.check_unused_ignore_directive(
                 ignore_directive,
-                existing_diagnostics,
+                diagnostics,
                 relative_file_path,
-            ));
+                severity,
+                matched_diagnostic_indices,
+            ) {
+                diagnostics.push(diagnostic);
+            }
         }
-        for ignore_directive in ignore_directives.redundant_directives() {
-            diagnostics.push(
-                self.get_unused_ignore_directive_diagnostic(ignore_directive, relative_file_path),
-            );
-        }
-
-        diagnostics
     }
 
     fn remove_ignored_diagnostics(
         &self,
-        ignore_directives: &IgnoreDirectives,
         diagnostics: &mut Vec<Diagnostic>,
+        matched_diagnostic_indices: &HashSet<usize>,
     ) {
-        for ignore_directive in ignore_directives.active_directives() {
-            diagnostics.retain(|diagnostic| !ignore_directive.matches_diagnostic(diagnostic));
-        }
+        let mut idx = 0;
+        diagnostics.retain(|_| {
+            let keep = !matched_diagnostic_indices.contains(&idx);
+            idx += 1;
+            keep
+        });
     }
 
     pub fn process_diagnostics(
@@ -125,14 +130,28 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
         diagnostics: &mut Vec<Diagnostic>,
         relative_file_path: &Path,
     ) {
-        // Check for diagnostics related to ignore directives
-        let ignore_directive_diagnostics =
-            self.check_ignore_directives(ignore_directives, diagnostics, relative_file_path);
+        let mut matched_diagnostic_indices: HashSet<usize> = HashSet::new();
+        // Using sorted directives, we can greedily match diagnostics to ignore directives
+        // to canonically determine which diagnostics are unused
+        for ignore_directive in ignore_directives.sorted_directives() {
+            self.handle_ignore_directive(
+                ignore_directive,
+                diagnostics,
+                relative_file_path,
+                &mut matched_diagnostic_indices,
+            );
+        }
 
-        // Remove ignored diagnostics
-        self.remove_ignored_diagnostics(ignore_directives, diagnostics);
+        self.remove_ignored_diagnostics(diagnostics, &matched_diagnostic_indices);
 
-        // Add the new diagnostics to the list
-        diagnostics.extend(ignore_directive_diagnostics);
+        if let Ok(severity) = (&self.project_config.rules.unused_ignore_directives).try_into() {
+            for ignore_directive in ignore_directives.redundant_directives() {
+                diagnostics.push(self.get_unused_ignore_directive_diagnostic(
+                    ignore_directive,
+                    relative_file_path,
+                    severity,
+                ));
+            }
+        }
     }
 }

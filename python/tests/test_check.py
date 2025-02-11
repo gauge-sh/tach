@@ -293,6 +293,20 @@ def test_many_features_example_dir(example_dir, capfd):
             "missing a reason",
         ),
         ("[WARN]", "real_src/main.py", "ignore directive", "missing a reason"),
+        (
+            "[FAIL]",
+            "other_src_root/module4/service.py",
+            "L6",
+            "ignore directive",
+            "unused",
+        ),
+        (
+            "[FAIL]",
+            "other_src_root/module4/service.py",
+            "L12",
+            "ignore directive",
+            "unused",
+        ),
         ("[FAIL]", "other_src_root/module1/api.py", "ignore directive", "unused"),
         ("[FAIL]", "real_src/main.py", "ignore directive", "unused"),
     ]
