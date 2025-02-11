@@ -142,6 +142,10 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
                 file_module
                     .ignore_directives
                     .remove_matching_directives(file_module.line_number(import.import_offset));
+                // Check both the import and alias offsets, because there may be an ignore directive on the alias alone
+                file_module
+                    .ignore_directives
+                    .remove_matching_directives(file_module.line_number(import.alias_offset));
                 None
             }
         });
@@ -209,6 +213,10 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
                 file_module
                     .ignore_directives
                     .remove_matching_directives(file_module.line_number(import.import_offset));
+                // Check both the import and alias offsets, because there may be an ignore directive on the alias alone
+                file_module
+                    .ignore_directives
+                    .remove_matching_directives(file_module.line_number(import.alias_offset));
                 None
             }
         })

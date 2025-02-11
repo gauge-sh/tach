@@ -18,6 +18,22 @@ pub struct IgnoreDirective {
 }
 
 impl IgnoreDirective {
+    pub fn matches_located_import(&self, import: &LocatedImport) -> bool {
+        if import.is_absolute() {
+            self.modules.is_empty()
+                || self
+                    .modules
+                    .iter()
+                    .any(|module_path| module_path == import.module_path())
+        } else {
+            self.modules.is_empty()
+                || self
+                    .modules
+                    .iter()
+                    .any(|module_path| Some(module_path.as_str()) == import.alias_path())
+        }
+    }
+
     pub fn matches_diagnostic(&self, diagnostic: &Diagnostic) -> bool {
         // If the diagnostic is not on the line that the directive is being applied, it is not a match
         if Some(self.ignored_line_no) != diagnostic.line_number() {
@@ -86,20 +102,7 @@ impl IgnoreDirectives {
     pub fn is_ignored(&self, normalized_import: &LocatedImport) -> bool {
         self.directives
             .get(&normalized_import.import_line_number())
-            .is_some_and(|directive| {
-                if normalized_import.is_absolute() {
-                    directive.modules.is_empty()
-                        || directive
-                            .modules
-                            .iter()
-                            .any(|module_path| module_path == normalized_import.module_path())
-                } else {
-                    directive.modules.is_empty()
-                        || directive.modules.iter().any(|module_path| {
-                            Some(module_path.as_str()) == normalized_import.alias_path()
-                        })
-                }
-            })
+            .is_some_and(|directive| directive.matches_located_import(normalized_import))
     }
 
     pub fn remove_matching_directives(&mut self, import_line_no: usize) {

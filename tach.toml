@@ -74,8 +74,8 @@ utility = true
 [[modules]]
 path = "tach.errors"
 depends_on = []
-# layer = "core"
-# utility = true
+layer = "core"
+utility = true
 
 [[modules]]
 path = "tach.extension"
