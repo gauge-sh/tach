@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict, dataclass
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
 
 from tach.constants import GAUGE_API_BASE_URL
-from tach.extension import serialize_modules_json
+from tach.modularity import (
+    Module,
+    Usage,
+    UsageError,
+    build_diagnostics,
+    build_modules,
+    build_usages,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -16,24 +24,50 @@ if TYPE_CHECKING:
     from tach.extension import ProjectConfig
 
 
-def generate_show_url(
+@dataclass
+class ShowReport:
+    modules: list[Module]
+    usages: list[Usage]
+    diagnostics: list[UsageError]
+
+
+def generate_show_report(
+    project_root: Path,
     project_config: ProjectConfig,
-    included_paths: list[Path] | None = None,
+    included_paths: list[Path],
+) -> ShowReport:
+    modules = build_modules(
+        project_config=project_config, included_paths=included_paths
+    )
+    usages = build_usages(
+        project_root=project_root,
+        project_config=project_config,
+        included_paths=included_paths,
+    )
+    diagnostics = build_diagnostics(
+        project_root=project_root,
+        project_config=project_config,
+    )
+    return ShowReport(modules=modules, usages=usages, diagnostics=diagnostics)
+
+
+def upload_show_report(
+    project_root: Path,
+    project_config: ProjectConfig,
+    included_paths: list[Path],
 ) -> str | None:
-    included_paths = included_paths or []
-    modules = project_config.filtered_modules(included_paths)
-    for module in modules:
-        if module.depends_on is None:
-            # This is a hack to avoid bumping the API version
-            module.depends_on = []
-    json_data = serialize_modules_json(modules)
+    show_report = generate_show_report(
+        project_root=project_root,
+        project_config=project_config,
+        included_paths=included_paths,
+    )
+    json_data = json.dumps(asdict(show_report))
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
-        f"{GAUGE_API_BASE_URL}/api/show/graph/1.3",
+        f"{GAUGE_API_BASE_URL}/api/show/graph/1.4",
         data=json_bytes,
         headers={"Content-Type": "application/json"},
     )
-
     try:
         # Send the request and read the response
         with request.urlopen(req) as response:
@@ -97,7 +131,7 @@ def generate_module_graph_mermaid(
 
 
 __all__ = [
-    "generate_show_url",
+    "upload_show_report",
     "generate_module_graph_dot_file",
     "generate_module_graph_mermaid",
 ]

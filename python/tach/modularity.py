@@ -189,9 +189,17 @@ class Report:
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
-def build_modules(project_config: ProjectConfig) -> list[Module]:
+def build_modules(
+    project_config: ProjectConfig,
+    included_paths: list[Path] | None = None,
+) -> list[Module]:
+    config_modules = (
+        project_config.filtered_modules(included_paths)
+        if included_paths
+        else project_config.all_modules()
+    )
     modules: list[Module] = []
-    for module in project_config.all_modules():
+    for module in config_modules:
         if module.mod_path() == ".":
             # Skip <root>
             continue
@@ -222,10 +230,18 @@ def build_modules(project_config: ProjectConfig) -> list[Module]:
 
 
 def build_usages(
-    project_root: Path, source_roots: list[Path], project_config: ProjectConfig
+    project_root: Path,
+    project_config: ProjectConfig,
+    included_paths: list[Path] | None = None,
 ) -> list[Usage]:
+    source_roots = [project_root / root for root in project_config.source_roots]
+    modules = (
+        project_config.filtered_modules(included_paths)
+        if included_paths
+        else project_config.all_modules()
+    )
     module_paths = sorted(
-        (module.path for module in project_config.all_modules()),
+        (module.path for module in modules),
         key=lambda path: len(path.split(".")),
         reverse=True,
     )
@@ -278,6 +294,27 @@ def build_usages(
     return usages
 
 
+def build_diagnostics(
+    project_root: Path,
+    project_config: ProjectConfig,
+) -> list[UsageError]:
+    project_config.exclude = extend_and_validate(
+        None, project_config.exclude, project_config.use_regex_matching
+    )
+    check_diagnostics = check(
+        project_root=project_root,
+        project_config=project_config,
+        dependencies=True,
+        interfaces=True,
+    )
+    return list(
+        map(
+            lambda ext_usage_error: UsageError.from_extension(ext_usage_error),
+            into_usage_errors(check_diagnostics),
+        )
+    )
+
+
 def generate_modularity_report(
     project_root: Path, project_config: ProjectConfig, force: bool = False
 ) -> Report:
@@ -292,25 +329,14 @@ def generate_modularity_report(
         commit=branch_info.commit,
         full_configuration=project_config.serialize_json(),
     )
-    source_roots = [project_root / root for root in project_config.source_roots]
 
     report.modules = build_modules(project_config)
-    report.usages = build_usages(project_root, source_roots, project_config)
-    project_config.exclude = extend_and_validate(
-        None, project_config.exclude, project_config.use_regex_matching
-    )
-    check_diagnostics = check(
+    report.usages = build_usages(project_root, project_config)
+    report.diagnostics = build_diagnostics(
         project_root=project_root,
         project_config=project_config,
-        dependencies=True,
-        interfaces=True,
     )
-    report.diagnostics = list(
-        map(
-            lambda ext_usage_error: UsageError.from_extension(ext_usage_error),
-            into_usage_errors(check_diagnostics),
-        )
-    )
+
     print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
     return report
 

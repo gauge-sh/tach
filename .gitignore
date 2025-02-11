@@ -177,3 +177,6 @@ modularity_report.json
 
 # Profiling
 profile.json
+
+# Rust
+.cargo/

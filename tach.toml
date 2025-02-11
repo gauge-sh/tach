@@ -28,6 +28,7 @@ depends_on = [
 ]
 layer = "ui"
 
+
 [[modules]]
 path = "tach.init"
 depends_on = ["tach.show", "tach.mod"]
@@ -132,8 +133,13 @@ depends_on = [
 layer = "ui"
 
 [[modules]]
-paths = ["tach.test", "tach.report", "tach.show", "tach.modularity", "tach.mod"]
+paths = ["tach.test", "tach.report", "tach.modularity", "tach.mod"]
 depends_on = []
+layer = "commands"
+
+[[modules]] 
+path = "tach.show"
+depends_on = ["tach.modularity"]
 layer = "commands"
 
 [[modules]]
@@ -146,6 +152,10 @@ utility = true
 expose = [
     "export_report",
     "upload_report_to_gauge",
+    "Module",
+    "Usage",
+    "UsageError",
+    "build_.*",
 ]
 from = [
     "tach.modularity",
@@ -247,9 +257,10 @@ from = [
 
 [[interfaces]]
 expose = [
-    "generate_show_url",
+    "upload_show_report",
     "generate_module_graph_dot_file",
     "generate_module_graph_mermaid",
+    "",
 ]
 from = [
     "tach.show",
@@ -262,6 +273,7 @@ expose = [
 from = [
     "tach.start",
 ]
+
 
 [[interfaces]]
 expose = [
