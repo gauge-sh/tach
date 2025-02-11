@@ -331,7 +331,7 @@ def generate_modularity_report(
     )
 
     report.modules = build_modules(project_config)
-    report.usages = build_usages(project_root, source_roots, project_config)
+    report.usages = build_usages(project_root, project_config)
     report.diagnostics = build_diagnostics(
         project_root=project_root,
         project_config=project_config,
