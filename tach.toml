@@ -26,13 +26,20 @@ path = "tach.__main__"
 depends_on = [
     "tach.start",
 ]
-layer = "ui"
+
+
+[[modules]]
+path = "tach.ai"
+depends_on = []
+
+[[interfaces]]
+expose = ["ai_check"]
+from = ["tach.ai"]
 
 
 [[modules]]
 path = "tach.init"
-depends_on = ["tach.show", "tach.mod"]
-layer = "commands"
+depends_on = ["tach.show", "tach.mod", "tach.filesystem", "tach.extension"]
 
 [[modules]]
 path = "tach.console"
@@ -45,59 +52,53 @@ depends_on = [
     "tach",
     "tach.filesystem",
 ]
-layer = "core"
 
 [[modules]]
 path = "tach.check_external"
-depends_on = []
-layer = "commands"
+depends_on = ["tach.extension"]
+
+[[modules]]
+path = "tach.check"
+depends_on = ["tach.extension"]
 
 [[modules]]
 path = "tach.cli"
 depends_on = [
-    "tach",
+    "tach", "tach.extension", "tach.icons", "tach.logging", "tach.mod", "tach.parsing", "tach.cache", "tach.modularity", "tach.report", "tach.show", "tach.filesystem", "tach.check", "tach.check_external", "tach.init", "tach.test", "tach.ai",
 ]
-layer = "ui"
 
 [[modules]]
 path = "tach.colors"
 depends_on = []
-layer = "core"
 utility = true
 
 [[modules]]
 path = "tach.constants"
 depends_on = []
-layer = "core"
 utility = true
 
 [[modules]]
 path = "tach.errors"
 depends_on = []
-layer = "core"
 utility = true
 
 [[modules]]
 path = "tach.extension"
 depends_on = []
-layer = "core"
 
 [[modules]]
 path = "tach.hooks"
 depends_on = []
-layer = "core"
 
 [[modules]]
 path = "tach.icons"
 depends_on = []
-layer = "core"
 
 [[modules]]
 path = "tach.interactive"
 depends_on = [
     "tach.filesystem",
 ]
-layer = "core"
 
 [[modules]]
 path = "tach.logging"
@@ -105,7 +106,6 @@ depends_on = [
     "tach",
     "tach.cache",
 ]
-layer = "core"
 
 [[modules]]
 path = "tach.parsing"
@@ -113,7 +113,6 @@ depends_on = [
     "tach.extension",
     "tach.filesystem",
 ]
-layer = "core"
 
 [[modules]]
 path = "tach.pytest_plugin"
@@ -123,29 +122,36 @@ depends_on = [
     "tach.filesystem.git_ops",
     "tach.parsing",
 ]
-layer = "core"
 
 [[modules]]
 path = "tach.start"
 depends_on = [
     "tach.cli",
 ]
-layer = "ui"
 
 [[modules]]
-paths = ["tach.test", "tach.report", "tach.modularity", "tach.mod"]
+path = "tach.test"
 depends_on = []
-layer = "commands"
 
-[[modules]] 
+[[modules]]
+path = "tach.report"
+depends_on = ["tach.filesystem", "tach.extension"]
+
+[[modules]]
+path = "tach.modularity"
+depends_on = ["tach.filesystem", "tach.extension", "tach.parsing", "tach.filesystem.git_ops"]
+
+[[modules]]
+path = "tach.mod"
+depends_on = ["tach.parsing", "tach.filesystem", "tach.interactive"]
+
+[[modules]]
 path = "tach.show"
 depends_on = ["tach.modularity"]
-layer = "commands"
 
 [[modules]]
 path = "tach.utils"
 depends_on = []
-layer = "core"
 utility = true
 
 [[interfaces]]
@@ -260,7 +266,6 @@ expose = [
     "upload_show_report",
     "generate_module_graph_dot_file",
     "generate_module_graph_mermaid",
-    "",
 ]
 from = [
     "tach.show",

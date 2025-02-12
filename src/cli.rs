@@ -34,7 +34,7 @@ pub fn create_clickable_link(file_path: &Path, abs_path: &Path, line: &usize) ->
             format!("file://{}:{}", abs_path_str, line)
         }
         TerminalEnvironment::VSCode => {
-            format!("vscode://file/{}:{}", abs_path_str, line)
+            format!("cursor://file/{}:{}", abs_path_str, line)
         }
         TerminalEnvironment::Unknown => {
             format!("file://{}", abs_path_str)

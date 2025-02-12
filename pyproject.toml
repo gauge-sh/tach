@@ -38,6 +38,7 @@ dependencies = [
     "pydot>=2,<4",
     "stdlib-list>=0.10.0; python_version < '3.10'",
     "importlib_metadata>=6.0; python_version == '3.7'",
+    "cowsay>=6.0",
 ]
 keywords = [
     'python',
@@ -107,6 +108,7 @@ exclude = ["**/__pycache__", ".venv"]
 strict = ["python/tach"]
 executionEnvironments = [{ root = "python" }]
 pythonVersion = "3.8"
+stubPath = "python/typings"
 
 
 [tool.pytest.ini_options]

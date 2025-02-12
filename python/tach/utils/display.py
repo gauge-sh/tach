@@ -34,9 +34,9 @@ def create_clickable_link(
         link = f"file://{abs_path}:{line}" if line is not None else f"file://{abs_path}"
     elif terminal_env == TerminalEnvironment.VSCODE:
         link = (
-            f"vscode://file/{abs_path}:{line}"
+            f"cursor://file/{abs_path}:{line}"
             if line is not None
-            else f"vscode://file/{abs_path}"
+            else f"cursor://file/{abs_path}"
         )
     else:
         # For generic terminals, use a standard file link

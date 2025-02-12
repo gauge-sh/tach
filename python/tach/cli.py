@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any
 
 from tach import __version__, cache, extension, icons
 from tach import filesystem as fs
+from tach.ai import ai_check
+from tach.check import check
 from tach.check_external import check_external
 from tach.colors import BCOLORS
 from tach.console import console, console_err
@@ -520,7 +522,7 @@ def tach_check(
     try:
         exact |= project_config.exact
 
-        diagnostics = extension.check(
+        diagnostics = check(
             project_root=project_root,
             project_config=project_config,
             dependencies=dependencies,
@@ -570,6 +572,7 @@ def tach_check(
         sys.exit(1)
 
     if exit_code == 0 and output_format == "text":
+        ai_check(project_root, project_config)
         console.print(
             f"{icons.SUCCESS} [green]All modules validated![/]", style="green"
         )
