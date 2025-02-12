@@ -257,39 +257,42 @@ def build_usages(
         )
 
     usages: list[Usage] = []
-    for pyfile in fs.walk_pyfiles(
-        project_root,
-        project_root=project_root,
-        exclude_paths=project_config.exclude,
-        use_regex_matching=project_config.use_regex_matching,
-    ):
-        pyfile_mod_path = fs.file_to_module_path(
-            tuple(source_roots), project_root / pyfile
-        )
-        pyfile_containing_module = get_containing_module(pyfile_mod_path)
-        imports = get_project_imports(
+    for source_root in source_roots:
+        for pyfile in fs.walk_pyfiles(
+            source_root,
             project_root=project_root,
-            source_roots=source_roots,
-            file_path=pyfile,
-            project_config=project_config,
-        )
-        for project_import in imports:
-            import_containing_module = get_containing_module(project_import.module_path)
-            if (
-                import_containing_module is None
-                or import_containing_module == pyfile_containing_module
-            ):
-                continue
-
-            usages.append(
-                Usage(
-                    module_path=import_containing_module,
-                    full_path=project_import.module_path,
-                    filepath=str(pyfile),
-                    line=project_import.line_number,
-                    containing_module_path=pyfile_containing_module,
-                )
+            exclude_paths=project_config.exclude,
+            use_regex_matching=project_config.use_regex_matching,
+        ):
+            pyfile_mod_path = fs.file_to_module_path(
+                tuple(source_roots), source_root / pyfile
             )
+            pyfile_containing_module = get_containing_module(pyfile_mod_path)
+            imports = get_project_imports(
+                project_root=project_root,
+                source_roots=source_roots,
+                file_path=source_root / pyfile,
+                project_config=project_config,
+            )
+            for project_import in imports:
+                import_containing_module = get_containing_module(
+                    project_import.module_path
+                )
+                if (
+                    import_containing_module is None
+                    or import_containing_module == pyfile_containing_module
+                ):
+                    continue
+
+                usages.append(
+                    Usage(
+                        module_path=import_containing_module,
+                        full_path=project_import.module_path,
+                        filepath=str(pyfile),
+                        line=project_import.line_number,
+                        containing_module_path=pyfile_containing_module,
+                    )
+                )
 
     return usages
 
