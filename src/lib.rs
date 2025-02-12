@@ -32,6 +32,7 @@ mod errors {
     pyo3::import_exception!(tach.errors, TachCircularDependencyError);
     pyo3::import_exception!(tach.errors, TachVisibilityError);
     pyo3::import_exception!(tach.errors, TachSetupError);
+    pyo3::import_exception!(tach.errors, TachConfigError);
 }
 
 impl From<processors::import::ImportParseError> for PyErr {
@@ -76,6 +77,7 @@ impl From<check::CheckError> for PyErr {
             check::CheckError::ModuleTree(
                 modules::error::ModuleTreeError::VisibilityViolation(v),
             ) => errors::TachVisibilityError::new_err(v),
+            check::CheckError::ConfigError(err) => errors::TachConfigError::new_err(err),
             _ => PyValueError::new_err(err.to_string()),
         }
     }
@@ -204,7 +206,9 @@ struct CheckExternalMetadata {
 }
 
 /// Get metadata for checking external dependencies.
-fn get_check_external_metadata(project_config: &config::ProjectConfig) -> CheckExternalMetadata {
+fn get_check_external_metadata(
+    project_config: &config::ProjectConfig,
+) -> Result<CheckExternalMetadata, check::error::CheckError> {
     Python::with_gil(|py| {
         let external_utils = PyModule::import_bound(py, "tach.utils.external")
             .expect("Failed to import tach.utils.external");
@@ -227,14 +231,18 @@ fn get_check_external_metadata(project_config: &config::ProjectConfig) -> CheckE
             for rename_pair in project_config.external.rename.iter() {
                 if let Some((module, name)) = rename_pair.split_once(':') {
                     module_mappings.insert(module.to_string(), vec![name.to_string()]);
+                } else {
+                    return Err(check::error::CheckError::ConfigError(
+                        "Invalid rename format: expected format is a list of 'module:name' pairs, e.g. ['PIL:pillow']".to_string()
+                    ));
                 }
             }
         }
 
-        CheckExternalMetadata {
+        Ok(CheckExternalMetadata {
             module_mappings,
             stdlib_modules,
-        }
+        })
     })
 }
 
@@ -244,7 +252,7 @@ fn check_external_dependencies(
     project_root: PathBuf,
     project_config: config::ProjectConfig,
 ) -> check::check_external::Result<Vec<diagnostics::Diagnostic>> {
-    let metadata = get_check_external_metadata(&project_config);
+    let metadata = get_check_external_metadata(&project_config)?;
     check::check_external::check(
         &project_root,
         &project_config,

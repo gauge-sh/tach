@@ -24,4 +24,6 @@ pub enum CheckError {
     Interrupt,
     #[error("Diagnostic error: {0}")]
     Diagnostic(#[from] DiagnosticError),
+    #[error("Config error: {0}")]
+    ConfigError(String),
 }
