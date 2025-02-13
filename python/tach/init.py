@@ -97,8 +97,19 @@ def setup_modules(project_root: Path, project_config: ProjectConfig) -> ProjectC
 
 def get_all_existing_config_files(project_root: Path) -> list[Path]:
     current_config_path = fs.get_project_config_path(project_root)
+
+    def exclude_self(path: Path) -> bool:
+        # This is a quick proxy to exclude Tach's own config files in the venv
+        return "/tach/" not in str(path)
+
     return list(
-        filter(None, (current_config_path, *project_root.rglob("tach.domain.toml")))
+        filter(
+            None,
+            (
+                current_config_path,
+                *filter(exclude_self, project_root.rglob("tach.domain.toml")),
+            ),
+        ),
     )
 
 
