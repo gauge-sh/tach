@@ -53,8 +53,6 @@ def check(
 def check_external_dependencies(
     project_root: Path,
     project_config: ProjectConfig,
-    module_mappings: dict[str, list[str]],
-    stdlib_modules: list[str],
 ) -> list[Diagnostic]: ...
 def format_diagnostics(
     project_root: Path,
