@@ -17,6 +17,10 @@ source_roots = [
 exact = true
 forbid_circular_dependencies = true
 
+[rules]
+unused_ignore_directives = "error"
+require_ignore_directive_reasons = "error"
+
 [[modules]]
 path = "tach"
 depends_on = []
@@ -260,7 +264,6 @@ expose = [
     "upload_show_report",
     "generate_module_graph_dot_file",
     "generate_module_graph_mermaid",
-    "",
 ]
 from = [
     "tach.show",
@@ -296,6 +299,3 @@ exclude = [
     "eval_type_backport",
 ]
 
-[rules]
-unused_ignore_directives = "error"
-require_ignore_directive_reasons = "error"
