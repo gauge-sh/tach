@@ -268,5 +268,6 @@
       "default": false,
       "description": "DEPRECATED: Switches the interpretation of 'exclude' from glob to regex"
     }
-  }
+  },
+  "additionalProperties": false
 }
