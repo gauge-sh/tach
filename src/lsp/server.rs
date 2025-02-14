@@ -160,7 +160,7 @@ impl LSPServer {
         results: Vec<Diagnostic>,
         uri_pathbuf: &'a PathBuf,
     ) -> impl Iterator<Item = lsp_types::Diagnostic> + 'a {
-        results.into_iter().filter_map(move |e| {
+        results.into_iter().filter_map(|e| {
             if let Some(file_path) = e.file_path() {
                 if *uri_pathbuf == self.project_root.join(file_path) {
                     return e.into();
