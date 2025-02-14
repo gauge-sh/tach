@@ -1,0 +1,272 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tach Project Configuration Schema",
+  "description": "Project-level configuration for the Tach CLI",
+  "type": "object",
+  "properties": {
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "oneOf": [
+          {
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "Path to the module"
+              },
+              "depends_on": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "description": "Path to the dependency"
+                    },
+                    {
+                      "type": "object",
+                      "required": ["path"],
+                      "properties": {
+                        "path": {
+                          "type": "string",
+                          "description": "Path to the dependency"
+                        },
+                        "deprecated": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Flag usages of this dependency without failing tach check"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "default": null,
+                "description": "List of dependencies for the module"
+              },
+              "layer": {
+                "type": "string",
+                "description": "The architectural layer this module belongs to"
+              },
+              "unchecked": {
+                "type": "boolean",
+                "default": false,
+                "description": "Flag to skip checks for this module"
+              },
+              "utility": {
+                "type": "boolean",
+                "description": "Whether this module is a utility module"
+              },
+              "strict": {
+                "type": "boolean",
+                "default": false,
+                "description": "DEPRECATED: Use 'interfaces' instead"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "required": ["paths"],
+            "properties": {
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of module paths that share the same configuration"
+              },
+              "depends_on": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "description": "Path to the dependency"
+                    },
+                    {
+                      "type": "object",
+                      "required": ["path"],
+                      "properties": {
+                        "path": {
+                          "type": "string",
+                          "description": "Path to the dependency"
+                        },
+                        "deprecated": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Flag usages of this dependency without failing tach check"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "default": null,
+                "description": "List of dependencies for the module"
+              },
+              "layer": {
+                "type": "string",
+                "description": "The architectural layer this module belongs to"
+              },
+              "unchecked": {
+                "type": "boolean",
+                "default": false,
+                "description": "Flag to skip checks for this module"
+              },
+              "utility": {
+                "type": "boolean",
+                "description": "Whether this module is a utility module"
+              },
+              "strict": {
+                "type": "boolean",
+                "default": false,
+                "description": "DEPRECATED: Use 'interfaces' instead"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "default": [],
+      "description": "List of module configurations"
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "expose": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of regex patterns that match paths to expose in this interface"
+          },
+          "from": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of regex patterns that match modules which adopt this interface"
+          },
+          "data_types": {
+            "type": "string",
+            "default": "all",
+            "description": "The data types allowed to cross the interface"
+          }
+        },
+        "additionalProperties": false
+      },
+      "default": [],
+      "description": "List of interface configurations"
+    },
+    "external": {
+      "type": "object",
+      "properties": {
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of external dependency names to ignore during checks"
+        }
+      },
+      "additionalProperties": false
+    },
+    "layers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of layers in hierarchical order (highest to lowest)"
+    },
+    "cache": {
+      "type": "object",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": [
+            "local"
+          ],
+          "default": "local",
+          "description": "Cache backend type (currently not configurable, 'local' only)"
+        },
+        "file_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of files that trigger cache invalidation"
+        },
+        "env_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of environment variables that trigger cache invalidation"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "unused_ignore_directives": {
+          "type": "string",
+          "enum": ["error", "warn", "off"],
+          "default": "error",
+          "description": "How to handle unused ignore directives"
+        },
+        "require_ignore_directive_reasons": {
+          "type": "string",
+          "enum": ["error", "warn", "off"],
+          "default": "error",
+          "description": "How to handle require ignore directive reasons"
+        },
+        "unused_external_dependencies": {
+          "type": "string",
+          "enum": ["error", "warn", "off"],
+          "default": "error",
+          "description": "How to handle unused external dependencies"
+        }
+      },
+      "additionalProperties": false
+    },
+    "exclude": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of paths to exclude from the project; relative to the project root"
+    },
+    "source_roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Root directories of Python source code; relative to the project root"
+    },
+    "exact": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disallow listed dependencies that are not used in the project"
+    },
+    "disable_logging": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disable anonymized usage logging"
+    },
+    "ignore_type_checking_imports": {
+      "type": "boolean",
+      "default": true,
+      "description": "Ignore type-checking imports when checking module boundaries"
+    },
+    "forbid_circular_dependencies": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cause `tach check` to fail if any circular dependencies are detected"
+    },
+    "use_regex_matching": {
+      "type": "boolean",
+      "default": false,
+      "description": "DEPRECATED: Switches the interpretation of 'exclude' from glob to regex"
+    }
+  }
+}
