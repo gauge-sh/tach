@@ -149,26 +149,22 @@ fn get_check_external_metadata(
 }
 
 pub fn check(project_root: &Path, project_config: &ProjectConfig) -> Result<Vec<Diagnostic>> {
-    check_with_overrides(project_root, project_config, None, None)
+    let metadata = get_check_external_metadata(project_config)?;
+    check_with_modules(
+        project_root,
+        project_config,
+        &metadata.module_mappings,
+        &metadata.stdlib_modules,
+    )
 }
 
-fn check_with_overrides(
+fn check_with_modules(
     project_root: &Path,
     project_config: &ProjectConfig,
-    module_mappings: Option<&HashMap<String, Vec<String>>>,
-    stdlib_modules: Option<&[String]>,
+    module_mappings: &HashMap<String, Vec<String>>,
+    stdlib_modules: &[String],
 ) -> Result<Vec<Diagnostic>> {
-    let metadata = get_check_external_metadata(project_config)?;
-    let module_mappings = if let Some(mappings) = module_mappings {
-        mappings
-    } else {
-        &metadata.module_mappings
-    };
-    let stdlib_modules: HashSet<String> = if let Some(modules) = stdlib_modules {
-        modules.iter().cloned().collect()
-    } else {
-        metadata.stdlib_modules.iter().cloned().collect()
-    };
+    let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
@@ -333,13 +329,8 @@ mod tests {
         module_mapping: HashMap<String, Vec<String>>,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check_with_overrides(
-            &project_root,
-            &project_config,
-            Some(&module_mapping),
-            Some(&[]),
-        )
-        .unwrap();
+        let result =
+            check_with_modules(&project_root, &project_config, &module_mapping, &[]).unwrap();
         assert_eq!(result.len(), 1);
         assert!(matches!(
             result[0],
@@ -362,13 +353,8 @@ mod tests {
         project_config: ProjectConfig,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check_with_overrides(
-            &project_root,
-            &project_config,
-            Some(&HashMap::new()),
-            Some(&[]),
-        )
-        .unwrap();
+        let result =
+            check_with_modules(&project_root, &project_config, &HashMap::new(), &[]).unwrap();
         assert_eq!(result.len(), 3);
         assert!(result.iter().any(|d| d.details()
             == &DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
