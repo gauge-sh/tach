@@ -6,7 +6,7 @@ use std::thread::JoinHandle;
 
 use lsp_server::{Connection, Message, Notification as NotificationMessage, RequestId};
 
-use crate::commands::check::check_internal;
+use crate::commands::check::{check_external, check_internal};
 use crate::config;
 use crate::diagnostics::{Diagnostic, Severity};
 use crate::interrupt::{check_interrupt, get_interrupt_channel};
@@ -155,6 +155,21 @@ impl LSPServer {
         }
     }
 
+    fn filter_diagnostics_results<'a>(
+        &'a self,
+        results: Vec<Diagnostic>,
+        uri_pathbuf: &'a PathBuf,
+    ) -> impl Iterator<Item = lsp_types::Diagnostic> + 'a {
+        results.into_iter().filter_map(|e| {
+            if let Some(file_path) = e.file_path() {
+                if *uri_pathbuf == self.project_root.join(file_path) {
+                    return e.into();
+                }
+            }
+            None
+        })
+    }
+
     fn lint_for_diagnostics(
         &self,
         uri: Uri,
@@ -165,17 +180,16 @@ impl LSPServer {
 
         let check_result =
             check_internal(self.project_root.clone(), &self.project_config, true, true)?;
-        let diagnostics = check_result
-            .into_iter()
-            .filter_map(|e| {
-                if let Some(file_path) = e.file_path() {
-                    if uri_pathbuf == self.project_root.join(file_path) {
-                        return e.into();
-                    }
-                }
-                None
-            })
+        let check_external_result = check_external(&self.project_root, &self.project_config)?;
+
+        let check_diagnostics = self.filter_diagnostics_results(check_result, &uri_pathbuf);
+        let check_external_diagnostics =
+            self.filter_diagnostics_results(check_external_result, &uri_pathbuf);
+
+        let diagnostics = check_diagnostics
+            .chain(check_external_diagnostics)
             .collect();
+
         Ok(lsp_types::PublishDiagnosticsParams {
             uri,
             diagnostics,

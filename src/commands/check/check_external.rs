@@ -1,5 +1,6 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
-use crate::config::ProjectConfig;
+use crate::commands::check;
+use crate::config::{self, ProjectConfig};
 use crate::dependencies::import::with_distribution_names;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
@@ -11,6 +12,7 @@ use crate::filesystem::{walk_pyfiles, walk_pyprojects, ProjectFile};
 use crate::interrupt::check_interrupt;
 use crate::processors::file_module::FileModule;
 use crate::processors::ExternalDependencyExtractor;
+use pyo3::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -100,7 +102,63 @@ impl<'a> FileChecker<'a> for CheckExternalPipeline<'a> {
     }
 }
 
-pub fn check(
+struct CheckExternalMetadata {
+    module_mappings: HashMap<String, Vec<String>>,
+    stdlib_modules: Vec<String>,
+}
+
+/// Get metadata for checking external dependencies.
+fn get_check_external_metadata(
+    project_config: &config::ProjectConfig,
+) -> Result<CheckExternalMetadata> {
+    Python::with_gil(|py| {
+        let external_utils = PyModule::import_bound(py, "tach.utils.external")
+            .expect("Failed to import tach.utils.external");
+        let mut module_mappings: HashMap<String, Vec<String>> = external_utils
+            .getattr("get_module_mappings")
+            .expect("Failed to get module_mappings")
+            .call0()
+            .expect("Failed to call get_module_mappings")
+            .extract()
+            .expect("Failed to extract module_mappings");
+        let stdlib_modules: Vec<String> = external_utils
+            .getattr("get_stdlib_modules")
+            .expect("Failed to get stdlib_modules")
+            .call0()
+            .expect("Failed to call get_stdlib_modules")
+            .extract()
+            .expect("Failed to extract stdlib_modules");
+
+        if !project_config.external.rename.is_empty() {
+            for rename_pair in project_config.external.rename.iter() {
+                if let Some((module, name)) = rename_pair.split_once(':') {
+                    module_mappings.insert(module.to_string(), vec![name.to_string()]);
+                } else {
+                    return Err(check::error::CheckError::ConfigError(
+                        "Invalid rename format: expected format is a list of 'module:name' pairs, e.g. ['PIL:pillow']".to_string()
+                    ));
+                }
+            }
+        }
+
+        Ok(CheckExternalMetadata {
+            module_mappings,
+            stdlib_modules,
+        })
+    })
+}
+
+pub fn check(project_root: &Path, project_config: &ProjectConfig) -> Result<Vec<Diagnostic>> {
+    let metadata = get_check_external_metadata(project_config)?;
+    check_with_modules(
+        project_root,
+        project_config,
+        &metadata.module_mappings,
+        &metadata.stdlib_modules,
+    )
+}
+
+fn check_with_modules(
     project_root: &Path,
     project_config: &ProjectConfig,
     module_mappings: &HashMap<String, Vec<String>>,
@@ -135,7 +193,7 @@ pub fn check(
                 &source_roots,
                 project_config,
                 &project_info,
-                module_mappings,
+                &module_mappings,
                 &stdlib_modules,
                 &excluded_external_modules,
                 &exclusions,
@@ -271,7 +329,8 @@ mod tests {
         module_mapping: HashMap<String, Vec<String>>,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check(&project_root, &project_config, &module_mapping, &[]).unwrap();
+        let result =
+            check_with_modules(&project_root, &project_config, &module_mapping, &[]).unwrap();
         assert_eq!(result.len(), 1);
         assert!(matches!(
             result[0],
@@ -294,7 +353,8 @@ mod tests {
         project_config: ProjectConfig,
     ) {
         let project_root = example_dir.join("multi_package");
-        let result = check(&project_root, &project_config, &HashMap::new(), &[]).unwrap();
+        let result =
+            check_with_modules(&project_root, &project_config, &HashMap::new(), &[]).unwrap();
         assert_eq!(result.len(), 3);
         assert!(result.iter().any(|d| d.details()
             == &DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
