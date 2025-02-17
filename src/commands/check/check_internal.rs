@@ -189,12 +189,12 @@ pub fn check(
     .with_dependency_checker(dependency_checker)
     .with_interface_checker(interface_checker);
 
-    let gitignore_cache = GitignoreMatcher::new(&project_root);
+    let gitignore_matcher = GitignoreMatcher::new(&project_root, !project_config.respect_gitignore);
     let diagnostics = source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(
             &source_root.display().to_string(),
             &exclusions,
-            &gitignore_cache,
+            &gitignore_matcher,
         )
         .par_bridge()
         .flat_map(|file_path| {
