@@ -61,7 +61,6 @@ impl GitignoreMatcher {
             }
         }
 
-        // Then check global patterns
         if let Some(global) = &self.global {
             match global.matched(path.as_ref(), is_dir) {
                 Match::None => (),
