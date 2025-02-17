@@ -2173,7 +2173,7 @@ dependencies = [
 
 [[package]]
 name = "tach"
-version = "0.25.5"
+version = "0.25.6"
 dependencies = [
  "cached",
  "console",
