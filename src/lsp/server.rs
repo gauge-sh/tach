@@ -155,9 +155,9 @@ impl LSPServer {
         }
     }
 
-    fn filter_diagnostics_results<'a>(
+    fn filter_diagnostics_results<'a, I: IntoIterator<Item = Diagnostic> + 'a>(
         &'a self,
-        results: Vec<Diagnostic>,
+        results: I,
         uri_pathbuf: &'a PathBuf,
     ) -> impl Iterator<Item = lsp_types::Diagnostic> + 'a {
         results.into_iter().filter_map(|e| {
@@ -182,12 +182,11 @@ impl LSPServer {
             check_internal(self.project_root.clone(), &self.project_config, true, true)?;
         let check_external_result = check_external(&self.project_root, &self.project_config)?;
 
-        let check_diagnostics = self.filter_diagnostics_results(check_result, &uri_pathbuf);
-        let check_external_diagnostics =
-            self.filter_diagnostics_results(check_external_result, &uri_pathbuf);
-
-        let diagnostics = check_diagnostics
-            .chain(check_external_diagnostics)
+        let diagnostics = self
+            .filter_diagnostics_results(
+                check_result.into_iter().chain(check_external_result),
+                &uri_pathbuf,
+            )
             .collect();
 
         Ok(lsp_types::PublishDiagnosticsParams {
