@@ -137,6 +137,8 @@ impl<'a> InternalDependencyChecker<'a> {
 
         match file_module_config
             .dependencies_iter()
+            // this is where we match depends_on to the module boundary path
+            // DependencyConfig should build a matcher up-front for any glob patterns
             .find(|dep| &dep.path == dependency_nearest_module_path)
         {
             Some(DependencyConfig {

@@ -4,11 +4,13 @@ use std::path::PathBuf;
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::utils::global_visibility;
 use crate::config::ModuleConfig;
+use crate::exclusion::PathExclusions;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 
 use super::error::{ModuleTreeError, VisibilityErrorInfo};
 use super::tree::ModuleTree;
+use super::ModuleGlobResolver;
 
 pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
     let mut duplicate_module_paths = Vec::new();
@@ -53,9 +55,9 @@ pub fn find_visibility_violations(modules: &[ModuleConfig]) -> Vec<VisibilityErr
     let global_vis = global_visibility();
     modules.iter().for_each(|module| {
         if module.visibility == global_vis {
-            globally_visible_paths.insert(module.mod_path().clone());
+            globally_visible_paths.insert(module.mod_path());
         } else {
-            visibility_by_path.insert(module.mod_path().clone(), module.visibility.clone());
+            visibility_by_path.insert(module.mod_path(), module.visibility.clone());
         }
     });
 
@@ -68,7 +70,7 @@ pub fn find_visibility_violations(modules: &[ModuleConfig]) -> Vec<VisibilityErr
                     visibility_matches_module_path(visibility_pattern, &module.mod_path())
                 }) {
                     results.push(VisibilityErrorInfo {
-                        dependent_module: module.mod_path().clone(),
+                        dependent_module: module.mod_path(),
                         dependency_module: dependency_config.path.clone(),
                         visibility: visibility.clone(),
                     })
@@ -168,7 +170,8 @@ fn validate_root_module_treatment(
 }
 
 pub fn build_module_tree(
-    _source_roots: &[PathBuf],
+    source_roots: &[PathBuf],
+    exclusions: &PathExclusions,
     modules: &[ModuleConfig],
     forbid_circular_dependencies: bool,
     root_module_treatment: RootModuleTreatment,
@@ -202,9 +205,12 @@ pub fn build_module_tree(
 
     // Construct the ModuleTree
     let mut tree = ModuleTree::new();
+    let module_glob_resolver = ModuleGlobResolver::new(source_roots, exclusions);
     for module in modules {
-        let mod_path = module.mod_path();
-        tree.insert(module.clone(), mod_path)?;
+        module_glob_resolver
+            .resolve_module_path(&module.mod_path())?
+            .into_iter()
+            .try_for_each(|path| tree.insert(module.clone(), path))?;
     }
 
     Ok(tree)

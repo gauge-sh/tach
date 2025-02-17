@@ -234,8 +234,14 @@ pub fn create_dependency_report(
 
     check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;
 
+    let exclusions = PathExclusions::new(
+        project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
     let module_tree = build_module_tree(
         &source_roots,
+        &exclusions,
         &valid_modules,
         false,                      // skip circular dependency check in report
         RootModuleTreatment::Allow, // skip root module check in report
@@ -248,12 +254,6 @@ pub fn create_dependency_report(
     })?;
 
     let mut report = DependencyReport::new(path.display().to_string());
-
-    let exclusions = PathExclusions::new(
-        project_root,
-        &project_config.exclude,
-        project_config.use_regex_matching,
-    )?;
 
     for source_root in &source_roots {
         check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;

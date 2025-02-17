@@ -131,7 +131,7 @@ pub fn check(
         ));
     }
 
-    let mut warnings = Vec::new();
+    let mut diagnostics = Vec::new();
     let found_imports = AtomicBool::new(false);
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
     let (valid_modules, invalid_modules) = fs::validate_project_modules(
@@ -140,7 +140,7 @@ pub fn check(
     );
 
     for module in &invalid_modules {
-        warnings.push(Diagnostic::new_global_warning(
+        diagnostics.push(Diagnostic::new_global_warning(
             DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleNotFound {
                 file_mod_path: module.path.to_string(),
             }),
@@ -148,8 +148,14 @@ pub fn check(
     }
 
     check_interrupt().map_err(|_| CheckError::Interrupt)?;
+    let exclusions = PathExclusions::new(
+        &project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
     let module_tree = build_module_tree(
         &source_roots,
+        &exclusions,
         &valid_modules,
         project_config.forbid_circular_dependencies,
         project_config.root_module.clone(),
@@ -169,11 +175,6 @@ pub fn check(
         None
     };
 
-    let exclusions = PathExclusions::new(
-        &project_root,
-        &project_config.exclude,
-        project_config.use_regex_matching,
-    )?;
     let pipeline = CheckInternalPipeline::new(
         project_config,
         &source_roots,
@@ -184,7 +185,7 @@ pub fn check(
     .with_dependency_checker(dependency_checker)
     .with_interface_checker(interface_checker);
 
-    let diagnostics = source_roots.par_iter().flat_map(|source_root| {
+    diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(&source_root.display().to_string(), &exclusions)
             .par_bridge()
             .flat_map(|file_path| {
@@ -238,18 +239,17 @@ pub fn check(
                     )],
                 }
             })
-    });
+    }));
 
     if check_interrupt().is_err() {
         return Err(CheckError::Interrupt);
     }
 
-    let mut final_diagnostics: Vec<Diagnostic> = diagnostics.collect();
     if !found_imports.load(Ordering::Relaxed) {
-        final_diagnostics.push(Diagnostic::new_global_warning(
+        diagnostics.push(Diagnostic::new_global_warning(
             DiagnosticDetails::Configuration(ConfigurationDiagnostic::NoFirstPartyImportsFound()),
         ));
     }
 
-    Ok(final_diagnostics)
+    Ok(diagnostics)
 }

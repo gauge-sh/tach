@@ -1,3 +1,4 @@
+use globset::Error as GlobError;
 use thiserror::Error;
 
 use crate::python::error::ParsingError;
@@ -27,4 +28,6 @@ pub enum ModuleTreeError {
     InsertNodeError,
     #[error("Module not found: {0}")]
     ModuleNotFound(String),
+    #[error("Glob error: {0}")]
+    GlobError(#[from] GlobError),
 }

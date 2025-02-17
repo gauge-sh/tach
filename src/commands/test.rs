@@ -6,6 +6,7 @@ use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::config::{ModuleConfig, ProjectConfig};
+use crate::exclusion::PathExclusions;
 use crate::filesystem::{self as fs};
 use crate::modules::{build_module_tree, ModuleTree};
 
@@ -60,8 +61,15 @@ impl TachPytestPluginHandler {
         }
 
         // TODO: Remove unwraps
+        let exclusions = PathExclusions::new(
+            &project_root,
+            &project_config.exclude,
+            project_config.use_regex_matching,
+        )
+        .unwrap();
         let module_tree = build_module_tree(
             &source_roots,
+            &exclusions,
             &valid_modules,
             project_config.forbid_circular_dependencies,
             project_config.root_module.clone(),
