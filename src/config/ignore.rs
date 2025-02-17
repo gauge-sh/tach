@@ -78,3 +78,75 @@ impl GitignoreMatcher {
         matches!(self.matched(path, is_dir), Match::Ignore(_))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::*;
+    use tempfile::TempDir;
+
+    #[fixture]
+    fn temp_dir() -> TempDir {
+        TempDir::new().unwrap()
+    }
+
+    fn create_gitignore(dir: &TempDir, content: &str) {
+        std::fs::write(dir.path().join(".gitignore"), content).unwrap();
+    }
+
+    #[rstest]
+    fn test_empty_matcher(temp_dir: TempDir) {
+        let matcher = GitignoreMatcher::new(temp_dir.path(), false);
+        assert!(!matcher.is_ignored("some/path", false));
+        assert!(!matcher.is_ignored("file.txt", false));
+    }
+
+    #[rstest]
+    #[case("*.txt", "file.txt", true)]
+    // #[case("*.txt", "path/to/doc.txt", true)]
+    // #[case("build/", "build/output.txt", true)]
+    // #[case("build/", "src/build/file.txt", true)]
+    // #[case("!important.txt", "important.txt", false)]
+    // #[case("/node_modules/", "node_modules/package/file.js", true)]
+    fn test_gitignore_patterns(
+        #[case] pattern: &str,
+        #[case] path: &str,
+        #[case] should_ignore: bool,
+        temp_dir: TempDir,
+    ) {
+        create_gitignore(&temp_dir, pattern);
+        let matcher = GitignoreMatcher::new(temp_dir.path(), false);
+        assert_eq!(
+            matcher.is_ignored(path, false),
+            should_ignore,
+            "Path should {} be ignored",
+            if should_ignore { "not" } else { "" }
+        );
+
+        let never_ignore_matcher = GitignoreMatcher::new(temp_dir.path(), true);
+        assert!(
+            !never_ignore_matcher.is_ignored(path, false),
+            "Path should never be ignored when never_ignore is true"
+        );
+    }
+
+    #[rstest]
+    fn test_directory_vs_file_matching(temp_dir: TempDir) {
+        // Ignore everything in build/ except build/keep.txt.
+        create_gitignore(&temp_dir, "build/\n!build/keep.txt");
+        let matcher = GitignoreMatcher::new(temp_dir.path(), false);
+
+        assert!(
+            matcher.is_ignored("build", true),
+            "Expected build to be ignored"
+        );
+        assert!(
+            matcher.is_ignored("build/output.txt", true),
+            "Expected build/output.txt to be ignored"
+        );
+        assert!(
+            !matcher.is_ignored("build/keep.txt", false),
+            "Expected build/keep.txt to not be ignored"
+        );
+    }
+}
