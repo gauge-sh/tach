@@ -35,6 +35,7 @@ def create_computation_cache_key(
     file_dependencies: list[str],
     env_dependencies: list[str],
     backend: str,
+    respect_gitignore: bool,
 ) -> str: ...
 def check_computation_cache(
     project_root: Path, cache_key: str

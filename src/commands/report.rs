@@ -10,7 +10,7 @@ use thiserror::Error;
 use crate::cli;
 use crate::cli::create_clickable_link;
 use crate::colors::*;
-use crate::config::ignore::GitignoreCache;
+use crate::config::ignore::GitignoreMatcher;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
 use crate::dependencies::LocatedImport;
@@ -270,7 +270,7 @@ pub fn create_dependency_report(
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
-    let gitignore_cache = GitignoreCache::new(&project_root);
+    let gitignore_matcher = GitignoreMatcher::new(&project_root, !project_config.respect_gitignore);
 
     for source_root in &source_roots {
         check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;
@@ -278,7 +278,7 @@ pub fn create_dependency_report(
         let source_root_results: Vec<_> = walk_pyfiles(
             &source_root.display().to_string(),
             &exclusions,
-            &gitignore_cache,
+            &gitignore_matcher,
         )
         .par_bridge()
         .filter_map(|pyfile| {

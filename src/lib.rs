@@ -257,6 +257,7 @@ fn create_computation_cache_key(
     file_dependencies: Vec<String>,
     env_dependencies: Vec<String>,
     backend: String,
+    respect_gitignore: bool,
 ) -> String {
     cache::create_computation_cache_key(
         &project_root,
@@ -266,6 +267,7 @@ fn create_computation_cache_key(
         file_dependencies,
         env_dependencies,
         backend,
+        respect_gitignore,
     )
 }
 

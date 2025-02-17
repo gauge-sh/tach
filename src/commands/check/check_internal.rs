@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use super::error::CheckError;
 use crate::{
     checks::{IgnoreDirectivePostProcessor, InterfaceChecker, InternalDependencyChecker},
-    config::{ignore::GitignoreCache, ProjectConfig},
+    config::{ignore::GitignoreMatcher, ProjectConfig},
     diagnostics::{
         ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
         DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
@@ -189,7 +189,8 @@ pub fn check(
     .with_dependency_checker(dependency_checker)
     .with_interface_checker(interface_checker);
 
-    diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
+    let gitignore_cache = GitignoreMatcher::new(&project_root);
+    let diagnostics = source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(
             &source_root.display().to_string(),
             &exclusions,

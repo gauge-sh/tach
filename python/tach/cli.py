@@ -486,6 +486,7 @@ def check_cache_for_action(
         file_dependencies=project_config.cache.file_dependencies,
         env_dependencies=project_config.cache.env_dependencies,
         backend=project_config.cache.backend,
+        respect_gitignore=project_config.respect_gitignore,
     )
     cache_result = extension.check_computation_cache(
         project_root=project_root, cache_key=cache_key

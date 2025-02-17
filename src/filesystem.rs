@@ -11,7 +11,7 @@ use itertools::Itertools;
 use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
-use crate::config::ignore::GitignoreCache;
+use crate::config::ignore::GitignoreMatcher;
 use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
 use crate::config::ModuleConfig;
 use crate::exclusion::PathExclusions;
@@ -253,10 +253,10 @@ pub fn is_hidden(entry: &DirEntry) -> bool {
 pub fn direntry_is_excluded(
     entry: &DirEntry,
     exclusions: &PathExclusions,
-    gitignore_cache: &GitignoreCache,
+    gitignore_matcher: &GitignoreMatcher,
 ) -> bool {
     exclusions.is_path_excluded(entry.path())
-        || gitignore_cache.is_ignored(entry.path(), entry.file_type().is_dir())
+        || gitignore_matcher.is_ignored(entry.path(), entry.file_type().is_dir())
 }
 
 fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
@@ -318,14 +318,14 @@ impl AsRef<Path> for ProjectFile<'_> {
 pub fn walk_pyfiles<'a>(
     root: &str,
     exclusions: &'a PathExclusions,
-    gitignore_cache: &'a GitignoreCache,
+    gitignore_matcher: &'a GitignoreMatcher,
 ) -> impl Iterator<Item = PathBuf> + 'a {
     let prefix_root = root.to_string();
     WalkDir::new(root)
         .into_iter()
         .filter_entry(|e| {
             !is_hidden(e)
-                && !direntry_is_excluded(e, exclusions, gitignore_cache)
+                && !direntry_is_excluded(e, exclusions, gitignore_matcher)
                 && is_pyfile_or_dir(e)
         })
         .filter_map(|entry| entry.ok())
@@ -369,15 +369,11 @@ pub fn walk_pymodules<'a>(
 pub fn walk_pyprojects<'a>(
     root: &str,
     exclusions: &'a PathExclusions,
-    gitignore_cache: &'a GitignoreCache,
+    gitignore_matcher: &'a GitignoreMatcher,
 ) -> impl Iterator<Item = PathBuf> + 'a {
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(|e| {
-            !is_hidden(e)
-                && !direntry_is_excluded(e, exclusions, gitignore_cache)
-                && is_pyfile_or_dir(e)
-        })
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions, gitignore_matcher))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file())
         .filter(|entry| entry.file_name() == "pyproject.toml")
