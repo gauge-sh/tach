@@ -193,7 +193,7 @@ fn check_with_modules(
                 &source_roots,
                 project_config,
                 &project_info,
-                &module_mappings,
+                module_mappings,
                 &stdlib_modules,
                 &excluded_external_modules,
                 &exclusions,
