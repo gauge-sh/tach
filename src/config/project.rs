@@ -144,7 +144,7 @@ impl Default for ProjectConfig {
             disable_logging: Default::default(),
             include_string_imports: Default::default(),
             forbid_circular_dependencies: Default::default(),
-            respect_gitignore: Default::default(),
+            respect_gitignore: true,
             use_regex_matching: Default::default(),
             root_module: Default::default(),
             rules: Default::default(),
