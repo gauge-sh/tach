@@ -186,6 +186,22 @@
       },
       "additionalProperties": false
     },
+    "plugins": {
+      "type": "object",
+      "properties": {
+        "django": {
+          "type": "object",
+          "properties": {
+            "settings_module": {
+              "type": "string",
+              "description": "The settings module to use for Django"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "layers": {
       "type": "array",
       "items": { "type": "string" },
