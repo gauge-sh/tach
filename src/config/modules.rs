@@ -2,20 +2,41 @@ use crate::filesystem::module_path_is_included_in_paths;
 
 use super::root_module::ROOT_MODULE_SENTINEL_TAG;
 use super::utils::*;
+use crate::modules::ModuleGlob;
+use globset::GlobMatcher;
 use pyo3::prelude::*;
 use serde::ser::{Error, SerializeSeq, SerializeStruct};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::{
     collections::{HashMap, HashSet},
     fmt,
 };
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
-#[pyclass(get_all, module = "tach.extension")]
+#[derive(Clone, Debug, Default)]
+#[pyclass(module = "tach.extension")]
 pub struct DependencyConfig {
+    #[pyo3(get)]
     pub path: String,
+    #[pyo3(get)]
     pub deprecated: bool,
+    matcher: Option<GlobMatcher>,
+}
+
+impl PartialEq for DependencyConfig {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path && self.deprecated == other.deprecated
+    }
+}
+
+impl Eq for DependencyConfig {}
+
+impl Hash for DependencyConfig {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.path.hash(state);
+        self.deprecated.hash(state);
+    }
 }
 
 impl Serialize for DependencyConfig {
@@ -36,21 +57,32 @@ impl Serialize for DependencyConfig {
 }
 
 impl DependencyConfig {
-    pub fn from_deprecated_path(path: impl Into<String>) -> Self {
-        Self {
-            path: path.into(),
-            deprecated: true,
-        }
+    fn get_matcher_for_path(path: &str) -> Option<GlobMatcher> {
+        ModuleGlob::parse(path).map(|glob| glob.into_matcher().ok())?
     }
-    pub fn from_path(path: impl Into<String>) -> Self {
+
+    pub fn new(path: &str, deprecated: bool) -> Self {
         Self {
             path: path.into(),
-            deprecated: false,
+            deprecated,
+            matcher: Self::get_matcher_for_path(path),
         }
     }
 
+    pub fn from_deprecated_path(path: &str) -> Self {
+        Self::new(path, true)
+    }
+    pub fn from_path(path: &str) -> Self {
+        Self::new(path, false)
+    }
+
     pub fn matches(&self, path: &str) -> bool {
-        self.path == path
+        if let Some(matcher) = &self.matcher {
+            // Glob matcher expects unix-style paths
+            matcher.is_match(path.replace(".", "/"))
+        } else {
+            self.path == path
+        }
     }
 }
 struct DependencyConfigVisitor;
@@ -66,10 +98,7 @@ impl<'de> de::Visitor<'de> for DependencyConfigVisitor {
     where
         E: de::Error,
     {
-        Ok(DependencyConfig {
-            path: value.to_string(),
-            ..Default::default()
-        })
+        Ok(DependencyConfig::new(value, false))
     }
 
     // Unfortunately don't have the derived Deserialize for this
@@ -77,7 +106,7 @@ impl<'de> de::Visitor<'de> for DependencyConfigVisitor {
     where
         M: de::MapAccess<'de>,
     {
-        let mut path = None;
+        let mut path: Option<String> = None;
         let mut deprecated = false;
 
         while let Some(key) = map.next_key::<String>()? {
@@ -104,7 +133,7 @@ impl<'de> de::Visitor<'de> for DependencyConfigVisitor {
 
         let path = path.ok_or_else(|| de::Error::missing_field("path"))?;
 
-        Ok(DependencyConfig { path, deprecated })
+        Ok(DependencyConfig::new(&path, deprecated))
     }
 }
 

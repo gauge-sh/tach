@@ -113,7 +113,7 @@ pub fn detect_unused_dependencies(
         unused_dependencies.push(UnusedDependencies {
             path: module_path.to_string(),
             dependencies: dependencies_to_remove
-                .map(|dep| DependencyConfig::from_path(dep.to_string()))
+                .map(|dep| DependencyConfig::from_path(dep))
                 .collect(),
         });
     }

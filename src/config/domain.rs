@@ -108,22 +108,16 @@ impl Resolvable<DependencyConfig> for DependencyConfig {
     fn resolve(&self, location: &ConfigLocation) -> DependencyConfig {
         if self.path.starts_with("//") {
             // Absolute path does not need to be prefixed with the module path
-            DependencyConfig {
-                path: self.path[2..].to_string(),
-                deprecated: self.deprecated,
-            }
+            DependencyConfig::new(&self.path[2..], self.deprecated)
         } else {
             match self.path.as_str() {
                 // Special case for the domain root sentinel, use the module path
-                DOMAIN_ROOT_SENTINEL => DependencyConfig {
-                    path: location.mod_path.clone(),
-                    deprecated: self.deprecated,
-                },
+                DOMAIN_ROOT_SENTINEL => DependencyConfig::new(&location.mod_path, self.deprecated),
                 // Relative path needs to be prefixed with the module path
-                _ => DependencyConfig {
-                    path: format!("{}.{}", location.mod_path, self.path),
-                    deprecated: self.deprecated,
-                },
+                _ => DependencyConfig::new(
+                    &format!("{}.{}", location.mod_path, self.path),
+                    self.deprecated,
+                ),
             }
         }
     }

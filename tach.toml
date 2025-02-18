@@ -123,8 +123,7 @@ layer = "core"
 path = "tach.pytest_plugin"
 depends_on = [
     "tach.extension",
-    "tach.filesystem",
-    "tach.filesystem.git_ops",
+    "tach.filesystem.**",
     "tach.parsing",
 ]
 layer = "core"

@@ -6,5 +6,5 @@ pub mod validation;
 
 pub use build::ModuleTreeBuilder;
 pub use error::ModuleTreeError;
-pub use resolve::{ModuleResolver, ModuleResolverError};
+pub use resolve::{ModuleGlob, ModuleResolver, ModuleResolverError};
 pub use tree::{ModuleNode, ModuleTree};
