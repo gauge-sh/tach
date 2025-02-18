@@ -52,7 +52,11 @@ impl ModuleNode {
 
     pub fn fill(&mut self, config: ModuleConfig, full_path: String) {
         self.is_end_of_path = true;
-        self.config = Some(config);
+        if let Some(existing_config) = self.config.take() {
+            self.config = existing_config.merge(config).ok();
+        } else {
+            self.config = Some(config);
+        }
         self.full_path = full_path;
     }
 }

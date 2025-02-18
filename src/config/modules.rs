@@ -267,6 +267,31 @@ impl ModuleConfig {
         }
     }
 
+    pub fn can_merge_with(&self, other: &Self) -> bool {
+        self.path == other.path && self.origin != other.origin
+    }
+
+    pub fn merge(mut self, other: Self) -> Result<Self, String> {
+        if !self.can_merge_with(&other) {
+            return Err(format!(
+                "Cannot merge modules: ({}, {:?}) and ({}, {:?})",
+                self.path, self.origin, other.path, other.origin
+            ));
+        }
+
+        // TODO: also handle layer, visibility, utility, strict, unchecked
+        // Also: this logic is wrong if both are None
+        self.depends_on = Some(
+            self.depends_on
+                .unwrap_or_default()
+                .into_iter()
+                .chain(other.depends_on.unwrap_or_default().into_iter())
+                .collect(),
+        );
+
+        Ok(self)
+    }
+
     pub fn new_with_layer(path: &str, layer: &str) -> Self {
         // shorthand for test fixtures
         Self {
