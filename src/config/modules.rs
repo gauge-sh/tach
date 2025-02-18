@@ -48,6 +48,10 @@ impl DependencyConfig {
             deprecated: false,
         }
     }
+
+    pub fn matches(&self, path: &str) -> bool {
+        self.path == path
+    }
 }
 struct DependencyConfigVisitor;
 
