@@ -1,7 +1,7 @@
 use globset::{Error as GlobError, GlobBuilder, GlobMatcher};
 use std::path::{Path, PathBuf};
 
-use crate::{exclusion::PathExclusions, filesystem};
+use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
 
 #[derive(Debug)]
 enum ModuleGlobSegment {
@@ -34,7 +34,7 @@ impl ModuleGlob {
     }
 
     pub fn into_matcher(self) -> Result<GlobMatcher, GlobError> {
-        let pattern = self
+        let mut pattern = self
             .segments
             .iter()
             .map(|s| match s {
@@ -44,20 +44,37 @@ impl ModuleGlob {
             })
             .collect::<Vec<_>>()
             .join("/");
+        if pattern.ends_with("/**") {
+            // We want this to match both the module itself and any submodules,
+            //   which means we need to make the trailing slash optional.
+            pattern = pattern[..pattern.len() - 3].to_string();
+            // NOTE: Using 'pattern{,/**}' does not work due to a bug in globset
+            //   so we instead use '{pattern,pattern/**}'
+            pattern = format!("{{{},{}/**}}", &pattern, &pattern);
+        }
         let mut glob_builder = GlobBuilder::new(&pattern);
-        Ok(glob_builder
+        let matcher = glob_builder
             .literal_separator(true)
             .build()?
-            .compile_matcher())
+            .compile_matcher();
+        Ok(matcher)
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ModuleResolverError {
+    #[error("Error handling glob: {0}")]
+    Glob(#[from] GlobError),
+    #[error("Module path '{path}' is not valid")]
+    InvalidModulePath { path: String },
+}
+
 #[derive(Debug)]
-pub struct ModuleGlobResolver {
+pub struct ModuleResolver {
     modules: Vec<PathBuf>,
 }
 
-impl ModuleGlobResolver {
+impl ModuleResolver {
     fn collect_modules<P: AsRef<Path>>(
         source_roots: &[P],
         exclusions: &PathExclusions,
@@ -78,26 +95,46 @@ impl ModuleGlobResolver {
         }
     }
 
-    pub fn resolve_module_path(&self, path: &str) -> Result<Vec<String>, GlobError> {
+    pub fn validate_module_path_literal(&self, path: &str) -> bool {
+        self.modules.iter().any(|m| {
+            m.with_extension("")
+                .display()
+                .to_string()
+                .replace(std::path::MAIN_SEPARATOR, ".")
+                == path
+        })
+    }
+
+    pub fn resolve_module_path(&self, path: &str) -> Result<Vec<String>, ModuleResolverError> {
+        if path == "." {
+            return Ok(vec![ROOT_MODULE_SENTINEL_TAG.to_string()]);
+        }
+
         let glob = match ModuleGlob::parse(path) {
             Some(glob) => glob,
-            // If not a glob, return the path as is
-            None => return Ok(vec![path.to_string()]),
+            // If not a glob, validate the path as a literal
+            None => {
+                if self.validate_module_path_literal(path) {
+                    return Ok(vec![path.to_string()]);
+                } else {
+                    return Err(ModuleResolverError::InvalidModulePath {
+                        path: path.to_string(),
+                    });
+                }
+            }
         };
 
         let matcher = glob.into_matcher()?;
-        let res = Ok(self
+        Ok(self
             .modules
             .iter()
+            .map(|m| m.with_extension(""))
             .filter(|m| matcher.is_match(m))
             .map(|m| {
-                m.with_extension("")
-                    .display()
+                m.display()
                     .to_string()
                     .replace(std::path::MAIN_SEPARATOR, ".")
             })
-            .collect());
-        eprintln!("Resolved glob for: {} to {:?}", path, res);
-        res
+            .collect())
     }
 }

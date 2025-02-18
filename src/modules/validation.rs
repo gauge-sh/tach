@@ -1,16 +1,12 @@
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
 
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::utils::global_visibility;
 use crate::config::ModuleConfig;
-use crate::exclusion::PathExclusions;
 use petgraph::algo::kosaraju_scc;
 use petgraph::graphmap::DiGraphMap;
 
 use super::error::{ModuleTreeError, VisibilityErrorInfo};
-use super::tree::ModuleTree;
-use super::ModuleGlobResolver;
 
 pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
     let mut duplicate_module_paths = Vec::new();
@@ -27,7 +23,7 @@ pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
     duplicate_module_paths
 }
 
-fn visibility_matches_module_path(visibility: &str, module_path: &str) -> bool {
+pub fn visibility_matches_module_path(visibility: &str, module_path: &str) -> bool {
     // If visibility pattern is exactly '*', any module path matches
     if visibility == "*" {
         return true;
@@ -111,7 +107,7 @@ pub fn find_modules_with_cycles(modules: &[ModuleConfig]) -> Vec<&String> {
     modules_with_cycles
 }
 
-fn validate_root_module_treatment(
+pub fn validate_root_module_treatment(
     root_module_treatment: RootModuleTreatment,
     modules: &[ModuleConfig],
 ) -> Result<(), ModuleTreeError> {
@@ -169,58 +165,12 @@ fn validate_root_module_treatment(
     }
 }
 
-pub fn build_module_tree(
-    source_roots: &[PathBuf],
-    exclusions: &PathExclusions,
-    modules: &[ModuleConfig],
-    forbid_circular_dependencies: bool,
-    root_module_treatment: RootModuleTreatment,
-) -> Result<ModuleTree, ModuleTreeError> {
-    // Check for duplicate modules
-    let duplicate_modules = find_duplicate_modules(modules);
-    if !duplicate_modules.is_empty() {
-        return Err(ModuleTreeError::DuplicateModules(
-            duplicate_modules.iter().map(|s| s.to_string()).collect(),
-        ));
-    }
-
-    // Check for visibility errors (dependency declared on invisible module)
-    let visibility_error_info = find_visibility_violations(modules);
-    if !visibility_error_info.is_empty() {
-        return Err(ModuleTreeError::VisibilityViolation(visibility_error_info));
-    }
-
-    // Check for root module treatment errors
-    validate_root_module_treatment(root_module_treatment, modules)?;
-
-    // Check for circular dependencies if forbidden
-    if forbid_circular_dependencies {
-        let module_paths = find_modules_with_cycles(modules);
-        if !module_paths.is_empty() {
-            return Err(ModuleTreeError::CircularDependency(
-                module_paths.iter().map(|s| s.to_string()).collect(),
-            ));
-        }
-    }
-
-    // Construct the ModuleTree
-    let mut tree = ModuleTree::new();
-    let module_glob_resolver = ModuleGlobResolver::new(source_roots, exclusions);
-    for module in modules {
-        module_glob_resolver
-            .resolve_module_path(&module.mod_path())?
-            .into_iter()
-            .try_for_each(|path| tree.insert(module.clone(), path))?;
-    }
-
-    Ok(tree)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{parsing::config::parse_project_config, tests::fixtures::example_dir};
     use rstest::rstest;
+    use std::path::PathBuf;
     #[rstest]
     fn test_valid_circular_dependencies(example_dir: PathBuf) {
         let project_config = parse_project_config(example_dir.join("valid/tach.toml"));

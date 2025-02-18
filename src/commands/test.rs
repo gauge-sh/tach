@@ -8,7 +8,7 @@ use thiserror::Error;
 use crate::config::{ModuleConfig, ProjectConfig};
 use crate::exclusion::PathExclusions;
 use crate::filesystem::{self as fs};
-use crate::modules::{build_module_tree, ModuleTree};
+use crate::modules::{ModuleTree, ModuleTreeBuilder};
 
 use super::helpers::import::get_located_project_imports;
 
@@ -49,10 +49,23 @@ impl TachPytestPluginHandler {
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
         let source_roots = project_config.prepend_roots(&project_root);
-        let (valid_modules, invalid_modules) = fs::validate_project_modules(
+        // TODO: Remove unwraps
+        let exclusions = PathExclusions::new(
+            &project_root,
+            &project_config.exclude,
+            project_config.use_regex_matching,
+        )
+        .unwrap();
+        let module_tree_builder = ModuleTreeBuilder::new(
             &source_roots,
-            project_config.all_modules().cloned().collect(),
+            &exclusions,
+            project_config.forbid_circular_dependencies,
+            project_config.root_module,
         );
+
+        let (valid_modules, invalid_modules) =
+            module_tree_builder.resolve_modules(project_config.all_modules());
+
         for invalid_module in invalid_modules {
             eprintln!(
                 "Module '{}' not found. It will be ignored.",
@@ -61,20 +74,7 @@ impl TachPytestPluginHandler {
         }
 
         // TODO: Remove unwraps
-        let exclusions = PathExclusions::new(
-            &project_root,
-            &project_config.exclude,
-            project_config.use_regex_matching,
-        )
-        .unwrap();
-        let module_tree = build_module_tree(
-            &source_roots,
-            &exclusions,
-            &valid_modules,
-            project_config.forbid_circular_dependencies,
-            project_config.root_module.clone(),
-        )
-        .unwrap();
+        let module_tree = module_tree_builder.build(valid_modules).unwrap();
 
         let affected_modules =
             get_affected_modules(&project_root, &project_config, changed_files, &module_tree)

@@ -1,0 +1,100 @@
+use std::path::PathBuf;
+
+use crate::{
+    config::{ModuleConfig, RootModuleTreatment},
+    exclusion::PathExclusions,
+};
+
+use super::{
+    validation::{
+        find_duplicate_modules, find_modules_with_cycles, find_visibility_violations,
+        validate_root_module_treatment,
+    },
+    ModuleResolver, ModuleTree, ModuleTreeError,
+};
+
+pub struct ModuleTreeBuilder {
+    resolver: ModuleResolver,
+    forbid_circular_dependencies: bool,
+    root_module_treatment: RootModuleTreatment,
+}
+
+impl ModuleTreeBuilder {
+    pub fn new(
+        source_roots: &[PathBuf],
+        exclusions: &PathExclusions,
+        forbid_circular_dependencies: bool,
+        root_module_treatment: RootModuleTreatment,
+    ) -> Self {
+        Self {
+            resolver: ModuleResolver::new(source_roots, exclusions),
+            forbid_circular_dependencies,
+            root_module_treatment,
+        }
+    }
+
+    pub fn resolve_modules<'a, T: IntoIterator<Item = &'a ModuleConfig>>(
+        &self,
+        modules: T,
+    ) -> (Vec<ModuleConfig>, Vec<ModuleConfig>) {
+        let mut resolved_modules = Vec::new();
+        let mut unresolved_modules = Vec::new();
+
+        for module in modules {
+            if let Ok(resolved_paths) = self.resolver.resolve_module_path(&module.mod_path()) {
+                resolved_modules.extend(
+                    resolved_paths
+                        .into_iter()
+                        .map(|path| module.clone_with_path(&path)),
+                );
+            } else {
+                unresolved_modules.push(module.clone());
+            }
+        }
+
+        (resolved_modules, unresolved_modules)
+    }
+
+    pub fn build<T: IntoIterator<Item = ModuleConfig>>(
+        self,
+        modules: T,
+    ) -> Result<ModuleTree, ModuleTreeError> {
+        // Collect modules
+        let modules: Vec<ModuleConfig> = modules.into_iter().collect();
+        // Check for duplicate modules
+        let duplicate_modules = find_duplicate_modules(&modules);
+        if !duplicate_modules.is_empty() {
+            return Err(ModuleTreeError::DuplicateModules(
+                duplicate_modules.iter().map(|s| s.to_string()).collect(),
+            ));
+        }
+
+        // Check for visibility errors (dependency declared on invisible module)
+        let visibility_error_info = find_visibility_violations(&modules);
+        if !visibility_error_info.is_empty() {
+            return Err(ModuleTreeError::VisibilityViolation(visibility_error_info));
+        }
+
+        // Check for root module treatment errors
+        validate_root_module_treatment(self.root_module_treatment, &modules)?;
+
+        // Check for circular dependencies if forbidden
+        if self.forbid_circular_dependencies {
+            let module_paths = find_modules_with_cycles(&modules);
+            if !module_paths.is_empty() {
+                return Err(ModuleTreeError::CircularDependency(
+                    module_paths.iter().map(|s| s.to_string()).collect(),
+                ));
+            }
+        }
+
+        // Construct the ModuleTree
+        let mut tree = ModuleTree::new();
+        for module in modules {
+            let path = module.mod_path();
+            tree.insert(module, path)?;
+        }
+
+        Ok(tree)
+    }
+}

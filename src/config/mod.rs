@@ -20,4 +20,5 @@ pub use interfaces::{InterfaceConfig, InterfaceDataTypes};
 pub use modules::{serialize_modules_json, DependencyConfig, ModuleConfig};
 pub use plugins::PluginsConfig;
 pub use project::ProjectConfig;
+pub use root_module::RootModuleTreatment;
 pub use rules::{RuleSetting, RulesConfig};

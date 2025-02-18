@@ -1,7 +1,8 @@
-use globset::Error as GlobError;
 use thiserror::Error;
 
 use crate::python::error::ParsingError;
+
+use super::resolve::ModuleResolverError;
 
 #[derive(Debug, Clone)]
 pub struct VisibilityErrorInfo {
@@ -28,6 +29,6 @@ pub enum ModuleTreeError {
     InsertNodeError,
     #[error("Module not found: {0}")]
     ModuleNotFound(String),
-    #[error("Glob error: {0}")]
-    GlobError(#[from] GlobError),
+    #[error("Module resolution error: {0}")]
+    ModuleResolutionError(#[from] ModuleResolverError),
 }

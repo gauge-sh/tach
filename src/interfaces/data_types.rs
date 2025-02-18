@@ -1,6 +1,6 @@
 use super::compiled::{CompiledInterface, CompiledInterfaces};
 use super::error::InterfaceError;
-use crate::config::{InterfaceDataTypes, ModuleConfig};
+use crate::config::InterfaceDataTypes;
 use crate::filesystem::module_to_file_path;
 use crate::python::parsing::parse_python_source;
 use std::collections::HashMap;
@@ -23,14 +23,14 @@ pub struct TypeCheckCache {
 impl TypeCheckCache {
     pub fn build(
         compiled_interfaces: &CompiledInterfaces,
-        modules: &[ModuleConfig],
+        module_paths: &[String],
         source_roots: &[PathBuf],
     ) -> Result<Self, InterfaceError> {
-        let module_paths: Vec<&str> = modules
+        let filtered_module_paths: Vec<&str> = module_paths
             .iter()
-            .filter_map(|module| {
-                if compiled_interfaces.should_type_check(module.path.as_str()) {
-                    Some(module.path.as_str())
+            .filter_map(|path| {
+                if compiled_interfaces.should_type_check(path.as_str()) {
+                    Some(path.as_str())
                 } else {
                     None
                 }
@@ -40,7 +40,7 @@ impl TypeCheckCache {
         Ok(Self {
             type_check_cache: type_check_all_interface_members(
                 source_roots,
-                &module_paths,
+                &filtered_module_paths,
                 compiled_interfaces,
             )?,
         })
@@ -420,7 +420,7 @@ def custom_func(a: CustomType) -> CustomType:
 
         let source_roots = setup_test_files(&temp_dir, &source_files);
         let interfaces = CompiledInterfaces::build(&[basic_interface]);
-        let modules = vec![ModuleConfig::new("my_module", false)];
+        let modules = vec!["my_module".to_string()];
 
         let cache = TypeCheckCache::build(&interfaces, &modules, &source_roots).unwrap();
 

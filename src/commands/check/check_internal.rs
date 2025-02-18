@@ -16,7 +16,7 @@ use crate::{
     exclusion::PathExclusions,
     filesystem::{self as fs, ProjectFile},
     interrupt::check_interrupt,
-    modules::{build_module_tree, ModuleTree},
+    modules::{ModuleTree, ModuleTreeBuilder},
     processors::{FileModule, InternalDependencyExtractor},
 };
 
@@ -134,10 +134,20 @@ pub fn check(
     let mut diagnostics = Vec::new();
     let found_imports = AtomicBool::new(false);
     let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
-    let (valid_modules, invalid_modules) = fs::validate_project_modules(
+    let exclusions = PathExclusions::new(
+        &project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
+    let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
-        project_config.all_modules().cloned().collect(),
+        &exclusions,
+        project_config.forbid_circular_dependencies,
+        project_config.root_module,
     );
+
+    let (valid_modules, invalid_modules) =
+        module_tree_builder.resolve_modules(project_config.all_modules());
 
     for module in &invalid_modules {
         diagnostics.push(Diagnostic::new_global_warning(
@@ -148,18 +158,7 @@ pub fn check(
     }
 
     check_interrupt().map_err(|_| CheckError::Interrupt)?;
-    let exclusions = PathExclusions::new(
-        &project_root,
-        &project_config.exclude,
-        project_config.use_regex_matching,
-    )?;
-    let module_tree = build_module_tree(
-        &source_roots,
-        &exclusions,
-        &valid_modules,
-        project_config.forbid_circular_dependencies,
-        project_config.root_module.clone(),
-    )?;
+    let module_tree = module_tree_builder.build(valid_modules)?;
 
     let dependency_checker = if dependencies {
         Some(InternalDependencyChecker::new(project_config, &module_tree))
@@ -168,9 +167,9 @@ pub fn check(
     };
 
     let interface_checker = if interfaces {
-        let interface_checker = InterfaceChecker::new(project_config, &module_tree);
+        let interface_checker = InterfaceChecker::new(project_config, &module_tree, &source_roots);
         // This is expensive
-        Some(interface_checker.with_type_check_cache(&valid_modules, &source_roots)?)
+        Some(interface_checker.with_type_check_cache()?)
     } else {
         None
     };
