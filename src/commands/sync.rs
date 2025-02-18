@@ -82,7 +82,7 @@ pub struct UnusedDependencies {
 
 pub fn detect_unused_dependencies(
     project_root: PathBuf,
-    project_config: &mut ProjectConfig,
+    project_config: &ProjectConfig,
 ) -> Result<Vec<UnusedDependencies>, SyncError> {
     // This is a shortcut to finding all cross-module dependencies
     // TODO: dedicated function
@@ -100,28 +100,32 @@ pub fn detect_unused_dependencies(
                         .map(|dep| dep.to_string())
                         .collect::<HashSet<_>>()
                 });
-        let module_current_dependencies = project_config
-            .dependencies_for_module(&module_path)
-            .map_or(HashSet::new(), |deps| {
-                deps.iter()
-                    .map(|dep| dep.path.clone())
-                    .collect::<HashSet<_>>()
-            });
 
-        let dependencies_to_remove =
-            module_current_dependencies.difference(&module_detected_dependencies);
-        unused_dependencies.push(UnusedDependencies {
-            path: module_path.to_string(),
-            dependencies: dependencies_to_remove
-                .map(|dep| DependencyConfig::from_path(dep))
-                .collect(),
-        });
+        // Get current dependencies for the module
+        let current_deps = project_config
+            .dependencies_for_module(&module_path)
+            .map(|deps| deps.to_vec())
+            .unwrap_or_default();
+
+        // Find dependencies that don't match any detected paths
+        let unused_deps: Vec<DependencyConfig> = current_deps
+            .into_iter()
+            .filter(|dep| {
+                !module_detected_dependencies
+                    .iter()
+                    .any(|detected| dep.matches(detected))
+            })
+            .collect();
+
+        if !unused_deps.is_empty() {
+            unused_dependencies.push(UnusedDependencies {
+                path: module_path.to_string(),
+                dependencies: unused_deps,
+            });
+        }
     }
 
-    Ok(unused_dependencies
-        .into_iter()
-        .filter(|dep| !dep.dependencies.is_empty())
-        .collect())
+    Ok(unused_dependencies)
 }
 
 fn sync_dependency_constraints(
@@ -161,26 +165,39 @@ fn sync_dependency_constraints(
                         .map(|dep| dep.to_string())
                         .collect::<HashSet<_>>()
                 });
-        let module_current_dependencies = project_config
-            .dependencies_for_module(&module_path)
-            .map_or(HashSet::new(), |deps| {
-                deps.iter()
-                    .map(|dep| dep.path.clone())
-                    .collect::<HashSet<_>>()
-            });
 
-        let dependencies_to_add =
-            module_detected_dependencies.difference(&module_current_dependencies);
-        for dep in dependencies_to_add {
-            // This handler will also handle root module treatment
-            handle_added_dependency(&module_path, dep, project_config)?;
+        // Get current dependencies for the module
+        let current_deps = project_config
+            .dependencies_for_module(&module_path)
+            .map(|deps| deps.to_vec())
+            .unwrap_or_default();
+
+        // Find detected dependencies that don't match any current dependency patterns
+        let deps_to_add: Vec<String> = module_detected_dependencies
+            .iter()
+            .filter(|detected| !current_deps.iter().any(|dep| dep.matches(detected)))
+            .cloned()
+            .collect();
+
+        // Add new dependencies
+        for dep in deps_to_add {
+            handle_added_dependency(&module_path, &dep, project_config)?;
         }
 
         if prune {
-            let dependencies_to_remove =
-                module_current_dependencies.difference(&module_detected_dependencies);
-            for dep in dependencies_to_remove {
-                project_config.remove_dependency(module_path.to_string(), dep.to_string())?;
+            // Find current dependencies that don't match any detected paths
+            let deps_to_remove: Vec<String> = current_deps
+                .iter()
+                .filter(|dep| {
+                    !module_detected_dependencies
+                        .iter()
+                        .any(|detected| dep.matches(detected))
+                })
+                .map(|dep| dep.path.clone())
+                .collect();
+
+            for dep in deps_to_remove {
+                project_config.remove_dependency(module_path.to_string(), dep)?;
             }
         }
     }
