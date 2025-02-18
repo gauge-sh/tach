@@ -4,10 +4,20 @@ layer = "mid"
 
 [[modules]]
 path = "api"
-depends_on = ["submodule1"]
+depends_on = ["**"]
 layer = "mid"
 
 [[modules]]
 path = "submodule1"
+depends_on = []
+layer = "mid"
+
+[[modules]]
+path = "submodule2"
+depends_on = []
+layer = "mid"
+
+[[modules]]
+path = "submodule3"
 depends_on = []
 layer = "mid"
