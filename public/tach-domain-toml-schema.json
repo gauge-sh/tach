@@ -52,6 +52,14 @@
             "type": "boolean",
             "default": false,
             "description": "DEPRECATED: Use 'interfaces' instead"
+          },
+          "visibility": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": ["*"],
+            "description": "List of visibility patterns"
           }
         },
         "additionalProperties": false,
@@ -115,6 +123,14 @@
                 "type": "boolean",
                 "default": false,
                 "description": "DEPRECATED: Use 'interfaces' instead"
+              },
+              "visibility": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": ["*"],
+                "description": "List of visibility patterns"
               }
             },
             "additionalProperties": false
@@ -175,6 +191,14 @@
                 "type": "boolean",
                 "default": false,
                 "description": "DEPRECATED: Use 'interfaces' instead"
+              },
+              "visibility": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": ["*"],
+                "description": "List of visibility patterns"
               }
             },
             "additionalProperties": false
