@@ -11,7 +11,7 @@ enum ModuleGlobSegment {
 }
 
 #[derive(Debug)]
-struct ModuleGlob {
+pub struct ModuleGlob {
     segments: Vec<ModuleGlobSegment>,
 }
 
