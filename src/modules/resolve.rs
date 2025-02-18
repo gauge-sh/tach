@@ -22,7 +22,7 @@ impl ModuleGlob {
             return None;
         }
 
-        let segments = pattern
+        let segments: Vec<ModuleGlobSegment> = pattern
             .split('.')
             .map(|s| match s {
                 "*" => ModuleGlobSegment::Wildcard,
@@ -30,6 +30,15 @@ impl ModuleGlob {
                 _ => ModuleGlobSegment::Literal(s.to_string()),
             })
             .collect();
+
+        if segments
+            .iter()
+            .all(|s| matches!(s, ModuleGlobSegment::Literal(_)))
+        {
+            // No wildcard segments, not a glob
+            return None;
+        }
+
         Some(Self { segments })
     }
 
@@ -103,6 +112,10 @@ impl ModuleResolver {
                 .replace(std::path::MAIN_SEPARATOR, ".")
                 == path
         })
+    }
+
+    pub fn is_module_path_glob(&self, path: &str) -> bool {
+        ModuleGlob::parse(path).is_some()
     }
 
     pub fn resolve_module_path(&self, path: &str) -> Result<Vec<String>, ModuleResolverError> {

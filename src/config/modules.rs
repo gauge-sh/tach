@@ -154,35 +154,47 @@ pub fn is_default_visibility(value: &Vec<String>) -> bool {
     value == &default_visibility()
 }
 
+#[derive(Debug, Clone, PartialEq)]
+enum ModuleOrigin {
+    Glob(String),
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
-#[pyclass(get_all, eq, module = "tach.extension")]
+#[pyclass(eq, module = "tach.extension")]
 pub struct ModuleConfig {
+    #[pyo3(get)]
     pub path: String,
     #[serde(default)]
-    #[pyo3(set)]
+    #[pyo3(get, set)]
     pub depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
+    #[pyo3(get)]
     pub layer: Option<String>,
     #[serde(
         default = "default_visibility",
         skip_serializing_if = "is_default_visibility"
     )]
+    #[pyo3(get)]
     pub visibility: Vec<String>,
     #[serde(default, skip_serializing_if = "is_false")]
+    #[pyo3(get)]
     pub utility: bool,
     // TODO: Remove this in a future version
     // This will be deserialized from old config,
     // but auto-migrated to interfaces internally.
     // This means we don't want to serialize it.
     #[serde(default, skip_serializing)]
+    #[pyo3(get)]
     pub strict: bool,
     #[serde(default, skip_serializing_if = "is_false")]
+    #[pyo3(get)]
     pub unchecked: bool,
     // Hidden field to track grouping
-    // Unfortunately marked as public due to test fixtures constructing struct literals
     #[serde(skip)]
-    pub group_id: Option<usize>,
+    group_id: Option<usize>,
+    #[serde(skip)]
+    origin: Option<ModuleOrigin>,
 }
 
 impl Default for ModuleConfig {
@@ -196,11 +208,65 @@ impl Default for ModuleConfig {
             strict: Default::default(),
             unchecked: Default::default(),
             group_id: Default::default(),
+            origin: Default::default(),
         }
     }
 }
 
 impl ModuleConfig {
+    pub fn new(
+        path: &str,
+        depends_on: Option<Vec<DependencyConfig>>,
+        layer: Option<String>,
+        visibility: Vec<String>,
+        utility: bool,
+        unchecked: bool,
+    ) -> Self {
+        Self {
+            path: path.to_string(),
+            depends_on,
+            layer,
+            visibility,
+            utility,
+            strict: false,
+            unchecked,
+            group_id: None,
+            origin: None,
+        }
+    }
+
+    pub fn from_path(path: &str) -> Self {
+        Self {
+            path: path.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn from_path_and_dependencies(
+        path: &str,
+        depends_on: Option<Vec<DependencyConfig>>,
+    ) -> Self {
+        Self {
+            path: path.to_string(),
+            depends_on,
+            ..Default::default()
+        }
+    }
+
+    pub fn with_copied_origin(self, other: &Self) -> Self {
+        Self {
+            origin: other.origin.clone(),
+            ..self
+        }
+    }
+
+    pub fn with_glob_origin(self, glob: &str) -> Self {
+        Self {
+            origin: Some(ModuleOrigin::Glob(glob.to_string())),
+            ..self
+        }
+    }
+
     pub fn new_with_layer(path: &str, layer: &str) -> Self {
         // shorthand for test fixtures
         Self {
@@ -212,6 +278,7 @@ impl ModuleConfig {
             strict: false,
             unchecked: false,
             group_id: None,
+            origin: None,
         }
     }
 
@@ -267,7 +334,7 @@ impl ModuleConfig {
     }
 
     pub fn new_root_config() -> Self {
-        Self::new(ROOT_MODULE_SENTINEL_TAG, false)
+        Self::from_path(ROOT_MODULE_SENTINEL_TAG)
     }
 
     pub fn is_root(&self) -> bool {
@@ -281,20 +348,6 @@ impl ModuleConfig {
 
 #[pymethods]
 impl ModuleConfig {
-    #[new]
-    pub fn new(path: &str, strict: bool) -> Self {
-        Self {
-            path: path.to_string(),
-            depends_on: Some(vec![]),
-            layer: None,
-            visibility: default_visibility(),
-            utility: false,
-            strict,
-            unchecked: false,
-            group_id: None,
-        }
-    }
-
     pub fn mod_path(&self) -> String {
         if self.path == ROOT_MODULE_SENTINEL_TAG {
             return ".".to_string();
@@ -457,6 +510,7 @@ where
                     strict: false,
                     unchecked: bulk.unchecked,
                     group_id: Some(i),
+                    origin: None,
                 })
                 .collect(),
         })

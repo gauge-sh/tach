@@ -193,7 +193,7 @@ mod tests {
 
     #[fixture]
     fn test_config() -> ModuleConfig {
-        ModuleConfig::new("test", false)
+        ModuleConfig::from_path("test")
     }
 
     #[rstest]
