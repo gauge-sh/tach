@@ -14,3 +14,5 @@ from module1 import (
     i,
     j,
 )
+
+from globbed.other.module import something
