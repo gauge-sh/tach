@@ -14,11 +14,9 @@ use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
 use crate::dependencies::LocatedImport;
 use crate::exclusion::{PathExclusionError, PathExclusions};
-use crate::filesystem::{
-    file_to_module_path, validate_project_modules, walk_pyfiles, FileSystemError,
-};
+use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
 use crate::interrupt::check_interrupt;
-use crate::modules::{build_module_tree, error::ModuleTreeError};
+use crate::modules::{ModuleTreeBuilder, ModuleTreeError};
 use crate::processors::import::ImportParseError;
 
 use super::helpers::import::get_located_project_imports;
@@ -227,19 +225,22 @@ pub fn create_dependency_report(
     }
 
     let source_roots = project_config.prepend_roots(project_root);
-    let (valid_modules, _) = validate_project_modules(
+    let exclusions = PathExclusions::new(
+        project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
+    let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
-        project_config.all_modules().cloned().collect(),
+        &exclusions,
+        false,                      // skip circular dependency check in report
+        RootModuleTreatment::Allow, // skip root module check in report
     );
+    let (valid_modules, _) = module_tree_builder.resolve_modules(project_config.all_modules());
 
     check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;
 
-    let module_tree = build_module_tree(
-        &source_roots,
-        &valid_modules,
-        false,                      // skip circular dependency check in report
-        RootModuleTreatment::Allow, // skip root module check in report
-    )?;
+    let module_tree = module_tree_builder.build(valid_modules)?;
 
     let absolute_path = project_root.join(path);
     let module_path = file_to_module_path(&source_roots, &absolute_path)?;
@@ -248,12 +249,6 @@ pub fn create_dependency_report(
     })?;
 
     let mut report = DependencyReport::new(path.display().to_string());
-
-    let exclusions = PathExclusions::new(
-        project_root,
-        &project_config.exclude,
-        project_config.use_regex_matching,
-    )?;
 
     for source_root in &source_roots {
         check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;

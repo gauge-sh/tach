@@ -150,6 +150,10 @@ impl ModuleTree {
     pub fn iter(&self) -> ModuleTreeIterator {
         ModuleTreeIterator::new(self)
     }
+
+    pub fn module_paths(&self) -> Vec<String> {
+        self.iter().map(|node| node.full_path.clone()).collect()
+    }
 }
 
 pub struct ModuleTreeIterator {

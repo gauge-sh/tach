@@ -223,6 +223,16 @@ impl ModuleConfig {
         }
     }
 
+    pub fn clone_with_path(&self, path: &str) -> Self {
+        let mut new_config = self.clone();
+        if path == self.path {
+            return new_config;
+        }
+
+        new_config.path = path.to_string();
+        new_config
+    }
+
     pub fn new_root_config() -> Self {
         Self::new(ROOT_MODULE_SENTINEL_TAG, false)
     }

@@ -1,0 +1,1 @@
+from module2 import something

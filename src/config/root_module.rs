@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 pub const ROOT_MODULE_SENTINEL_TAG: &str = "<root>";
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Default, Deserialize, Copy, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum RootModuleTreatment {
     Allow,

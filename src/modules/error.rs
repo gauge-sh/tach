@@ -2,6 +2,8 @@ use thiserror::Error;
 
 use crate::python::error::ParsingError;
 
+use super::resolve::ModuleResolverError;
+
 #[derive(Debug, Clone)]
 pub struct VisibilityErrorInfo {
     pub dependent_module: String,
@@ -27,4 +29,6 @@ pub enum ModuleTreeError {
     InsertNodeError,
     #[error("Module not found: {0}")]
     ModuleNotFound(String),
+    #[error("Module resolution error: {0}")]
+    ModuleResolutionError(#[from] ModuleResolverError),
 }

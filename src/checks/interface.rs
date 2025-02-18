@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::config::root_module::RootModuleTreatment;
-use crate::config::{ModuleConfig, ProjectConfig};
+use crate::config::ProjectConfig;
 use crate::dependencies::Dependency;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, FileChecker,
@@ -23,29 +23,35 @@ pub enum InterfaceCheckResult {
 
 pub struct InterfaceChecker<'a> {
     project_config: &'a ProjectConfig,
+    source_roots: &'a [PathBuf],
     module_tree: &'a ModuleTree,
     interfaces: CompiledInterfaces,
     type_check_cache: Option<TypeCheckCache>,
 }
 
 impl<'a> InterfaceChecker<'a> {
-    pub fn new(project_config: &'a ProjectConfig, module_tree: &'a ModuleTree) -> Self {
+    pub fn new(
+        project_config: &'a ProjectConfig,
+        module_tree: &'a ModuleTree,
+        source_roots: &'a [PathBuf],
+    ) -> Self {
         let compiled = CompiledInterfaces::build(project_config.all_interfaces());
 
         Self {
             project_config,
+            source_roots,
             module_tree,
             interfaces: compiled,
             type_check_cache: None,
         }
     }
 
-    pub fn with_type_check_cache(
-        mut self,
-        modules: &[ModuleConfig],
-        source_roots: &[PathBuf],
-    ) -> Result<Self, InterfaceError> {
-        let type_check_cache = TypeCheckCache::build(&self.interfaces, modules, source_roots)?;
+    pub fn with_type_check_cache(mut self) -> Result<Self, InterfaceError> {
+        let type_check_cache = TypeCheckCache::build(
+            &self.interfaces,
+            &self.module_tree.module_paths(),
+            self.source_roots,
+        )?;
         self.type_check_cache = Some(type_check_cache);
         Ok(self)
     }

@@ -269,6 +269,19 @@ fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
     }
 }
 
+fn is_pymodule(entry: &DirEntry) -> bool {
+    let path = entry.path();
+    if entry.file_type().is_dir() {
+        path.join("__init__.py").exists() || path.join("__init__.pyi").exists()
+    } else {
+        // Check if the file is a .py or .pyi file and is not __init__.py (we will process the directory instead)
+        matches!(
+            path.extension().and_then(|ext| ext.to_str()),
+            Some("py" | "pyi")
+        ) && path.file_stem().map(|s| s.to_str().unwrap_or("")) != Some("__init__")
+    }
+}
+
 #[derive(Debug)]
 pub struct ProjectFile<'a> {
     pub project_root: &'a Path,
@@ -314,6 +327,28 @@ pub fn walk_pyfiles<'a>(
         })
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
+        .map(move |entry| {
+            entry
+                .path()
+                .strip_prefix(prefix_root.as_str())
+                .unwrap()
+                .to_path_buf()
+        })
+}
+
+pub fn walk_pymodules<'a>(
+    root: &str,
+    exclusions: &'a PathExclusions,
+) -> impl Iterator<Item = PathBuf> + 'a {
+    let prefix_root = root.to_string();
+    WalkDir::new(root)
+        .into_iter()
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions))
+        .filter_map(|entry| {
+            entry
+                .ok()
+                .and_then(|e| if is_pymodule(&e) { Some(e) } else { None })
+        })
         .map(move |entry| {
             entry
                 .path()

@@ -335,6 +335,19 @@ def test_many_features_example_dir(example_dir, capfd):
     expected_dependencies = [
         ("[FAIL]", "real_src/module2/service.py", "outer_module", "module2"),
         ("[FAIL]", "real_src/module3/__init__.py", "'low'", "lower than", "'mid'"),
+        (
+            "[FAIL]",
+            "real_src/globbed/other/module.py",
+            "'hightest'",
+            "lower than",
+            "'high'",
+        ),
+        (
+            "[FAIL]",
+            "other_src_root/module4/service.py",
+            "cannot depend on",
+            "globbed.other.module.something",
+        ),
     ]
 
     _check_expected_messages_unordered(general_section, expected_general)
