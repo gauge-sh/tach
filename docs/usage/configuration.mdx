@@ -122,9 +122,10 @@ Each module listed under the `modules` key above can accept the following attrib
 - `depends_on` a list of the other modules which this module can import from
 
 <Note>Omitting the `depends_on` field means the module will be allowed to import from any other module. However, it will still be subject to those modules' [public interfaces](#interfaces).</Note>
+- `layer` (default: `null`) the [**layer**](#layers) which holds this module
 - `visibility` (default: `['*']`) a list of other modules which can import from this module
 - `utility` (default: `false`) marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency
-- `unchecked` (default: `false`) marks this module as [**unchecked**](unchecked-modules), meaning Tach will not check its imports
+- `unchecked` (default: `false`) marks this module as [**unchecked**](../usage/unchecked-modules), meaning Tach will not check its imports
 
 <Note>
   Tach also supports [deprecating individual dependencies](../usage/deprecate).
