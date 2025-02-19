@@ -11,6 +11,7 @@ use crate::{
         root_module::ROOT_MODULE_SENTINEL_TAG, ConfigLocation, DomainConfig, InterfaceConfig,
         InterfaceDataTypes, LocatedDomainConfig, ProjectConfig,
     },
+    exclusion::PathExclusions,
     filesystem::{read_file_content, walk_domain_config_files},
     python::parsing::parse_interface_members,
 };
@@ -157,10 +158,12 @@ pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfi
     let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
         || migrate_deprecated_regex_exclude(&mut config);
     let root_dir = filepath.as_ref().parent().unwrap();
-    let mut domain_configs = walk_domain_config_files(root_dir.as_os_str().to_str().unwrap())
-        .par_bridge()
-        .map(|filepath| parse_domain_config(&config.prepend_roots(root_dir), filepath))
-        .collect::<Result<Vec<_>>>()?;
+    let exclusions = PathExclusions::new(root_dir, &config.exclude, config.use_regex_matching)?;
+    let mut domain_configs =
+        walk_domain_config_files(root_dir.as_os_str().to_str().unwrap(), &exclusions)
+            .par_bridge()
+            .map(|filepath| parse_domain_config(&config.prepend_roots(root_dir), filepath))
+            .collect::<Result<Vec<_>>>()?;
     domain_configs.drain(..).for_each(|domain| {
         config.add_domain(domain);
     });

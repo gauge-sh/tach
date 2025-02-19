@@ -1,6 +1,7 @@
 use std::io;
 use thiserror::Error;
 
+use crate::exclusion::PathExclusionError;
 use crate::filesystem::FileSystemError;
 
 #[derive(Error, Debug)]
@@ -15,4 +16,6 @@ pub enum ParsingError {
     MissingField(String),
     #[error("Module path error: {0}")]
     ModulePath(String),
+    #[error("Path exclusion error: {0}")]
+    PathExclusion(#[from] PathExclusionError),
 }

@@ -13,16 +13,16 @@ use super::{
     ModuleResolver, ModuleTree, ModuleTreeError,
 };
 
-pub struct ModuleTreeBuilder {
-    resolver: ModuleResolver,
+pub struct ModuleTreeBuilder<'a> {
+    resolver: ModuleResolver<'a>,
     forbid_circular_dependencies: bool,
     root_module_treatment: RootModuleTreatment,
 }
 
-impl ModuleTreeBuilder {
+impl<'a> ModuleTreeBuilder<'a> {
     pub fn new(
-        source_roots: &[PathBuf],
-        exclusions: &PathExclusions,
+        source_roots: &'a [PathBuf],
+        exclusions: &'a PathExclusions,
         forbid_circular_dependencies: bool,
         root_module_treatment: RootModuleTreatment,
     ) -> Self {
@@ -33,7 +33,7 @@ impl ModuleTreeBuilder {
         }
     }
 
-    pub fn resolve_modules<'a, T: IntoIterator<Item = &'a ModuleConfig>>(
+    pub fn resolve_modules<'b, T: IntoIterator<Item = &'b ModuleConfig>>(
         &self,
         modules: T,
     ) -> (Vec<ModuleConfig>, Vec<ModuleConfig>) {

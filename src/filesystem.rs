@@ -189,7 +189,10 @@ pub fn module_to_file_path<P: AsRef<Path>>(
     )
 }
 
-fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(roots: &[P], mod_path: &str) -> Option<PathBuf> {
+pub fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(
+    roots: &[P],
+    mod_path: &str,
+) -> Option<PathBuf> {
     if mod_path.is_empty() {
         return None;
     }
@@ -253,10 +256,6 @@ fn is_hidden(entry: &DirEntry) -> bool {
 
 fn direntry_is_excluded(entry: &DirEntry, exclusions: &PathExclusions) -> bool {
     exclusions.is_path_excluded(entry.path())
-}
-
-fn direntry_is_tach_project(entry: &DirEntry) -> bool {
-    entry.path().join("tach.toml").is_file()
 }
 
 fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
@@ -393,13 +392,13 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
         })
 }
 
-pub fn walk_domain_config_files(root: &str) -> impl Iterator<Item = PathBuf> {
-    // NOTE: Filtering out tach.toml files in subdirectories
-    //       is a temporary measure to avoid recursive tach.toml files.
-    //       Once exclude paths are made safe (non-global), this can be removed.
+pub fn walk_domain_config_files<'a>(
+    root: &str,
+    exclusions: &'a PathExclusions,
+) -> impl Iterator<Item = PathBuf> + 'a {
     WalkDir::new(root)
         .into_iter()
-        .filter_entry(|e| e.depth() == 0 || (!is_hidden(e) && !direntry_is_tach_project(e)))
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_name() == "tach.domain.toml")
         .map(|entry| entry.into_path())

@@ -257,7 +257,7 @@ def test_many_features_example_dir(example_dir, capfd):
     general_header = captured.err.index("General\n")
     interfaces_header = captured.err.index("Interfaces\n")
     dependencies_header = captured.err.index("Internal Dependencies\n")
-    unused_header = captured.err.index("Unused Dependencies\n")
+    unused_header = captured.err.index("Unused Dependencies")
 
     general_section = captured.err[general_header:interfaces_header]
     interfaces_section = captured.err[interfaces_header:dependencies_header]
