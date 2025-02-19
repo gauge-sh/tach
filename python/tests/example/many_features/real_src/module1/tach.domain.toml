@@ -3,6 +3,11 @@ depends_on = ["api", "//module5"]
 layer = "mid"
 
 [[modules]]
+path = "*"
+depends_on = []
+layer = "hightest"
+
+[[modules]]
 path = "api"
 depends_on = ["**"]
 layer = "mid"

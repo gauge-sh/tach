@@ -13,16 +13,16 @@ use super::{
     ModuleResolver, ModuleTree, ModuleTreeError,
 };
 
-pub struct ModuleTreeBuilder {
-    resolver: ModuleResolver,
+pub struct ModuleTreeBuilder<'a> {
+    resolver: ModuleResolver<'a>,
     forbid_circular_dependencies: bool,
     root_module_treatment: RootModuleTreatment,
 }
 
-impl ModuleTreeBuilder {
+impl<'a> ModuleTreeBuilder<'a> {
     pub fn new(
-        source_roots: &[PathBuf],
-        exclusions: &PathExclusions,
+        source_roots: &'a [PathBuf],
+        exclusions: &'a PathExclusions,
         forbid_circular_dependencies: bool,
         root_module_treatment: RootModuleTreatment,
     ) -> Self {
@@ -33,7 +33,7 @@ impl ModuleTreeBuilder {
         }
     }
 
-    pub fn resolve_modules<'a, T: IntoIterator<Item = &'a ModuleConfig>>(
+    pub fn resolve_modules<'b, T: IntoIterator<Item = &'b ModuleConfig>>(
         &self,
         modules: T,
     ) -> (Vec<ModuleConfig>, Vec<ModuleConfig>) {
@@ -41,12 +41,15 @@ impl ModuleTreeBuilder {
         let mut unresolved_modules = Vec::new();
 
         for module in modules {
-            if let Ok(resolved_paths) = self.resolver.resolve_module_path(&module.mod_path()) {
-                resolved_modules.extend(
-                    resolved_paths
-                        .into_iter()
-                        .map(|path| module.clone_with_path(&path)),
-                );
+            let mod_path = module.mod_path();
+            if let Ok(resolved_paths) = self.resolver.resolve_module_path(&mod_path) {
+                resolved_modules.extend(resolved_paths.into_iter().map(|path| {
+                    if self.resolver.is_module_path_glob(&mod_path) {
+                        module.clone_with_path(&path).with_glob_origin(&mod_path)
+                    } else {
+                        module.clone_with_path(&path)
+                    }
+                }));
             } else {
                 unresolved_modules.push(module.clone());
             }

@@ -5,6 +5,7 @@ from unittest.mock import NonCallableMagicMock
 
 import pytest
 
+from tach import icons
 from tach.cli import tach_check, tach_check_external
 from tach.errors import TachCircularDependencyError, TachVisibilityError
 from tach.extension import Diagnostic
@@ -208,29 +209,6 @@ def test_distributed_config_example_dir(example_dir, capfd):
     assert "project/top_level.py" in captured.err
 
 
-def _check_expected_messages(section_text: str, expected_messages: list[tuple]) -> None:
-    """Helper to verify all expected messages appear in a section of output text, in the given order.
-
-    Args:
-        section_text: The text section to check
-        expected_messages: List of tuples containing substrings that should appear together in a line
-    """
-    lines = iter(section_text.split("\n"))
-    substrs = iter(expected_messages)
-    current_substrs = next(substrs, None)
-
-    for line in lines:
-        if not current_substrs:
-            break
-
-        if all(substr.lower() in line.lower() for substr in current_substrs):
-            current_substrs = next(substrs, None)
-
-    assert current_substrs is None, (
-        f"Not all expected messages were found: {list(substrs)} in section: {section_text}"
-    )
-
-
 def _check_expected_messages_unordered(
     section_text: str, expected_messages: list[tuple]
 ) -> None:
@@ -243,7 +221,12 @@ def _check_expected_messages_unordered(
     lines = iter(section_text.split("\n"))
     substr_tuples = set(expected_messages)
     for line in lines:
-        if "[WARN]" in line or "[FAIL]" in line:
+        if (
+            "[WARN]" in line
+            or "[FAIL]" in line
+            or icons.FAIL in line
+            or icons.WARNING in line
+        ):
             matched = False
             for substr_tuple in substr_tuples:
                 if all(substr.lower() in line.lower() for substr in substr_tuple):
@@ -274,10 +257,12 @@ def test_many_features_example_dir(example_dir, capfd):
     general_header = captured.err.index("General\n")
     interfaces_header = captured.err.index("Interfaces\n")
     dependencies_header = captured.err.index("Internal Dependencies\n")
+    unused_header = captured.err.index("Unused Dependencies")
 
     general_section = captured.err[general_header:interfaces_header]
     interfaces_section = captured.err[interfaces_header:dependencies_header]
-    dependencies_section = captured.err[dependencies_header:]
+    dependencies_section = captured.err[dependencies_header:unused_header]
+    unused_section = captured.err[unused_header:]
 
     expected_general = [
         (
@@ -348,11 +333,42 @@ def test_many_features_example_dir(example_dir, capfd):
             "cannot depend on",
             "globbed.other.module.something",
         ),
+        (
+            "[FAIL]",
+            "real_src/module1/controller.py",
+            "'hightest'",
+            "lower than",
+            "'mid'",
+            "module5",
+        ),
+        (
+            "[FAIL]",
+            "real_src/module1/controller.py",
+            "L5",
+            "'hightest'",
+            "lower than",
+            "'low'",
+            "module3",
+        ),
+        (
+            "[FAIL]",
+            "real_src/module1/controller.py",
+            "L6",
+            "'hightest'",
+            "lower than",
+            "'low'",
+            "module3",
+        ),
+    ]
+
+    expected_unused = [
+        ("module1", "module5"),
     ]
 
     _check_expected_messages_unordered(general_section, expected_general)
     _check_expected_messages_unordered(interfaces_section, expected_interfaces)
     _check_expected_messages_unordered(dependencies_section, expected_dependencies)
+    _check_expected_messages_unordered(unused_section, expected_unused)
 
 
 def test_many_features_example_dir__external(example_dir, capfd):

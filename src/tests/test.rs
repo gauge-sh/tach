@@ -9,36 +9,30 @@ pub mod fixtures {
     #[fixture]
     pub fn modules() -> Vec<ModuleConfig> {
         vec![
-            ModuleConfig::new("tach", true),
-            ModuleConfig {
-                path: "tach.__main__".to_string(),
-                depends_on: Some(vec![DependencyConfig::from_path("tach.start")]),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.cache".to_string(),
-                depends_on: Some(
+            ModuleConfig::from_path("tach"),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.__main__",
+                Some(vec![DependencyConfig::from_path("tach.start")]),
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.cache",
+                Some(
                     ["tach", "tach.filesystem"]
                         .map(DependencyConfig::from_path)
                         .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.check".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.check",
+                Some(
                     ["tach.errors", "tach.filesystem", "tach.parsing"]
                         .map(DependencyConfig::from_path)
                         .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.cli".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.cli",
+                Some(
                     [
                         "tach",
                         "tach.cache",
@@ -59,21 +53,17 @@ pub mod fixtures {
                     .map(DependencyConfig::from_path)
                     .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig::new("tach.colors", true),
-            ModuleConfig::new("tach.constants", true),
-            ModuleConfig {
-                path: "tach.core".to_string(),
-                depends_on: Some(vec![DependencyConfig::from_path("tach.constants")]),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig::new("tach.errors", true),
-            ModuleConfig {
-                path: "tach.filesystem".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path("tach.colors"),
+            ModuleConfig::from_path("tach.constants"),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.core",
+                Some(vec![DependencyConfig::from_path("tach.constants")]),
+            ),
+            ModuleConfig::from_path("tach.errors"),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.filesystem",
+                Some(
                     [
                         "tach.colors",
                         "tach.constants",
@@ -84,44 +74,34 @@ pub mod fixtures {
                     .map(DependencyConfig::from_path)
                     .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.filesystem.git_ops".to_string(),
-                depends_on: Some(vec![DependencyConfig::from_path("tach.errors")]),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.hooks".to_string(),
-                depends_on: Some(vec![DependencyConfig::from_path("tach.constants")]),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.interactive".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.filesystem.git_ops",
+                Some(vec![DependencyConfig::from_path("tach.errors")]),
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.hooks",
+                Some(vec![DependencyConfig::from_path("tach.constants")]),
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.interactive",
+                Some(
                     ["tach.errors", "tach.filesystem"]
                         .map(DependencyConfig::from_path)
                         .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.logging".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.logging",
+                Some(
                     ["tach", "tach.cache", "tach.parsing"]
                         .map(DependencyConfig::from_path)
                         .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.mod".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.mod",
+                Some(
                     [
                         "tach.colors",
                         "tach.constants",
@@ -133,35 +113,27 @@ pub mod fixtures {
                     .map(DependencyConfig::from_path)
                     .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.parsing".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.parsing",
+                Some(
                     ["tach.constants", "tach.core", "tach.filesystem"]
                         .map(DependencyConfig::from_path)
                         .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.report".to_string(),
-                depends_on: Some(vec![DependencyConfig::from_path("tach.errors")]),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig::new("tach.show", true),
-            ModuleConfig {
-                path: "tach.start".to_string(),
-                depends_on: Some(vec![DependencyConfig::from_path("tach.cli")]),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.sync".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.report",
+                Some(vec![DependencyConfig::from_path("tach.errors")]),
+            ),
+            ModuleConfig::from_path("tach.show"),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.start",
+                Some(vec![DependencyConfig::from_path("tach.cli")]),
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.sync",
+                Some(
                     [
                         "tach.check",
                         "tach.errors",
@@ -171,12 +143,10 @@ pub mod fixtures {
                     .map(DependencyConfig::from_path)
                     .into(),
                 ),
-                strict: true,
-                ..Default::default()
-            },
-            ModuleConfig {
-                path: "tach.test".to_string(),
-                depends_on: Some(
+            ),
+            ModuleConfig::from_path_and_dependencies(
+                "tach.test",
+                Some(
                     [
                         "tach.errors",
                         "tach.filesystem",
@@ -186,9 +156,7 @@ pub mod fixtures {
                     .map(DependencyConfig::from_path)
                     .into(),
                 ),
-                strict: false,
-                ..Default::default()
-            },
+            ),
         ]
     }
 
@@ -204,21 +172,17 @@ pub mod fixtures {
                     Arc::new(ModuleNode {
                         is_end_of_path: true,
                         full_path: "tach".to_string(),
-                        config: Some(ModuleConfig::new("tach", true)),
+                        config: Some(ModuleConfig::from_path("tach")),
                         children: HashMap::from([
                             (
                                 "__main__".to_string(),
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.__main__".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.__main__".to_string(),
-                                        depends_on: Some(vec![DependencyConfig::from_path(
-                                            "tach.start",
-                                        )]),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.__main__",
+                                        Some(vec![DependencyConfig::from_path("tach.start")]),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -227,16 +191,14 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.cache".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.cache".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.cache",
+                                        Some(
                                             ["tach", "tach.filesystem"]
                                                 .map(DependencyConfig::from_path)
                                                 .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -245,16 +207,14 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.check".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.check".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.check",
+                                        Some(
                                             ["tach.errors", "tach.filesystem", "tach.parsing"]
                                                 .map(DependencyConfig::from_path)
                                                 .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -263,9 +223,9 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.cli".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.cli".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.cli",
+                                        Some(
                                             [
                                                 "tach",
                                                 "tach.cache",
@@ -286,9 +246,7 @@ pub mod fixtures {
                                             .map(DependencyConfig::from_path)
                                             .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -297,7 +255,7 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.colors".to_string(),
-                                    config: Some(ModuleConfig::new("tach.colors", true)),
+                                    config: Some(ModuleConfig::from_path("tach.colors")),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -306,7 +264,7 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.constants".to_string(),
-                                    config: Some(ModuleConfig::new("tach.constants", true)),
+                                    config: Some(ModuleConfig::from_path("tach.constants")),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -315,14 +273,10 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.core".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.core".to_string(),
-                                        depends_on: Some(vec![DependencyConfig::from_path(
-                                            "tach.constants",
-                                        )]),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.core",
+                                        Some(vec![DependencyConfig::from_path("tach.constants")]),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -331,7 +285,7 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.errors".to_string(),
-                                    config: Some(ModuleConfig::new("tach.errors", true)),
+                                    config: Some(ModuleConfig::from_path("tach.errors")),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -340,9 +294,9 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.filesystem".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.filesystem".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.filesystem",
+                                        Some(
                                             [
                                                 "tach.colors",
                                                 "tach.constants",
@@ -353,22 +307,18 @@ pub mod fixtures {
                                             .map(DependencyConfig::from_path)
                                             .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::from([(
                                         "git_ops".to_string(),
                                         Arc::new(ModuleNode {
                                             is_end_of_path: true,
                                             full_path: "tach.filesystem.git_ops".to_string(),
-                                            config: Some(ModuleConfig {
-                                                path: "tach.filesystem.git_ops".to_string(),
-                                                depends_on: Some(vec![
-                                                    DependencyConfig::from_path("tach.errors"),
-                                                ]),
-                                                strict: true,
-                                                ..Default::default()
-                                            }),
+                                            config: Some(ModuleConfig::from_path_and_dependencies(
+                                                "tach.filesystem.git_ops",
+                                                Some(vec![DependencyConfig::from_path(
+                                                    "tach.errors",
+                                                )]),
+                                            )),
                                             children: HashMap::new(),
                                         }),
                                     )]),
@@ -379,14 +329,10 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.hooks".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.hooks".to_string(),
-                                        depends_on: Some(vec![DependencyConfig::from_path(
-                                            "tach.constants",
-                                        )]),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.hooks",
+                                        Some(vec![DependencyConfig::from_path("tach.constants")]),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -395,16 +341,14 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.interactive".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.interactive".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.interactive",
+                                        Some(
                                             ["tach.errors", "tach.filesystem"]
                                                 .map(DependencyConfig::from_path)
                                                 .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -413,16 +357,14 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.logging".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.logging".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.logging",
+                                        Some(
                                             ["tach", "tach.cache", "tach.parsing"]
                                                 .map(DependencyConfig::from_path)
                                                 .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -431,9 +373,9 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.mod".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.mod".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.mod",
+                                        Some(
                                             [
                                                 "tach.colors",
                                                 "tach.constants",
@@ -445,9 +387,7 @@ pub mod fixtures {
                                             .map(DependencyConfig::from_path)
                                             .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -456,16 +396,14 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.parsing".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.parsing".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.parsing",
+                                        Some(
                                             ["tach.constants", "tach.core", "tach.filesystem"]
                                                 .map(DependencyConfig::from_path)
                                                 .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -474,14 +412,10 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.report".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.report".to_string(),
-                                        depends_on: Some(vec![DependencyConfig::from_path(
-                                            "tach.errors",
-                                        )]),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.report",
+                                        Some(vec![DependencyConfig::from_path("tach.errors")]),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -490,7 +424,7 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.show".to_string(),
-                                    config: Some(ModuleConfig::new("tach.show", true)),
+                                    config: Some(ModuleConfig::from_path("tach.show")),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -499,14 +433,10 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.start".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.start".to_string(),
-                                        depends_on: Some(vec![DependencyConfig::from_path(
-                                            "tach.cli",
-                                        )]),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.start",
+                                        Some(vec![DependencyConfig::from_path("tach.cli")]),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -515,9 +445,9 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.sync".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.sync".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.sync",
+                                        Some(
                                             [
                                                 "tach.check",
                                                 "tach.errors",
@@ -527,9 +457,7 @@ pub mod fixtures {
                                             .map(DependencyConfig::from_path)
                                             .into(),
                                         ),
-                                        strict: true,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),
@@ -538,9 +466,9 @@ pub mod fixtures {
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "tach.test".to_string(),
-                                    config: Some(ModuleConfig {
-                                        path: "tach.test".to_string(),
-                                        depends_on: Some(
+                                    config: Some(ModuleConfig::from_path_and_dependencies(
+                                        "tach.test",
+                                        Some(
                                             [
                                                 "tach.errors",
                                                 "tach.filesystem",
@@ -550,9 +478,7 @@ pub mod fixtures {
                                             .map(DependencyConfig::from_path)
                                             .into(),
                                         ),
-                                        strict: false,
-                                        ..Default::default()
-                                    }),
+                                    )),
                                     children: HashMap::new(),
                                 }),
                             ),

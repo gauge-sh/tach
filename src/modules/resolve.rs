@@ -1,5 +1,6 @@
 use globset::{Error as GlobError, GlobBuilder, GlobMatcher};
-use std::path::{Path, PathBuf};
+use rayon::prelude::*;
+use std::path::PathBuf;
 
 use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
 
@@ -22,7 +23,7 @@ impl ModuleGlob {
             return None;
         }
 
-        let segments = pattern
+        let segments: Vec<ModuleGlobSegment> = pattern
             .split('.')
             .map(|s| match s {
                 "*" => ModuleGlobSegment::Wildcard,
@@ -30,6 +31,15 @@ impl ModuleGlob {
                 _ => ModuleGlobSegment::Literal(s.to_string()),
             })
             .collect();
+
+        if segments
+            .iter()
+            .all(|s| matches!(s, ModuleGlobSegment::Literal(_)))
+        {
+            // No wildcard segments, not a glob
+            return None;
+        }
+
         Some(Self { segments })
     }
 
@@ -44,17 +54,21 @@ impl ModuleGlob {
             })
             .collect::<Vec<_>>()
             .join("/");
+
         if pattern.ends_with("/**") {
             // We want this to match both the module itself and any submodules,
             //   which means we need to make the trailing slash optional.
             pattern = pattern[..pattern.len() - 3].to_string();
-            // NOTE: Using 'pattern{,/**}' does not work due to a bug in globset
-            //   so we instead use '{pattern,pattern/**}'
-            pattern = format!("{{{},{}/**}}", &pattern, &pattern);
+            pattern = format!("{}{{,/**}}", &pattern);
         }
+
+        // Add allowed file extensions to the pattern
+        pattern = format!("{}{{,.py,.pyi}}", pattern);
+
         let mut glob_builder = GlobBuilder::new(&pattern);
         let matcher = glob_builder
             .literal_separator(true)
+            .empty_alternates(true)
             .build()?
             .compile_matcher();
         Ok(matcher)
@@ -70,39 +84,25 @@ pub enum ModuleResolverError {
 }
 
 #[derive(Debug)]
-pub struct ModuleResolver {
-    modules: Vec<PathBuf>,
+pub struct ModuleResolver<'a> {
+    source_roots: &'a [PathBuf],
+    exclusions: &'a PathExclusions,
 }
 
-impl ModuleResolver {
-    fn collect_modules<P: AsRef<Path>>(
-        source_roots: &[P],
-        exclusions: &PathExclusions,
-    ) -> Vec<PathBuf> {
-        let mut modules = Vec::new();
-        for root in source_roots {
-            modules.extend(filesystem::walk_pymodules(
-                root.as_ref().to_str().unwrap(),
-                exclusions,
-            ));
-        }
-        modules
-    }
-
-    pub fn new<P: AsRef<Path>>(source_roots: &[P], exclusions: &PathExclusions) -> Self {
+impl<'a> ModuleResolver<'a> {
+    pub fn new(source_roots: &'a [PathBuf], exclusions: &'a PathExclusions) -> Self {
         Self {
-            modules: Self::collect_modules(source_roots, exclusions),
+            source_roots,
+            exclusions,
         }
     }
 
-    pub fn validate_module_path_literal(&self, path: &str) -> bool {
-        self.modules.iter().any(|m| {
-            m.with_extension("")
-                .display()
-                .to_string()
-                .replace(std::path::MAIN_SEPARATOR, ".")
-                == path
-        })
+    pub fn is_module_path_glob(&self, path: &str) -> bool {
+        ModuleGlob::parse(path).is_some()
+    }
+
+    fn validate_module_path_literal(&self, path: &str) -> bool {
+        filesystem::module_to_pyfile_or_dir_path(self.source_roots, path).is_some()
     }
 
     pub fn resolve_module_path(&self, path: &str) -> Result<Vec<String>, ModuleResolverError> {
@@ -126,14 +126,18 @@ impl ModuleResolver {
 
         let matcher = glob.into_matcher()?;
         Ok(self
-            .modules
-            .iter()
-            .map(|m| m.with_extension(""))
-            .filter(|m| matcher.is_match(m))
-            .map(|m| {
-                m.display()
-                    .to_string()
-                    .replace(std::path::MAIN_SEPARATOR, ".")
+            .source_roots
+            .par_iter()
+            .flat_map(|root| {
+                filesystem::walk_pymodules(root.as_os_str().to_str().unwrap(), self.exclusions)
+                    .par_bridge()
+                    .filter(|m| matcher.is_match(m))
+                    .map(|m| {
+                        m.with_extension("")
+                            .display()
+                            .to_string()
+                            .replace(std::path::MAIN_SEPARATOR, ".")
+                    })
             })
             .collect())
     }

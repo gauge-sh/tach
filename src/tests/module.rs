@@ -18,13 +18,13 @@ pub mod fixtures {
                         Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_one".to_string(),
-                            config: Some(ModuleConfig::new("test", false)),
+                            config: Some(ModuleConfig::from_path("test")),
                             children: HashMap::from([(
                                 "subdomain".to_string(),
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_one.subdomain".to_string(),
-                                    config: Some(ModuleConfig::new("test", false)),
+                                    config: Some(ModuleConfig::from_path("test")),
                                     children: HashMap::new(),
                                 }),
                             )]),
@@ -35,13 +35,13 @@ pub mod fixtures {
                         Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_two".to_string(),
-                            config: Some(ModuleConfig::new("test", false)),
+                            config: Some(ModuleConfig::from_path("test")),
                             children: HashMap::from([(
                                 "subdomain".to_string(),
                                 Arc::new(ModuleNode {
                                     is_end_of_path: true,
                                     full_path: "domain_two.subdomain".to_string(),
-                                    config: Some(ModuleConfig::new("test", false)),
+                                    config: Some(ModuleConfig::from_path("test")),
                                     children: HashMap::new(),
                                 }),
                             )]),
@@ -52,7 +52,7 @@ pub mod fixtures {
                         Arc::new(ModuleNode {
                             is_end_of_path: true,
                             full_path: "domain_three".to_string(),
-                            config: Some(ModuleConfig::new("test", false)),
+                            config: Some(ModuleConfig::from_path("test")),
                             children: HashMap::new(),
                         }),
                     ),

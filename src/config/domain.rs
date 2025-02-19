@@ -74,13 +74,12 @@ impl DomainConfig {
     }
 
     pub fn with_location(self, location: ConfigLocation) -> LocatedDomainConfig {
-        let resolved_modules = self
-            .modules
-            .iter()
-            .map(|module| Some(module.resolve(&location)))
-            .chain(iter::once(
-                self.root.as_ref().map(|root| root.resolve(&location)),
-            ))
+        let resolved_modules = iter::once(self.root.as_ref().map(|root| root.resolve(&location)))
+            .chain(
+                self.modules
+                    .iter()
+                    .map(|module| Some(module.resolve(&location))),
+            )
             .flatten()
             .collect();
         let resolved_interfaces = self
@@ -131,32 +130,29 @@ impl Resolvable<Vec<DependencyConfig>> for Vec<DependencyConfig> {
 
 impl Resolvable<ModuleConfig> for DomainRootConfig {
     fn resolve(&self, location: &ConfigLocation) -> ModuleConfig {
-        ModuleConfig {
+        ModuleConfig::new(
             // Root modules represent the domain itself
-            path: location.mod_path.clone(),
-            depends_on: self.depends_on.clone().map(|deps| deps.resolve(location)),
-            layer: self.layer.clone(),
-            visibility: self.visibility.clone(),
-            utility: self.utility,
-            strict: false,
-            unchecked: self.unchecked,
-            group_id: None,
-        }
+            &location.mod_path,
+            self.depends_on.clone().map(|deps| deps.resolve(location)),
+            self.layer.clone(),
+            self.visibility.clone(),
+            self.utility,
+            self.unchecked,
+        )
     }
 }
 
 impl Resolvable<ModuleConfig> for ModuleConfig {
     fn resolve(&self, location: &ConfigLocation) -> ModuleConfig {
-        ModuleConfig {
-            path: format!("{}.{}", location.mod_path, self.path),
-            depends_on: self.depends_on.clone().map(|deps| deps.resolve(location)),
-            layer: self.layer.clone(),
-            visibility: self.visibility.clone(),
-            utility: self.utility,
-            strict: false,
-            unchecked: self.unchecked,
-            group_id: None,
-        }
+        ModuleConfig::new(
+            &format!("{}.{}", location.mod_path, self.path),
+            self.depends_on.clone().map(|deps| deps.resolve(location)),
+            self.layer.clone(),
+            self.visibility.clone(),
+            self.utility,
+            self.unchecked,
+        )
+        .with_copied_origin(self)
     }
 }
 

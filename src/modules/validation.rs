@@ -10,13 +10,18 @@ use super::error::{ModuleTreeError, VisibilityErrorInfo};
 
 pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
     let mut duplicate_module_paths = Vec::new();
-    let mut seen = HashSet::new();
+    let mut seen: HashMap<&str, &ModuleConfig> = HashMap::new();
 
     for module in modules {
-        if seen.contains(&module.path) {
-            duplicate_module_paths.push(&module.path);
-        } else {
-            seen.insert(&module.path);
+        match seen.get(module.path.as_str()) {
+            Some(other_module) => {
+                if !other_module.overwriteable_by(module) {
+                    duplicate_module_paths.push(&module.path);
+                }
+            }
+            None => {
+                seen.insert(module.path.as_str(), module);
+            }
         }
     }
 
