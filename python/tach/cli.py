@@ -75,7 +75,7 @@ def print_no_config_found(
         json.dump({"error": "No config file found"}, sys.stdout)
     else:
         console_err.print(
-            f"{config_file_name}.toml not found. Do you need to run [cyan]'tach mod'[/]?",
+            f"{config_file_name}.toml not found. Do you need to run [cyan]'{TOOL_NAME} init'[/]?",
             style="red",
         )
 
