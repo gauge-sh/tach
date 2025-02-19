@@ -50,14 +50,12 @@ impl ModuleNode {
         self.config.as_ref().is_some_and(|c| c.unchecked)
     }
 
-    pub fn fill(&mut self, config: ModuleConfig, full_path: String) {
+    pub fn fill(&mut self, config: ModuleConfig, full_path: String) -> bool {
+        let did_overwrite = self.is_end_of_path;
         self.is_end_of_path = true;
-        if let Some(existing_config) = self.config.take() {
-            self.config = existing_config.merge(config).ok();
-        } else {
-            self.config = Some(config);
-        }
+        self.config = Some(config);
         self.full_path = full_path;
+        did_overwrite
     }
 }
 
@@ -110,7 +108,7 @@ impl ModuleTree {
         }
     }
 
-    pub fn insert(&mut self, config: ModuleConfig, path: String) -> Result<(), ModuleTreeError> {
+    pub fn insert(&mut self, config: ModuleConfig, path: String) -> Result<bool, ModuleTreeError> {
         if path.is_empty() {
             return Err(ModuleTreeError::InsertNodeError);
         }
@@ -125,8 +123,8 @@ impl ModuleTree {
             .unwrap();
         }
 
-        node.fill(config, path);
-        Ok(())
+        let did_overwrite = node.fill(config, path);
+        Ok(did_overwrite)
     }
 
     pub fn find_nearest(&self, path: &str) -> Option<Arc<ModuleNode>> {

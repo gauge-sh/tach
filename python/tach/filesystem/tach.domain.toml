@@ -1,6 +1,11 @@
 [root]
 layer = "core"
-depends_on = ["service", "install"]
+depends_on = ["service", "install", "project"]
+
+[[modules]]
+path = "*"
+depends_on = []
+layer = "core"
 
 [[modules]]
 paths = ["git_ops", "service"]

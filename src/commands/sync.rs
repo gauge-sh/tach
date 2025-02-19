@@ -91,7 +91,12 @@ pub fn detect_unused_dependencies(
     let detected_dependencies = detect_dependencies(&check_result);
 
     let mut unused_dependencies: Vec<UnusedDependencies> = vec![];
-    for module_path in project_config.module_paths() {
+    for module_path in project_config
+        .module_paths()
+        .into_iter()
+        // This is a hack to avoid checking globbed modules for unused dependencies
+        .filter(|path| !path.contains("*"))
+    {
         let module_detected_dependencies =
             detected_dependencies
                 .get(&module_path)
@@ -156,7 +161,12 @@ fn sync_dependency_constraints(
     }
 
     // Now diff with project config and apply edits
-    for module_path in project_config.module_paths() {
+    for module_path in project_config
+        .module_paths()
+        .into_iter()
+        // This is a hack to avoid attempting to sync globbed modules
+        .filter(|path| !path.contains("*"))
+    {
         let module_detected_dependencies =
             detected_dependencies
                 .get(&module_path)

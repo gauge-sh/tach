@@ -129,10 +129,6 @@ depends_on = [
 layer = "core"
 
 [[modules]]
-path = "tach.filesystem.**"
-depends_on = ["tach.filesystem.project"]
-
-[[modules]]
 path = "tach.start"
 depends_on = [
     "tach.cli",

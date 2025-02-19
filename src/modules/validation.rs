@@ -15,7 +15,7 @@ pub fn find_duplicate_modules(modules: &[ModuleConfig]) -> Vec<&String> {
     for module in modules {
         match seen.get(module.path.as_str()) {
             Some(other_module) => {
-                if !module.can_merge_with(&other_module) {
+                if !other_module.overwriteable_by(module) {
                     duplicate_module_paths.push(&module.path);
                 }
             }

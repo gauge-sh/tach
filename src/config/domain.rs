@@ -74,13 +74,12 @@ impl DomainConfig {
     }
 
     pub fn with_location(self, location: ConfigLocation) -> LocatedDomainConfig {
-        let resolved_modules = self
-            .modules
-            .iter()
-            .map(|module| Some(module.resolve(&location)))
-            .chain(iter::once(
-                self.root.as_ref().map(|root| root.resolve(&location)),
-            ))
+        let resolved_modules = iter::once(self.root.as_ref().map(|root| root.resolve(&location)))
+            .chain(
+                self.modules
+                    .iter()
+                    .map(|module| Some(module.resolve(&location))),
+            )
             .flatten()
             .collect();
         let resolved_interfaces = self
