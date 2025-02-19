@@ -4,14 +4,9 @@ import uuid
 from pathlib import Path
 
 from tach import __version__
-from tach.filesystem import find_project_config_root
 
 
-def resolve_dot_tach() -> Path | None:
-    project_path = find_project_config_root()
-    if project_path is None:
-        return
-
+def resolve_dot_tach(project_root: Path) -> Path | None:
     def _create(path: Path, is_file: bool = False, file_content: str = "") -> None:
         if not path.exists():
             if is_file:
@@ -20,7 +15,7 @@ def resolve_dot_tach() -> Path | None:
                 path.mkdir()
 
     # Create .tach
-    tach_path = project_path / ".tach"
+    tach_path = project_root / ".tach"
     _create(tach_path)
     # Create info
     info_path = tach_path / "tach.info"

@@ -30,7 +30,7 @@ class CallInfo:
 class RemoteLoggingHandler(logging.Handler):
     def __init__(self, project_root: Path):
         super().__init__()
-        self.uid = get_uid()
+        self.uid = get_uid(project_root)
         self.file_path = create_managed_subprocess(project_root)
 
     def emit(self, record: logging.LogRecord) -> None:

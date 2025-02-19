@@ -1079,7 +1079,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
     if project_config is None or not project_config.disable_logging:
         init_logging(project_root)
 
-    latest_version = cache.get_latest_version()
+    latest_version = cache.get_latest_version(project_root)
     if latest_version and current_version_is_behind(latest_version):
         console.print(
             f"WARNING: there is a new {TOOL_NAME} version available"

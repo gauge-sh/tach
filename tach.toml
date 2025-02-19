@@ -43,10 +43,7 @@ utility = true
 
 [[modules]]
 path = "tach.cache"
-depends_on = [
-    "tach",
-    "tach.filesystem",
-]
+depends_on = ["tach"]
 layer = "core"
 
 [[modules]]
