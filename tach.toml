@@ -20,7 +20,7 @@ unused_ignore_directives = "error"
 require_ignore_directive_reasons = "error"
 
 [[modules]]
-path = "tach"
+path = "**"
 depends_on = []
 
 [[modules]]

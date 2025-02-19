@@ -101,7 +101,8 @@ def test_many_features_example_dir(example_dir, capfd):
         assert project_config is not None
 
         modules = project_config.all_modules()
-        assert len(modules) == 12
+        # This should be the number of statically defined modules, before globbing
+        assert len(modules) == 14
 
         module2 = next(module for module in modules if module.path == "module2")
         assert set(map(lambda dep: dep.path, module2.depends_on)) == {"outer_module"}

@@ -216,6 +216,8 @@ fn sync_dependency_constraints(
         project_config
             .module_paths()
             .iter()
+            // This is a hack to avoid pruning globbed modules
+            .filter(|path| !path.contains("*"))
             .for_each(|module_path| {
                 if !validate_module_path(
                     &project_config.absolute_source_roots().unwrap(),
