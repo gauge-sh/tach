@@ -55,14 +55,13 @@ def print_unused_dependencies(
     all_unused_dependencies: list[UnusedDependencies],
 ) -> None:
     constraint_messages = "\n".join(
-        f"\t'{unused_dependencies.path}' does not depend on: {[dependency.path for dependency in unused_dependencies.dependencies]}"
+        f"{icons.FAIL} [bold]'{unused_dependencies.path}'[/] does not depend on: [bold]{[dependency.path for dependency in unused_dependencies.dependencies]}[/]"
         for unused_dependencies in all_unused_dependencies
     )
-    console.print(
-        f"{icons.FAIL}: [red]Found unused dependencies:[/]\n"
-        + f"[yellow]{constraint_messages}[/]"
+    console_err.print(
+        "[red bold]Unused Dependencies[/]\n" + f"[yellow]{constraint_messages}[/]"
     )
-    console.print(
+    console_err.print(
         f"\n[yellow]Remove the unused dependencies from {CONFIG_FILE_NAME}.toml, "
         f"or consider running '{TOOL_NAME} sync' to update module configuration and "
         f"remove all unused dependencies.[/]\n"
