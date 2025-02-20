@@ -517,6 +517,10 @@ impl ProjectConfig {
         self.all_interfaces().cloned().collect()
     }
 
+    pub fn exists(&self) -> bool {
+        self.location.is_some()
+    }
+
     pub fn set_location(&mut self, location: PathBuf) {
         self.location = Some(location);
     }
