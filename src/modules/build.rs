@@ -6,6 +6,7 @@ use crate::{
 };
 
 use super::{
+    resolve::has_glob_syntax,
     validation::{
         find_duplicate_modules, find_modules_with_cycles, find_visibility_violations,
         validate_root_module_treatment,
@@ -44,7 +45,7 @@ impl<'a> ModuleTreeBuilder<'a> {
             let mod_path = module.mod_path();
             if let Ok(resolved_paths) = self.resolver.resolve_module_path(&mod_path) {
                 resolved_modules.extend(resolved_paths.into_iter().map(|path| {
-                    if self.resolver.is_module_path_glob(&mod_path) {
+                    if has_glob_syntax(&mod_path) {
                         module.clone_with_path(&path).with_glob_origin(&mod_path)
                     } else {
                         module.clone_with_path(&path)
