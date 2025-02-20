@@ -159,6 +159,14 @@ fn parse_project_config(
     parsing::config::parse_project_config(filepath)
 }
 
+/// Parse project config from pyproject.toml
+#[pyfunction]
+fn parse_project_config_from_pyproject(
+    filepath: PathBuf,
+) -> parsing::config::Result<config::ProjectConfig> {
+    parsing::config::parse_project_config_from_pyproject(filepath)
+}
+
 #[pyfunction]
 #[pyo3(signature = (config))]
 fn dump_project_config_to_toml(
@@ -334,6 +342,10 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_class::<modularity::UsageError>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
+    m.add_function(wrap_pyfunction_bound!(
+        parse_project_config_from_pyproject,
+        m
+    )?)?;
     m.add_function(wrap_pyfunction_bound!(get_project_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(get_external_imports, m)?)?;
     m.add_function(wrap_pyfunction_bound!(check_external_dependencies, m)?)?;

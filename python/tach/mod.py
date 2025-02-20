@@ -86,9 +86,9 @@ def apply_selected_configuration(
     selected_modules: list[Path],
     selected_utilities: list[Path],
 ):
-    # Write initial config file if it doesn't exist
-    project_config_path = build_project_config_path(project_root)
-    if not project_config_path.exists():
+    # Write initial config file (tach.toml) if it doesn't exist
+    if not project_config.exists():
+        project_config_path = build_project_config_path(project_root)
         config_toml_content = dump_project_config_to_toml(project_config)
         project_config_path.write_text(config_toml_content)
         project_config.set_location(project_config_path)

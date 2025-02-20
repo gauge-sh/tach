@@ -8,8 +8,8 @@ use rayon::prelude::*;
 use crate::{
     colors::BColors,
     config::{
-        root_module::ROOT_MODULE_SENTINEL_TAG, ConfigLocation, DomainConfig, InterfaceConfig,
-        InterfaceDataTypes, LocatedDomainConfig, ProjectConfig,
+        project::PyProjectWrapper, root_module::ROOT_MODULE_SENTINEL_TAG, ConfigLocation,
+        DomainConfig, InterfaceConfig, InterfaceDataTypes, LocatedDomainConfig, ProjectConfig,
     },
     exclusion::PathExclusions,
     filesystem::{read_file_content, walk_domain_config_files},
@@ -151,13 +151,8 @@ pub fn parse_domain_config<P: AsRef<Path>>(
     Ok(config.with_location(location))
 }
 
-pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
-    let content = read_file_content(filepath.as_ref())?;
-    let mut config: ProjectConfig = toml::from_str(&content)?;
-    config.set_location(filepath.as_ref().to_path_buf());
-    let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
-        || migrate_deprecated_regex_exclude(&mut config);
-    let root_dir = filepath.as_ref().parent().unwrap();
+pub fn add_domain_configs<P: AsRef<Path>>(config: &mut ProjectConfig, root_dir: P) -> Result<()> {
+    let root_dir = root_dir.as_ref();
     let exclusions = PathExclusions::new(root_dir, &config.exclude, config.use_regex_matching)?;
     let mut domain_configs =
         walk_domain_config_files(root_dir.as_os_str().to_str().unwrap(), &exclusions)
@@ -167,7 +162,25 @@ pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfi
     domain_configs.drain(..).for_each(|domain| {
         config.add_domain(domain);
     });
+    Ok(())
+}
+
+pub fn parse_project_config<P: AsRef<Path>>(filepath: P) -> Result<(ProjectConfig, bool)> {
+    let content = read_file_content(filepath.as_ref())?;
+    let mut config: ProjectConfig = toml::from_str(&content)?;
+    config.set_location(filepath.as_ref().to_path_buf());
+    let did_migrate = migrate_strict_mode_to_interfaces(filepath.as_ref(), &mut config)
+        || migrate_deprecated_regex_exclude(&mut config);
+    add_domain_configs(&mut config, filepath.as_ref().parent().unwrap())?;
     Ok((config, did_migrate))
+}
+
+pub fn parse_project_config_from_pyproject<P: AsRef<Path>>(filepath: P) -> Result<ProjectConfig> {
+    let content = read_file_content(filepath.as_ref())?;
+    let mut config: ProjectConfig = toml::from_str::<PyProjectWrapper>(&content)?.into();
+    config.set_location(filepath.as_ref().to_path_buf());
+    add_domain_configs(&mut config, filepath.as_ref().parent().unwrap())?;
+    Ok(config)
 }
 
 #[cfg(test)]
