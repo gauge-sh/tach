@@ -6,7 +6,7 @@ use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclus
 
 #[derive(Debug)]
 enum ModuleGlobSegment {
-    Literal(String),
+    Pattern(String),
     Wildcard,
     DoubleWildcard,
 }
@@ -28,17 +28,9 @@ impl ModuleGlob {
             .map(|s| match s {
                 "*" => ModuleGlobSegment::Wildcard,
                 "**" => ModuleGlobSegment::DoubleWildcard,
-                _ => ModuleGlobSegment::Literal(s.to_string()),
+                _ => ModuleGlobSegment::Pattern(s.to_string()),
             })
             .collect();
-
-        if segments
-            .iter()
-            .all(|s| matches!(s, ModuleGlobSegment::Literal(_)))
-        {
-            // No wildcard segments, not a glob
-            return None;
-        }
 
         Some(Self { segments })
     }
@@ -48,7 +40,7 @@ impl ModuleGlob {
             .segments
             .iter()
             .map(|s| match s {
-                ModuleGlobSegment::Literal(s) => globset::escape(s),
+                ModuleGlobSegment::Pattern(s) => s.to_owned(),
                 ModuleGlobSegment::Wildcard => "*".to_string(),
                 ModuleGlobSegment::DoubleWildcard => "**".to_string(),
             })
