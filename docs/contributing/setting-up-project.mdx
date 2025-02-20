@@ -12,27 +12,11 @@ Installing all the dependencies
 
 To build and rebuild after changes to Rust files.
 
-> **Note:** Make sure you have the Rust compiler installed. This package requires Rust and Cargo to compile extensions.
+<Note>
+Make sure you have the Rust compiler installed. This package requires Rust and Cargo to compile extensions.
+</Note>
 
-### Step 1: Create and Activate a Virtual Environment
-
-Before running `make install`, it's recommended to create and activate a Python virtual environment.
-
-#### macOS & Linux:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-#### Windows (PowerShell):
-
-```powershell
-python -m venv venv
-venv\Scripts\Activate
-```
-
-### Step 2: Install Dependencies
+### Install Dependencies
 
 ```bash
 make install
@@ -52,12 +36,6 @@ sudo ln -s $(which python3) /usr/local/bin/python
 ```
 
 #### Linux Fix:
-On Linux, you may need to install the `python-is-python3` package or create a symlink manually:
-
-```bash
-sudo apt install python-is-python3  # For Debian/Ubuntu
-```
-Or manually create a symlink:
 
 ```bash
 sudo ln -s $(which python3) /usr/bin/python
