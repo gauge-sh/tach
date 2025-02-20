@@ -18,6 +18,22 @@ use super::rules::RulesConfig;
 use super::utils::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct PyProjectWrapper {
+    tool: ToolTable,
+}
+
+impl From<PyProjectWrapper> for ProjectConfig {
+    fn from(val: PyProjectWrapper) -> Self {
+        val.tool.tach
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct ToolTable {
+    tach: ProjectConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(module = "tach.extension")]
 pub struct ProjectConfig {
