@@ -1,7 +1,6 @@
 [project]
-name = "myorg.monorepo"
+name = "gauge-monorepo"
 version = "0.1.0"
-dependencies = ["gauge-backend", "gauge-utils"]
 
 [tool.tach]
 exclude = []
