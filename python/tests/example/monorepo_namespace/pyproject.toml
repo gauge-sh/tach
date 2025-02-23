@@ -1,38 +1,38 @@
 [project]
 name = "myorg.monorepo"
 version = "0.1.0"
-
+dependencies = ["gauge-backend", "gauge-utils"]
 
 [tool.tach]
 exclude = []
 source_roots = [
-    "backend",
-    "utils",
+    "core/backend/src",
+    "libs/utils/src",
 ]
 exact = true
 
 [[tool.tach.modules]]
-path = "mod1"
+path = "gauge.backend.mod1"
 depends_on = []
 
 [[tool.tach.modules]]
-path = "mod2"
+path = "gauge.backend.mod2"
 depends_on = []
 
 [[tool.tach.modules]]
-path = "mod3"
+path = "gauge.backend.mod3"
 depends_on = [
-    { path = "mod2" },
+    { path = "gauge.backend.mod2" },
 ]
 
 [[tool.tach.modules]]
-path = "myorg.corepkg"
+path = "gauge.backend"
 depends_on = [
-    { path = "myorg.utilpkg" },
+    { path = "gauge.utils" },
 ]
 
 [[tool.tach.modules]]
-path = "myorg.utilpkg"
+path = "gauge.utils"
 depends_on = []
 
 [[tool.tach.interfaces]]
@@ -40,7 +40,7 @@ expose = [
     "x",
 ]
 from = [
-    "mod1",
+    "gauge.backend.mod1",
 ]
 
 [[tool.tach.interfaces]]
@@ -48,5 +48,5 @@ expose = [
     "y",
 ]
 from = [
-    "mod2",
+    "gauge.backend.mod2",
 ]

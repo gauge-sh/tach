@@ -29,7 +29,7 @@ def test_valid_example_dir(example_dir, capfd):
 
 
 def test_valid_example_dir_monorepo(example_dir):
-    project_root = example_dir / "monorepo"
+    project_root = example_dir / "monorepo_namespace"
     project_config = parse_project_config(root=project_root)
     assert project_config is not None
     with pytest.raises(SystemExit) as exc_info:
