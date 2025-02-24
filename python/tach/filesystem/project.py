@@ -18,6 +18,13 @@ def get_project_config_path(
     return None
 
 
+def get_pyproject_config_path(root: Path) -> Path | None:
+    file_path = root / "pyproject.toml"
+    if file_path.exists() and "tool.tach" in file_path.read_text():
+        return file_path
+    return None
+
+
 def get_deprecated_project_config_path(root: Path | None = None) -> Path | None:
     root = root or Path.cwd()
     file_path = root / f"{CONFIG_FILE_NAME}.yaml"
@@ -29,15 +36,22 @@ def get_deprecated_project_config_path(root: Path | None = None) -> Path | None:
     return None
 
 
+def has_project_config(root: Path) -> bool:
+    return (
+        get_project_config_path(root) is not None
+        or get_pyproject_config_path(root) is not None
+    )
+
+
 def find_project_config_root() -> Path | None:
     cwd = Path.cwd()
 
-    if get_project_config_path(cwd) is not None:
+    if has_project_config(cwd):
         return cwd
 
     # Iterate upwards, looking for project config
     for parent in cwd.parents:
-        if get_project_config_path(parent):
+        if has_project_config(parent):
             return parent
 
     return None

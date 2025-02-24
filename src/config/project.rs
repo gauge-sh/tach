@@ -18,6 +18,22 @@ use super::rules::RulesConfig;
 use super::utils::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct PyProjectWrapper {
+    tool: ToolTable,
+}
+
+impl From<PyProjectWrapper> for ProjectConfig {
+    fn from(val: PyProjectWrapper) -> Self {
+        val.tool.tach
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct ToolTable {
+    tach: ProjectConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
 #[pyclass(module = "tach.extension")]
 pub struct ProjectConfig {
@@ -270,6 +286,27 @@ impl ConfigEditor for ProjectConfig {
             .parse::<toml_edit::DocumentMut>()
             .map_err(|_| EditError::ParsingFailed)?;
 
+        let is_pyproject = config_path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name| name == "pyproject.toml")
+            .unwrap_or(false);
+
+        let root_table = if is_pyproject {
+            if !doc.contains_key("tool") {
+                doc["tool"] = toml_edit::Item::Table(toml_edit::Table::new());
+            }
+            let tool = doc["tool"].as_table_mut().ok_or(EditError::ParsingFailed)?;
+            if !tool.contains_key("tach") {
+                tool.insert("tach", toml_edit::Item::Table(toml_edit::Table::new()));
+            }
+            tool["tach"]
+                .as_table_mut()
+                .ok_or(EditError::ParsingFailed)?
+        } else {
+            &mut doc
+        };
+
         for edit in &self.pending_edits {
             match edit {
                 ConfigEdit::CreateModule { path } => {
@@ -277,12 +314,12 @@ impl ConfigEditor for ProjectConfig {
                     module_table.insert("path", toml_edit::value(path));
                     module_table.insert("depends_on", toml_edit::value(toml_edit::Array::new()));
 
-                    match doc.get_mut("modules") {
+                    match root_table.get_mut("modules") {
                         // If modules is a regular array (modules = []) or doesn't exist, convert it to array of tables
                         None | Some(toml_edit::Item::Value(toml_edit::Value::Array(_))) => {
                             let mut array = toml_edit::ArrayOfTables::new();
                             array.push(module_table);
-                            doc["modules"] = toml_edit::Item::ArrayOfTables(array);
+                            root_table["modules"] = toml_edit::Item::ArrayOfTables(array);
                         }
                         // If modules is already an array of tables ([[modules]]), just push
                         Some(toml_edit::Item::ArrayOfTables(array)) => {
@@ -292,7 +329,7 @@ impl ConfigEditor for ProjectConfig {
                     }
                 }
                 ConfigEdit::DeleteModule { path } => {
-                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut root_table["modules"] {
                         let mut module_index = None;
                         for (i, table) in modules.iter_mut().enumerate() {
                             if table
@@ -324,7 +361,7 @@ impl ConfigEditor for ProjectConfig {
                 }
                 ConfigEdit::MarkModuleAsUtility { path }
                 | ConfigEdit::UnmarkModuleAsUtility { path } => {
-                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut root_table["modules"] {
                         for table in modules.iter_mut() {
                             if table
                                 .get("path")
@@ -354,7 +391,7 @@ impl ConfigEditor for ProjectConfig {
                 }
                 ConfigEdit::AddDependency { path, dependency }
                 | ConfigEdit::RemoveDependency { path, dependency } => {
-                    if let toml_edit::Item::ArrayOfTables(modules) = &mut doc["modules"] {
+                    if let toml_edit::Item::ArrayOfTables(modules) = &mut root_table["modules"] {
                         for table in modules.iter_mut() {
                             let is_target_module = table
                                 .get("path")
@@ -425,7 +462,7 @@ impl ConfigEditor for ProjectConfig {
                 }
                 ConfigEdit::AddSourceRoot { filepath } => {
                     if let toml_edit::Item::Value(toml_edit::Value::Array(source_roots)) =
-                        &mut doc["source_roots"]
+                        &mut root_table["source_roots"]
                     {
                         if !source_roots.iter().any(|root| {
                             root.as_str() == Some(filepath.as_os_str().to_str().unwrap())
@@ -436,7 +473,7 @@ impl ConfigEditor for ProjectConfig {
                 }
                 ConfigEdit::RemoveSourceRoot { filepath } => {
                     if let toml_edit::Item::Value(toml_edit::Value::Array(source_roots)) =
-                        &mut doc["source_roots"]
+                        &mut root_table["source_roots"]
                     {
                         source_roots.retain(|root| {
                             root.as_str()
@@ -478,6 +515,10 @@ impl ProjectConfig {
     #[pyo3(name = "all_interfaces")]
     fn all_interfaces_py(&self) -> Vec<InterfaceConfig> {
         self.all_interfaces().cloned().collect()
+    }
+
+    pub fn exists(&self) -> bool {
+        self.location.is_some()
     }
 
     pub fn set_location(&mut self, location: PathBuf) {

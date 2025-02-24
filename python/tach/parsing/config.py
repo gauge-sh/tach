@@ -6,15 +6,10 @@ from typing import TYPE_CHECKING, Any
 import tomli
 import tomli_w
 
+from tach import extension
 from tach import filesystem as fs
 from tach.constants import CONFIG_FILE_NAME
 from tach.errors import TachConfigError
-from tach.extension import (
-    dump_project_config_to_toml as ext_dump_project_config_to_toml,
-)
-from tach.extension import (
-    parse_project_config as ext_parse_project_config,
-)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -23,7 +18,7 @@ if TYPE_CHECKING:
 
 
 def dump_project_config_to_toml(config: ProjectConfig) -> str:
-    data = tomli.loads(ext_dump_project_config_to_toml(config))
+    data = tomli.loads(extension.dump_project_config_to_toml(config))
     return tomli_w.dumps(data)
 
 
@@ -65,7 +60,7 @@ def migrate_deprecated_yaml_config(filepath: Path) -> ProjectConfig:
         toml_config = tomli_w.dumps(data)
         print("Auto-migrating deprecated YAML config to TOML...")
         filepath.with_suffix(".toml").write_text(toml_config)
-        project_config, ext_migrated = ext_parse_project_config(
+        project_config, ext_migrated = extension.parse_project_config(
             filepath.with_suffix(".toml")
         )
         if ext_migrated:
@@ -91,13 +86,15 @@ def parse_project_config(
     file_path = fs.get_project_config_path(root, file_name=file_name)
     if file_path:
         # Standard TOML config found
-        project_config, ext_migrated = ext_parse_project_config(file_path)
+        project_config, ext_migrated = extension.parse_project_config(file_path)
         if ext_migrated:
             # Write the auto-migrated TOML config
             file_path.with_suffix(".toml").write_text(
                 dump_project_config_to_toml(project_config)
             )
         return project_config
+    elif (root / "pyproject.toml").exists():
+        return extension.parse_project_config_from_pyproject(root / "pyproject.toml")
     else:
         # No TOML found, check for deprecated (YAML) config as a fallback
         file_path = fs.get_deprecated_project_config_path(root)

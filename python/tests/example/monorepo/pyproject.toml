@@ -1,3 +1,9 @@
+[project]
+name = "myorg.monorepo"
+version = "0.1.0"
+
+
+[tool.tach]
 exclude = []
 source_roots = [
     "backend",
@@ -5,31 +11,31 @@ source_roots = [
 ]
 exact = true
 
-[[modules]]
+[[tool.tach.modules]]
 path = "mod1"
 depends_on = []
 
-[[modules]]
+[[tool.tach.modules]]
 path = "mod2"
 depends_on = []
 
-[[modules]]
+[[tool.tach.modules]]
 path = "mod3"
 depends_on = [
     { path = "mod2" },
 ]
 
-[[modules]]
+[[tool.tach.modules]]
 path = "myorg.corepkg"
 depends_on = [
     { path = "myorg.utilpkg" },
 ]
 
-[[modules]]
+[[tool.tach.modules]]
 path = "myorg.utilpkg"
 depends_on = []
 
-[[interfaces]]
+[[tool.tach.interfaces]]
 expose = [
     "x",
 ]
@@ -37,7 +43,7 @@ from = [
     "mod1",
 ]
 
-[[interfaces]]
+[[tool.tach.interfaces]]
 expose = [
     "y",
 ]

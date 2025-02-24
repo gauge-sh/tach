@@ -1,59 +1,40 @@
 use globset::{Error as GlobError, GlobBuilder, GlobMatcher};
+use itertools::Itertools;
 use rayon::prelude::*;
 use std::path::PathBuf;
 
 use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
 
-#[derive(Debug)]
-enum ModuleGlobSegment {
-    Literal(String),
-    Wildcard,
-    DoubleWildcard,
+pub fn has_glob_syntax(pattern: &str) -> bool {
+    pattern.chars().enumerate().any(|(i, c)| {
+        match c {
+            '*' | '?' | '[' | ']' | '{' | '}' => {
+                // Check if the character is escaped
+                i == 0 || pattern.as_bytes()[i - 1] != b'\\'
+            }
+            _ => false,
+        }
+    })
 }
 
 #[derive(Debug)]
 pub struct ModuleGlob {
-    segments: Vec<ModuleGlobSegment>,
+    segments: Vec<String>,
 }
 
 impl ModuleGlob {
     pub fn parse(pattern: &str) -> Option<Self> {
-        if !pattern.contains('*') {
-            // No wildcards, not a glob
+        if !has_glob_syntax(pattern) {
             return None;
         }
 
-        let segments: Vec<ModuleGlobSegment> = pattern
-            .split('.')
-            .map(|s| match s {
-                "*" => ModuleGlobSegment::Wildcard,
-                "**" => ModuleGlobSegment::DoubleWildcard,
-                _ => ModuleGlobSegment::Literal(s.to_string()),
-            })
-            .collect();
-
-        if segments
-            .iter()
-            .all(|s| matches!(s, ModuleGlobSegment::Literal(_)))
-        {
-            // No wildcard segments, not a glob
-            return None;
-        }
-
-        Some(Self { segments })
+        Some(Self {
+            segments: pattern.split('.').map(|s| s.to_string()).collect(),
+        })
     }
 
     pub fn into_matcher(self) -> Result<GlobMatcher, GlobError> {
-        let mut pattern = self
-            .segments
-            .iter()
-            .map(|s| match s {
-                ModuleGlobSegment::Literal(s) => globset::escape(s),
-                ModuleGlobSegment::Wildcard => "*".to_string(),
-                ModuleGlobSegment::DoubleWildcard => "**".to_string(),
-            })
-            .collect::<Vec<_>>()
-            .join("/");
+        let mut pattern = self.segments.iter().join("/");
 
         if pattern.ends_with("/**") {
             // We want this to match both the module itself and any submodules,
@@ -95,10 +76,6 @@ impl<'a> ModuleResolver<'a> {
             source_roots,
             exclusions,
         }
-    }
-
-    pub fn is_module_path_glob(&self, path: &str) -> bool {
-        ModuleGlob::parse(path).is_some()
     }
 
     fn validate_module_path_literal(&self, path: &str) -> bool {
