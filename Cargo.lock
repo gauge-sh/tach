@@ -203,7 +203,7 @@ version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1628,7 +1628,7 @@ dependencies = [
  "anyhow",
  "is-macro",
  "log",
- "ruff_text_size",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "serde",
 ]
 
@@ -1673,16 +1673,16 @@ dependencies = [
  "ruff_index",
  "ruff_macros",
  "ruff_notebook",
- "ruff_python_ast",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "ruff_python_codegen",
  "ruff_python_index",
  "ruff_python_literal",
- "ruff_python_parser",
+ "ruff_python_parser 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "ruff_python_semantic",
  "ruff_python_stdlib",
- "ruff_python_trivia",
- "ruff_source_file",
- "ruff_text_size",
+ "ruff_python_trivia 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -1707,7 +1707,7 @@ dependencies = [
  "itertools 0.14.0",
  "proc-macro2",
  "quote",
- "ruff_python_trivia",
+ "ruff_python_trivia 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "syn",
 ]
 
@@ -1720,8 +1720,8 @@ dependencies = [
  "itertools 0.14.0",
  "rand",
  "ruff_diagnostics",
- "ruff_source_file",
- "ruff_text_size",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "serde",
  "serde_json",
  "serde_with",
@@ -1742,11 +1742,28 @@ dependencies = [
  "memchr",
  "ruff_cache",
  "ruff_macros",
- "ruff_python_trivia",
- "ruff_source_file",
- "ruff_text_size",
+ "ruff_python_trivia 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "rustc-hash",
  "serde",
+]
+
+[[package]]
+name = "ruff_python_ast"
+version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.7#54fccb3ee23a2b20b287e631f32f18ee5b64b62b"
+dependencies = [
+ "aho-corasick",
+ "bitflags 2.8.0",
+ "compact_str",
+ "is-macro",
+ "itertools 0.14.0",
+ "memchr",
+ "ruff_python_trivia 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -1754,11 +1771,11 @@ name = "ruff_python_codegen"
 version = "0.0.0"
 source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.3#90589372daf58ec4d314cbd15db8d2ef572c33cc"
 dependencies = [
- "ruff_python_ast",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "ruff_python_literal",
- "ruff_python_parser",
- "ruff_source_file",
- "ruff_text_size",
+ "ruff_python_parser 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
 ]
 
 [[package]]
@@ -1766,11 +1783,11 @@ name = "ruff_python_index"
 version = "0.0.0"
 source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.3#90589372daf58ec4d314cbd15db8d2ef572c33cc"
 dependencies = [
- "ruff_python_ast",
- "ruff_python_parser",
- "ruff_python_trivia",
- "ruff_source_file",
- "ruff_text_size",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_python_parser 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_python_trivia 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
 ]
 
 [[package]]
@@ -1780,7 +1797,7 @@ source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.3#90589372daf58ec4d3
 dependencies = [
  "bitflags 2.8.0",
  "itertools 0.14.0",
- "ruff_python_ast",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "unic-ucd-category",
 ]
 
@@ -1793,9 +1810,28 @@ dependencies = [
  "bstr",
  "compact_str",
  "memchr",
- "ruff_python_ast",
- "ruff_python_trivia",
- "ruff_text_size",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_python_trivia 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "rustc-hash",
+ "static_assertions",
+ "unicode-ident",
+ "unicode-normalization",
+ "unicode_names2",
+]
+
+[[package]]
+name = "ruff_python_parser"
+version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.7#54fccb3ee23a2b20b287e631f32f18ee5b64b62b"
+dependencies = [
+ "bitflags 2.8.0",
+ "bstr",
+ "compact_str",
+ "memchr",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
+ "ruff_python_trivia 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
  "rustc-hash",
  "static_assertions",
  "unicode-ident",
@@ -1813,10 +1849,10 @@ dependencies = [
  "ruff_cache",
  "ruff_index",
  "ruff_macros",
- "ruff_python_ast",
- "ruff_python_parser",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_python_parser 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "ruff_python_stdlib",
- "ruff_text_size",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "rustc-hash",
  "smallvec",
 ]
@@ -1836,8 +1872,19 @@ version = "0.0.0"
 source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.3#90589372daf58ec4d314cbd15db8d2ef572c33cc"
 dependencies = [
  "itertools 0.14.0",
- "ruff_source_file",
- "ruff_text_size",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "unicode-ident",
+]
+
+[[package]]
+name = "ruff_python_trivia"
+version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.7#54fccb3ee23a2b20b287e631f32f18ee5b64b62b"
+dependencies = [
+ "itertools 0.14.0",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
  "unicode-ident",
 ]
 
@@ -1847,8 +1894,17 @@ version = "0.0.0"
 source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.3#90589372daf58ec4d314cbd15db8d2ef572c33cc"
 dependencies = [
  "memchr",
- "ruff_text_size",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "serde",
+]
+
+[[package]]
+name = "ruff_source_file"
+version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.7#54fccb3ee23a2b20b287e631f32f18ee5b64b62b"
+dependencies = [
+ "memchr",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
 ]
 
 [[package]]
@@ -1858,6 +1914,11 @@ source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.3#90589372daf58ec4d3
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "ruff_text_size"
+version = "0.0.0"
+source = "git+https://github.com/astral-sh/ruff.git?tag=0.9.7#54fccb3ee23a2b20b287e631f32f18ee5b64b62b"
 
 [[package]]
 name = "rust-stemmers"
@@ -2193,10 +2254,10 @@ dependencies = [
  "regex",
  "rstest",
  "ruff_linter",
- "ruff_python_ast",
- "ruff_python_parser",
- "ruff_source_file",
- "ruff_text_size",
+ "ruff_python_ast 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_python_parser 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.7)",
+ "ruff_source_file 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
+ "ruff_text_size 0.0.0 (git+https://github.com/astral-sh/ruff.git?tag=0.9.3)",
  "serde",
  "serde_json",
  "serial_test",
@@ -2627,7 +2688,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
