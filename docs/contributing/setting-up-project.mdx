@@ -8,25 +8,11 @@ Installing all the dependencies
  make deps
 ```
 
-## 2. Build
-
-To build and rebuild after changes to Rust files.
-
-<Note>
-Make sure you have the Rust compiler installed. This package requires Rust and Cargo to compile extensions.
-</Note>
-
-### Install Dependencies
-
-```bash
-make install
-```
-
 ### Troubleshooting
 
 #### Issue: `python: command not found`
 
-On some systems, the `make install` command may fail with an error stating that the `python` command is not found. This happens because some systems only provide `python3` and do not include a `python` symlink.
+On some systems, the `make deps` command may fail with an error stating that the `python` command is not found. This happens because some systems only provide `python3` and do not include a `python` symlink.
 
 #### macOS Fix:
 If you're on macOS, create a symbolic link for `python` pointing to `python3`:
@@ -55,6 +41,20 @@ Set-Alias -Name python -Value python3
 ```
 
 After applying the appropriate fix, retry:
+
+```bash
+make deps
+```
+
+## 2. Build
+
+To build and rebuild after changes to Rust files.
+
+<Note>
+Make sure you have the Rust compiler installed. This package requires Rust and Cargo to compile extensions.
+</Note>
+
+### Install the crate as module in the current virtualenv
 
 ```bash
 make install
