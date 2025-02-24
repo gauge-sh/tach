@@ -2,28 +2,72 @@
 title: Setup Guide
 ---
 
-#### 1. Automated dependency installation
+## 1. Automated dependency installation
 Installing all the dependencies
 ```bash
  make deps
 ```
 
-#### 2. Build
-To build and rebuild after changes to Rust files
+### Troubleshooting
 
-Note: Make sure you have rust compiler installed. This package requires Rust and Cargo to compile extensions.
+#### Issue: `python: command not found`
+
+On some systems, the `make deps` command may fail with an error stating that the `python` command is not found. This happens because some systems only provide `python3` and do not include a `python` symlink.
+
+#### macOS Fix:
+If you're on macOS, create a symbolic link for `python` pointing to `python3`:
+
 ```bash
- make install
+sudo ln -s $(which python3) /usr/local/bin/python
 ```
 
-#### 3. Test
+#### Linux Fix:
+
+```bash
+sudo ln -s $(which python3) /usr/bin/python
+```
+
+#### Windows Fix:
+On Windows, ensure Python is installed and added to your `PATH`. You can check by running:
+
+```powershell
+python --version
+```
+
+If `python` is not recognized, use the `python3` command instead, or create an alias in PowerShell:
+
+```powershell
+Set-Alias -Name python -Value python3
+```
+
+After applying the appropriate fix, retry:
+
+```bash
+make deps
+```
+
+## 2. Build
+
+To build and rebuild after changes to Rust files.
+
+<Note>
+Make sure you have the Rust compiler installed. This package requires Rust and Cargo to compile extensions.
+</Note>
+
+### Install the crate as module in the current virtualenv
+
+```bash
+make install
+```
+
+## 3. Test
 
 Tach internally uses `pytest` module for testing all the files within `python/tests/`
 ```bash
 make test
 ```
 
-#### 4. Setting up the docs
+## 4. Setting up the docs
 Tach internally uses `mintlify` platform to create and maintain public facing documentation
 
 Note: contributors would need to install [Node](https://nodejs.org/en/download/prebuilt-installer) and [npm](https://www.npmjs.com/)
@@ -31,7 +75,7 @@ Note: contributors would need to install [Node](https://nodejs.org/en/download/p
 make docs
 ```
 
-### 8. Things to check before committing
+## 5. Things to check before committing
 Check and sync your dependencies in the root folder
 ```bash
 tach check
@@ -59,4 +103,3 @@ Find Beginner Friendly issues here:
 - [Documentation](https://github.com/gauge-sh/tach/tree/main/docs)
 
 For any questions, just drop a message in [Discord](https://discord.com/invite/a58vW8dnmw)
-
