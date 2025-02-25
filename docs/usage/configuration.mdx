@@ -360,6 +360,100 @@ Note that this also assumes the `name` of the `utility` package has been set to 
 name = "myorg-utility"
 ```
 
+
+### Example: Monorepo - Workspace Packages
+
+Suppose you work on a 'monorepo', in which Python packages which import from each other are located in distinct project directories.
+You may package your utility libraries in a `utility`folder, while your core packages live in `core_one` and `core_two`.
+You may also use something like [uv workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/#getting-started) to organize these packages.
+
+The file tree in a case like this might look like:
+
+```
+my_repo/
+  tach.toml
+  utility/
+    pyproject.toml
+    src/
+      utility/
+        __init__.py
+  core_one/
+    pyproject.toml
+    src/
+      core_one/
+        __init__.py
+        module1.py
+        module2/
+          __init__.py
+          service.py
+        module3.py
+  core_two/
+    pyproject.toml
+    src/
+      core_two/
+        __init__.py
+        module1.py
+        module2/
+          __init__.py
+          service.py
+        module3.py
+  docs/
+  tests/
+```
+
+In a Python module such as `core_one/src/core_one/module1.py`, there may be imports from other packages:
+
+```python
+# In core_one/src/core_one/module1.py
+
+from utility import utility_fn
+```
+
+Notice that this import path (`utility.utility_fn`) is rooted in the `utility/src` folder, NOT the project root.
+
+To indicate the project structure to Tach, you would set:
+
+```toml
+source_roots = [
+  "utility/src",
+  "core_one/src",
+  "core_two/src"
+]
+```
+
+in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the same folders as source roots.
+
+<Note>
+In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
+</Note>
+
+After configuring your source roots as above, you can use `tach check-external`
+to validate that any dependencies between the packages are declared explicitly in the corresponding `pyproject.toml`.
+
+For example, given the import shown above (`core_one` importing from `utility`),
+
+```python
+# In core_one/src/core_one/module1.py
+
+from utility import utility_fn
+```
+
+Tach would validate that this is declared in `core_one/pyproject.toml`:
+
+```toml
+# In core_one/pyproject.toml
+[project]
+dependencies = ["myorg-utility"]
+```
+
+Note that this also assumes the `name` of the `utility` package has been set to `myorg-utility`:
+
+```toml
+# In utility/pyproject.toml
+[project]
+name = "myorg-utility"
+```
+
 ## `tach.domain.toml`
 
 Tach allows splitting your configuration into 'domains', or sub-folders of your project.
