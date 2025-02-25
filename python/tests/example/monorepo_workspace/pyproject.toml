@@ -2,7 +2,7 @@
 name = "albatross"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["package1", "package2"]
+dependencies = ["package1"]
 
 [tool.uv.sources]
 package1 = { workspace = true }

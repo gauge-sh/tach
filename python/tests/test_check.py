@@ -415,3 +415,52 @@ def test_many_features_example_dir__external(example_dir, capfd):
 
     _check_expected_messages_unordered(general_section, expected_general)
     _check_expected_messages_unordered(external_section, expected_external)
+
+
+def test_monorepo_workspace_example_dir(example_dir, capfd):
+    project_root = example_dir / "monorepo_workspace"
+    project_config = parse_project_config(root=project_root)
+    assert project_config is not None
+
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(
+            project_root=project_root,
+            project_config=project_config,
+        )
+    assert exc_info.value.code == 0
+
+    captured = capfd.readouterr()
+    configuration_header = captured.err.index("Configuration\n")
+
+    configuration_section = captured.err[configuration_header:]
+
+    expected_configuration = [
+        ("[WARN]", "No first-party imports"),
+    ]
+
+    _check_expected_messages_unordered(configuration_section, expected_configuration)
+
+
+def test_monorepo_workspace_example_dir_external(example_dir, capfd):
+    project_root = example_dir / "monorepo_workspace"
+    project_config = parse_project_config(root=project_root)
+    assert project_config is not None
+
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check_external(
+            project_root=project_root,
+            project_config=project_config,
+        )
+    assert exc_info.value.code == 1
+
+    captured = capfd.readouterr()
+    external_header = captured.err.index("External Dependencies\n")
+
+    external_section = captured.err[external_header:]
+
+    expected_external = [
+        ("[FAIL]", "requests", "not used"),
+        ("[FAIL]", "src/albatross/__init__.py", "package2", "not declared"),
+    ]
+
+    _check_expected_messages_unordered(external_section, expected_external)
