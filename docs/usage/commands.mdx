@@ -133,6 +133,42 @@ Example:
 
 NOTE: If your terminal supports hyperlinks, you can click on the failing file path to go directly to the error.
 
+## tach check-external
+
+Tach can validate that the external imports in your Python packages match your declared package dependencies in `pyproject.toml` or `requirements.txt`.
+
+```bash
+usage: tach check-external [-h] [-e file_or_path,...]
+
+Perform checks related to third-party dependencies
+
+options:
+  -h, --help  show this help message and exit
+  -e file_or_path,..., --exclude file_or_path,...
+                        Comma separated path list to exclude. tests/, ci/, etc.
+```
+
+For all Python files in each [source root](../configuration#source-roots), Tach will determine which package it belongs to,
+and compare its dependencies to those declared in `pyproject.toml` or `requirements.txt`.
+Tach will report an error for any external import which is not satisfied by the declared dependencies.
+
+This also means that, for monorepos which contain multiple Python packages, Tach will detect when an import comes from a source root in another package,
+and verify that this dependency is declared. Make sure to configure [`source_roots`](../configuration#source-roots) for every package (globs are coming soon!).
+
+This is typically useful if you are developing more than one Python package from a single virtual environment.
+Although your local environment may contain the dependencies for all your packages, when an end-user installs each package they will only install the dependencies listed in the `pyproject.toml`.
+
+This means that, although tests may pass in your shared environment, an invalid import can still cause errors at runtime for your users.
+
+In case you would like to explicitly allow a certain external module, this can be configured in your [`tach.toml`](configuration#external-checks)
+
+<Note>
+  It is recommended to run Tach within a virtual environment containing all of
+  your dependencies across all packages. This is because Tach uses the
+  distribution metadata to map module names like 'git' to their distributions
+  ('GitPython').
+</Note>
+
 ## tach report
 
 Tach can generate a report showing all the dependencies and usages of a given module.
@@ -228,38 +264,6 @@ options:
 Using `pytest`, running `tach test` will perform [impact analysis](https://martinfowler.com/articles/rise-test-impact-analysis.html) on the changes between your current filesystem and your `main` branch to determine which test files need to be run.
 This can dramatically speed up your test suite in CI, particularly when you make a small change to a large codebase.
 This command also takes advantage of Tach's [computation cache](caching).
-
-## tach check-external
-
-Tach can validate that the external imports in your Python packages match your declared package dependencies in `pyproject.toml`.
-
-```bash
-usage: tach check-external [-h] [-e file_or_path,...]
-
-Perform checks related to third-party dependencies
-
-options:
-  -h, --help  show this help message and exit
-  -e file_or_path,..., --exclude file_or_path,...
-                        Comma separated path list to exclude. tests/, ci/, etc.
-```
-
-For each `pyproject.toml` found from the project root, Tach will scan all imports in the associated Python source and compare them with the declared dependencies.
-Tach will report an error for any external import which is not satisfied by the declared dependencies - preventing your users from errors due to missing imports.
-
-This is typically useful if you are developing more than one Python package from a single virtual environment.
-Although your local environment may contain the dependencies for all your packages, when an end-user installs each package they will only install the dependencies listed in the `pyproject.toml`.
-
-This means that, although tests may pass in your shared environment, an invalid import can still cause errors at runtime for your users.
-
-In case you would like to explicitly allow a certain external module, this can be configured in your [`tach.toml`](configuration#external-checks)
-
-<Note>
-  It is recommended to run Tach within a virtual environment containing all of
-  your dependencies across all packages. This is because Tach uses the
-  distribution metadata to map module names like 'git' to their distributions
-  ('GitPython').
-</Note>
 
 ## tach install
 
