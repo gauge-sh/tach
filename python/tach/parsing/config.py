@@ -94,7 +94,12 @@ def parse_project_config(
             )
         return project_config
     elif (root / "pyproject.toml").exists():
-        return extension.parse_project_config_from_pyproject(root / "pyproject.toml")
+        try:
+            return extension.parse_project_config_from_pyproject(
+                root / "pyproject.toml"
+            )
+        except Exception:
+            return None
     else:
         # No TOML found, check for deprecated (YAML) config as a fallback
         file_path = fs.get_deprecated_project_config_path(root)
