@@ -110,7 +110,7 @@ impl TryFrom<PackageRoot> for Package {
                 let project_info = parsing::parse_pyproject_toml(&path.join("pyproject.toml"))?;
 
                 Ok(Self {
-                    name: Some(project_info.name),
+                    name: project_info.name,
                     root: path,
                     source_roots: vec![],
                     dependencies: project_info.dependencies,
