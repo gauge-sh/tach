@@ -25,4 +25,6 @@ pub enum DiagnosticError {
     Io(#[from] io::Error),
     #[error("Filesystem error: {0}")]
     Filesystem(#[from] fs::FileSystemError),
+    #[error("Failed to find package for file: {0}")]
+    PackageNotFound(String),
 }

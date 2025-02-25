@@ -152,3 +152,33 @@ pub fn extract_source_paths(toml_value: &Value, project_root: &Path) -> Vec<Path
 
     source_paths
 }
+
+const REQUIREMENTS_TXT_EXCLUDED_DEPS: [&str; 3] = ["python", "poetry", "poetry-core"];
+
+pub fn parse_requirements_txt(requirements_path: &Path) -> Result<HashSet<String>> {
+    let content = fs::read_to_string(requirements_path)?;
+    let mut dependencies = HashSet::new();
+
+    for line in content.lines() {
+        // Skip comments and empty lines
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+
+        // Skip options (lines starting with -)
+        if line.starts_with('-') {
+            continue;
+        }
+
+        // Extract package name
+        let package_name = extract_package_name(line);
+        let normalized_name = normalize_package_name(&package_name);
+
+        if !REQUIREMENTS_TXT_EXCLUDED_DEPS.contains(&normalized_name.as_str()) {
+            dependencies.insert(normalized_name);
+        }
+    }
+
+    Ok(dependencies)
+}

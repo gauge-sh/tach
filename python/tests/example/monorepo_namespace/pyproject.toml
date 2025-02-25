@@ -26,9 +26,7 @@ depends_on = [
 
 [[tool.tach.modules]]
 path = "gauge.backend"
-depends_on = [
-    { path = "gauge.utils" },
-]
+depends_on = []
 
 [[tool.tach.modules]]
 path = "gauge.utils"

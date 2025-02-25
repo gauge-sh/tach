@@ -3,11 +3,9 @@ use std::collections::{HashMap, HashSet};
 use crate::dependencies::import::{with_distribution_names, ExternalImportWithDistributionNames};
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::diagnostics::{FileChecker, Result as DiagnosticResult};
-use crate::external::parsing::ProjectInfo;
 use crate::processors::file_module::FileModule;
 
 pub struct ExternalDependencyChecker<'a> {
-    project_info: &'a ProjectInfo,
     module_mappings: &'a HashMap<String, Vec<String>>,
     stdlib_modules: &'a HashSet<String>,
     excluded_external_modules: &'a HashSet<String>,
@@ -15,13 +13,11 @@ pub struct ExternalDependencyChecker<'a> {
 
 impl<'a> ExternalDependencyChecker<'a> {
     pub fn new(
-        project_info: &'a ProjectInfo,
         module_mappings: &'a HashMap<String, Vec<String>>,
         stdlib_modules: &'a HashSet<String>,
         excluded_external_modules: &'a HashSet<String>,
     ) -> Self {
         Self {
-            project_info,
             module_mappings,
             stdlib_modules,
             excluded_external_modules,
@@ -47,7 +43,7 @@ impl<'a> ExternalDependencyChecker<'a> {
         let is_declared = import
             .distribution_names
             .iter()
-            .any(|dist_name| self.project_info.dependencies.contains(dist_name));
+            .any(|dist_name| processed_file.declared_dependencies().contains(dist_name));
 
         if !is_declared {
             Some(Diagnostic::new_located_error(

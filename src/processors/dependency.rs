@@ -4,12 +4,12 @@ use std::sync::Arc;
 use crate::config::plugins::django::DjangoConfig;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
-use crate::diagnostics::{FileProcessor, Result as DiagnosticResult};
-use crate::exclusion::PathExclusions;
+use crate::diagnostics::{DiagnosticError, FileProcessor, Result as DiagnosticResult};
 use crate::filesystem::{self, ProjectFile};
 use crate::modules::error::ModuleTreeError;
 use crate::modules::{ModuleNode, ModuleTree};
 use crate::python::parsing::parse_python_source;
+use crate::resolvers::PackageResolver;
 
 use super::django::fkey::{get_foreign_key_references, get_known_apps};
 use super::file_module::FileModule;
@@ -37,7 +37,7 @@ pub struct InternalDependencyExtractor<'a> {
     module_tree: &'a ModuleTree,
     source_roots: &'a [PathBuf],
     project_config: &'a ProjectConfig,
-    exclusions: &'a PathExclusions,
+    package_resolver: &'a PackageResolver<'a>,
     django_metadata: Option<DjangoMetadata<'a>>,
 }
 
@@ -46,7 +46,7 @@ impl<'a> InternalDependencyExtractor<'a> {
         source_roots: &'a [PathBuf],
         module_tree: &'a ModuleTree,
         project_config: &'a ProjectConfig,
-        exclusions: &'a PathExclusions,
+        package_resolver: &'a PackageResolver,
     ) -> Self {
         let django_metadata = project_config
             .plugins
@@ -58,7 +58,7 @@ impl<'a> InternalDependencyExtractor<'a> {
             source_roots,
             module_tree,
             project_config,
-            exclusions,
+            package_resolver,
             django_metadata,
         }
     }
@@ -74,15 +74,27 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
             .find_nearest(mod_path.as_ref())
             .ok_or(ModuleTreeError::ModuleNotFound(mod_path))?;
 
+        let package = match self
+            .package_resolver
+            .get_package_for_source_root(file_path.source_root)
+        {
+            Some(package) => package,
+            None => {
+                return Err(DiagnosticError::PackageNotFound(
+                    file_path.source_root.display().to_string(),
+                ))
+            }
+        };
+
         if module.is_unchecked() {
-            return Ok(FileModule::new(file_path, module));
+            return Ok(FileModule::new(file_path, module, package));
         }
 
         if module.is_root() && self.project_config.root_module == RootModuleTreatment::Ignore {
-            return Ok(FileModule::new(file_path, module));
+            return Ok(FileModule::new(file_path, module, package));
         }
 
-        let mut file_module = FileModule::new(file_path, module);
+        let mut file_module = FileModule::new(file_path, module, package);
         let mut dependencies: Vec<Dependency> = vec![];
         let file_ast = parse_python_source(file_module.contents())?;
 
@@ -95,11 +107,10 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
         )?
         .into_iter()
         .filter_map(|import| {
-            if filesystem::is_project_import(
-                self.source_roots,
-                &import.module_path,
-                self.exclusions,
-            ) {
+            if self
+                .package_resolver
+                .module_path_is_internal(&import.module_path, file_module.file.source_root)
+            {
                 Some(Dependency::Import(import))
             } else {
                 // Remove directives that match irrelevant imports
@@ -132,19 +143,19 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
 pub struct ExternalDependencyExtractor<'a> {
     source_roots: &'a [PathBuf],
     project_config: &'a ProjectConfig,
-    exclusions: &'a PathExclusions,
+    package_resolver: &'a PackageResolver<'a>,
 }
 
 impl<'a> ExternalDependencyExtractor<'a> {
     pub fn new(
         source_roots: &'a [PathBuf],
         project_config: &'a ProjectConfig,
-        exclusions: &'a PathExclusions,
+        package_resolver: &'a PackageResolver,
     ) -> Self {
         Self {
             source_roots,
             project_config,
-            exclusions,
+            package_resolver,
         }
     }
 }
@@ -156,7 +167,18 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
         // NOTE: check-external does not currently make use of the module tree,
         // but it is very likely to do so in the future.
         let module = Arc::new(ModuleNode::empty());
-        let mut file_module = FileModule::new(file_path, module);
+        let package = match self
+            .package_resolver
+            .get_package_for_source_root(file_path.source_root)
+        {
+            Some(package) => package,
+            None => {
+                return Err(DiagnosticError::PackageNotFound(
+                    file_path.source_root.display().to_string(),
+                ))
+            }
+        };
+        let mut file_module = FileModule::new(file_path, module, package);
         let external_imports: Vec<Dependency> = get_normalized_imports(
             self.source_roots,
             file_module.file_path(),
@@ -166,11 +188,10 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
         )?
         .into_iter()
         .filter_map(|import| {
-            if !filesystem::is_project_import(
-                self.source_roots,
-                &import.module_path,
-                self.exclusions,
-            ) {
+            if self
+                .package_resolver
+                .module_path_is_external(&import.module_path, file_module.file.source_root)
+            {
                 Some(Dependency::Import(import))
             } else {
                 // Remove directives that match irrelevant imports

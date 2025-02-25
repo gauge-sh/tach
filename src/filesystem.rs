@@ -92,6 +92,7 @@ pub fn file_to_module_path(source_roots: &[PathBuf], file_path: &Path) -> Result
 
 #[derive(Debug, Clone)]
 pub struct ResolvedModule {
+    pub source_root: PathBuf,
     pub file_path: PathBuf,
     pub member_name: Option<String>,
 }
@@ -118,7 +119,7 @@ fn is_potential_python_module_path(s: &str) -> bool {
 }"#
 )]
 fn cached_module_to_file_path(
-    roots: &[&Path],
+    roots: &[PathBuf],
     mod_path: &str,
     check_members: bool,
 ) -> Option<ResolvedModule> {
@@ -141,6 +142,7 @@ fn cached_module_to_file_path(
             if path.exists() {
                 return Some(ResolvedModule {
                     file_path: path.to_path_buf(),
+                    source_root: root.clone(),
                     member_name: None,
                 });
             }
@@ -164,6 +166,7 @@ fn cached_module_to_file_path(
                 if path.exists() {
                     return Some(ResolvedModule {
                         file_path: path.to_path_buf(),
+                        source_root: root.clone(),
                         member_name: Some(member_name.to_string()),
                     });
                 }
@@ -173,20 +176,12 @@ fn cached_module_to_file_path(
     None
 }
 
-pub fn module_to_file_path<P: AsRef<Path>>(
-    roots: &[P],
+pub fn module_to_file_path(
+    roots: &[PathBuf],
     mod_path: &str,
     check_members: bool,
 ) -> Option<ResolvedModule> {
-    cached_module_to_file_path(
-        roots
-            .iter()
-            .map(|p| p.as_ref())
-            .collect::<Vec<_>>()
-            .as_slice(),
-        mod_path,
-        check_members,
-    )
+    cached_module_to_file_path(roots, mod_path, check_members)
 }
 
 pub fn module_to_pyfile_or_dir_path<P: AsRef<Path>>(
@@ -230,8 +225,8 @@ pub fn module_path_is_included_in_paths(
     })
 }
 
-pub fn is_project_import<P: AsRef<Path>>(
-    source_roots: &[P],
+pub fn is_project_import(
+    source_roots: &[PathBuf],
     mod_path: &str,
     exclusions: &PathExclusions,
 ) -> bool {

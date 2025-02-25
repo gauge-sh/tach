@@ -5,6 +5,7 @@ use crate::exclusion;
 use crate::filesystem as fs;
 use crate::interfaces::error::InterfaceError;
 use crate::modules;
+use crate::resolvers;
 
 #[derive(Error, Debug)]
 pub enum CheckError {
@@ -24,6 +25,8 @@ pub enum CheckError {
     Interrupt,
     #[error("Diagnostic error: {0}")]
     Diagnostic(#[from] DiagnosticError),
-    #[error("Config error: {0}")]
-    ConfigError(String),
+    #[error("Configuration error: {0}")]
+    Configuration(String),
+    #[error("Package resolution error: {0}")]
+    PackageResolution(#[from] resolvers::PackageResolutionError),
 }

@@ -18,6 +18,7 @@ pub mod parsing;
 pub mod pattern;
 pub mod processors;
 pub mod python;
+pub mod resolvers;
 pub mod tests;
 use commands::{check, report, server, sync, test};
 use diagnostics::serialize_diagnostics_json;
@@ -76,7 +77,7 @@ impl From<check::CheckError> for PyErr {
             check::CheckError::ModuleTree(
                 modules::error::ModuleTreeError::VisibilityViolation(v),
             ) => errors::TachVisibilityError::new_err(v),
-            check::CheckError::ConfigError(err) => errors::TachConfigError::new_err(err),
+            check::CheckError::Configuration(err) => errors::TachConfigError::new_err(err),
             _ => PyValueError::new_err(err.to_string()),
         }
     }
