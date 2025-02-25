@@ -205,6 +205,29 @@ impl<'a> PackageResolver<'a> {
             .map(|package| &package.dependencies)
     }
 
+    pub fn resolve_file_path<P: AsRef<Path>>(&self, file_path: P) -> PackageResolution {
+        // this is not safe if the file path is not within the project root
+        if self.path_exclusions.is_path_excluded(file_path.as_ref()) {
+            return PackageResolution::Excluded;
+        }
+
+        let source_root = self
+            .source_roots
+            .iter()
+            .find(|source_root| file_path.as_ref().starts_with(source_root));
+
+        match source_root {
+            Some(source_root) => match self.get_package_for_source_root(source_root) {
+                Some(package) => PackageResolution::Found {
+                    source_root: source_root.clone(),
+                    package,
+                },
+                None => PackageResolution::NotFound,
+            },
+            None => PackageResolution::NotFound,
+        }
+    }
+
     pub fn resolve_module_path(&self, module_path: &str) -> PackageResolution {
         if let Some(resolved_module) = module_to_file_path(self.source_roots, module_path, true) {
             if self
