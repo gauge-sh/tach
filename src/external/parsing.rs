@@ -8,7 +8,7 @@ use super::error;
 pub type Result<T> = std::result::Result<T, error::ParsingError>;
 
 pub struct ProjectInfo {
-    pub name: String,
+    pub name: Option<String>,
     pub dependencies: HashSet<String>,
     pub source_paths: Vec<PathBuf>,
 }
@@ -16,7 +16,7 @@ pub struct ProjectInfo {
 pub fn parse_pyproject_toml(pyproject_path: &Path) -> Result<ProjectInfo> {
     let content = fs::read_to_string(pyproject_path)?;
     let toml_value: Value = toml::from_str(&content)?;
-    let name = extract_project_name(&toml_value)?;
+    let name = extract_project_name(&toml_value);
     let dependencies = extract_dependencies(&toml_value);
     let source_paths = extract_source_paths(&toml_value, pyproject_path.parent().unwrap());
     Ok(ProjectInfo {
@@ -26,14 +26,11 @@ pub fn parse_pyproject_toml(pyproject_path: &Path) -> Result<ProjectInfo> {
     })
 }
 
-fn extract_project_name(toml_value: &Value) -> Result<String> {
+fn extract_project_name(toml_value: &Value) -> Option<String> {
     toml_value
         .get("project")
         .and_then(|p| p.get("name"))
         .and_then(|n| n.as_str())
-        .ok_or(error::ParsingError::MissingField(
-            "project.name".to_string(),
-        ))
         .map(|s| s.to_string())
 }
 
