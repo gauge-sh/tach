@@ -174,6 +174,20 @@ impl CodeDiagnostic {
             _ => None,
         }
     }
+
+    pub fn usage_layer(&self) -> Option<&str> {
+        match self {
+            CodeDiagnostic::LayerViolation { usage_layer, .. } => Some(usage_layer),
+            _ => None,
+        }
+    }
+
+    pub fn definition_layer(&self) -> Option<&str> {
+        match self {
+            CodeDiagnostic::LayerViolation { definition_layer, .. } => Some(definition_layer),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -331,6 +345,20 @@ impl Diagnostic {
     pub fn definition_module(&self) -> Option<&str> {
         match self.details() {
             DiagnosticDetails::Code(details) => details.definition_module(),
+            _ => None,
+        }
+    }
+
+    pub fn usage_layer(&self) -> Option<&str> {
+        match self.details() {
+            DiagnosticDetails::Code(details) => details.usage_layer(),
+            _ => None,
+        }
+    }
+
+    pub fn definition_layer(&self) -> Option<&str> {
+        match self.details() {
+            DiagnosticDetails::Code(details) => details.definition_layer(),
             _ => None,
         }
     }
