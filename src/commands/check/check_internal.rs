@@ -18,6 +18,7 @@ use crate::{
     interrupt::check_interrupt,
     modules::{ModuleTree, ModuleTreeBuilder},
     processors::{FileModule, InternalDependencyExtractor},
+    resolvers::PackageResolver,
 };
 
 pub type Result<T> = std::result::Result<T, CheckError>;
@@ -35,7 +36,7 @@ impl<'a> CheckInternalPipeline<'a> {
         project_config: &'a ProjectConfig,
         source_roots: &'a [PathBuf],
         module_tree: &'a ModuleTree,
-        exclusions: &'a PathExclusions,
+        package_resolver: &'a PackageResolver,
         found_imports: &'a AtomicBool,
     ) -> Self {
         Self {
@@ -44,7 +45,7 @@ impl<'a> CheckInternalPipeline<'a> {
                 source_roots,
                 module_tree,
                 project_config,
-                exclusions,
+                package_resolver,
             ),
             dependency_checker: None,
             interface_checker: None,
@@ -139,6 +140,7 @@ pub fn check(
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
+    let package_resolver = PackageResolver::try_new(&project_root, &source_roots, &exclusions)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
         &exclusions,
@@ -178,7 +180,7 @@ pub fn check(
         project_config,
         &source_roots,
         &module_tree,
-        &exclusions,
+        &package_resolver,
         &found_imports,
     )
     .with_dependency_checker(dependency_checker)

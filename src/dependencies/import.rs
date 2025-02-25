@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use ruff_text_size::TextSize;
 
-use crate::external::parsing::normalize_package_name;
+use crate::{
+    external::parsing::normalize_package_name,
+    resolvers::{PackageResolution, PackageResolver},
+};
 
 /// An import with a normalized module path
 #[derive(Debug, Clone)]
@@ -76,6 +79,7 @@ pub struct ExternalImportWithDistributionNames<'a> {
 
 pub fn with_distribution_names<'a, I>(
     imports: I,
+    package_resolver: &PackageResolver,
     module_mappings: &HashMap<String, Vec<String>>,
 ) -> Vec<ExternalImportWithDistributionNames<'a>>
 where
@@ -84,7 +88,19 @@ where
     imports
         .map(|import| {
             let top_level_module_name = import.top_level_module_name().to_string();
-            let default_distribution_names = vec![top_level_module_name.clone()];
+            let default_distribution_names =
+                match package_resolver.resolve_module_path(&import.module_path) {
+                    PackageResolution::Found { package, .. } => {
+                        vec![package
+                            .name
+                            .as_ref()
+                            .map(|name| normalize_package_name(name))
+                            .unwrap_or_else(|| top_level_module_name.clone())]
+                    }
+                    PackageResolution::NotFound | PackageResolution::Excluded => {
+                        vec![top_level_module_name.clone()]
+                    }
+                };
             let distribution_names: Vec<String> = module_mappings
                 .get(&top_level_module_name)
                 .map(|dist_names| {

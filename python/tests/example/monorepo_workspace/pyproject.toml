@@ -1,0 +1,16 @@
+[project]
+name = "albatross"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["package1"]
+
+[tool.uv.sources]
+package1 = { workspace = true }
+package2 = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+
+[tool.tach]
+source_roots = ["src", "packages/package1/src", "packages/package2/src"]

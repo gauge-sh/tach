@@ -1,30 +1,33 @@
 use ruff_linter::Locator;
 use ruff_source_file::LineIndex;
 use ruff_text_size::TextSize;
+use std::collections::HashSet;
 use std::{path::Path, sync::Arc};
 
-use crate::filesystem::ProjectFile;
-use crate::{config::ModuleConfig, modules::ModuleNode};
-
 use crate::dependencies::{Dependency, NormalizedImport, SourceCodeReference};
+use crate::filesystem::ProjectFile;
 use crate::processors::ignore_directive::{get_ignore_directives, IgnoreDirectives};
+use crate::resolvers::Package;
+use crate::{config::ModuleConfig, modules::ModuleNode};
 
 #[derive(Debug)]
 pub struct FileModule<'a> {
     pub file: ProjectFile<'a>,
     pub module: Arc<ModuleNode>,
+    pub package: &'a Package,
     pub ignore_directives: IgnoreDirectives,
     pub dependencies: Vec<Dependency>,
     line_index: LineIndex,
 }
 
 impl<'a> FileModule<'a> {
-    pub fn new(file: ProjectFile<'a>, module: Arc<ModuleNode>) -> Self {
+    pub fn new(file: ProjectFile<'a>, module: Arc<ModuleNode>, package: &'a Package) -> Self {
         Self {
             ignore_directives: get_ignore_directives(&file.contents),
             line_index: Locator::new(&file.contents).to_index().clone(),
             file,
             module,
+            package,
             dependencies: vec![],
         }
     }
@@ -71,6 +74,10 @@ impl<'a> FileModule<'a> {
                 None
             }
         })
+    }
+
+    pub fn declared_dependencies(&self) -> &HashSet<String> {
+        &self.package.dependencies
     }
 }
 
