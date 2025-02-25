@@ -264,7 +264,7 @@ source_roots = ["backend"]
 
 in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the `backend` folder as the only source root.
 
-### Example: Monorepo
+### Example: Monorepo - Namespace Packages
 
 Suppose you work on a 'monorepo', in which Python packages which import from each other are located in distinct project directories.
 You may package your utility libraries in a `utility`folder, while your core packages live in `core_one` and `core_two`.
@@ -277,56 +277,88 @@ my_repo/
   tach.toml
   utility/
     pyproject.toml
-    myorg/
-      utils/
-        __init__.py
+    src/
+      myorg/
+        utils/
+          __init__.py
   core_one/
     pyproject.toml
-    myorg/
-      core_one/
-        __init__.py
-        module1.py
-        module2/
+    src/
+      myorg/
+        core_one/
           __init__.py
-          service.py
-        module3.py
+          module1.py
+          module2/
+            __init__.py
+            service.py
+          module3.py
   core_two/
     pyproject.toml
-    myorg/
-      core_two/
-        __init__.py
-        module1.py
-        module2/
+    src/
+      myorg/
+        core_two/
           __init__.py
-          service.py
-        module3.py
+          module1.py
+          module2/
+            __init__.py
+            service.py
+          module3.py
   docs/
   tests/
 ```
 
-In a Python module such as `core_one/myorg/core_one/module1.py`, there may be imports from other packages:
+In a Python module such as `core_one/src/myorg/core_one/module1.py`, there may be imports from other packages:
 
 ```python
-# In core_one/myorg/core_one/module1.py
+# In core_one/src/myorg/core_one/module1.py
 
 from myorg.utils import utility_fn
 ```
 
-Notice that this import path (`myorg.utils.utility_fn`) is rooted in the `utility` folder, NOT the project root.
+Notice that this import path (`myorg.utils.utility_fn`) is rooted in the `utility/src` folder, NOT the project root.
 
 To indicate the project structure to Tach, you would set:
 
 ```toml
 source_roots = [
-  "utility",
-  "core_one",
-  "core_two"
+  "utility/src",
+  "core_one/src",
+  "core_two/src"
 ]
 ```
 
-in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the same folders as source root.
+in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the same folders as source roots.
 
+<Note>
 In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
+</Note>
+
+After configuring your source roots as above, you can use `tach check-external`
+to validate that any dependencies between the packages are declared explicitly in the corresponding `pyproject.toml`.
+
+For example, given the import shown above (`core_one` importing from `utility`),
+
+```python
+# In core_one/src/myorg/core_one/module1.py
+
+from myorg.utils import utility_fn
+```
+
+Tach would validate that this is declared in `core_one/pyproject.toml`:
+
+```toml
+# In core_one/pyproject.toml
+[project]
+dependencies = ["myorg-utility"]
+```
+
+Note that this also assumes the `name` of the `utility` package has been set to `myorg-utility`:
+
+```toml
+# In utility/pyproject.toml
+[project]
+name = "myorg-utility"
+```
 
 ## `tach.domain.toml`
 
