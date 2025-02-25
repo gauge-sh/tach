@@ -138,6 +138,8 @@ class Module:
     interface_members: list[str] = field(default_factory=list)
     # [1.3] Adds 'depends_on'
     depends_on: list[Dependency] = field(default_factory=list)
+    # [1.4] Adds 'layer'
+    layer: str | None = None
 
 
 REPORT_VERSION = "1.4"
@@ -224,6 +226,7 @@ def build_modules(
                 has_interface=has_interface,
                 interface_members=list(interface_members),
                 depends_on=dependencies,
+                layer=module.layer,
             )
         )
     return modules

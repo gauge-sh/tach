@@ -113,6 +113,7 @@ class ModuleConfig:
     visibility: list[str]
     strict: bool
     unchecked: bool
+    layer: str | None
 
     def __new__(cls, path: str, strict: bool) -> ModuleConfig: ...
     def mod_path(self) -> str: ...
