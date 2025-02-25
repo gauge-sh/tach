@@ -62,17 +62,6 @@ enum PackageRoot {
     Empty(PathBuf),
 }
 
-impl PackageRoot {
-    fn root(&self) -> &PathBuf {
-        match self {
-            PackageRoot::Pyproject(path) => path,
-            PackageRoot::SetupPy(path) => path,
-            PackageRoot::RequirementsTxt(path) => path,
-            PackageRoot::Empty(path) => path,
-        }
-    }
-}
-
 fn find_package_root<P1: AsRef<Path>, P2: AsRef<Path>>(
     project_root: P1,
     path: P2,
@@ -106,6 +95,7 @@ fn find_package_root<P1: AsRef<Path>, P2: AsRef<Path>>(
 
 #[derive(Debug)]
 pub struct Package {
+    pub name: Option<String>,
     pub root: PathBuf,
     pub source_roots: Vec<PathBuf>,
     pub dependencies: HashSet<String>,
@@ -120,6 +110,7 @@ impl TryFrom<PackageRoot> for Package {
                 let project_info = parsing::parse_pyproject_toml(&path.join("pyproject.toml"))?;
 
                 Ok(Self {
+                    name: Some(project_info.name),
                     root: path,
                     source_roots: vec![],
                     dependencies: project_info.dependencies,
@@ -132,6 +123,7 @@ impl TryFrom<PackageRoot> for Package {
                 let dependencies = parsing::parse_requirements_txt(&path.join("requirements.txt"))?;
 
                 Ok(Self {
+                    name: None,
                     root: path,
                     source_roots: vec![],
                     dependencies,
@@ -145,6 +137,7 @@ impl TryFrom<PackageRoot> for Package {
 impl Package {
     pub fn empty<P: AsRef<Path>>(root: P) -> Self {
         Self {
+            name: None,
             root: root.as_ref().to_path_buf(),
             source_roots: vec![],
             dependencies: HashSet::new(),
@@ -230,49 +223,6 @@ impl<'a> PackageResolver<'a> {
             }
         } else {
             PackageResolution::NotFound
-        }
-    }
-
-    pub fn module_path_is_internal<P: AsRef<Path>>(
-        &self,
-        module_path: &str,
-        source_root: P,
-    ) -> bool {
-        let expected_package_root = match self
-            .package_for_source_root
-            .get(source_root.as_ref())
-            .map(|package| &package.root)
-        {
-            Some(package_root) => package_root,
-            None => return false,
-        };
-
-        let package_resolution = self.resolve_module_path(module_path);
-        match package_resolution {
-            PackageResolution::Found { package, .. } => &package.root == expected_package_root,
-            PackageResolution::NotFound | PackageResolution::Excluded => false,
-        }
-    }
-
-    pub fn module_path_is_external<P: AsRef<Path>>(
-        &self,
-        module_path: &str,
-        source_root: P,
-    ) -> bool {
-        let expected_package_root = match self
-            .package_for_source_root
-            .get(source_root.as_ref())
-            .map(|package| &package.root)
-        {
-            Some(package_root) => package_root,
-            None => return false,
-        };
-
-        let package_resolution = self.resolve_module_path(module_path);
-        match package_resolution {
-            PackageResolution::Found { package, .. } => &package.root != expected_package_root,
-            PackageResolution::NotFound => true,
-            PackageResolution::Excluded => false,
         }
     }
 }

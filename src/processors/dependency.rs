@@ -9,7 +9,7 @@ use crate::filesystem::{self, ProjectFile};
 use crate::modules::error::ModuleTreeError;
 use crate::modules::{ModuleNode, ModuleTree};
 use crate::python::parsing::parse_python_source;
-use crate::resolvers::PackageResolver;
+use crate::resolvers::{PackageResolution, PackageResolver};
 
 use super::django::fkey::{get_foreign_key_references, get_known_apps};
 use super::file_module::FileModule;
@@ -107,22 +107,30 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
         )?
         .into_iter()
         .filter_map(|import| {
-            if self
+            let package_resolution = self
                 .package_resolver
-                .module_path_is_internal(&import.module_path, file_module.file.source_root)
-            {
-                Some(Dependency::Import(import))
-            } else {
-                // Remove directives that match irrelevant imports
-                file_module
-                    .ignore_directives
-                    .remove_matching_directives(file_module.line_number(import.import_offset));
-                // Check both the import and alias offsets, because there may be an ignore directive on the alias alone
-                file_module
-                    .ignore_directives
-                    .remove_matching_directives(file_module.line_number(import.alias_offset));
-                None
+                .resolve_module_path(&import.module_path);
+            match package_resolution {
+                PackageResolution::Found {
+                    package: resolved_package,
+                    ..
+                } => {
+                    if resolved_package.root == package.root {
+                        return Some(Dependency::Import(import));
+                    }
+                }
+                PackageResolution::NotFound | PackageResolution::Excluded => (),
             }
+
+            // Remove directives that match irrelevant imports
+            file_module
+                .ignore_directives
+                .remove_matching_directives(file_module.line_number(import.import_offset));
+            // Check both the import and alias offsets, because there may be an ignore directive on the alias alone
+            file_module
+                .ignore_directives
+                .remove_matching_directives(file_module.line_number(import.alias_offset));
+            None
         });
         dependencies.extend(project_imports);
 
@@ -188,22 +196,33 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
         )?
         .into_iter()
         .filter_map(|import| {
-            if self
+            let package_resolution = self
                 .package_resolver
-                .module_path_is_external(&import.module_path, file_module.file.source_root)
-            {
-                Some(Dependency::Import(import))
-            } else {
-                // Remove directives that match irrelevant imports
-                file_module
-                    .ignore_directives
-                    .remove_matching_directives(file_module.line_number(import.import_offset));
-                // Check both the import and alias offsets, because there may be an ignore directive on the alias alone
-                file_module
-                    .ignore_directives
-                    .remove_matching_directives(file_module.line_number(import.alias_offset));
-                None
+                .resolve_module_path(&import.module_path);
+            match package_resolution {
+                PackageResolution::Found {
+                    package: resolved_package,
+                    ..
+                } => {
+                    if resolved_package.root != package.root {
+                        return Some(Dependency::Import(import));
+                    }
+                }
+                PackageResolution::NotFound => {
+                    return Some(Dependency::Import(import));
+                }
+                PackageResolution::Excluded => (),
             }
+
+            // Remove directives that match irrelevant imports
+            file_module
+                .ignore_directives
+                .remove_matching_directives(file_module.line_number(import.import_offset));
+            // Check both the import and alias offsets, because there may be an ignore directive on the alias alone
+            file_module
+                .ignore_directives
+                .remove_matching_directives(file_module.line_number(import.alias_offset));
+            None
         })
         .collect();
         file_module.extend_dependencies(external_imports);

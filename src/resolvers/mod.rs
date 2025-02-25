@@ -1,3 +1,3 @@
 pub mod package;
 
-pub use package::{Package, PackageResolutionError, PackageResolver};
+pub use package::{Package, PackageResolution, PackageResolutionError, PackageResolver};

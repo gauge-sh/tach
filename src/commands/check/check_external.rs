@@ -53,6 +53,7 @@ impl<'a> CheckExternalPipeline<'a> {
                 package_resolver,
             ),
             dependency_checker: ExternalDependencyChecker::new(
+                package_resolver,
                 module_mappings,
                 stdlib_modules,
                 excluded_external_modules,
@@ -81,19 +82,23 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for CheckExternalPipeline<'a> {
         let file_module = self.dependency_extractor.process(file_path)?;
 
         // Track all external dependencies seen in imports
-        with_distribution_names(file_module.imports(), self.module_mappings)
-            .into_iter()
-            .for_each(|import| {
-                import
-                    .distribution_names
-                    .iter()
-                    .for_each(|distribution_name| {
-                        self.seen_dependencies
-                            .entry(package_root.clone())
-                            .or_default()
-                            .insert(distribution_name.clone());
-                    });
-            });
+        with_distribution_names(
+            file_module.imports(),
+            self.package_resolver,
+            self.module_mappings,
+        )
+        .into_iter()
+        .for_each(|import| {
+            import
+                .distribution_names
+                .iter()
+                .for_each(|distribution_name| {
+                    self.seen_dependencies
+                        .entry(package_root.clone())
+                        .or_default()
+                        .insert(distribution_name.clone());
+                });
+        });
 
         Ok(file_module)
     }
