@@ -2,6 +2,9 @@ use globset::{Error, GlobBuilder, GlobMatcher};
 use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 use walkdir::WalkDir;
 
+use crate::exclusion::PathExclusions;
+use crate::filesystem::{direntry_is_excluded, is_hidden};
+
 pub fn has_glob_syntax(pattern: &str) -> bool {
     pattern.chars().enumerate().any(|(i, c)| {
         match c {
@@ -27,6 +30,7 @@ pub fn build_matcher(pattern: &str) -> Result<GlobMatcher, Error> {
 pub fn find_matching_directories<P: AsRef<Path>>(
     root_path: P,
     pattern: &str,
+    path_exclusions: &PathExclusions,
 ) -> Result<Vec<PathBuf>, Error> {
     let matcher = build_matcher(&format!(
         "{}{}{}",
@@ -37,6 +41,7 @@ pub fn find_matching_directories<P: AsRef<Path>>(
 
     let matching_dirs = WalkDir::new(root_path)
         .into_iter()
+        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, path_exclusions))
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_dir())
         .filter(|entry| {

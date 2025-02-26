@@ -3,6 +3,8 @@ use std::{collections::HashSet, path::PathBuf};
 use globset;
 use thiserror::Error;
 
+use crate::exclusion::PathExclusions;
+
 use super::glob;
 
 #[derive(Error, Debug)]
@@ -15,11 +17,15 @@ pub enum SourceRootResolverError {
 
 pub struct SourceRootResolver<'a> {
     project_root: &'a PathBuf,
+    path_exclusions: &'a PathExclusions,
 }
 
 impl<'a> SourceRootResolver<'a> {
-    pub fn new(project_root: &'a PathBuf) -> Self {
-        Self { project_root }
+    pub fn new(project_root: &'a PathBuf, path_exclusions: &'a PathExclusions) -> Self {
+        Self {
+            project_root,
+            path_exclusions,
+        }
     }
 
     pub fn resolve(
@@ -36,8 +42,12 @@ impl<'a> SourceRootResolver<'a> {
                     match root.as_os_str().to_str() {
                         Some(s) => {
                             if glob::has_glob_syntax(s) {
-                                glob::find_matching_directories(self.project_root, s)
-                                    .map_err(SourceRootResolverError::GlobError)
+                                glob::find_matching_directories(
+                                    self.project_root,
+                                    s,
+                                    self.path_exclusions,
+                                )
+                                .map_err(SourceRootResolverError::GlobError)
                             } else {
                                 Ok(vec![self.project_root.join(root)])
                             }
@@ -62,7 +72,7 @@ mod tests {
     use tempfile::TempDir;
 
     fn setup_test_directory() -> TempDir {
-        let temp_dir = TempDir::new().unwrap();
+        let temp_dir = TempDir::with_prefix("tach-test").unwrap();
         let root_path = temp_dir.path();
 
         // Create a directory structure for testing
@@ -80,7 +90,8 @@ mod tests {
     fn test_resolve_single_directory() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let resolver = SourceRootResolver::new(&project_root);
+        let path_exclusions = PathExclusions::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions);
 
         let source_roots = vec![PathBuf::from("src")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -93,7 +104,8 @@ mod tests {
     fn test_resolve_current_directory() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let resolver = SourceRootResolver::new(&project_root);
+        let path_exclusions = PathExclusions::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions);
 
         let source_roots = vec![PathBuf::from(".")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -106,7 +118,8 @@ mod tests {
     fn test_resolve_glob_pattern() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let resolver = SourceRootResolver::new(&project_root);
+        let path_exclusions = PathExclusions::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions);
 
         let source_roots = vec![PathBuf::from("examples/*")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -120,7 +133,8 @@ mod tests {
     fn test_resolve_multiple_patterns() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let resolver = SourceRootResolver::new(&project_root);
+        let path_exclusions = PathExclusions::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions);
 
         let source_roots = vec![PathBuf::from("src/*"), PathBuf::from("tests")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -135,7 +149,8 @@ mod tests {
     fn test_resolve_deduplicates_paths() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let resolver = SourceRootResolver::new(&project_root);
+        let path_exclusions = PathExclusions::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions);
 
         let source_roots = vec![
             PathBuf::from("src"),

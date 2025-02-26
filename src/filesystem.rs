@@ -241,7 +241,7 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-fn is_hidden(entry: &DirEntry) -> bool {
+pub fn is_hidden(entry: &DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
@@ -249,7 +249,7 @@ fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-fn direntry_is_excluded(entry: &DirEntry, exclusions: &PathExclusions) -> bool {
+pub fn direntry_is_excluded(entry: &DirEntry, exclusions: &PathExclusions) -> bool {
     exclusions.is_path_excluded(entry.path())
 }
 
