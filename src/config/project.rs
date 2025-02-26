@@ -171,20 +171,6 @@ impl ProjectConfig {
             .collect())
     }
 
-    pub fn resolve_source_roots(&self, project_root: &Path) -> Vec<PathBuf> {
-        // don't prepend if root is "."
-        self.source_roots
-            .iter()
-            .map(|root| {
-                if root.display().to_string() == "." {
-                    project_root.to_path_buf()
-                } else {
-                    project_root.join(root)
-                }
-            })
-            .collect()
-    }
-
     pub fn with_dependencies_removed(&self) -> Self {
         Self {
             modules: self

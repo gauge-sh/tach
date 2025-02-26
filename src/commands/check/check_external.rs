@@ -11,7 +11,7 @@ use crate::filesystem::{walk_pyfiles, ProjectFile};
 use crate::interrupt::check_interrupt;
 use crate::processors::file_module::FileModule;
 use crate::processors::ExternalDependencyExtractor;
-use crate::resolvers::PackageResolver;
+use crate::resolvers::{PackageResolver, SourceRootResolver};
 use pyo3::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -187,12 +187,13 @@ fn check_with_modules(
     let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
-    let source_roots: Vec<PathBuf> = project_config.resolve_source_roots(project_root);
     let exclusions = PathExclusions::new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
+    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
+    let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
 
     let pipeline = CheckExternalPipeline::new(

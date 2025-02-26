@@ -29,4 +29,6 @@ pub enum CheckError {
     Configuration(String),
     #[error("Package resolution error: {0}")]
     PackageResolution(#[from] resolvers::PackageResolutionError),
+    #[error("Source root resolution error: {0}")]
+    SourceRootResolution(#[from] resolvers::SourceRootResolverError),
 }

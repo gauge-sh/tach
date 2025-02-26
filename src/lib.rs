@@ -104,6 +104,9 @@ impl From<parsing::error::ParsingError> for PyErr {
             parsing::error::ParsingError::TomlParse(err) => PyValueError::new_err(err.to_string()),
             parsing::error::ParsingError::MissingField(err) => PyValueError::new_err(err),
             parsing::error::ParsingError::ModulePath(err) => PyValueError::new_err(err),
+            parsing::error::ParsingError::SourceRootResolution(err) => {
+                PyValueError::new_err(err.to_string())
+            }
             parsing::error::ParsingError::PathExclusion(err) => err.into(),
         }
     }
