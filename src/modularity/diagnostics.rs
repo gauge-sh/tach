@@ -42,8 +42,8 @@ impl TryFrom<Diagnostic> for UsageError {
             Some(member),
             Some(usage_module),
             Some(definition_module),
-            Some(usage_layer),
-            Some(definition_layer),
+            usage_layer,
+            definition_layer,
         ) = (
             value.is_interface_error(),
             value.is_dependency_error(),
@@ -71,8 +71,8 @@ impl TryFrom<Diagnostic> for UsageError {
                 usage_module: usage_module.to_string(),
                 definition_module: definition_module.to_string(),
                 error_type,
-                usage_layer: Some(usage_layer.to_string()),
-                definition_layer: Some(definition_layer.to_string()),
+                usage_layer: usage_layer.map(|s| s.to_string()),
+                definition_layer: definition_layer.map(|s| s.to_string()),
             })
         } else {
             Err(())
