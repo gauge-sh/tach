@@ -20,10 +20,8 @@ Tach is inspired by the [modular monolith](https://www.milanjovanovic.tech/blog/
     <img src="docs/assets/light_logo.png" alt="gauge-logo" width="30%"  style="border-radius: 50%; padding-bottom: 20px"/>
 </div>
 
-Here's an example:
+https://github.com/user-attachments/assets/11eec4a1-f80a-4f13-9ff3-91a9760133b6
 
-
-![tach_latest_demo](https://github.com/user-attachments/assets/012aa1e7-49a5-476e-8ee0-b43654e4beb4)
 
 
 Tach can enforce:
