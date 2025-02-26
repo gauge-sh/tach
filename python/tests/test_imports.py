@@ -229,9 +229,7 @@ from external_module import something
         path_outside_source_root,
         mock_project_config,
     )
-    expected = [
-        ("file1.c", 3),
-    ]
+    expected = []
     assert result == expected
 
 

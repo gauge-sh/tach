@@ -9,6 +9,7 @@ use crate::exclusion::PathExclusions;
 use crate::filesystem;
 use crate::processors::ignore_directive::get_ignore_directives;
 use crate::processors::import::{get_normalized_imports, Result};
+use crate::resolvers::{PackageResolution, PackageResolutionError, PackageResolver};
 
 #[pyclass(get_all)]
 pub struct PythonImport {
@@ -32,6 +33,10 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
     file_path: P,
     project_config: &ProjectConfig,
 ) -> Result<Vec<LocatedImport>> {
+    if !file_path.as_ref().starts_with(project_root) {
+        return Ok(vec![]);
+    }
+
     let file_contents = filesystem::read_file_content(file_path.as_ref())?;
     let line_index = Locator::new(&file_contents).to_index().clone();
     let normalized_imports = get_normalized_imports(
@@ -42,12 +47,21 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
         project_config.include_string_imports,
     )?;
     let ignore_directives = get_ignore_directives(&file_contents);
-
     let exclusions = PathExclusions::new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
+    let package_resolver = PackageResolver::try_new(project_root, source_roots, &exclusions)?;
+    let package = match package_resolver.resolve_file_path(file_path.as_ref()) {
+        PackageResolution::Found { package, .. } => package,
+        PackageResolution::NotFound | PackageResolution::Excluded => {
+            return Err(PackageResolutionError::PackageRootNotFound(
+                file_path.as_ref().display().to_string(),
+            )
+            .into());
+        }
+    };
 
     Ok(normalized_imports
         .into_iter()
@@ -59,8 +73,17 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
             )
         })
         .filter(|import| {
-            !ignore_directives.is_ignored(import)
-                && filesystem::is_project_import(source_roots, import.module_path(), &exclusions)
+            if ignore_directives.is_ignored(import) {
+                return false;
+            }
+
+            match package_resolver.resolve_module_path(import.module_path()) {
+                PackageResolution::Found {
+                    package: resolved_package,
+                    ..
+                } => package.root == resolved_package.root,
+                PackageResolution::NotFound | PackageResolution::Excluded => false,
+            }
         })
         .collect())
 }
@@ -71,6 +94,10 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
     file_path: P,
     project_config: &ProjectConfig,
 ) -> Result<Vec<LocatedImport>> {
+    if !file_path.as_ref().starts_with(project_root) {
+        return Ok(vec![]);
+    }
+
     let file_contents = filesystem::read_file_content(file_path.as_ref())?;
     let line_index = Locator::new(&file_contents).to_index().clone();
     let normalized_imports = get_normalized_imports(
@@ -86,6 +113,17 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
+    let package_resolver = PackageResolver::try_new(project_root, source_roots, &exclusions)?;
+    let package = match package_resolver.resolve_file_path(file_path.as_ref()) {
+        PackageResolution::Found { package, .. } => package,
+        PackageResolution::NotFound | PackageResolution::Excluded => {
+            return Err(PackageResolutionError::PackageRootNotFound(
+                file_path.as_ref().display().to_string(),
+            )
+            .into());
+        }
+    };
+
     Ok(normalized_imports
         .into_iter()
         .map(|import| {
@@ -96,8 +134,18 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
             )
         })
         .filter(|import| {
-            !ignore_directives.is_ignored(import)
-                && !filesystem::is_project_import(source_roots, import.module_path(), &exclusions)
+            if ignore_directives.is_ignored(import) {
+                return false;
+            }
+
+            match package_resolver.resolve_module_path(import.module_path()) {
+                PackageResolution::Found {
+                    package: resolved_package,
+                    ..
+                } => package.root != resolved_package.root,
+                PackageResolution::NotFound => true,
+                PackageResolution::Excluded => false,
+            }
         })
         .collect())
 }

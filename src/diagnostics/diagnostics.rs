@@ -120,8 +120,11 @@ pub enum CodeDiagnostic {
     #[error("Dependency '{dependency}' is not declared in the project.")]
     UndeclaredExternalDependency { dependency: String },
 
-    #[error("External package '{package_module_name}' is not used.")]
-    UnusedExternalDependency { package_module_name: String },
+    #[error("External package '{package_module_name}' is not used in package '{package_root}'.")]
+    UnusedExternalDependency {
+        package_module_name: String,
+        package_root: String,
+    },
 }
 
 impl CodeDiagnostic {

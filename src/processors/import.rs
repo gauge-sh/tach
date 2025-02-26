@@ -8,6 +8,7 @@ use thiserror::Error;
 
 use crate::dependencies::import::NormalizedImport;
 use crate::python::{error::ParsingError, parsing::parse_python_source};
+use crate::resolvers::PackageResolutionError;
 use crate::{exclusion, filesystem};
 
 #[derive(Error, Debug)]
@@ -22,6 +23,8 @@ pub enum ImportParseError {
     Filesystem(#[from] filesystem::FileSystemError),
     #[error("Failed to build exclude patterns.\n{0}")]
     ExclusionPatterns(#[from] exclusion::PathExclusionError),
+    #[error("Package resolution error.\n{0}")]
+    PackageResolution(#[from] PackageResolutionError),
 }
 
 pub type Result<T> = std::result::Result<T, ImportParseError>;
