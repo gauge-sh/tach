@@ -5,13 +5,6 @@ from typing import TYPE_CHECKING
 
 from tach.cache.setup import resolve_dot_tach
 
-
-def test():
-    from tach.cli import main
-
-    print(main())
-
-
 if TYPE_CHECKING:
     from pathlib import Path
 
