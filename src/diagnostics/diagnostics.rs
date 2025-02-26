@@ -184,7 +184,9 @@ impl CodeDiagnostic {
 
     pub fn definition_layer(&self) -> Option<&str> {
         match self {
-            CodeDiagnostic::LayerViolation { definition_layer, .. } => Some(definition_layer),
+            CodeDiagnostic::LayerViolation {
+                definition_layer, ..
+            } => Some(definition_layer),
             _ => None,
         }
     }
