@@ -3,15 +3,15 @@ use std::path::PathBuf;
 use crate::{
     config::{ModuleConfig, RootModuleTreatment},
     exclusion::PathExclusions,
+    resolvers::{glob, ModuleResolver},
 };
 
 use super::{
-    resolve::has_glob_syntax,
     validation::{
         find_duplicate_modules, find_modules_with_cycles, find_visibility_violations,
         validate_root_module_treatment,
     },
-    ModuleResolver, ModuleTree, ModuleTreeError,
+    ModuleTree, ModuleTreeError,
 };
 
 pub struct ModuleTreeBuilder<'a> {
@@ -45,7 +45,7 @@ impl<'a> ModuleTreeBuilder<'a> {
             let mod_path = module.mod_path();
             if let Ok(resolved_paths) = self.resolver.resolve_module_path(&mod_path) {
                 resolved_modules.extend(resolved_paths.into_iter().map(|path| {
-                    if has_glob_syntax(&mod_path) {
+                    if glob::has_glob_syntax(&mod_path) {
                         module.clone_with_path(&path).with_glob_origin(&mod_path)
                     } else {
                         module.clone_with_path(&path)

@@ -134,7 +134,7 @@ pub fn check(
 
     let mut diagnostics = Vec::new();
     let found_imports = AtomicBool::new(false);
-    let source_roots: Vec<PathBuf> = project_config.prepend_roots(&project_root);
+    let source_roots: Vec<PathBuf> = project_config.resolve_source_roots(&project_root);
     let exclusions = PathExclusions::new(
         &project_root,
         &project_config.exclude,

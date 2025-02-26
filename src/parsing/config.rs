@@ -157,7 +157,7 @@ pub fn add_domain_configs<P: AsRef<Path>>(config: &mut ProjectConfig, root_dir: 
     let mut domain_configs =
         walk_domain_config_files(root_dir.as_os_str().to_str().unwrap(), &exclusions)
             .par_bridge()
-            .map(|filepath| parse_domain_config(&config.prepend_roots(root_dir), filepath))
+            .map(|filepath| parse_domain_config(&config.resolve_source_roots(root_dir), filepath))
             .collect::<Result<Vec<_>>>()?;
     domain_configs.drain(..).for_each(|domain| {
         config.add_domain(domain);

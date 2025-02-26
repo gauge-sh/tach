@@ -171,8 +171,7 @@ impl ProjectConfig {
             .collect())
     }
 
-    // TODO: use absolute_source_roots
-    pub fn prepend_roots(&self, project_root: &Path) -> Vec<PathBuf> {
+    pub fn resolve_source_roots(&self, project_root: &Path) -> Vec<PathBuf> {
         // don't prepend if root is "."
         self.source_roots
             .iter()

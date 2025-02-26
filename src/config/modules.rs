@@ -2,7 +2,7 @@ use crate::filesystem::module_path_is_included_in_paths;
 
 use super::root_module::ROOT_MODULE_SENTINEL_TAG;
 use super::utils::*;
-use crate::modules::ModuleGlob;
+use crate::resolvers::ModuleGlob;
 use globset::GlobMatcher;
 use pyo3::prelude::*;
 use serde::ser::{Error, SerializeSeq, SerializeStruct};

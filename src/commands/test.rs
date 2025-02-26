@@ -48,7 +48,7 @@ impl TachPytestPluginHandler {
         changed_files: Vec<PathBuf>,
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
-        let source_roots = project_config.prepend_roots(&project_root);
+        let source_roots = project_config.resolve_source_roots(&project_root);
         // TODO: Remove unwraps
         let exclusions = PathExclusions::new(
             &project_root,
@@ -138,7 +138,7 @@ fn get_changed_module_paths(
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
 ) -> Result<Vec<String>> {
-    let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
+    let source_roots: Vec<PathBuf> = project_config.resolve_source_roots(project_root);
 
     let changed_module_paths = changed_files
         .into_iter()

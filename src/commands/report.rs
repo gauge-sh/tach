@@ -224,7 +224,7 @@ pub fn create_dependency_report(
         return Err(ReportCreationError::NothingToReport);
     }
 
-    let source_roots = project_config.prepend_roots(project_root);
+    let source_roots = project_config.resolve_source_roots(project_root);
     let exclusions = PathExclusions::new(
         project_root,
         &project_config.exclude,

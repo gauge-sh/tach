@@ -8,7 +8,7 @@ use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
 use crate::diagnostics::Diagnostic;
 use crate::filesystem::validate_module_path;
-use crate::modules::resolve::has_glob_syntax;
+use crate::resolvers::glob;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -95,7 +95,7 @@ pub fn detect_unused_dependencies(
     for module_path in project_config
         .module_paths()
         .into_iter()
-        .filter(|path| !has_glob_syntax(path))
+        .filter(|path| !glob::has_glob_syntax(path))
     {
         let module_detected_dependencies =
             detected_dependencies
@@ -164,7 +164,7 @@ fn sync_dependency_constraints(
     for module_path in project_config
         .module_paths()
         .into_iter()
-        .filter(|path| !has_glob_syntax(path))
+        .filter(|path| !glob::has_glob_syntax(path))
     {
         let module_detected_dependencies =
             detected_dependencies
@@ -215,7 +215,7 @@ fn sync_dependency_constraints(
         project_config
             .module_paths()
             .iter()
-            .filter(|path| !has_glob_syntax(path))
+            .filter(|path| !glob::has_glob_syntax(path))
             .for_each(|module_path| {
                 if !validate_module_path(
                     &project_config.absolute_source_roots().unwrap(),

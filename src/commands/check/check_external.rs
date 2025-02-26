@@ -187,7 +187,7 @@ fn check_with_modules(
     let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
-    let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
+    let source_roots: Vec<PathBuf> = project_config.resolve_source_roots(project_root);
     let exclusions = PathExclusions::new(
         project_root,
         &project_config.exclude,
