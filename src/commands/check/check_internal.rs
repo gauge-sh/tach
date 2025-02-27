@@ -135,13 +135,13 @@ pub fn check(
     let mut diagnostics = Vec::new();
     let found_imports = AtomicBool::new(false);
     let exclusions = PathExclusions::new(
-        &project_root,
+        project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
-    let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
     let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
-    let package_resolver = PackageResolver::try_new(&project_root, &source_roots, &exclusions)?;
+    let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
         &exclusions,
@@ -198,19 +198,19 @@ pub fn check(
                     return vec![];
                 }
 
-                let project_file =
-                    match ProjectFile::try_new(&project_root, source_root, &file_path) {
-                        Ok(project_file) => project_file,
-                        Err(_) => {
-                            return vec![Diagnostic::new_global_warning(
-                                DiagnosticDetails::Configuration(
-                                    ConfigurationDiagnostic::SkippedFileIoError {
-                                        file_path: file_path.display().to_string(),
-                                    },
-                                ),
-                            )]
-                        }
-                    };
+                let project_file = match ProjectFile::try_new(project_root, source_root, &file_path)
+                {
+                    Ok(project_file) => project_file,
+                    Err(_) => {
+                        return vec![Diagnostic::new_global_warning(
+                            DiagnosticDetails::Configuration(
+                                ConfigurationDiagnostic::SkippedFileIoError {
+                                    file_path: file_path.display().to_string(),
+                                },
+                            ),
+                        )]
+                    }
+                };
 
                 match pipeline.diagnostics(project_file) {
                     Ok(diagnostics) => diagnostics,

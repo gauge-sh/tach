@@ -1,9 +1,11 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::iter;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+use crate::exclusion::PathExclusions;
 use crate::filesystem::module_path_is_included_in_paths;
+use crate::resolvers::SourceRootResolver;
 
 use super::cache::CacheConfig;
 use super::domain::LocatedDomainConfig;
@@ -156,19 +158,12 @@ impl ProjectConfig {
         let project_root = self
             .location
             .as_ref()
-            .map(|path| path.parent().unwrap())
+            .map(|path| path.parent().unwrap().to_path_buf())
             .ok_or(ConfigError::ConfigDoesNotExist)?;
-        Ok(self
-            .source_roots
-            .iter()
-            .map(|root| {
-                if root.display().to_string() == "." {
-                    project_root.to_path_buf()
-                } else {
-                    project_root.join(root)
-                }
-            })
-            .collect())
+        let exclusions =
+            PathExclusions::new(&project_root, &self.exclude, self.use_regex_matching)?;
+        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        Ok(source_root_resolver.resolve(&self.source_roots)?)
     }
 
     pub fn with_dependencies_removed(&self) -> Self {
