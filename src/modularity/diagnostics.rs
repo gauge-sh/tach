@@ -26,6 +26,8 @@ pub struct UsageError {
     pub usage_module: String,
     pub definition_module: String,
     pub error_type: ErrorKind,
+    pub usage_layer: Option<String>,
+    pub definition_layer: Option<String>,
 }
 
 impl TryFrom<Diagnostic> for UsageError {
@@ -40,6 +42,8 @@ impl TryFrom<Diagnostic> for UsageError {
             Some(member),
             Some(usage_module),
             Some(definition_module),
+            usage_layer,
+            definition_layer,
         ) = (
             value.is_interface_error(),
             value.is_dependency_error(),
@@ -48,6 +52,8 @@ impl TryFrom<Diagnostic> for UsageError {
             value.dependency(),
             value.usage_module(),
             value.definition_module(),
+            value.usage_layer(),
+            value.definition_layer(),
         ) {
             let error_type = match (is_interface_error, is_dependency_error) {
                 (false, false) => {
@@ -65,6 +71,8 @@ impl TryFrom<Diagnostic> for UsageError {
                 usage_module: usage_module.to_string(),
                 definition_module: definition_module.to_string(),
                 error_type,
+                usage_layer: usage_layer.map(|s| s.to_string()),
+                definition_layer: definition_layer.map(|s| s.to_string()),
             })
         } else {
             Err(())

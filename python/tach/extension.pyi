@@ -100,6 +100,9 @@ class UsageError:
     # The module that contains the definition
     definition_module: str
     error_type: ErrorKind
+    # Optional fields
+    usage_layer: str | None = None
+    definition_layer: str | None = None
 
 def into_usage_errors(diagnostics: list[Diagnostic]) -> list[UsageError]: ...
 
@@ -113,6 +116,7 @@ class ModuleConfig:
     visibility: list[str]
     strict: bool
     unchecked: bool
+    layer: str | None
 
     def __new__(cls, path: str, strict: bool) -> ModuleConfig: ...
     def mod_path(self) -> str: ...

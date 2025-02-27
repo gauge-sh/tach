@@ -138,6 +138,8 @@ class Module:
     interface_members: list[str] = field(default_factory=list)
     # [1.3] Adds 'depends_on'
     depends_on: list[Dependency] = field(default_factory=list)
+    # [1.4] Adds 'layer'
+    layer: str | None = None
 
 
 REPORT_VERSION = "1.4"
@@ -159,6 +161,9 @@ class UsageError:
     usage_module: str
     definition_module: str
     error_type: Literal["DEPENDENCY", "INTERFACE"]
+    # Optional fields
+    usage_layer: str | None = None
+    definition_layer: str | None = None
 
     @classmethod
     def from_extension(cls, ext_usage_error: ExtUsageError) -> UsageError:
@@ -169,6 +174,8 @@ class UsageError:
             usage_module=ext_usage_error.usage_module,
             definition_module=ext_usage_error.definition_module,
             error_type=ext_usage_error.error_type,
+            usage_layer=ext_usage_error.usage_layer,
+            definition_layer=ext_usage_error.definition_layer,
         )
 
 
@@ -224,6 +231,7 @@ def build_modules(
                 has_interface=has_interface,
                 interface_members=list(interface_members),
                 depends_on=dependencies,
+                layer=module.layer,
             )
         )
     return modules
