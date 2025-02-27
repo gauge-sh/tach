@@ -1,14 +1,14 @@
 use std::collections::HashSet;
-use std::path::Path;
 use std::{collections::HashMap, path::PathBuf};
 
 use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::config::{ModuleConfig, ProjectConfig};
-use crate::exclusion::PathExclusions;
+use crate::exclusion::{PathExclusionError, PathExclusions};
 use crate::filesystem::{self as fs};
 use crate::modules::{ModuleTree, ModuleTreeBuilder};
+use crate::resolvers::{SourceRootResolver, SourceRootResolverError};
 
 use super::helpers::import::get_located_project_imports;
 
@@ -18,6 +18,10 @@ pub enum TestError {
     Filesystem(#[from] fs::FileSystemError),
     #[error("Could not find module containing path: {0}")]
     ModuleNotFound(String),
+    #[error("Path exclusion error: {0}")]
+    PathExclusion(#[from] PathExclusionError),
+    #[error("Source root resolution error: {0}")]
+    SourceRootResolution(#[from] SourceRootResolverError),
 }
 
 pub type Result<T> = std::result::Result<T, TestError>;
@@ -48,7 +52,6 @@ impl TachPytestPluginHandler {
         changed_files: Vec<PathBuf>,
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
-        let source_roots = project_config.prepend_roots(&project_root);
         // TODO: Remove unwraps
         let exclusions = PathExclusions::new(
             &project_root,
@@ -56,6 +59,10 @@ impl TachPytestPluginHandler {
             project_config.use_regex_matching,
         )
         .unwrap();
+        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let source_roots = source_root_resolver
+            .resolve(&project_config.source_roots)
+            .unwrap();
         let module_tree_builder = ModuleTreeBuilder::new(
             &source_roots,
             &exclusions,
@@ -134,11 +141,17 @@ fn build_module_consumer_map(modules: &Vec<ModuleConfig>) -> HashMap<&String, Ve
 }
 
 fn get_changed_module_paths(
-    project_root: &Path,
+    project_root: &PathBuf,
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
 ) -> Result<Vec<String>> {
-    let source_roots: Vec<PathBuf> = project_config.prepend_roots(project_root);
+    let exclusions = PathExclusions::new(
+        project_root,
+        &project_config.exclude,
+        project_config.use_regex_matching,
+    )?;
+    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
+    let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
 
     let changed_module_paths = changed_files
         .into_iter()
@@ -173,7 +186,7 @@ fn find_affected_modules(
 }
 
 pub fn get_affected_modules(
-    project_root: &Path,
+    project_root: &PathBuf,
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
     module_tree: &ModuleTree,

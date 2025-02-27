@@ -18,6 +18,7 @@ use crate::filesystem::{file_to_module_path, walk_pyfiles, FileSystemError};
 use crate::interrupt::check_interrupt;
 use crate::modules::{ModuleTreeBuilder, ModuleTreeError};
 use crate::processors::import::ImportParseError;
+use crate::resolvers::{SourceRootResolver, SourceRootResolverError};
 
 use super::helpers::import::get_located_project_imports;
 
@@ -45,6 +46,8 @@ pub enum ReportCreationError {
     Interrupted,
     #[error("Failed to build exclusion patterns: {0}")]
     PathExclusion(#[from] PathExclusionError),
+    #[error("Failed to resolve source roots: {0}")]
+    SourceRootResolver(#[from] SourceRootResolverError),
 }
 
 pub type Result<T> = std::result::Result<T, ReportCreationError>;
@@ -224,12 +227,13 @@ pub fn create_dependency_report(
         return Err(ReportCreationError::NothingToReport);
     }
 
-    let source_roots = project_config.prepend_roots(project_root);
     let exclusions = PathExclusions::new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
+    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
+    let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
         &exclusions,

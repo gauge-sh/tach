@@ -7,8 +7,9 @@ use crate::config::edit::{ConfigEditor, EditError};
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
 use crate::diagnostics::Diagnostic;
+use crate::exclusion::{PathExclusionError, PathExclusions};
 use crate::filesystem::validate_module_path;
-use crate::modules::resolve::has_glob_syntax;
+use crate::resolvers::{glob, SourceRootResolver, SourceRootResolverError};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -24,6 +25,10 @@ pub enum SyncError {
     RootModuleViolation(String),
     #[error("Failed to apply edits to project configuration.\n{0}")]
     EditError(#[from] EditError),
+    #[error("Failed to handle excluded paths.\n{0}")]
+    PathExclusion(#[from] PathExclusionError),
+    #[error("Failed to resolve source roots.\n{0}")]
+    SourceRootResolution(#[from] SourceRootResolverError),
 }
 
 fn handle_added_dependency(
@@ -88,14 +93,14 @@ pub fn detect_unused_dependencies(
     // This is a shortcut to finding all cross-module dependencies
     // TODO: dedicated function
     let cleared_project_config = project_config.with_dependencies_removed();
-    let check_result = check_internal(project_root, &cleared_project_config, true, false)?;
+    let check_result = check_internal(&project_root, &cleared_project_config, true, false)?;
     let detected_dependencies = detect_dependencies(&check_result);
 
     let mut unused_dependencies: Vec<UnusedDependencies> = vec![];
     for module_path in project_config
         .module_paths()
         .into_iter()
-        .filter(|path| !has_glob_syntax(path))
+        .filter(|path| !glob::has_glob_syntax(path))
     {
         let module_detected_dependencies =
             detected_dependencies
@@ -141,7 +146,7 @@ fn sync_dependency_constraints(
     // This is a shortcut to finding all cross-module dependencies
     // TODO: dedicated function
     let cleared_project_config = project_config.with_dependencies_removed();
-    let check_result = check_internal(project_root, &cleared_project_config, true, false)?;
+    let check_result = check_internal(&project_root, &cleared_project_config, true, false)?;
     let detected_dependencies = detect_dependencies(&check_result);
 
     // Root module is a special case -- it may not be in module paths and still implicitly detect dependencies
@@ -164,7 +169,7 @@ fn sync_dependency_constraints(
     for module_path in project_config
         .module_paths()
         .into_iter()
-        .filter(|path| !has_glob_syntax(path))
+        .filter(|path| !glob::has_glob_syntax(path))
     {
         let module_detected_dependencies =
             detected_dependencies
@@ -212,15 +217,19 @@ fn sync_dependency_constraints(
     }
 
     if prune {
+        let exclusions = PathExclusions::new(
+            &project_root,
+            &project_config.exclude,
+            project_config.use_regex_matching,
+        )?;
+        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
         project_config
             .module_paths()
             .iter()
-            .filter(|path| !has_glob_syntax(path))
+            .filter(|path| !glob::has_glob_syntax(path))
             .for_each(|module_path| {
-                if !validate_module_path(
-                    &project_config.absolute_source_roots().unwrap(),
-                    module_path,
-                ) {
+                if !validate_module_path(&source_roots, module_path) {
                     // Not clear what to do if enqueueing deletion fails
                     let _ = project_config.delete_module(module_path.to_string());
                 }

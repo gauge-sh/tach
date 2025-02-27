@@ -13,4 +13,4 @@ members = ["packages/*"]
 
 
 [tool.tach]
-source_roots = ["src", "packages/package1/src", "packages/package2/src"]
+source_roots = ["**/src"]

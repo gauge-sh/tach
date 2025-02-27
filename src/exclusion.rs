@@ -31,6 +31,13 @@ pub struct PathExclusions {
 }
 
 impl PathExclusions {
+    pub fn empty<P: AsRef<Path>>(project_root: P) -> Self {
+        Self {
+            project_root: project_root.as_ref().to_path_buf(),
+            patterns: vec![],
+        }
+    }
+
     pub fn new<P: AsRef<Path>>(
         project_root: P,
         exclude_paths: &[String],

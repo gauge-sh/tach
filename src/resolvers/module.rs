@@ -1,21 +1,10 @@
-use globset::{Error as GlobError, GlobBuilder, GlobMatcher};
+use globset::{Error as GlobError, GlobMatcher};
 use itertools::Itertools;
 use rayon::prelude::*;
 use std::path::PathBuf;
 
+use super::glob;
 use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
-
-pub fn has_glob_syntax(pattern: &str) -> bool {
-    pattern.chars().enumerate().any(|(i, c)| {
-        match c {
-            '*' | '?' | '[' | ']' | '{' | '}' => {
-                // Check if the character is escaped
-                i == 0 || pattern.as_bytes()[i - 1] != b'\\'
-            }
-            _ => false,
-        }
-    })
-}
 
 #[derive(Debug)]
 pub struct ModuleGlob {
@@ -24,7 +13,7 @@ pub struct ModuleGlob {
 
 impl ModuleGlob {
     pub fn parse(pattern: &str) -> Option<Self> {
-        if !has_glob_syntax(pattern) {
+        if !glob::has_glob_syntax(pattern) {
             return None;
         }
 
@@ -46,13 +35,7 @@ impl ModuleGlob {
         // Add allowed file extensions to the pattern
         pattern = format!("{}{{,.py,.pyi}}", pattern);
 
-        let mut glob_builder = GlobBuilder::new(&pattern);
-        let matcher = glob_builder
-            .literal_separator(true)
-            .empty_alternates(true)
-            .build()?
-            .compile_matcher();
-        Ok(matcher)
+        glob::build_matcher(&pattern)
     }
 }
 

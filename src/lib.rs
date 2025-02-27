@@ -104,6 +104,9 @@ impl From<parsing::error::ParsingError> for PyErr {
             parsing::error::ParsingError::TomlParse(err) => PyValueError::new_err(err.to_string()),
             parsing::error::ParsingError::MissingField(err) => PyValueError::new_err(err),
             parsing::error::ParsingError::ModulePath(err) => PyValueError::new_err(err),
+            parsing::error::ParsingError::SourceRootResolution(err) => {
+                PyValueError::new_err(err.to_string())
+            }
             parsing::error::ParsingError::PathExclusion(err) => err.into(),
         }
     }
@@ -116,6 +119,8 @@ impl From<sync::SyncError> for PyErr {
             sync::SyncError::CheckError(err) => err.into(),
             sync::SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
             sync::SyncError::EditError(err) => PyValueError::new_err(err.to_string()),
+            sync::SyncError::SourceRootResolution(err) => PyValueError::new_err(err.to_string()),
+            sync::SyncError::PathExclusion(err) => err.into(),
         }
     }
 }
@@ -289,7 +294,7 @@ fn check_internal(
     dependencies: bool,
     interfaces: bool,
 ) -> check::check_internal::Result<Vec<diagnostics::Diagnostic>> {
-    check::check_internal(project_root, project_config, dependencies, interfaces)
+    check::check_internal(&project_root, project_config, dependencies, interfaces)
 }
 
 #[pyfunction]
