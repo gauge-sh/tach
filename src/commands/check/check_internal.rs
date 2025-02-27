@@ -117,7 +117,7 @@ impl<'a> FileChecker<'a> for CheckInternalPipeline<'a> {
 }
 
 pub fn check(
-    project_root: PathBuf,
+    project_root: &PathBuf,
     project_config: &ProjectConfig,
     dependencies: bool,
     interfaces: bool,
