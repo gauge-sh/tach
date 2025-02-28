@@ -60,6 +60,8 @@ After an introductory message, you will see a file tree interface allowing you t
 
 Use the arrow keys to navigate, and mark each module boundary with 'Enter'. You can mark all of your top-level Python packages, or just a few that you want to track.
 
+FAQ: [What is a module?](https://docs.gauge.sh/usage/faq#what-is-a-module%3F)
+
 If your Python code lives below your project root, or if you are working in a monorepo with multiple Python packages, mark your Python [source roots](https://docs.gauge.sh/usage/configuration#source-roots) using the 's' key.
 
 ### Enforcement
