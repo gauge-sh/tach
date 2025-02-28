@@ -1,0 +1,9 @@
+source_roots = ["src"]
+
+[[modules]]
+path = "module1"
+depends_on = ["module3"]
+
+[[modules]]
+path = "module2"
+depends_on = ["module3"]
