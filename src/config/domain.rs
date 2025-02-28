@@ -103,22 +103,24 @@ trait Resolvable<T> {
     fn resolve(&self, location: &ConfigLocation) -> T;
 }
 
+impl Resolvable<String> for &str {
+    fn resolve(&self, location: &ConfigLocation) -> String {
+        if self.starts_with("//") {
+            // Absolute path
+            self[2..].to_string()
+        } else if *self == DOMAIN_ROOT_SENTINEL {
+            // Domain root sentinel
+            location.mod_path.clone()
+        } else {
+            // Relative path
+            format!("{}.{}", location.mod_path, self)
+        }
+    }
+}
+
 impl Resolvable<DependencyConfig> for DependencyConfig {
     fn resolve(&self, location: &ConfigLocation) -> DependencyConfig {
-        if self.path.starts_with("//") {
-            // Absolute path does not need to be prefixed with the module path
-            DependencyConfig::new(&self.path[2..], self.deprecated)
-        } else {
-            match self.path.as_str() {
-                // Special case for the domain root sentinel, use the module path
-                DOMAIN_ROOT_SENTINEL => DependencyConfig::new(&location.mod_path, self.deprecated),
-                // Relative path needs to be prefixed with the module path
-                _ => DependencyConfig::new(
-                    &format!("{}.{}", location.mod_path, self.path),
-                    self.deprecated,
-                ),
-            }
-        }
+        DependencyConfig::new(&self.path.as_str().resolve(location), self.deprecated)
     }
 }
 
