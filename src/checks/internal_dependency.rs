@@ -124,6 +124,27 @@ impl<'a> InternalDependencyChecker<'a> {
             LayerCheckResult::SameLayer | LayerCheckResult::LayerNotSpecified => (), // We need to do further processing to determine if the dependency is allowed
         };
 
+        let file_nearest_module_path = &file_module_config.path;
+        let dependency_nearest_module_path = &dependency_module_config.path;
+
+        if let Some(DependencyConfig { .. }) = file_module_config
+            .forbidden_dependencies_iter()
+            .find(|dep| dep.matches(dependency_nearest_module_path))
+        {
+            return Ok(vec![Diagnostic::new_located_error(
+                relative_file_path.to_path_buf(),
+                file_module.line_number(dependency.offset()),
+                dependency
+                    .original_line_offset()
+                    .map(|offset| file_module.line_number(offset)),
+                DiagnosticDetails::Code(CodeDiagnostic::ForbiddenDependency {
+                    dependency: dependency.module_path().to_string(),
+                    usage_module: file_nearest_module_path.to_string(),
+                    definition_module: dependency_nearest_module_path.to_string(),
+                }),
+            )]);
+        }
+
         if file_module_config.depends_on.is_none() {
             return Ok(vec![]);
         }
@@ -132,13 +153,8 @@ impl<'a> InternalDependencyChecker<'a> {
             return Ok(vec![]);
         }
 
-        let file_nearest_module_path = &file_module_config.path;
-        let dependency_nearest_module_path = &dependency_module_config.path;
-
         match file_module_config
             .dependencies_iter()
-            // this is where we match depends_on to the module boundary path
-            // DependencyConfig should build a matcher up-front for any glob patterns
             .find(|dep| dep.matches(dependency_nearest_module_path))
         {
             Some(DependencyConfig {

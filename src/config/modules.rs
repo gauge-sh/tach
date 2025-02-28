@@ -161,6 +161,9 @@ pub struct ModuleConfig {
     #[pyo3(get, set)]
     pub depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
+    #[pyo3(get, set)]
+    pub cannot_depend_on: Option<Vec<DependencyConfig>>,
+    #[serde(default)]
     #[pyo3(get)]
     pub layer: Option<String>,
     #[serde(default)]
@@ -189,7 +192,9 @@ pub struct ModuleConfig {
 impl Default for ModuleConfig {
     fn default() -> Self {
         Self {
+            // By default, a module can depend on nothing
             depends_on: Some(vec![]),
+            cannot_depend_on: Default::default(),
             path: Default::default(),
             layer: Default::default(),
             visibility: Default::default(),
@@ -206,6 +211,7 @@ impl ModuleConfig {
     pub fn new(
         path: &str,
         depends_on: Option<Vec<DependencyConfig>>,
+        cannot_depend_on: Option<Vec<DependencyConfig>>,
         layer: Option<String>,
         visibility: Option<Vec<String>>,
         utility: bool,
@@ -214,6 +220,7 @@ impl ModuleConfig {
         Self {
             path: path.to_string(),
             depends_on,
+            cannot_depend_on,
             layer,
             visibility,
             utility,
@@ -272,6 +279,7 @@ impl ModuleConfig {
         Self {
             path: path.to_string(),
             depends_on: Some(vec![]),
+            cannot_depend_on: None,
             layer: Some(layer.to_string()),
             visibility: None,
             utility: false,
@@ -284,6 +292,13 @@ impl ModuleConfig {
 
     pub fn dependencies_iter(&self) -> impl Iterator<Item = &DependencyConfig> {
         self.depends_on
+            .as_ref()
+            .into_iter()
+            .flat_map(|deps| deps.iter())
+    }
+
+    pub fn forbidden_dependencies_iter(&self) -> impl Iterator<Item = &DependencyConfig> {
+        self.cannot_depend_on
             .as_ref()
             .into_iter()
             .flat_map(|deps| deps.iter())
@@ -370,6 +385,8 @@ struct BulkModule {
     #[serde(default)]
     depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
+    cannot_depend_on: Option<Vec<DependencyConfig>>,
+    #[serde(default)]
     layer: Option<String>,
     #[serde(default)]
     visibility: Option<Vec<String>>,
@@ -391,6 +408,7 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
         let mut bulk = BulkModule {
             paths: modules.iter().map(|m| m.path.clone()).collect(),
             depends_on: None,
+            cannot_depend_on: None,
             layer: first.layer.clone(),
             visibility: first.visibility.clone(),
             utility: first.utility,
@@ -399,11 +417,18 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
 
         let mut unique_deps: HashSet<DependencyConfig> = HashSet::new();
         for module in modules {
-            if let Some(depends_on) = module.depends_on.clone() {
-                unique_deps.extend(depends_on);
+            if let Some(depends_on) = &module.depends_on {
+                // We merge dependencies from all modules, since they may have been mutated in commands like 'sync'
+                unique_deps.extend(depends_on.clone());
             }
 
             // Validate that other fields match the first module
+            if module.cannot_depend_on != first.cannot_depend_on {
+                return Err(format!(
+                    "Inconsistent 'cannot_depend_on' list in bulk module group for path {}",
+                    module.path
+                ));
+            }
             if module.layer != first.layer {
                 return Err(format!(
                     "Inconsistent layer in bulk module group for path {}",
@@ -501,6 +526,7 @@ where
                 .map(|path| ModuleConfig {
                     path,
                     depends_on: bulk.depends_on.clone(),
+                    cannot_depend_on: bulk.cannot_depend_on.clone(),
                     layer: bulk.layer.clone(),
                     visibility: bulk.visibility.clone(),
                     utility: bulk.utility,

@@ -99,6 +99,13 @@ pub enum CodeDiagnostic {
         definition_module: String,
     },
 
+    #[error("Cannot use '{dependency}'. Module '{usage_module}' cannot depend on '{definition_module}'.")]
+    ForbiddenDependency {
+        dependency: String,
+        usage_module: String,
+        definition_module: String,
+    },
+
     #[error("Cannot use '{dependency}'. Layer '{usage_layer}' ('{usage_module}') is lower than layer '{definition_layer}' ('{definition_module}').")]
     LayerViolation {
         dependency: String,
@@ -137,6 +144,7 @@ impl CodeDiagnostic {
             | CodeDiagnostic::InvalidDataTypeExport { dependency, .. }
             | CodeDiagnostic::UndeclaredDependency { dependency, .. }
             | CodeDiagnostic::DeprecatedDependency { dependency, .. }
+            | CodeDiagnostic::ForbiddenDependency { dependency, .. }
             | CodeDiagnostic::LayerViolation { dependency, .. }
             | CodeDiagnostic::UnnecessarilyIgnoredDependency { dependency, .. } => Some(dependency),
             CodeDiagnostic::UnusedIgnoreDirective() => None,
@@ -155,6 +163,7 @@ impl CodeDiagnostic {
             | CodeDiagnostic::InvalidDataTypeExport { usage_module, .. }
             | CodeDiagnostic::UndeclaredDependency { usage_module, .. }
             | CodeDiagnostic::DeprecatedDependency { usage_module, .. }
+            | CodeDiagnostic::ForbiddenDependency { usage_module, .. }
             | CodeDiagnostic::LayerViolation { usage_module, .. } => Some(usage_module),
             _ => None,
         }
@@ -172,6 +181,9 @@ impl CodeDiagnostic {
                 definition_module, ..
             }
             | CodeDiagnostic::DeprecatedDependency {
+                definition_module, ..
+            }
+            | CodeDiagnostic::ForbiddenDependency {
                 definition_module, ..
             }
             | CodeDiagnostic::LayerViolation {
@@ -387,6 +399,7 @@ impl Diagnostic {
             self.details(),
             DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency { .. })
                 | DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency { .. })
+                | DiagnosticDetails::Code(CodeDiagnostic::ForbiddenDependency { .. })
                 | DiagnosticDetails::Code(CodeDiagnostic::LayerViolation { .. })
         )
     }
