@@ -103,17 +103,33 @@ trait Resolvable<T> {
     fn resolve(&self, location: &ConfigLocation) -> T;
 }
 
-impl Resolvable<String> for &str {
+impl<T, U, I> Resolvable<Vec<U>> for I
+where
+    I: IntoIterator<Item = T> + AsRef<[T]>,
+    T: Resolvable<U>,
+{
+    fn resolve(&self, location: &ConfigLocation) -> Vec<U> {
+        self.as_ref()
+            .iter()
+            .map(|item| item.resolve(location))
+            .collect()
+    }
+}
+
+impl<T> Resolvable<String> for T
+where
+    T: AsRef<str>,
+{
     fn resolve(&self, location: &ConfigLocation) -> String {
-        if self.starts_with("//") {
+        if self.as_ref().starts_with("//") {
             // Absolute path
-            self[2..].to_string()
-        } else if *self == DOMAIN_ROOT_SENTINEL {
+            self.as_ref()[2..].to_string()
+        } else if self.as_ref() == DOMAIN_ROOT_SENTINEL {
             // Domain root sentinel
             location.mod_path.clone()
         } else {
             // Relative path
-            format!("{}.{}", location.mod_path, self)
+            format!("{}.{}", location.mod_path, self.as_ref())
         }
     }
 }
@@ -124,12 +140,6 @@ impl Resolvable<DependencyConfig> for DependencyConfig {
     }
 }
 
-impl Resolvable<Vec<DependencyConfig>> for Vec<DependencyConfig> {
-    fn resolve(&self, location: &ConfigLocation) -> Vec<DependencyConfig> {
-        self.iter().map(|dep| dep.resolve(location)).collect()
-    }
-}
-
 impl Resolvable<ModuleConfig> for DomainRootConfig {
     fn resolve(&self, location: &ConfigLocation) -> ModuleConfig {
         ModuleConfig::new(
@@ -137,7 +147,7 @@ impl Resolvable<ModuleConfig> for DomainRootConfig {
             &location.mod_path,
             self.depends_on.clone().map(|deps| deps.resolve(location)),
             self.layer.clone(),
-            self.visibility.clone(),
+            self.visibility.resolve(location),
             self.utility,
             self.unchecked,
         )
@@ -150,7 +160,7 @@ impl Resolvable<ModuleConfig> for ModuleConfig {
             &format!("{}.{}", location.mod_path, self.path),
             self.depends_on.clone().map(|deps| deps.resolve(location)),
             self.layer.clone(),
-            self.visibility.clone(),
+            self.visibility.resolve(location),
             self.utility,
             self.unchecked,
         )
