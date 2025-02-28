@@ -65,6 +65,7 @@ impl<'a> ModuleTreeBuilder<'a> {
     ) -> Result<ModuleTree, ModuleTreeError> {
         // Collect modules
         let modules: Vec<ModuleConfig> = modules.into_iter().collect();
+
         // Check for duplicate modules
         let duplicate_modules = find_duplicate_modules(&modules);
         if !duplicate_modules.is_empty() {
@@ -74,7 +75,7 @@ impl<'a> ModuleTreeBuilder<'a> {
         }
 
         // Check for visibility errors (dependency declared on invisible module)
-        let visibility_error_info = find_visibility_violations(&modules);
+        let visibility_error_info = find_visibility_violations(&modules)?;
         if !visibility_error_info.is_empty() {
             return Err(ModuleTreeError::VisibilityViolation(visibility_error_info));
         }

@@ -8,10 +8,7 @@ use crate::filesystem::file_to_module_path;
 
 use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::interfaces::InterfaceConfig;
-use super::modules::{
-    default_visibility, deserialize_modules, is_default_visibility, serialize_modules,
-    DependencyConfig, ModuleConfig,
-};
+use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
 use super::utils::*;
 use crate::parsing::error::ParsingError;
 
@@ -22,11 +19,8 @@ pub struct DomainRootConfig {
     pub depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
     pub layer: Option<String>,
-    #[serde(
-        default = "default_visibility",
-        skip_serializing_if = "is_default_visibility"
-    )]
-    pub visibility: Vec<String>,
+    #[serde(default)]
+    pub visibility: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub utility: bool,
     #[serde(default, skip_serializing_if = "is_false")]
@@ -147,7 +141,7 @@ impl Resolvable<ModuleConfig> for DomainRootConfig {
             &location.mod_path,
             self.depends_on.clone().map(|deps| deps.resolve(location)),
             self.layer.clone(),
-            self.visibility.resolve(location),
+            self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,
             self.unchecked,
         )
@@ -160,7 +154,7 @@ impl Resolvable<ModuleConfig> for ModuleConfig {
             &format!("{}.{}", location.mod_path, self.path),
             self.depends_on.clone().map(|deps| deps.resolve(location)),
             self.layer.clone(),
-            self.visibility.resolve(location),
+            self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,
             self.unchecked,
         )
