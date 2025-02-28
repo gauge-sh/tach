@@ -35,6 +35,15 @@
             "default": null,
             "description": "List of dependencies for the module"
           },
+          "cannot_depend_on": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Path to the dependency"
+            },
+            "default": null,
+            "description": "List of forbidden dependencies for the module"
+          },
           "layer": {
             "type": "string",
             "description": "The architectural layer this module belongs to"
@@ -58,7 +67,7 @@
             "items": {
               "type": "string"
             },
-            "default": ["*"],
+            "default": null,
             "description": "List of visibility patterns"
           }
         },
@@ -106,6 +115,15 @@
                 "default": null,
                 "description": "List of dependencies for the module"
               },
+              "cannot_depend_on": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Path to the dependency"
+                },
+                "default": null,
+                "description": "List of forbidden dependencies for the module"
+              },
               "layer": {
                 "type": "string",
                 "description": "The architectural layer this module belongs to"
@@ -129,7 +147,7 @@
                 "items": {
                   "type": "string"
                 },
-                "default": ["*"],
+                "default": null,
                 "description": "List of visibility patterns"
               }
             },
@@ -174,6 +192,15 @@
                 "default": null,
                 "description": "List of dependencies for the module"
               },
+              "cannot_depend_on": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Path to the dependency"
+                },
+                "default": null,
+                "description": "List of forbidden dependencies for the module"
+              },
               "layer": {
                 "type": "string",
                 "description": "The architectural layer this module belongs to"
@@ -197,7 +224,7 @@
                 "items": {
                   "type": "string"
                 },
-                "default": ["*"],
+                "default": null,
                 "description": "List of visibility patterns"
               }
             },
