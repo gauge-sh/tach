@@ -4,12 +4,17 @@ layer = "low"
 
 [[modules]]
 path = "submodule1"
-depends_on = ["submodule2"]
+cannot_depend_on = ["submodule2"]
 layer = "low"
 utility = true
 
 [[modules]]
 path = "submodule2"
+depends_on = []
+layer = "low"
+
+[[modules]]
+path = "submodule3"
 depends_on = []
 layer = "low"
 

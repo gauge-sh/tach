@@ -359,6 +359,13 @@ def test_many_features_example_dir(example_dir, capfd):
             "'low'",
             "module3",
         ),
+        (
+            "[FAIL]",
+            "real_src/module3/submodule1/__init__.py",
+            "'module3.submodule1'",
+            "cannot depend on",
+            "'module3.submodule2'",
+        ),
     ]
 
     expected_unused = [
