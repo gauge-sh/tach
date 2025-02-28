@@ -56,6 +56,13 @@ impl<'a> ExternalDependencyChecker<'a> {
                 Some(processed_file.line_number(import.import.import_offset)),
                 DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
                     dependency: import.import.top_level_module_name().to_string(),
+                    package_name: processed_file
+                        .package
+                        .name
+                        .as_ref()
+                        .map_or(processed_file.package.root.display().to_string(), |name| {
+                            name.to_string()
+                        }),
                 }),
             ))
         } else {

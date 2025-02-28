@@ -195,14 +195,10 @@ impl<'a> PackageResolver<'a> {
         self.package_for_source_root.get(source_root.as_ref())
     }
 
-    pub fn get_dependencies_for_package_root(
-        &self,
-        package_root: &PathBuf,
-    ) -> Option<&HashSet<String>> {
+    pub fn get_package_by_package_root(&self, package_root: &PathBuf) -> Option<&Package> {
         self.package_for_source_root
             .values()
             .find(|package| &package.root == package_root)
-            .map(|package| &package.dependencies)
     }
 
     pub fn resolve_file_path<P: AsRef<Path>>(&self, file_path: P) -> PackageResolution {
