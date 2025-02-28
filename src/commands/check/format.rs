@@ -23,6 +23,7 @@ impl From<&DiagnosticDetails> for DiagnosticGroupKind {
             DiagnosticDetails::Code(code_diagnostic_details) => match code_diagnostic_details {
                 CodeDiagnostic::UndeclaredDependency { .. } => Self::InternalDependency,
                 CodeDiagnostic::DeprecatedDependency { .. } => Self::InternalDependency,
+                CodeDiagnostic::ForbiddenDependency { .. } => Self::InternalDependency,
                 CodeDiagnostic::LayerViolation { .. } => Self::InternalDependency,
                 CodeDiagnostic::PrivateDependency { .. } => Self::Interface,
                 CodeDiagnostic::InvalidDataTypeExport { .. } => Self::Interface,

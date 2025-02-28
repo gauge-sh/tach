@@ -297,6 +297,13 @@ impl ModuleConfig {
             .flat_map(|deps| deps.iter())
     }
 
+    pub fn forbidden_dependencies_iter(&self) -> impl Iterator<Item = &DependencyConfig> {
+        self.cannot_depend_on
+            .as_ref()
+            .into_iter()
+            .flat_map(|deps| deps.iter())
+    }
+
     pub fn with_dependencies_removed(&self) -> Self {
         Self {
             depends_on: Some(vec![]),

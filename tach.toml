@@ -25,9 +25,7 @@ depends_on = []
 
 [[modules]]
 path = "tach.__main__"
-depends_on = [
-    "tach.start",
-]
+depends_on = ["tach.start"]
 layer = "ui"
 
 
