@@ -18,6 +18,8 @@ pub struct DomainRootConfig {
     #[serde(default)]
     pub depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
+    pub cannot_depend_on: Option<Vec<DependencyConfig>>,
+    #[serde(default)]
     pub layer: Option<String>,
     #[serde(default)]
     pub visibility: Option<Vec<String>>,
@@ -140,6 +142,9 @@ impl Resolvable<ModuleConfig> for DomainRootConfig {
             // Root modules represent the domain itself
             &location.mod_path,
             self.depends_on.clone().map(|deps| deps.resolve(location)),
+            self.cannot_depend_on
+                .clone()
+                .map(|deps| deps.resolve(location)),
             self.layer.clone(),
             self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,
@@ -153,6 +158,9 @@ impl Resolvable<ModuleConfig> for ModuleConfig {
         ModuleConfig::new(
             &format!("{}.{}", location.mod_path, self.path),
             self.depends_on.clone().map(|deps| deps.resolve(location)),
+            self.cannot_depend_on
+                .clone()
+                .map(|deps| deps.resolve(location)),
             self.layer.clone(),
             self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,
