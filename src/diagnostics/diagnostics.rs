@@ -117,13 +117,16 @@ pub enum CodeDiagnostic {
     #[error("Ignore directive is missing a reason.")]
     MissingIgnoreDirectiveReason(),
 
-    #[error("Dependency '{dependency}' is not declared in the project.")]
-    UndeclaredExternalDependency { dependency: String },
+    #[error("Dependency '{dependency}' is not declared in package '{package_name}'.")]
+    UndeclaredExternalDependency {
+        dependency: String,
+        package_name: String,
+    },
 
-    #[error("External package '{package_module_name}' is not used in package '{package_root}'.")]
+    #[error("External package '{package_module_name}' is not used in package '{package_name}'.")]
     UnusedExternalDependency {
         package_module_name: String,
-        package_root: String,
+        package_name: String,
     },
 }
 

@@ -267,13 +267,13 @@ fn check_with_modules(
     if !project_config.rules.unused_external_dependencies.is_off() {
         for (package_root, seen_dependencies) in pipeline.seen_dependencies {
             let seen_dependencies: HashSet<String> = seen_dependencies.into_iter().collect();
-            let package_dependencies =
-                match package_resolver.get_dependencies_for_package_root(&package_root) {
-                    Some(deps) => deps,
-                    None => continue, // Skip packages we can't resolve dependencies for
-                };
+            let package = match package_resolver.get_package_by_package_root(&package_root) {
+                Some(package) => package,
+                None => continue, // Skip packages we can't resolve dependencies for
+            };
 
-            let unused_dependency_diagnostics = package_dependencies
+            let unused_dependency_diagnostics = package
+                .dependencies
                 .difference(&seen_dependencies)
                 .filter(|&dep| !pipeline.excluded_external_modules.contains(dep)) // 'exclude' should hide unused errors unconditionally
                 .map(|dep| {
@@ -283,10 +283,12 @@ fn check_with_modules(
                             .unwrap(),
                         DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
                             package_module_name: dep.clone(),
-                            package_root: package_root
-                                .strip_prefix(project_root)
-                                .map(|p| p.display().to_string())
-                                .unwrap_or_else(|_| package_root.display().to_string()),
+                            package_name: package
+                                .name
+                                .as_ref()
+                                .map_or(package_root.display().to_string(), |name| {
+                                    name.to_string()
+                                }),
                         }),
                     )
                 });
@@ -356,7 +358,7 @@ mod tests {
             result[0].details(),
             &DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
                 package_module_name: "unused".to_string(),
-                package_root: "src/pack-a".to_string()
+                package_name: "myorg-pack-a".to_string()
             })
         );
     }
@@ -372,17 +374,18 @@ mod tests {
         assert_eq!(result.len(), 3);
         assert!(result.iter().any(|d| d.details()
             == &DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
-                dependency: "git".to_string()
+                dependency: "git".to_string(),
+                package_name: "myorg-pack-a".to_string()
             })));
         assert!(result.iter().any(|d| d.details()
             == &DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
                 package_module_name: "gitpython".to_string(),
-                package_root: "src/pack-a".to_string()
+                package_name: "myorg-pack-a".to_string()
             })));
         assert!(result.iter().any(|d| d.details()
             == &DiagnosticDetails::Code(CodeDiagnostic::UnusedExternalDependency {
                 package_module_name: "unused".to_string(),
-                package_root: "src/pack-a".to_string()
+                package_name: "myorg-pack-a".to_string()
             })));
     }
 }
