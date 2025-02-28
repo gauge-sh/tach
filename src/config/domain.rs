@@ -8,10 +8,7 @@ use crate::filesystem::file_to_module_path;
 
 use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::interfaces::InterfaceConfig;
-use super::modules::{
-    default_visibility, deserialize_modules, is_default_visibility, serialize_modules,
-    DependencyConfig, ModuleConfig,
-};
+use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
 use super::utils::*;
 use crate::parsing::error::ParsingError;
 
@@ -22,11 +19,8 @@ pub struct DomainRootConfig {
     pub depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
     pub layer: Option<String>,
-    #[serde(
-        default = "default_visibility",
-        skip_serializing_if = "is_default_visibility"
-    )]
-    pub visibility: Vec<String>,
+    #[serde(default)]
+    pub visibility: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub utility: bool,
     #[serde(default, skip_serializing_if = "is_false")]
@@ -103,28 +97,40 @@ trait Resolvable<T> {
     fn resolve(&self, location: &ConfigLocation) -> T;
 }
 
-impl Resolvable<DependencyConfig> for DependencyConfig {
-    fn resolve(&self, location: &ConfigLocation) -> DependencyConfig {
-        if self.path.starts_with("//") {
-            // Absolute path does not need to be prefixed with the module path
-            DependencyConfig::new(&self.path[2..], self.deprecated)
+impl<T, U, I> Resolvable<Vec<U>> for I
+where
+    I: IntoIterator<Item = T> + AsRef<[T]>,
+    T: Resolvable<U>,
+{
+    fn resolve(&self, location: &ConfigLocation) -> Vec<U> {
+        self.as_ref()
+            .iter()
+            .map(|item| item.resolve(location))
+            .collect()
+    }
+}
+
+impl<T> Resolvable<String> for T
+where
+    T: AsRef<str>,
+{
+    fn resolve(&self, location: &ConfigLocation) -> String {
+        if self.as_ref().starts_with("//") {
+            // Absolute path
+            self.as_ref()[2..].to_string()
+        } else if self.as_ref() == DOMAIN_ROOT_SENTINEL {
+            // Domain root sentinel
+            location.mod_path.clone()
         } else {
-            match self.path.as_str() {
-                // Special case for the domain root sentinel, use the module path
-                DOMAIN_ROOT_SENTINEL => DependencyConfig::new(&location.mod_path, self.deprecated),
-                // Relative path needs to be prefixed with the module path
-                _ => DependencyConfig::new(
-                    &format!("{}.{}", location.mod_path, self.path),
-                    self.deprecated,
-                ),
-            }
+            // Relative path
+            format!("{}.{}", location.mod_path, self.as_ref())
         }
     }
 }
 
-impl Resolvable<Vec<DependencyConfig>> for Vec<DependencyConfig> {
-    fn resolve(&self, location: &ConfigLocation) -> Vec<DependencyConfig> {
-        self.iter().map(|dep| dep.resolve(location)).collect()
+impl Resolvable<DependencyConfig> for DependencyConfig {
+    fn resolve(&self, location: &ConfigLocation) -> DependencyConfig {
+        DependencyConfig::new(&self.path.as_str().resolve(location), self.deprecated)
     }
 }
 
@@ -135,7 +141,7 @@ impl Resolvable<ModuleConfig> for DomainRootConfig {
             &location.mod_path,
             self.depends_on.clone().map(|deps| deps.resolve(location)),
             self.layer.clone(),
-            self.visibility.clone(),
+            self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,
             self.unchecked,
         )
@@ -148,7 +154,7 @@ impl Resolvable<ModuleConfig> for ModuleConfig {
             &format!("{}.{}", location.mod_path, self.path),
             self.depends_on.clone().map(|deps| deps.resolve(location)),
             self.layer.clone(),
-            self.visibility.clone(),
+            self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,
             self.unchecked,
         )

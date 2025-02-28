@@ -10,6 +10,7 @@ layer = "hightest"
 [[modules]]
 path = "api"
 depends_on = ["**"]
+visibility = ["<domain_root>"]
 layer = "mid"
 
 [[modules]]

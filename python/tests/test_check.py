@@ -464,3 +464,22 @@ def test_monorepo_workspace_example_dir_external(example_dir, capfd):
     ]
 
     _check_expected_messages_unordered(external_section, expected_external)
+
+
+def test_visibility_error_example_dir(example_dir, capfd):
+    project_root = example_dir / "visibility_error"
+    project_config = parse_project_config(root=project_root)
+    assert project_config is not None
+
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(
+            project_root=project_root,
+            project_config=project_config,
+        )
+    assert exc_info.value.code == 1
+
+    captured = capfd.readouterr()
+    assert "Module configuration error" in captured.err
+    assert "'module2' cannot depend on 'module3'" in captured.err
+    assert "module3" in captured.err
+    assert "['module1']" in captured.err

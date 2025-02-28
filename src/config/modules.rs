@@ -146,14 +146,6 @@ impl<'de> Deserialize<'de> for DependencyConfig {
     }
 }
 
-pub fn default_visibility() -> Vec<String> {
-    global_visibility()
-}
-
-pub fn is_default_visibility(value: &Vec<String>) -> bool {
-    value == &default_visibility()
-}
-
 #[derive(Debug, Clone, PartialEq)]
 enum ModuleOrigin {
     Glob(String),
@@ -171,12 +163,9 @@ pub struct ModuleConfig {
     #[serde(default)]
     #[pyo3(get)]
     pub layer: Option<String>,
-    #[serde(
-        default = "default_visibility",
-        skip_serializing_if = "is_default_visibility"
-    )]
+    #[serde(default)]
     #[pyo3(get)]
-    pub visibility: Vec<String>,
+    pub visibility: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "is_false")]
     #[pyo3(get)]
     pub utility: bool,
@@ -200,10 +189,10 @@ pub struct ModuleConfig {
 impl Default for ModuleConfig {
     fn default() -> Self {
         Self {
-            path: Default::default(),
             depends_on: Some(vec![]),
+            path: Default::default(),
             layer: Default::default(),
-            visibility: default_visibility(),
+            visibility: Default::default(),
             utility: Default::default(),
             strict: Default::default(),
             unchecked: Default::default(),
@@ -218,7 +207,7 @@ impl ModuleConfig {
         path: &str,
         depends_on: Option<Vec<DependencyConfig>>,
         layer: Option<String>,
-        visibility: Vec<String>,
+        visibility: Option<Vec<String>>,
         utility: bool,
         unchecked: bool,
     ) -> Self {
@@ -284,7 +273,7 @@ impl ModuleConfig {
             path: path.to_string(),
             depends_on: Some(vec![]),
             layer: Some(layer.to_string()),
-            visibility: default_visibility(),
+            visibility: None,
             utility: false,
             strict: false,
             unchecked: false,
@@ -382,11 +371,8 @@ struct BulkModule {
     depends_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
     layer: Option<String>,
-    #[serde(
-        default = "default_visibility",
-        skip_serializing_if = "is_default_visibility"
-    )]
-    visibility: Vec<String>,
+    #[serde(default)]
+    visibility: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "is_false")]
     utility: bool,
     #[serde(default, skip_serializing_if = "is_false")]
