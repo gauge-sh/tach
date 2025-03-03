@@ -48,5 +48,5 @@ debug = true
 
 
 [dev-dependencies]
-rstest = "0.24.0"
+rstest = "0.25.0"
 serial_test = "3.2.0"
