@@ -144,6 +144,11 @@ depends_on = []
 layer = "core"
 utility = true
 
+[[modules]]
+path = "tach.mcp"
+depends_on = ["tach.parsing", "tach.report"]
+layer = "commands"
+
 [[interfaces]]
 expose = [
     "export_report",

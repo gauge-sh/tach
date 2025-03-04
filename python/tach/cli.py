@@ -26,6 +26,7 @@ from tach.extension import ProjectConfig
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.logging import CallInfo, init_logging, logger
+from tach.mcp.server import mcp
 from tach.modularity import export_report, upload_report_to_gauge
 from tach.parsing import extend_and_validate, parse_project_config
 from tach.report import external_dependency_report, report
@@ -1064,6 +1065,9 @@ def try_parse_project_config(
 
 
 def main(argv: list[str] = sys.argv[1:]) -> None:
+    if argv[0] == "mcp":
+        mcp.run(transport="stdio")
+        return
     args, parser = parse_arguments(argv)
     project_root = fs.find_project_config_root() or Path.cwd()
     using_custom_config = args.command == "server" and args.config
