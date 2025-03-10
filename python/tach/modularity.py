@@ -214,7 +214,8 @@ def build_modules(
         has_interface = False
         interface_members: set[str] = set()
         for interface in project_config.all_interfaces():
-            if any(
+            interface_is_visible = interface.visibility is None or module.path in interface.visibility
+            if interface_is_visible and any(
                 re.match(r"^" + pattern + r"$", module.path)
                 for pattern in interface.from_modules
             ):

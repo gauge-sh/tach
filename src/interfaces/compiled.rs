@@ -4,12 +4,18 @@ use regex::Regex;
 #[derive(Debug, Clone)]
 pub struct CompiledInterface {
     pub from_modules: Vec<Regex>,
+    pub visibility: Option<Vec<String>>,
     pub expose: Vec<Regex>,
     pub data_types: InterfaceDataTypes,
 }
 
 impl CompiledInterface {
     pub fn matches_module(&self, module_path: &str) -> bool {
+        if let Some(visibility) = &self.visibility {
+            if !visibility.iter().any(|v| v == module_path) {
+                return false;
+            }
+        }
         self.from_modules
             .iter()
             .any(|regex| regex.is_match(module_path))
@@ -45,6 +51,7 @@ impl<'a> CompiledInterfaces {
                     .iter()
                     .map(|pattern| Regex::new(&format!("^{}$", pattern)).unwrap())
                     .collect(),
+                visibility: interface.visibility.clone(),
             })
             .collect();
 
