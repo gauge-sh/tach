@@ -1,18 +1,19 @@
-use crate::filesystem::module_path_is_included_in_paths;
-
-use super::root_module::ROOT_MODULE_SENTINEL_TAG;
-use super::utils::*;
-use crate::resolvers::ModuleGlob;
-use globset::GlobMatcher;
-use pyo3::prelude::*;
-use serde::ser::{Error, SerializeSeq, SerializeStruct};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::hash::{Hash, Hasher};
+use std::ops::Not;
 use std::path::PathBuf;
 use std::{
     collections::{HashMap, HashSet},
     fmt,
 };
+
+use globset::GlobMatcher;
+use pyo3::prelude::*;
+use serde::ser::{Error, SerializeSeq, SerializeStruct};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
+use super::root_module::ROOT_MODULE_SENTINEL_TAG;
+use crate::filesystem::module_path_is_included_in_paths;
+use crate::resolvers::ModuleGlob;
 
 #[derive(Clone, Debug, Default)]
 #[pyclass(module = "tach.extension")]
@@ -169,7 +170,7 @@ pub struct ModuleConfig {
     #[serde(default)]
     #[pyo3(get)]
     pub visibility: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get)]
     pub utility: bool,
     // TODO: Remove this in a future version
@@ -179,7 +180,7 @@ pub struct ModuleConfig {
     #[serde(default, skip_serializing)]
     #[pyo3(get)]
     pub strict: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get)]
     pub unchecked: bool,
     // Hidden field to track grouping
@@ -390,9 +391,9 @@ struct BulkModule {
     layer: Option<String>,
     #[serde(default)]
     visibility: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     utility: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     unchecked: bool,
 }
 

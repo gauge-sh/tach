@@ -1,4 +1,5 @@
 use std::iter;
+use std::ops::Not;
 use std::path::{Path, PathBuf};
 
 use pyo3::prelude::*;
@@ -9,7 +10,6 @@ use crate::filesystem::file_to_module_path;
 use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
-use super::utils::*;
 use crate::parsing::error::ParsingError;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
@@ -23,9 +23,9 @@ pub struct DomainRootConfig {
     pub layer: Option<String>,
     #[serde(default)]
     pub visibility: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     pub utility: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     pub unchecked: bool,
 }
 
@@ -183,7 +183,8 @@ impl Resolvable<InterfaceConfig> for InterfaceConfig {
                 })
                 .collect(),
             visibility: self.visibility.clone().map(|vis| vis.resolve(location)),
-            data_types: self.data_types.clone(),
+            data_types: self.data_types,
+            exclusive: self.exclusive,
         }
     }
 }

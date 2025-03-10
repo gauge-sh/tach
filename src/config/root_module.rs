@@ -13,12 +13,6 @@ pub enum RootModuleTreatment {
     DependenciesOnly,
 }
 
-impl RootModuleTreatment {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}
-
 impl IntoPy<PyObject> for RootModuleTreatment {
     fn into_py(self, py: Python) -> PyObject {
         match self {

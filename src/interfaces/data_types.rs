@@ -222,22 +222,16 @@ impl DataTypeChecker for InterfaceDataTypes {
         return_type: &Option<String>,
     ) -> TypeCheckResult {
         match self {
-            InterfaceDataTypes::All => TypeCheckResult::MatchedInterface {
-                expected: self.clone(),
-            },
+            InterfaceDataTypes::All => TypeCheckResult::MatchedInterface { expected: *self },
             InterfaceDataTypes::Primitive => {
                 if parameters
                     .iter()
                     .all(|p| is_primitive_type(p.annotation.as_deref().unwrap_or("")))
                     && return_type.as_ref().is_some_and(|t| is_primitive_type(t))
                 {
-                    TypeCheckResult::MatchedInterface {
-                        expected: self.clone(),
-                    }
+                    TypeCheckResult::MatchedInterface { expected: *self }
                 } else {
-                    TypeCheckResult::DidNotMatchInterface {
-                        expected: self.clone(),
-                    }
+                    TypeCheckResult::DidNotMatchInterface { expected: *self }
                 }
             }
         }
@@ -245,18 +239,12 @@ impl DataTypeChecker for InterfaceDataTypes {
 
     fn type_check_variable(&self, annotation: &Option<String>) -> TypeCheckResult {
         match self {
-            InterfaceDataTypes::All => TypeCheckResult::MatchedInterface {
-                expected: self.clone(),
-            },
+            InterfaceDataTypes::All => TypeCheckResult::MatchedInterface { expected: *self },
             InterfaceDataTypes::Primitive => {
                 if is_primitive_type(annotation.as_deref().unwrap_or("")) {
-                    TypeCheckResult::MatchedInterface {
-                        expected: self.clone(),
-                    }
+                    TypeCheckResult::MatchedInterface { expected: *self }
                 } else {
-                    TypeCheckResult::DidNotMatchInterface {
-                        expected: self.clone(),
-                    }
+                    TypeCheckResult::DidNotMatchInterface { expected: *self }
                 }
             }
         }
@@ -269,7 +257,7 @@ impl DataTypeChecker for InterfaceDataTypes {
 
 pub fn type_check_interface_member(
     interface_member: &InterfaceMember,
-    data_types: &InterfaceDataTypes,
+    data_types: InterfaceDataTypes,
 ) -> TypeCheckResult {
     // NOTE: will need more parameters/state to do this for most cases
     match &interface_member.node {
@@ -335,6 +323,7 @@ mod tests {
             from_modules: vec!["my_module".to_string()],
             visibility: None,
             data_types: InterfaceDataTypes::Primitive,
+            exclusive: false,
         }
     }
 

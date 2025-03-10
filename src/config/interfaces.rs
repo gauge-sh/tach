@@ -1,9 +1,12 @@
 use std::fmt::Display;
+use std::ops::Not;
 
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Default, Deserialize, Clone, PartialEq)]
+use super::utils;
+
+#[derive(Debug, Serialize, Default, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum InterfaceDataTypes {
     #[default]
@@ -17,12 +20,6 @@ impl Display for InterfaceDataTypes {
             Self::All => write!(f, "all"),
             Self::Primitive => write!(f, "primitive"),
         }
-    }
-}
-
-impl InterfaceDataTypes {
-    fn is_default(&self) -> bool {
-        *self == Self::default()
     }
 }
 
@@ -45,8 +42,10 @@ pub struct InterfaceConfig {
     pub from_modules: Vec<String>,
     #[serde(default)]
     pub visibility: Option<Vec<String>>,
-    #[serde(default, skip_serializing_if = "InterfaceDataTypes::is_default")]
+    #[serde(default, skip_serializing_if = "utils::is_default")]
     pub data_types: InterfaceDataTypes,
+    #[serde(default, skip_serializing_if = "Not::not")]
+    pub exclusive: bool,
 }
 
 fn default_from_modules() -> Vec<String> {

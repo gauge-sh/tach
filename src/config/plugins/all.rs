@@ -9,9 +9,3 @@ pub struct PluginsConfig {
     #[serde(default)]
     pub django: Option<DjangoConfig>,
 }
-
-impl PluginsConfig {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}
