@@ -14,7 +14,7 @@ visibility = ["<domain_root>", "//module5"]
 layer = "mid"
 
 [[interfaces]]
-expose = [".*"]
+expose = ["something"]
 from = ["api"]
 
 [[interfaces]]

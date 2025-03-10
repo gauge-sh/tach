@@ -1,4 +1,4 @@
-from .api import MyApi
+from .api import something
 
 from module3 import content
 
