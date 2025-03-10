@@ -14,14 +14,14 @@ visibility = ["<domain_root>", "//module5"]
 layer = "mid"
 
 [[interfaces]]
-expose = [".*"]
+expose = ["something"]
 from = ["api"]
-visibility = ["<domain_root>"]
 
 [[interfaces]]
 expose = ["MyAPI"]
 from = ["api"]
 visibility = ["//module5"]
+exclusive = true
 
 [[modules]]
 path = "submodule1"

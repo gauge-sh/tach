@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::iter;
+use std::ops::Not;
 use std::path::PathBuf;
 
 use crate::exclusion::PathExclusions;
@@ -17,7 +18,7 @@ use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, M
 use super::plugins::PluginsConfig;
 use super::root_module::RootModuleTreatment;
 use super::rules::RulesConfig;
-use super::utils::*;
+use super::utils;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct PyProjectWrapper {
@@ -49,13 +50,13 @@ pub struct ProjectConfig {
     #[serde(default)]
     #[pyo3(get)]
     pub interfaces: Vec<InterfaceConfig>,
-    #[serde(default, skip_serializing_if = "is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[pyo3(get)]
     pub layers: Vec<String>,
-    #[serde(default, skip_serializing_if = "CacheConfig::is_default")]
+    #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
     pub cache: CacheConfig,
-    #[serde(default, skip_serializing_if = "ExternalDependencyConfig::is_default")]
+    #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
     pub external: ExternalDependencyConfig,
     #[serde(default)]
@@ -64,31 +65,34 @@ pub struct ProjectConfig {
     #[serde(default = "default_source_roots")]
     #[pyo3(get, set)]
     pub source_roots: Vec<PathBuf>,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get)]
     pub exact: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get)]
     pub disable_logging: bool,
-    #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    #[serde(
+        default = "utils::default_true",
+        skip_serializing_if = "utils::is_true"
+    )]
     #[pyo3(get, set)]
     pub ignore_type_checking_imports: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get, set)]
     pub include_string_imports: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get)]
     pub forbid_circular_dependencies: bool,
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get, set)]
     pub use_regex_matching: bool,
-    #[serde(default, skip_serializing_if = "RootModuleTreatment::is_default")]
+    #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
     pub root_module: RootModuleTreatment,
-    #[serde(default, skip_serializing_if = "RulesConfig::is_default")]
+    #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
     pub rules: RulesConfig,
-    #[serde(default, skip_serializing_if = "PluginsConfig::is_default")]
+    #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
     pub plugins: PluginsConfig,
     #[serde(skip)]

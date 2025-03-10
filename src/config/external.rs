@@ -9,9 +9,3 @@ pub struct ExternalDependencyConfig {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rename: Vec<String>,
 }
-
-impl ExternalDependencyConfig {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}

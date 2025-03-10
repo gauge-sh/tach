@@ -75,9 +75,3 @@ impl Default for RulesConfig {
         }
     }
 }
-
-impl RulesConfig {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}

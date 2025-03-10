@@ -66,7 +66,9 @@ impl<'a> InterfaceChecker<'a> {
             return InterfaceCheckResult::TopLevelModule;
         }
 
-        let matching_interfaces = self.interfaces.get_interfaces(definition_module);
+        let matching_interfaces = self
+            .interfaces
+            .get_visible_interfaces(definition_module, usage_module);
 
         if matching_interfaces.is_empty() {
             return InterfaceCheckResult::NoInterfaces;
