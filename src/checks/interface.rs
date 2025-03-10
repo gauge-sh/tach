@@ -56,35 +56,35 @@ impl<'a> InterfaceChecker<'a> {
         Ok(self)
     }
 
-    fn check_member(&self, member: &str, module_path: &str) -> InterfaceCheckResult {
+    fn check_member(
+        &self,
+        member: &str,
+        definition_module: &str,
+        usage_module: &str,
+    ) -> InterfaceCheckResult {
         if member.is_empty() {
             return InterfaceCheckResult::TopLevelModule;
         }
 
-        let matching_interfaces = self.interfaces.get_interfaces(module_path);
+        let matching_interfaces = self.interfaces.get_interfaces(definition_module);
 
         if matching_interfaces.is_empty() {
             return InterfaceCheckResult::NoInterfaces;
         }
 
-        let mut is_exposed = false;
         for interface in matching_interfaces {
-            if interface.expose.iter().any(|re| re.is_match(member)) {
-                is_exposed = true;
+            if interface.is_exposed_to(member, usage_module) {
+                return InterfaceCheckResult::Exposed {
+                    type_check_result: self
+                        .type_check_cache
+                        .as_ref()
+                        .map(|cache| cache.get_result(member))
+                        .unwrap_or(TypeCheckResult::Unknown),
+                };
             }
         }
 
-        if !is_exposed {
-            return InterfaceCheckResult::NotExposed;
-        }
-
-        InterfaceCheckResult::Exposed {
-            type_check_result: self
-                .type_check_cache
-                .as_ref()
-                .map(|cache| cache.get_result(member))
-                .unwrap_or(TypeCheckResult::Unknown),
-        }
+        InterfaceCheckResult::NotExposed
     }
 
     fn check_interfaces(
@@ -113,7 +113,11 @@ impl<'a> InterfaceChecker<'a> {
                 .strip_prefix(&dependency_module_config.path)
                 .and_then(|s| s.strip_prefix('.'))
                 .unwrap_or("");
-            let check_result = self.check_member(import_member, &dependency_module_config.path);
+            let check_result = self.check_member(
+                import_member,
+                &dependency_module_config.path,
+                &file_module.module_config().path,
+            );
             match check_result {
                 InterfaceCheckResult::NotExposed => Ok(vec![Diagnostic::new_located_error(
                     file_module.relative_file_path().to_path_buf(),

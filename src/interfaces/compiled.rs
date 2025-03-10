@@ -11,11 +11,6 @@ pub struct CompiledInterface {
 
 impl CompiledInterface {
     pub fn matches_module(&self, module_path: &str) -> bool {
-        if let Some(visibility) = &self.visibility {
-            if !visibility.iter().any(|v| v == module_path) {
-                return false;
-            }
-        }
         self.from_modules
             .iter()
             .any(|regex| regex.is_match(module_path))
@@ -23,6 +18,16 @@ impl CompiledInterface {
 
     pub fn matches_member(&self, member_name: &str) -> bool {
         self.expose.iter().any(|regex| regex.is_match(member_name))
+    }
+
+    pub fn is_visible_to(&self, module_path: &str) -> bool {
+        self.visibility.as_ref().map_or(true, |visibility| {
+            visibility.iter().any(|v| v == module_path)
+        })
+    }
+
+    pub fn is_exposed_to(&self, member: &str, module_path: &str) -> bool {
+        self.matches_member(member) && self.is_visible_to(module_path)
     }
 
     pub fn should_type_check(&self, module_path: &str) -> bool {
