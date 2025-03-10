@@ -81,9 +81,16 @@ impl<'a> CompiledInterfaces {
             .any(|interface| interface.should_type_check())
     }
 
-    pub fn get_interfaces(&'a self, module_path: &'a str) -> Vec<&'a CompiledInterface> {
+    pub fn get_visible_interfaces(
+        &'a self,
+        definition_module: &'a str,
+        usage_module: &'a str,
+    ) -> Vec<&'a CompiledInterface> {
         let mut interfaces = Vec::new();
-        for compiled_interface in self.interfaces_for_module(module_path) {
+        for compiled_interface in self
+            .interfaces_for_module(definition_module)
+            .filter(|interface| interface.is_visible_to(usage_module))
+        {
             if compiled_interface.exclusive {
                 // If we encounter an exclusive interface, we return it immediately
                 return vec![compiled_interface];
