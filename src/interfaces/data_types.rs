@@ -333,6 +333,7 @@ mod tests {
         InterfaceConfig {
             expose: vec![".*".to_string()],
             from_modules: vec!["my_module".to_string()],
+            visibility: None,
             data_types: InterfaceDataTypes::Primitive,
         }
     }

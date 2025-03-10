@@ -182,6 +182,7 @@ impl Resolvable<InterfaceConfig> for InterfaceConfig {
                     _ => format!("{}.{}", location.mod_path, mod_path),
                 })
                 .collect(),
+            visibility: self.visibility.clone().map(|vis| vis.resolve(location)),
             data_types: self.data_types.clone(),
         }
     }

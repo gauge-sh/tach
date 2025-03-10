@@ -315,6 +315,12 @@ def test_many_features_example_dir(example_dir, capfd):
             "module3.anything",
             "public interface",
         ),
+        (
+            "[FAIL]",
+            "other_src_root/module5/__init__.py",
+            "module1.api.something",
+            "public interface",
+        ),
     ]
 
     expected_dependencies = [

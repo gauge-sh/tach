@@ -127,6 +127,7 @@ class InterfaceConfig:
     expose: list[str]
     # 'from' in tach.toml
     from_modules: list[str]
+    visibility: list[str] | None
     data_types: InterfaceDataTypes
 
 CacheBackend = Literal["disk"]

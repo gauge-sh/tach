@@ -1,5 +1,5 @@
 [root]
-depends_on = []
+depends_on = ["//module1.api"]
 layer = "mid"
 
 [[interfaces]]

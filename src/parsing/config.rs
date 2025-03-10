@@ -71,6 +71,7 @@ fn migrate_strict_mode_to_interfaces(filepath: &Path, config: &mut ProjectConfig
             interfaces.push(InterfaceConfig {
                 expose: interface_members,
                 from_modules: vec![module.path.clone()],
+                visibility: None,
                 data_types: InterfaceDataTypes::All,
             });
         }

@@ -43,6 +43,8 @@ pub struct InterfaceConfig {
         skip_serializing_if = "is_default_from_modules"
     )]
     pub from_modules: Vec<String>,
+    #[serde(default)]
+    pub visibility: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "InterfaceDataTypes::is_default")]
     pub data_types: InterfaceDataTypes,
 }

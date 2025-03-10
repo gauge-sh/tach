@@ -250,6 +250,14 @@
             "items": { "type": "string" },
             "description": "List of regex patterns that match modules which adopt this interface"
           },
+          "visibility": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": null,
+            "description": "List of visibility patterns"
+          },
           "data_types": {
             "type": "string",
             "default": "all",

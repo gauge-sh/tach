@@ -10,8 +10,18 @@ layer = "hightest"
 [[modules]]
 path = "api"
 depends_on = ["**"]
-visibility = ["<domain_root>"]
+visibility = ["<domain_root>", "//module5"]
 layer = "mid"
+
+[[interfaces]]
+expose = [".*"]
+from = ["api"]
+visibility = ["<domain_root>"]
+
+[[interfaces]]
+expose = ["MyAPI"]
+from = ["api"]
+visibility = ["//module5"]
 
 [[modules]]
 path = "submodule1"
