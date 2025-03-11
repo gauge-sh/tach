@@ -188,6 +188,11 @@
             "default": null,
             "description": "List of visibility patterns"
           },
+          "exclusive": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this interface is exclusive"
+          },
           "data_types": {
             "type": "string",
             "default": "all",
