@@ -1004,7 +1004,7 @@ def tach_upload(
             force=force,
         )
     except TachClosedBetaError as e:
-        console_err.print(e)
+        console_err.print(str(e))
         sys.exit(1)
     except TachError as e:
         console_err.print(f"Failed to upload modularity report: {e}")

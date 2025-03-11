@@ -52,6 +52,7 @@ def render_path_simple(file_path: Path, line: int | None = None) -> str:
         return f"{file_path}[L{line}]"
     return str(file_path)
 
+
 def create_clickable_link(
     file_path: Path, display_path: Path | None = None, line: int | None = None
 ) -> str:
