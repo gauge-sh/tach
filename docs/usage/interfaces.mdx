@@ -9,7 +9,7 @@ A module can adopt a public interface by matching interface rules in [`tach.toml
 When Tach is checking imports from a module with a [public interface](./configuration#interfaces), it will verify that the import matches one of the `expose` patterns.
 This prevents other modules from becoming coupled to implementation details, and makes future changes easier.
 
-## Example
+### Example
 
 Given modules called 'core' and 'domain', we may have `tach.toml` contents like this:
 
@@ -56,3 +56,60 @@ get_data()
 ```bash
 ✅ All modules validated!
 ```
+
+
+## Interface visibility
+
+Interfaces can specify `visibility`, similar to [modules](../usage/configuration#modules).
+
+This allows 'splitting' the interface, usually to support a detailed/sensitive interface for some consumers while maintaining a minimal interface by default.
+
+### Example
+
+```toml
+[[modules]]
+path = "api"
+depends_on = []
+
+[[interfaces]]
+expose = ["read_data"]
+from = ["api"]
+
+[[interfaces]]
+expose = ["write_data"]
+from = ["api"]
+visibility = ["admin.controller"]  # limiting visibility of this interface
+```
+
+In the configuration shown above, the `api` module exposes only `read_data` to most consumers,
+while also providing `write_data` through an interface visible only to `admin.controller`.
+
+You may attach an arbitrary number of interfaces to the same module, with varying `visibility`.
+
+
+### Example: Exclusive interface
+
+It is also possible to mark an interface with `exclusive: true`.
+
+When an interface is `exclusive`, it will override all other matching interfaces for the module,
+which is only relevant when using `visibility` as shown above.
+
+Using the example above:
+
+```toml
+[[modules]]
+path = "api"
+depends_on = []
+
+[[interfaces]]
+expose = ["read_data"]
+from = ["api"]
+
+[[interfaces]]
+expose = ["write_data"]
+from = ["api"]
+visibility = ["admin.controller"]
+exclusive = true  # marking this interface as 'exclusive'
+```
+
+By marking the `write_data` interface as exclusive, we are saying that `admin.controller` should _exclusively_ use `api` through that interface (e.g. `write_data`).
