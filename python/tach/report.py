@@ -5,13 +5,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tach import errors
-from tach.colors import BCOLORS
 from tach.extension import (
     create_dependency_report,
     get_external_imports,
 )
 from tach.filesystem import walk_pyfiles
-from tach.utils.display import create_clickable_link
+from tach.utils.display import BCOLORS, colorize, create_clickable_link
 from tach.utils.exclude import is_path_excluded
 from tach.utils.external import (
     get_package_name,
@@ -76,9 +75,10 @@ def render_external_dependency(
         display_path=display_path,
         line=dependency.import_line_number,
     )
+    import_info = f"Import '{dependency.import_module_path}' from package '{dependency.package_name}'"
     return (
-        f"{BCOLORS.OKGREEN}{clickable_link}{BCOLORS.ENDC}{BCOLORS.OKCYAN}: "
-        f"Import '{dependency.import_module_path}' from package '{dependency.package_name}'{BCOLORS.ENDC}"
+        f"{colorize(clickable_link, BCOLORS.OKGREEN)}: "
+        f"{colorize(import_info, BCOLORS.OKCYAN)}"
     )
 
 
@@ -88,7 +88,9 @@ def render_external_dependency_report(
     if not dependencies:
         if raw:
             return ""
-        return f"{BCOLORS.OKCYAN}No external dependencies found in {BCOLORS.ENDC}{BCOLORS.OKGREEN}'{path}'.{BCOLORS.ENDC}"
+        no_deps_msg = "No external dependencies found in "
+        path_str = f"'{path}'"
+        return f"{colorize(no_deps_msg, BCOLORS.OKCYAN)}{colorize(path_str, BCOLORS.OKGREEN)}."
 
     if raw:
         return "# External Dependencies\n" + "\n".join(
@@ -100,7 +102,7 @@ def render_external_dependency_report(
     lines = [title, divider]
 
     if not dependencies:
-        lines.append(f"{BCOLORS.OKGREEN}No external dependencies found.{BCOLORS.ENDC}")
+        lines.append(colorize("No external dependencies found.", BCOLORS.OKGREEN))
         return "\n".join(lines)
 
     for dependency in dependencies:

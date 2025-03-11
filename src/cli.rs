@@ -26,6 +26,9 @@ fn detect_environment() -> TerminalEnvironment {
 }
 
 pub fn create_clickable_link(file_path: &Path, abs_path: &Path, line: &usize) -> String {
+    if !is_interactive() {
+        return format!("{}[L{}]", abs_path.display(), line);
+    }
     let terminal_env = detect_environment();
     let file_path_str = file_path.to_string_lossy().to_string();
     let abs_path_str = abs_path.to_string_lossy().to_string();
@@ -49,9 +52,9 @@ pub fn supports_emoji() -> bool {
     term.is_term() && term.features().wants_emoji()
 }
 
-pub fn supports_colors() -> bool {
+pub fn is_interactive() -> bool {
     let term = Term::stdout();
-    term.is_term() && term.features().colors_supported()
+    term.is_term() && term.features().is_attended()
 }
 
 pub struct EmojiIcons;

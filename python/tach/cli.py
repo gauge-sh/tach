@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 from tach import __version__, cache, extension, icons
 from tach import filesystem as fs
 from tach.check_external import check_external
-from tach.colors import BCOLORS
 from tach.console import console, console_err
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.errors import (
@@ -154,9 +153,9 @@ def print_visibility_errors(
     else:
         for dependent_module, dependency_module, visibility in visibility_errors:
             console_err.print(
-                f"{icons.FAIL} [red]Module configuration error:[/]{BCOLORS.ENDC} {BCOLORS.WARNING}'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.{BCOLORS.ENDC}"
+                f"{icons.FAIL} [red]Module configuration error:[/] [yellow]'{dependent_module}' cannot depend on '{dependency_module}' because '{dependent_module}' does not match its visibility: {visibility}.[/]"
                 "\n"
-                f"{BCOLORS.WARNING}Adjust 'visibility' for '{dependency_module}' to include '{dependent_module}', or remove the dependency.{BCOLORS.ENDC}"
+                f"[yellow]Adjust 'visibility' for '{dependency_module}' to include '{dependent_module}', or remove the dependency.[/]"
                 "\n",
             )
 
@@ -644,7 +643,7 @@ def tach_mod(
             depth=depth,
         )
     except Exception as e:
-        print(str(e))
+        console_err.print(str(e))
         sys.exit(1)
 
     if warnings:
@@ -785,7 +784,7 @@ def tach_report(
         print("\n".join(reports))
         sys.exit(0)
     except TachError as e:
-        print(f"Report failed: {e}")
+        print(f"Report failed: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -887,8 +886,8 @@ def tach_test(
     )
 
     if pytest_args and pytest_args[0] != "--":
-        print(
-            f"{BCOLORS.FAIL}Unknown arguments received. Use '--' to separate arguments for pytest. Ex: '{TOOL_NAME} test -- -v'{BCOLORS.ENDC}"
+        console_err.print(
+            f"[red]Unknown arguments received. Use '--' to separate arguments for pytest. Ex: '{TOOL_NAME} test -- -v'[/]"
         )
         sys.exit(1)
 
@@ -951,7 +950,7 @@ def tach_test(
             )
         sys.exit(results.exit_code)
     except TachError as e:
-        print(f"{BCOLORS.FAIL}Report failed: {e}{BCOLORS.ENDC}")
+        console_err.print(f"[red]Report failed: {e}[/]")
         sys.exit(1)
 
 
@@ -1005,10 +1004,10 @@ def tach_upload(
             force=force,
         )
     except TachClosedBetaError as e:
-        print(e)
+        console_err.print(str(e))
         sys.exit(1)
     except TachError as e:
-        print(f"Failed to upload modularity report: {e}")
+        console_err.print(f"Failed to upload modularity report: {e}")
         sys.exit(1)
 
 
@@ -1130,7 +1129,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
             "WARNING: root module treatment is set to 'ignore' (default as of 0.23.0), but '<root>' appears in your configuration."
             + f"\n\nRun '{TOOL_NAME} sync' to remove the root module from your dependencies,"
             + f" or update 'root_module' in {CONFIG_FILE_NAME}.toml to 'allow' or 'forbid' instead."
-            + f"\nDocumentation: https://docs.gauge.sh/usage/configuration#the-root-module{BCOLORS.ENDC}"
+            + "\nDocumentation: https://docs.gauge.sh/usage/configuration#the-root-module"
             + "\n",
             style="yellow",
         )
@@ -1141,7 +1140,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
             exclude_paths, project_config.exclude, project_config.use_regex_matching
         )
     except TachConfigError as e:
-        print(f"{BCOLORS.FAIL}Failed to validate exclude paths: {e}{BCOLORS.ENDC}")
+        console_err.print(f"[red]Failed to validate exclude paths: {e}[/]")
         sys.exit(1)
 
     if args.command == "sync":

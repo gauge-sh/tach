@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from urllib import parse
 
 from tach import filesystem as fs
-from tach.colors import BCOLORS
+from tach.console import console
 from tach.constants import GAUGE_API_BASE_URL
 from tach.errors import TachClosedBetaError, TachError
 from tach.extension import (
@@ -52,13 +52,11 @@ def upload_report_to_gauge(
 ):
     """Upload a modularity report to Gauge."""
     report = generate_modularity_report(project_root, project_config, force=force)
-    print(f"{BCOLORS.OKCYAN} > Uploading report...{BCOLORS.ENDC}")
+    console.print("[cyan] > Uploading report...[/]")
     response_data = post_json_to_gauge_api(asdict(report))
-    print(f"{BCOLORS.OKGREEN} > Report uploaded!{BCOLORS.ENDC}")
+    console.print("[green] > Report uploaded![/]")
     if response_data.get("url"):
-        print(
-            f"{BCOLORS.OKBLUE} > {GAUGE_API_BASE_URL}{response_data['url']}{BCOLORS.ENDC}"
-        )
+        console.print(f"[blue] > {GAUGE_API_BASE_URL}{response_data['url']}[/]")
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
@@ -70,9 +68,9 @@ def post_json_to_gauge_api(
 ) -> dict[str, str]:
     if not GAUGE_API_KEY:
         raise TachClosedBetaError(
-            f"{BCOLORS.WARNING}Modularity is currently in closed beta. Visit {GAUGE_API_BASE_URL}/closed-beta to request access.{BCOLORS.ENDC}"
+            f"[yellow]Modularity is currently in closed beta. Visit {GAUGE_API_BASE_URL}/closed-beta to request access.[/]"
             "\n\n"
-            f"{BCOLORS.OKCYAN}Already have access? Set the GAUGE_API_KEY environment variable to continue.{BCOLORS.ENDC}"
+            f"[cyan]Already have access? Set the GAUGE_API_KEY environment variable to continue.[/]"
         )
     headers = {
         "Content-Type": "application/json",
@@ -329,7 +327,7 @@ def build_diagnostics(
 def generate_modularity_report(
     project_root: Path, project_config: ProjectConfig, force: bool = False
 ) -> Report:
-    print(f"{BCOLORS.OKCYAN} > Generating report...{BCOLORS.ENDC}")
+    console.print("[cyan] > Generating report...[/]")
     branch_info = get_current_branch_info(project_root, allow_dirty=force)
     report = Report(
         user_name="",  # only needed for binding a new api key
@@ -348,7 +346,7 @@ def generate_modularity_report(
         project_config=project_config,
     )
 
-    print(f"{BCOLORS.OKGREEN} > Report generated!{BCOLORS.ENDC}")
+    console.print("[green] > Report generated![/]")
     return report
 
 
