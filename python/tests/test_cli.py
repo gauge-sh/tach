@@ -39,8 +39,8 @@ def test_execute_with_config(capfd, mock_check, mock_project_config):
         )
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
-    assert "✅" in captured.out
-    assert "All modules validated!" in captured.out
+    assert "✅" in captured.err
+    assert "All modules validated!" in captured.err
 
 
 def test_invalid_command(capfd):
@@ -63,8 +63,8 @@ def test_execute_with_valid_exclude(capfd, mock_check, mock_project_config):
         )
     captured = capfd.readouterr()
     assert sys_exit.value.code == 0
-    assert "✅" in captured.out
-    assert "All modules validated!" in captured.out
+    assert "✅" in captured.err
+    assert "All modules validated!" in captured.err
 
 
 def test_tach_server_with_config(tmp_path, mocker):
