@@ -7,9 +7,10 @@ use rayon::prelude::*;
 
 use thiserror::Error;
 
+use crate::cli;
+use crate::cli::create_clickable_link;
 use crate::colors::*;
 
-use crate::cli::create_clickable_link;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
 use crate::dependencies::LocatedImport;
@@ -81,6 +82,14 @@ impl DependencyReport {
         }
     }
 
+    fn color_if_interactive(&self, color: &'static str) -> &'static str {
+        if cli::is_interactive() {
+            color
+        } else {
+            ""
+        }
+    }
+
     fn render_dependency(&self, dependency: &Dependency) -> String {
         let clickable_link = create_clickable_link(
             &dependency.file_path,
@@ -89,10 +98,10 @@ impl DependencyReport {
         );
         format!(
             "{green}{clickable_link}{end_color}: {cyan}Import '{import_mod_path}'{end_color}",
-            green = BColors::OKGREEN,
+            green = self.color_if_interactive(BColors::OKGREEN),
             clickable_link = clickable_link,
-            end_color = BColors::ENDC,
-            cyan = BColors::OKCYAN,
+            end_color = self.color_if_interactive(BColors::ENDC),
+            cyan = self.color_if_interactive(BColors::OKCYAN),
             import_mod_path = dependency.import.module_path()
         )
     }
@@ -146,8 +155,8 @@ impl DependencyReport {
             let deps_display: String = match self.dependencies.len() {
                 0 => format!(
                     "{cyan}No dependencies found.{end_color}",
-                    cyan = BColors::WARNING,
-                    end_color = BColors::ENDC
+                    cyan = self.color_if_interactive(BColors::WARNING),
+                    end_color = self.color_if_interactive(BColors::ENDC)
                 ),
                 _ => self
                     .dependencies
@@ -172,8 +181,8 @@ impl DependencyReport {
             let usages_display: String = match self.usages.len() {
                 0 => format!(
                     "{cyan}No usages found.{end_color}",
-                    cyan = BColors::WARNING,
-                    end_color = BColors::ENDC
+                    cyan = self.color_if_interactive(BColors::WARNING),
+                    end_color = self.color_if_interactive(BColors::ENDC)
                 ),
                 _ => self
                     .usages
@@ -196,8 +205,8 @@ impl DependencyReport {
             result.push_str(&format!(
                 "[ Warnings ]\n\
                 {warning_color}{warnings}{end_color}",
-                warning_color = BColors::WARNING,
-                end_color = BColors::ENDC,
+                warning_color = self.color_if_interactive(BColors::WARNING),
+                end_color = self.color_if_interactive(BColors::ENDC),
                 warnings = self.warnings.join("\n")
             ));
         }

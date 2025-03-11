@@ -57,12 +57,6 @@ depends_on = [
 layer = "ui"
 
 [[modules]]
-path = "tach.colors"
-depends_on = []
-layer = "core"
-utility = true
-
-[[modules]]
 path = "tach.constants"
 depends_on = []
 layer = "core"
@@ -172,14 +166,6 @@ expose = [
 ]
 from = [
     "tach.cli",
-]
-
-[[interfaces]]
-expose = [
-    "BCOLORS",
-]
-from = [
-    "tach.colors",
 ]
 
 [[interfaces]]

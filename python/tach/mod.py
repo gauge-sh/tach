@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tach import errors
-from tach.colors import BCOLORS
 from tach.filesystem import build_project_config_path, file_to_module_path
 from tach.interactive import (
     InteractiveModuleConfiguration,
@@ -156,7 +155,7 @@ def mod_edit_interactive(
         validation_result = validate_configuration(interactive_module_configuration)
         if validation_result.errors:
             return False, [
-                f"{BCOLORS.FAIL}Validation error: {BCOLORS.WARNING}{error}{BCOLORS.ENDC}"
+                f"[red]Validation error: [yellow]{error}[/][/]"
                 for error in validation_result.errors
             ]
         apply_selected_configuration(
@@ -168,7 +167,7 @@ def mod_edit_interactive(
         )
         return True, []
     else:
-        return False, [f"{BCOLORS.OKCYAN}No changes saved.{BCOLORS.ENDC}"]
+        return False, ["[cyan]No changes saved.[/]"]
 
 
 __all__ = ["mod_edit_interactive"]

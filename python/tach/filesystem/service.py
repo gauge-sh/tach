@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Generator, Optional
 
-from tach.colors import BCOLORS
+from tach.utils.display import BCOLORS, colorize
 from tach.utils.exclude import is_path_excluded
 
 
@@ -16,7 +16,7 @@ def write_file(path: Path, content: str, root: Optional[Path] = None):
         display_path = path.relative_to(root or Path.cwd())
     except AssertionError:
         display_path = path.resolve()
-    print(f"{BCOLORS.WARNING}Wrote '{display_path}'{BCOLORS.ENDC}")
+    print(colorize(f"Wrote '{display_path}'", BCOLORS.WARNING))
 
 
 def mark_executable(path: Path):
