@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 from tach import __version__, cache, extension, icons
 from tach import filesystem as fs
 from tach.check_external import check_external
-from tach.console import console, console_err
+from tach.console import console_err
 from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.errors import (
     TachCircularDependencyError,
@@ -61,9 +61,10 @@ def print_unused_dependencies(
         "[red bold]Unused Dependencies[/]\n" + f"[yellow]{constraint_messages}[/]"
     )
     console_err.print(
-        f"\n[yellow]Remove the unused dependencies from {CONFIG_FILE_NAME}.toml, "
+        f"\nRemove the unused dependencies from {CONFIG_FILE_NAME}.toml, "
         f"or consider running '{TOOL_NAME} sync' to update module configuration and "
-        f"remove all unused dependencies.[/]\n"
+        f"remove all unused dependencies.\n",
+        style="yellow",
     )
 
 
@@ -95,12 +96,12 @@ def print_no_dependencies_found() -> None:
 
 def print_show_web_suggestion(is_mermaid: bool = False) -> None:
     if is_mermaid:
-        console.print(
+        console_err.print(
             "NOTE: You are generating a Mermaid graph locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need to use Mermaid.js: https://mermaid.js.org/config/usage.html\n",
             style="cyan",
         )
     else:
-        console.print(
+        console_err.print(
             "NOTE: You are generating a DOT file locally representing your module graph. For a remotely hosted visualization, use the '--web' argument.\nTo visualize your graph, you will need a program like GraphViz: https://www.graphviz.org/download/\n",
             style="cyan",
         )
@@ -110,12 +111,12 @@ def print_generated_module_graph_file(
     output_filepath: Path, is_mermaid: bool = False
 ) -> None:
     if is_mermaid:
-        console.print(
+        console_err.print(
             f"Generated a Mermaid file containing your module graph at '{output_filepath}'",
             style="green",
         )
     else:
-        console.print(
+        console_err.print(
             f"Generated a DOT file containing your module graph at '{output_filepath}'",
             style="green",
         )
@@ -568,9 +569,7 @@ def tach_check(
         sys.exit(1)
 
     if exit_code == 0 and output_format == "text":
-        console.print(
-            f"{icons.SUCCESS} [green]All modules validated![/]", style="green"
-        )
+        console_err.print(f"{icons.SUCCESS} All modules validated!", style="green")
     sys.exit(exit_code)
 
 
@@ -603,9 +602,8 @@ def tach_check_external(
         if has_errors:
             sys.exit(1)
         else:
-            console.print(
-                f"{icons.SUCCESS} [green]All external dependencies validated![/]",
-                style="green",
+            console_err.print(
+                f"{icons.SUCCESS} All external dependencies validated!", style="green"
             )
             sys.exit(0)
 
@@ -649,9 +647,9 @@ def tach_mod(
     if warnings:
         console_err.print("\n".join(warnings))
     if saved_changes:
-        console.print(
-            f"{icons.SUCCESS} [green]Set modules! You may want to run '{TOOL_NAME} sync' "
-            f"to automatically set boundaries.[/]",
+        console_err.print(
+            f"{icons.SUCCESS} Set modules! You may want to run '{TOOL_NAME} sync' "
+            f"to automatically set boundaries.",
             style="green",
         )
     sys.exit(0)
@@ -681,7 +679,7 @@ def tach_sync(
         print(str(e))
         sys.exit(1)
 
-    console.print(f"{icons.SUCCESS} [green]Synced dependencies.[/]", style="green")
+    console_err.print(f"{icons.SUCCESS} Synced dependencies.", style="green")
     sys.exit(0)
 
 
@@ -712,14 +710,14 @@ def tach_install(project_root: Path, target: InstallTarget) -> None:
         sys.exit(1)
 
     if installed:
-        console.print(
-            f"{icons.SUCCESS} [green]Pre-commit hook installed to '.git/hooks/pre-commit'.[/]",
+        console_err.print(
+            f"{icons.SUCCESS} Pre-commit hook installed to '.git/hooks/pre-commit'.",
             style="green",
         )
         sys.exit(0)
     else:
-        console.print(
-            f"[yellow]Pre-commit hook could not be installed: {warning}[/]",
+        console_err.print(
+            f"Pre-commit hook could not be installed: {warning}",
             style="yellow",
         )
         sys.exit(1)
@@ -807,8 +805,8 @@ def tach_show(
     )
 
     if is_web and is_mermaid:
-        console.print(
-            "[yellow]Passing --web generates a remote graph; ignoring '--mermaid' flag.[/]",
+        console_err.print(
+            "Passing --web generates a remote graph; ignoring '--mermaid' flag.",
             style="yellow",
         )
 
@@ -830,8 +828,8 @@ def tach_show(
                 included_paths=included_paths,
             )
             if result:
-                console.print("View your dependency graph here:")
-                console.print(result)
+                console_err.print("View your dependency graph here:")
+                console_err.print(result)
                 sys.exit(0)
             else:
                 sys.exit(1)
@@ -909,12 +907,12 @@ def tach_test(
         )
         if cached_output.exists:
             # Early exit, cached terminal output was found
-            console.print(
+            console_err.print(
                 "============ Cached results found!  ============",
                 style="green",
             )
             cached_output.replay()
-            console.print(
+            console_err.print(
                 "============ END Cached results  ============",
                 style="green",
             )
@@ -1080,7 +1078,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
 
     latest_version = cache.get_latest_version(project_root)
     if latest_version and current_version_is_behind(latest_version):
-        console.print(
+        console_err.print(
             f"WARNING: there is a new {TOOL_NAME} version available"
             f" ({__version__} -> {latest_version}). Upgrade to remove this warning.",
             style="yellow",
@@ -1115,7 +1113,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
 
     # Deprecation warnings
     if project_config.use_regex_matching:
-        console.print(
+        console_err.print(
             "WARNING: regex matching for exclude paths is deprecated. "
             + f"Update your exclude paths in {CONFIG_FILE_NAME}.toml to use glob patterns instead, and remove the 'use_regex_matching' setting."
             + "\n",
@@ -1125,7 +1123,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         project_config.root_module == "ignore"
         and project_config.has_root_module_reference()
     ):
-        console.print(
+        console_err.print(
             "WARNING: root module treatment is set to 'ignore' (default as of 0.23.0), but '<root>' appears in your configuration."
             + f"\n\nRun '{TOOL_NAME} sync' to remove the root module from your dependencies,"
             + f" or update 'root_module' in {CONFIG_FILE_NAME}.toml to 'allow' or 'forbid' instead."

@@ -29,7 +29,7 @@ def test_valid_example_dir(example_dir, capfd):
 
         assert exc_info.value.code == 0
         captured = capfd.readouterr()
-        assert "✅" in captured.out  # success state
+        assert "✅" in captured.err  # success state
 
 
 def test_distributed_config_dir(example_dir, capfd):
@@ -60,7 +60,7 @@ def test_distributed_config_dir(example_dir, capfd):
 
         assert exc_info.value.code == 0
         captured = capfd.readouterr()
-        assert "✅" in captured.out  # success state
+        assert "✅" in captured.err  # success state
 
         project_config = parse_project_config(root=temp_project_root)
         assert project_config is not None
@@ -95,7 +95,7 @@ def test_many_features_example_dir(example_dir, capfd):
 
         assert exc_info.value.code == 0
         captured = capfd.readouterr()
-        assert "✅" in captured.out  # success state
+        assert "✅" in captured.err  # success state
 
         project_config = parse_project_config(root=temp_project_root)
         assert project_config is not None
