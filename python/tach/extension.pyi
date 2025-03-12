@@ -113,6 +113,9 @@ class DependencyConfig:
 class ModuleConfig:
     path: str
     depends_on: list[DependencyConfig] | None
+    cannot_depend_on: list[DependencyConfig] | None
+    depends_on_external: list[str] | None
+    cannot_depend_on_external: list[str] | None
     visibility: list[str]
     strict: bool
     unchecked: bool
