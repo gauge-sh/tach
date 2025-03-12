@@ -38,9 +38,12 @@ impl<'a> ExternalDependencyChecker<'a> {
             .cannot_depend_on_external
             .as_ref()
             .is_some_and(|external_dependencies| {
-                external_dependencies
-                    .iter()
-                    .any(|dependency| dependency == &import.import.top_level_module_name())
+                external_dependencies.iter().any(|dependency| {
+                    import
+                        .distribution_names
+                        .iter()
+                        .any(|dist_name| dist_name == dependency)
+                })
             })
         {
             Some(Diagnostic::new_located_error(
@@ -56,9 +59,12 @@ impl<'a> ExternalDependencyChecker<'a> {
             .depends_on_external
             .as_ref()
             .is_some_and(|external_dependencies| {
-                !external_dependencies
-                    .iter()
-                    .any(|dependency| dependency == &import.import.top_level_module_name())
+                !external_dependencies.iter().any(|dependency| {
+                    import
+                        .distribution_names
+                        .iter()
+                        .any(|dist_name| dist_name == dependency)
+                })
             })
         {
             Some(Diagnostic::new_located_error(
