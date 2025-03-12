@@ -22,6 +22,7 @@ require_ignore_directive_reasons = "error"
 [[modules]]
 path = "**"
 depends_on = []
+depends_on_external = []
 
 [[modules]]
 path = "tach.__main__"

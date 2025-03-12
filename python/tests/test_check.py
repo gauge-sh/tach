@@ -420,8 +420,9 @@ def test_many_features_example_dir__external(example_dir, capfd):
         ("[FAIL]", "tomli_w", "not used"),
         ("[FAIL]", "pydot", "not used"),
         ("[FAIL]", "rich", "not used"),
-        ("[FAIL]", "networkx", "not used"),
         ("[FAIL]", "stdlib_list", "not used"),
+        ("[FAIL]", "other_src_root/module5/__init__.py", "module5", "networkx"),
+        ("[FAIL]", "real_src/module1/__init__.py", "module1", "tomli"),
         ("[FAIL]", "real_src/django_settings.py", "django", "not declared"),
         ("[FAIL]", "real_src/module3/content.py", "django", "not declared"),
     ]

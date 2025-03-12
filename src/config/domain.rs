@@ -20,6 +20,10 @@ pub struct DomainRootConfig {
     #[serde(default)]
     pub cannot_depend_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
+    pub depends_on_external: Option<Vec<String>>,
+    #[serde(default)]
+    pub cannot_depend_on_external: Option<Vec<String>>,
+    #[serde(default)]
     pub layer: Option<String>,
     #[serde(default)]
     pub visibility: Option<Vec<String>>,
@@ -145,6 +149,8 @@ impl Resolvable<ModuleConfig> for DomainRootConfig {
             self.cannot_depend_on
                 .clone()
                 .map(|deps| deps.resolve(location)),
+            self.depends_on_external.clone(),
+            self.cannot_depend_on_external.clone(),
             self.layer.clone(),
             self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,
@@ -161,6 +167,8 @@ impl Resolvable<ModuleConfig> for ModuleConfig {
             self.cannot_depend_on
                 .clone()
                 .map(|deps| deps.resolve(location)),
+            self.depends_on_external.clone(),
+            self.cannot_depend_on_external.clone(),
             self.layer.clone(),
             self.visibility.clone().map(|vis| vis.resolve(location)),
             self.utility,

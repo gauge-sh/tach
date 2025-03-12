@@ -28,6 +28,53 @@ impl<'a> ExternalDependencyChecker<'a> {
         }
     }
 
+    fn check_module_external_dependencies(
+        &'a self,
+        processed_file: &FileModule<'a>,
+        import: &ExternalImportWithDistributionNames<'a>,
+    ) -> Option<Diagnostic> {
+        let module_config = processed_file.module_config();
+        if module_config
+            .cannot_depend_on_external
+            .as_ref()
+            .is_some_and(|external_dependencies| {
+                external_dependencies
+                    .iter()
+                    .any(|dependency| import.top_level_module_name() == dependency)
+            })
+        {
+            Some(Diagnostic::new_located_error(
+                processed_file.relative_file_path().to_path_buf(),
+                processed_file.line_number(import.alias_offset()),
+                Some(processed_file.line_number(import.import_offset())),
+                DiagnosticDetails::Code(CodeDiagnostic::ModuleForbiddenExternalDependency {
+                    dependency: import.top_level_module_name().to_string(),
+                    usage_module: module_config.path.clone(),
+                }),
+            ))
+        } else if module_config
+            .depends_on_external
+            .as_ref()
+            .is_some_and(|external_dependencies| {
+                !external_dependencies
+                    .iter()
+                    .any(|dependency| import.top_level_module_name() == dependency)
+            })
+        {
+            Some(Diagnostic::new_located_error(
+                processed_file.relative_file_path().to_path_buf(),
+                processed_file.line_number(import.alias_offset()),
+                Some(processed_file.line_number(import.import_offset())),
+                DiagnosticDetails::Code(CodeDiagnostic::ModuleUndeclaredExternalDependency {
+                    dependency: import.top_level_module_name().to_string(),
+                    usage_module: module_config.path.clone(),
+                }),
+            ))
+        } else {
+            None
+        }
+    }
+
     fn check_import(
         &'a self,
         import: ExternalImportWithDistributionNames<'a>,
@@ -39,7 +86,7 @@ impl<'a> ExternalDependencyChecker<'a> {
             .any(|dist_name| self.excluded_external_modules.contains(dist_name))
             || self
                 .stdlib_modules
-                .contains(&import.import.top_level_module_name().to_string())
+                .contains(&import.top_level_module_name().to_string())
         {
             return None;
         }
@@ -52,10 +99,10 @@ impl<'a> ExternalDependencyChecker<'a> {
         if !is_declared {
             Some(Diagnostic::new_located_error(
                 processed_file.relative_file_path().to_path_buf(),
-                processed_file.line_number(import.import.alias_offset),
-                Some(processed_file.line_number(import.import.import_offset)),
+                processed_file.line_number(import.alias_offset()),
+                Some(processed_file.line_number(import.import_offset())),
                 DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
-                    dependency: import.import.top_level_module_name().to_string(),
+                    dependency: import.top_level_module_name().to_string(),
                     package_name: processed_file
                         .package
                         .name
@@ -66,7 +113,7 @@ impl<'a> ExternalDependencyChecker<'a> {
                 }),
             ))
         } else {
-            None
+            self.check_module_external_dependencies(processed_file, &import)
         }
     }
 }

@@ -124,6 +124,24 @@
                 "default": null,
                 "description": "List of forbidden dependencies for the module"
               },
+              "depends_on_external": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Path to the dependency"
+                },
+                "default": null,
+                "description": "List of external dependencies for the module"
+              },
+              "cannot_depend_on_external": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Path to the dependency"
+                },
+                "default": null,
+                "description": "List of forbidden external dependencies for the module"
+              },
               "layer": {
                 "type": "string",
                 "description": "The architectural layer this module belongs to"
@@ -200,6 +218,24 @@
                 },
                 "default": null,
                 "description": "List of forbidden dependencies for the module"
+              },
+              "depends_on_external": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Path to the dependency"
+                },
+                "default": null,
+                "description": "List of external dependencies for the module"
+              },
+              "cannot_depend_on_external": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Path to the dependency"
+                },
+                "default": null,
+                "description": "List of forbidden external dependencies for the module"
               },
               "layer": {
                 "type": "string",

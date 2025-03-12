@@ -1,5 +1,6 @@
 [root]
 depends_on = ["api", "//module5"]
+depends_on_external = ["git", "yaml"]
 layer = "mid"
 
 [[modules]]

@@ -165,6 +165,12 @@ pub struct ModuleConfig {
     #[pyo3(get, set)]
     pub cannot_depend_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
+    #[pyo3(get, set)]
+    pub depends_on_external: Option<Vec<String>>,
+    #[serde(default)]
+    #[pyo3(get, set)]
+    pub cannot_depend_on_external: Option<Vec<String>>,
+    #[serde(default)]
     #[pyo3(get)]
     pub layer: Option<String>,
     #[serde(default)]
@@ -196,6 +202,8 @@ impl Default for ModuleConfig {
             // By default, a module can depend on nothing
             depends_on: Some(vec![]),
             cannot_depend_on: Default::default(),
+            depends_on_external: Default::default(),
+            cannot_depend_on_external: Default::default(),
             path: Default::default(),
             layer: Default::default(),
             visibility: Default::default(),
@@ -213,6 +221,8 @@ impl ModuleConfig {
         path: &str,
         depends_on: Option<Vec<DependencyConfig>>,
         cannot_depend_on: Option<Vec<DependencyConfig>>,
+        depends_on_external: Option<Vec<String>>,
+        cannot_depend_on_external: Option<Vec<String>>,
         layer: Option<String>,
         visibility: Option<Vec<String>>,
         utility: bool,
@@ -222,6 +232,8 @@ impl ModuleConfig {
             path: path.to_string(),
             depends_on,
             cannot_depend_on,
+            depends_on_external,
+            cannot_depend_on_external,
             layer,
             visibility,
             utility,
@@ -281,6 +293,8 @@ impl ModuleConfig {
             path: path.to_string(),
             depends_on: Some(vec![]),
             cannot_depend_on: None,
+            depends_on_external: None,
+            cannot_depend_on_external: None,
             layer: Some(layer.to_string()),
             visibility: None,
             utility: false,
@@ -388,6 +402,10 @@ struct BulkModule {
     #[serde(default)]
     cannot_depend_on: Option<Vec<DependencyConfig>>,
     #[serde(default)]
+    depends_on_external: Option<Vec<String>>,
+    #[serde(default)]
+    cannot_depend_on_external: Option<Vec<String>>,
+    #[serde(default)]
     layer: Option<String>,
     #[serde(default)]
     visibility: Option<Vec<String>>,
@@ -410,6 +428,8 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
             paths: modules.iter().map(|m| m.path.clone()).collect(),
             depends_on: None,
             cannot_depend_on: None,
+            depends_on_external: None,
+            cannot_depend_on_external: None,
             layer: first.layer.clone(),
             visibility: first.visibility.clone(),
             utility: first.utility,
@@ -417,16 +437,26 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
         };
 
         let mut unique_deps: HashSet<DependencyConfig> = HashSet::new();
+        let mut unique_external_deps: HashSet<String> = HashSet::new();
         for module in modules {
+            // We merge dependencies from all modules, since they may have been mutated in commands like 'sync'
             if let Some(depends_on) = &module.depends_on {
-                // We merge dependencies from all modules, since they may have been mutated in commands like 'sync'
                 unique_deps.extend(depends_on.clone());
+            }
+            if let Some(depends_on_external) = &module.depends_on_external {
+                unique_external_deps.extend(depends_on_external.clone());
             }
 
             // Validate that other fields match the first module
             if module.cannot_depend_on != first.cannot_depend_on {
                 return Err(format!(
                     "Inconsistent 'cannot_depend_on' list in bulk module group for path {}",
+                    module.path
+                ));
+            }
+            if module.cannot_depend_on_external != first.cannot_depend_on_external {
+                return Err(format!(
+                    "Inconsistent 'cannot_depend_on_external' list in bulk module group for path {}",
                     module.path
                 ));
             }
@@ -464,6 +494,9 @@ impl TryFrom<&[&ModuleConfig]> for BulkModule {
 
         if !unique_deps.is_empty() {
             bulk.depends_on = Some(unique_deps.into_iter().collect());
+        }
+        if !unique_external_deps.is_empty() {
+            bulk.depends_on_external = Some(unique_external_deps.into_iter().collect());
         }
         Ok(bulk)
     }
@@ -528,6 +561,8 @@ where
                     path,
                     depends_on: bulk.depends_on.clone(),
                     cannot_depend_on: bulk.cannot_depend_on.clone(),
+                    depends_on_external: bulk.depends_on_external.clone(),
+                    cannot_depend_on_external: bulk.cannot_depend_on_external.clone(),
                     layer: bulk.layer.clone(),
                     visibility: bulk.visibility.clone(),
                     utility: bulk.utility,

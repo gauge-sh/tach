@@ -1,5 +1,6 @@
 [root]
 depends_on = ["//module1.api"]
+depends_on_external = []
 layer = "mid"
 
 [[interfaces]]

@@ -135,6 +135,20 @@ pub enum CodeDiagnostic {
         package_module_name: String,
         package_name: String,
     },
+
+    #[error(
+        "Module '{usage_module}' does not declare a dependency on external package '{dependency}'."
+    )]
+    ModuleUndeclaredExternalDependency {
+        dependency: String,
+        usage_module: String,
+    },
+
+    #[error("Module '{usage_module}' cannot depend on external package '{dependency}'.")]
+    ModuleForbiddenExternalDependency {
+        dependency: String,
+        usage_module: String,
+    },
 }
 
 impl CodeDiagnostic {
@@ -149,7 +163,11 @@ impl CodeDiagnostic {
             | CodeDiagnostic::UnnecessarilyIgnoredDependency { dependency, .. } => Some(dependency),
             CodeDiagnostic::UnusedIgnoreDirective() => None,
             CodeDiagnostic::MissingIgnoreDirectiveReason() => None,
-            CodeDiagnostic::UndeclaredExternalDependency { dependency, .. } => Some(dependency),
+            CodeDiagnostic::UndeclaredExternalDependency { dependency, .. }
+            | CodeDiagnostic::ModuleUndeclaredExternalDependency { dependency, .. }
+            | CodeDiagnostic::ModuleForbiddenExternalDependency { dependency, .. } => {
+                Some(dependency)
+            }
             CodeDiagnostic::UnusedExternalDependency {
                 package_module_name,
                 ..
@@ -164,7 +182,11 @@ impl CodeDiagnostic {
             | CodeDiagnostic::UndeclaredDependency { usage_module, .. }
             | CodeDiagnostic::DeprecatedDependency { usage_module, .. }
             | CodeDiagnostic::ForbiddenDependency { usage_module, .. }
-            | CodeDiagnostic::LayerViolation { usage_module, .. } => Some(usage_module),
+            | CodeDiagnostic::LayerViolation { usage_module, .. }
+            | CodeDiagnostic::ModuleUndeclaredExternalDependency { usage_module, .. }
+            | CodeDiagnostic::ModuleForbiddenExternalDependency { usage_module, .. } => {
+                Some(usage_module)
+            }
             _ => None,
         }
     }
