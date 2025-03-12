@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use crate::config::plugins::django::DjangoConfig;
 use crate::config::root_module::RootModuleTreatment;
@@ -7,7 +6,7 @@ use crate::config::ProjectConfig;
 use crate::diagnostics::{DiagnosticError, FileProcessor, Result as DiagnosticResult};
 use crate::filesystem::{self, ProjectFile};
 use crate::modules::error::ModuleTreeError;
-use crate::modules::{ModuleNode, ModuleTree};
+use crate::modules::ModuleTree;
 use crate::python::parsing::parse_python_source;
 use crate::resolvers::{PackageResolution, PackageResolver};
 
@@ -149,6 +148,7 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for InternalDependencyExtractor<'a> 
 
 #[derive(Debug)]
 pub struct ExternalDependencyExtractor<'a> {
+    module_tree: &'a ModuleTree,
     source_roots: &'a [PathBuf],
     project_config: &'a ProjectConfig,
     package_resolver: &'a PackageResolver<'a>,
@@ -157,11 +157,13 @@ pub struct ExternalDependencyExtractor<'a> {
 impl<'a> ExternalDependencyExtractor<'a> {
     pub fn new(
         source_roots: &'a [PathBuf],
+        module_tree: &'a ModuleTree,
         project_config: &'a ProjectConfig,
         package_resolver: &'a PackageResolver,
     ) -> Self {
         Self {
             source_roots,
+            module_tree,
             project_config,
             package_resolver,
         }
@@ -172,9 +174,11 @@ impl<'a> FileProcessor<'a, ProjectFile<'a>> for ExternalDependencyExtractor<'a> 
     type ProcessedFile = FileModule<'a>;
 
     fn process(&self, file_path: ProjectFile<'a>) -> DiagnosticResult<Self::ProcessedFile> {
-        // NOTE: check-external does not currently make use of the module tree,
-        // but it is very likely to do so in the future.
-        let module = Arc::new(ModuleNode::empty());
+        let mod_path = filesystem::file_to_module_path(self.source_roots, file_path.as_ref())?;
+        let module = self
+            .module_tree
+            .find_nearest(mod_path.as_ref())
+            .ok_or(ModuleTreeError::ModuleNotFound(mod_path))?;
         let package = match self
             .package_resolver
             .get_package_for_source_root(file_path.source_root)

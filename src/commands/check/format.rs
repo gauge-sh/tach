@@ -21,17 +21,22 @@ impl From<&DiagnosticDetails> for DiagnosticGroupKind {
         match details {
             DiagnosticDetails::Configuration(..) => Self::Configuration,
             DiagnosticDetails::Code(code_diagnostic_details) => match code_diagnostic_details {
-                CodeDiagnostic::UndeclaredDependency { .. } => Self::InternalDependency,
-                CodeDiagnostic::DeprecatedDependency { .. } => Self::InternalDependency,
-                CodeDiagnostic::ForbiddenDependency { .. } => Self::InternalDependency,
-                CodeDiagnostic::LayerViolation { .. } => Self::InternalDependency,
-                CodeDiagnostic::PrivateDependency { .. } => Self::Interface,
-                CodeDiagnostic::InvalidDataTypeExport { .. } => Self::Interface,
-                CodeDiagnostic::UndeclaredExternalDependency { .. } => Self::ExternalDependency,
-                CodeDiagnostic::UnusedExternalDependency { .. } => Self::ExternalDependency,
-                CodeDiagnostic::UnnecessarilyIgnoredDependency { .. } => Self::Other,
-                CodeDiagnostic::UnusedIgnoreDirective() => Self::Other,
-                CodeDiagnostic::MissingIgnoreDirectiveReason() => Self::Other,
+                CodeDiagnostic::UndeclaredDependency { .. }
+                | CodeDiagnostic::DeprecatedDependency { .. }
+                | CodeDiagnostic::ForbiddenDependency { .. }
+                | CodeDiagnostic::LayerViolation { .. } => Self::InternalDependency,
+
+                CodeDiagnostic::PrivateDependency { .. }
+                | CodeDiagnostic::InvalidDataTypeExport { .. } => Self::Interface,
+
+                CodeDiagnostic::UndeclaredExternalDependency { .. }
+                | CodeDiagnostic::ModuleUndeclaredExternalDependency { .. }
+                | CodeDiagnostic::ModuleForbiddenExternalDependency { .. }
+                | CodeDiagnostic::UnusedExternalDependency { .. } => Self::ExternalDependency,
+
+                CodeDiagnostic::UnnecessarilyIgnoredDependency { .. }
+                | CodeDiagnostic::UnusedIgnoreDirective()
+                | CodeDiagnostic::MissingIgnoreDirectiveReason() => Self::Other,
             },
         }
     }

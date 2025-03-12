@@ -9,6 +9,7 @@ use crate::diagnostics::{
 use crate::exclusion::PathExclusions;
 use crate::filesystem::{walk_pyfiles, ProjectFile};
 use crate::interrupt::check_interrupt;
+use crate::modules::{ModuleTree, ModuleTreeBuilder};
 use crate::processors::file_module::FileModule;
 use crate::processors::ExternalDependencyExtractor;
 use crate::resolvers::{PackageResolver, SourceRootResolver};
@@ -37,6 +38,7 @@ impl<'a> CheckExternalPipeline<'a> {
     pub fn new(
         source_roots: &'a [PathBuf],
         project_config: &'a ProjectConfig,
+        module_tree: &'a ModuleTree,
         module_mappings: &'a HashMap<String, Vec<String>>,
         stdlib_modules: &'a HashSet<String>,
         excluded_external_modules: &'a HashSet<String>,
@@ -49,6 +51,7 @@ impl<'a> CheckExternalPipeline<'a> {
             package_resolver,
             dependency_extractor: ExternalDependencyExtractor::new(
                 source_roots,
+                module_tree,
                 project_config,
                 package_resolver,
             ),
@@ -184,6 +187,7 @@ fn check_with_modules(
     module_mappings: &HashMap<String, Vec<String>>,
     stdlib_modules: &[String],
 ) -> Result<Vec<Diagnostic>> {
+    let mut diagnostics: Vec<Diagnostic> = Vec::new();
     let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
@@ -195,74 +199,92 @@ fn check_with_modules(
     let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
+    let module_tree_builder = ModuleTreeBuilder::new(
+        &source_roots,
+        &exclusions,
+        project_config.forbid_circular_dependencies,
+        project_config.root_module,
+    );
+
+    let (valid_modules, invalid_modules) =
+        module_tree_builder.resolve_modules(project_config.all_modules());
+
+    for module in &invalid_modules {
+        diagnostics.push(Diagnostic::new_global_warning(
+            DiagnosticDetails::Configuration(ConfigurationDiagnostic::ModuleNotFound {
+                file_mod_path: module.path.to_string(),
+            }),
+        ));
+    }
+
+    check_interrupt().map_err(|_| CheckError::Interrupt)?;
+    let module_tree = module_tree_builder.build(valid_modules)?;
 
     let pipeline = CheckExternalPipeline::new(
         &source_roots,
         project_config,
+        &module_tree,
         module_mappings,
         &stdlib_modules,
         &excluded_external_modules,
         &package_resolver,
     );
 
-    let mut diagnostics: Vec<Diagnostic> = source_roots
-        .par_iter()
-        .flat_map(|source_root| {
-            walk_pyfiles(&source_root.display().to_string(), &exclusions)
-                .par_bridge()
-                .flat_map(|file_path| {
-                    if check_interrupt().is_err() {
-                        // Since files are being processed in parallel,
-                        // this will essentially short-circuit all remaining files.
-                        // Then, we check for an interrupt right after, and return the Err if it is set
-                        return vec![];
-                    }
+    diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
+        walk_pyfiles(&source_root.display().to_string(), &exclusions)
+            .par_bridge()
+            .flat_map(|file_path| {
+                if check_interrupt().is_err() {
+                    // Since files are being processed in parallel,
+                    // this will essentially short-circuit all remaining files.
+                    // Then, we check for an interrupt right after, and return the Err if it is set
+                    return vec![];
+                }
 
-                    let project_file =
-                        match ProjectFile::try_new(project_root, source_root, &file_path) {
-                            Ok(project_file) => project_file,
-                            Err(_) => {
-                                return vec![Diagnostic::new_global_warning(
-                                    DiagnosticDetails::Configuration(
-                                        ConfigurationDiagnostic::SkippedFileIoError {
-                                            file_path: file_path.display().to_string(),
-                                        },
-                                    ),
-                                )]
-                            }
-                        };
-
-                    match pipeline.diagnostics(project_file) {
-                        Ok(diagnostics) => diagnostics,
-                        Err(DiagnosticError::Io(_)) | Err(DiagnosticError::Filesystem(_)) => {
-                            vec![Diagnostic::new_global_warning(
-                                DiagnosticDetails::Configuration(
-                                    ConfigurationDiagnostic::SkippedFileIoError {
-                                        file_path: file_path.display().to_string(),
-                                    },
-                                ),
-                            )]
-                        }
-                        Err(DiagnosticError::ImportParse(_)) => {
-                            vec![Diagnostic::new_global_warning(
-                                DiagnosticDetails::Configuration(
-                                    ConfigurationDiagnostic::SkippedFileSyntaxError {
-                                        file_path: file_path.display().to_string(),
-                                    },
-                                ),
-                            )]
-                        }
-                        Err(_) => vec![Diagnostic::new_global_warning(
+                let project_file = match ProjectFile::try_new(project_root, source_root, &file_path)
+                {
+                    Ok(project_file) => project_file,
+                    Err(_) => {
+                        return vec![Diagnostic::new_global_warning(
                             DiagnosticDetails::Configuration(
-                                ConfigurationDiagnostic::SkippedUnknownError {
+                                ConfigurationDiagnostic::SkippedFileIoError {
                                     file_path: file_path.display().to_string(),
                                 },
                             ),
-                        )],
+                        )]
                     }
-                })
-        })
-        .collect();
+                };
+
+                match pipeline.diagnostics(project_file) {
+                    Ok(diagnostics) => diagnostics,
+                    Err(DiagnosticError::Io(_)) | Err(DiagnosticError::Filesystem(_)) => {
+                        vec![Diagnostic::new_global_warning(
+                            DiagnosticDetails::Configuration(
+                                ConfigurationDiagnostic::SkippedFileIoError {
+                                    file_path: file_path.display().to_string(),
+                                },
+                            ),
+                        )]
+                    }
+                    Err(DiagnosticError::ImportParse(_)) => {
+                        vec![Diagnostic::new_global_warning(
+                            DiagnosticDetails::Configuration(
+                                ConfigurationDiagnostic::SkippedFileSyntaxError {
+                                    file_path: file_path.display().to_string(),
+                                },
+                            ),
+                        )]
+                    }
+                    Err(_) => vec![Diagnostic::new_global_warning(
+                        DiagnosticDetails::Configuration(
+                            ConfigurationDiagnostic::SkippedUnknownError {
+                                file_path: file_path.display().to_string(),
+                            },
+                        ),
+                    )],
+                }
+            })
+    }));
 
     if !project_config.rules.unused_external_dependencies.is_off() {
         for (package_root, seen_dependencies) in pipeline.seen_dependencies {
