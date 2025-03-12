@@ -77,6 +77,24 @@ pub struct ExternalImportWithDistributionNames<'a> {
     pub import: &'a NormalizedImport,
 }
 
+impl ExternalImportWithDistributionNames<'_> {
+    pub fn top_level_module_name(&self) -> &str {
+        self.import.top_level_module_name()
+    }
+
+    pub fn alias_offset(&self) -> TextSize {
+        self.import.alias_offset
+    }
+
+    pub fn import_offset(&self) -> TextSize {
+        self.import.import_offset
+    }
+
+    pub fn distribution_names(&self) -> &Vec<String> {
+        &self.distribution_names
+    }
+}
+
 pub fn with_distribution_names<'a, I>(
     imports: I,
     package_resolver: &PackageResolver,
