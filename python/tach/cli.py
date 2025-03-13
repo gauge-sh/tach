@@ -75,22 +75,22 @@ def print_no_config_found(
         json.dump({"error": "No config file found"}, sys.stdout)
     else:
         console_err.print(
-            f"{config_file_name}.toml not found. Do you need to run [cyan]'{TOOL_NAME} init'[/]?",
-            style="red",
+            f"Configuration file not found. Run [cyan]'{TOOL_NAME} init'[/] to get started!",
+            style="yellow",
         )
 
 
 def print_no_modules_found() -> None:
     console_err.print(
-        f"No modules defined in {CONFIG_FILE_NAME}.toml. Do you need to run [cyan]'tach mod'[/]?",
-        style="red",
+        "No modules have been defined yet. Run [cyan]'tach init'[/] to get started!",
+        style="yellow",
     )
 
 
 def print_no_dependencies_found() -> None:
     console_err.print(
-        f"No dependencies defined in {CONFIG_FILE_NAME}.toml. You may need to run [cyan]'tach sync'[/] or check your python source root.",
-        style="red",
+        "No dependency rules were found for your modules. You may need to run [cyan]'tach sync'[/] or adjust your source root.",
+        style="yellow",
     )
 
 
