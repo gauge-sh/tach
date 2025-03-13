@@ -7,6 +7,7 @@ use std::{env, fs};
 use thiserror::Error;
 use toml::Value;
 
+use crate::config::ignore::GitignoreCache;
 use crate::exclusion::PathExclusions;
 use crate::filesystem::{self, walk_pyfiles};
 
@@ -137,8 +138,9 @@ pub fn create_computation_cache_key(
 ) -> String {
     // Exclusions are not applied when building cache keys
     let exclusions = PathExclusions::new(project_root, &[], false).unwrap();
+    let gitignore_cache = GitignoreCache::new(project_root);
     let source_pyfiles = source_roots.iter().flat_map(|root| {
-        walk_pyfiles(root.to_str().unwrap(), &exclusions)
+        walk_pyfiles(root.to_str().unwrap(), &exclusions, &gitignore_cache)
             .flat_map(move |path| fs::read(root.join(path)).unwrap())
     });
     let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());

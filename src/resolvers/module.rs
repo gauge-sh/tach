@@ -4,7 +4,11 @@ use rayon::prelude::*;
 use std::path::PathBuf;
 
 use super::glob;
-use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
+use crate::{
+    config::{ignore::GitignoreCache, root_module::ROOT_MODULE_SENTINEL_TAG},
+    exclusion::PathExclusions,
+    filesystem,
+};
 
 #[derive(Debug)]
 pub struct ModuleGlob {
@@ -51,13 +55,19 @@ pub enum ModuleResolverError {
 pub struct ModuleResolver<'a> {
     source_roots: &'a [PathBuf],
     exclusions: &'a PathExclusions,
+    gitignore_cache: &'a GitignoreCache,
 }
 
 impl<'a> ModuleResolver<'a> {
-    pub fn new(source_roots: &'a [PathBuf], exclusions: &'a PathExclusions) -> Self {
+    pub fn new(
+        source_roots: &'a [PathBuf],
+        exclusions: &'a PathExclusions,
+        gitignore_cache: &'a GitignoreCache,
+    ) -> Self {
         Self {
             source_roots,
             exclusions,
+            gitignore_cache,
         }
     }
 
@@ -89,15 +99,19 @@ impl<'a> ModuleResolver<'a> {
             .source_roots
             .par_iter()
             .flat_map(|root| {
-                filesystem::walk_pymodules(root.as_os_str().to_str().unwrap(), self.exclusions)
-                    .par_bridge()
-                    .filter(|m| matcher.is_match(m))
-                    .map(|m| {
-                        m.with_extension("")
-                            .display()
-                            .to_string()
-                            .replace(std::path::MAIN_SEPARATOR, ".")
-                    })
+                filesystem::walk_pymodules(
+                    root.as_os_str().to_str().unwrap(),
+                    self.exclusions,
+                    self.gitignore_cache,
+                )
+                .par_bridge()
+                .filter(|m| matcher.is_match(m))
+                .map(|m| {
+                    m.with_extension("")
+                        .display()
+                        .to_string()
+                        .replace(std::path::MAIN_SEPARATOR, ".")
+                })
             })
             .collect())
     }

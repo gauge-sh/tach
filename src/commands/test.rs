@@ -4,6 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
+use crate::config::ignore::GitignoreCache;
 use crate::config::{ModuleConfig, ProjectConfig};
 use crate::exclusion::{PathExclusionError, PathExclusions};
 use crate::filesystem::{self as fs};
@@ -59,13 +60,16 @@ impl TachPytestPluginHandler {
             project_config.use_regex_matching,
         )
         .unwrap();
-        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let gitignore_cache = GitignoreCache::new(&project_root);
+        let source_root_resolver =
+            SourceRootResolver::new(&project_root, &exclusions, &gitignore_cache);
         let source_roots = source_root_resolver
             .resolve(&project_config.source_roots)
             .unwrap();
         let module_tree_builder = ModuleTreeBuilder::new(
             &source_roots,
             &exclusions,
+            &gitignore_cache,
             project_config.forbid_circular_dependencies,
             project_config.root_module,
         );
@@ -150,7 +154,8 @@ fn get_changed_module_paths(
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
-    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
+    let gitignore_cache = GitignoreCache::new(project_root);
+    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions, &gitignore_cache);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
 
     let changed_module_paths = changed_files

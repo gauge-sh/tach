@@ -166,6 +166,7 @@ class ProjectConfig:
     ignore_type_checking_imports: bool
     include_string_imports: bool
     forbid_circular_dependencies: bool
+    respect_gitignore: bool
     use_regex_matching: bool
     rules: RulesConfig
     root_module: RootModuleTreatment

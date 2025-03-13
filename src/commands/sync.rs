@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 
 use crate::commands::check::{check_internal, CheckError};
 use crate::config::edit::{ConfigEditor, EditError};
+use crate::config::ignore::GitignoreCache;
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
 use crate::diagnostics::Diagnostic;
@@ -222,7 +223,9 @@ fn sync_dependency_constraints(
             &project_config.exclude,
             project_config.use_regex_matching,
         )?;
-        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let gitignore_cache = GitignoreCache::new(&project_root);
+        let source_root_resolver =
+            SourceRootResolver::new(&project_root, &exclusions, &gitignore_cache);
         let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
         project_config
             .module_paths()

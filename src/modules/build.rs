@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    config::{ModuleConfig, RootModuleTreatment},
+    config::{ignore::GitignoreCache, ModuleConfig, RootModuleTreatment},
     exclusion::PathExclusions,
     resolvers::{glob, ModuleResolver},
 };
@@ -24,11 +24,12 @@ impl<'a> ModuleTreeBuilder<'a> {
     pub fn new(
         source_roots: &'a [PathBuf],
         exclusions: &'a PathExclusions,
+        gitignore_cache: &'a GitignoreCache,
         forbid_circular_dependencies: bool,
         root_module_treatment: RootModuleTreatment,
     ) -> Self {
         Self {
-            resolver: ModuleResolver::new(source_roots, exclusions),
+            resolver: ModuleResolver::new(source_roots, exclusions, gitignore_cache),
             forbid_circular_dependencies,
             root_module_treatment,
         }

@@ -13,6 +13,7 @@ use super::domain::LocatedDomainConfig;
 use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::error::ConfigError;
 use super::external::ExternalDependencyConfig;
+use super::ignore::GitignoreCache;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
 use super::plugins::PluginsConfig;
@@ -85,6 +86,9 @@ pub struct ProjectConfig {
     pub forbid_circular_dependencies: bool,
     #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get, set)]
+    pub respect_gitignore: bool,
+    #[serde(default, skip_serializing_if = "Not::not")]
+    #[pyo3(get, set)]
     pub use_regex_matching: bool,
     #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
@@ -140,6 +144,7 @@ impl Default for ProjectConfig {
             disable_logging: Default::default(),
             include_string_imports: Default::default(),
             forbid_circular_dependencies: Default::default(),
+            respect_gitignore: Default::default(),
             use_regex_matching: Default::default(),
             root_module: Default::default(),
             rules: Default::default(),
@@ -166,7 +171,9 @@ impl ProjectConfig {
             .ok_or(ConfigError::ConfigDoesNotExist)?;
         let exclusions =
             PathExclusions::new(&project_root, &self.exclude, self.use_regex_matching)?;
-        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let gitignore_cache = GitignoreCache::new(&project_root);
+        let source_root_resolver =
+            SourceRootResolver::new(&project_root, &exclusions, &gitignore_cache);
         Ok(source_root_resolver.resolve(&self.source_roots)?)
     }
 

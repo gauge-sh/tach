@@ -28,6 +28,8 @@ This is the project-level configuration file which should be in the root of your
 
 `root_module` takes a string enum value, and determines how Tach treats code which lives within the project but is not covered by an explicit module. This is described in detail [below](#the_root_module)
 
+`respect_gitignore` (default: **true**) is a flag which causes Tach to add files excluded by `.gitignore` or global gitignore files to `exclude`.
+
 `rules` allows precise configuration of the severity of certain types of issues. See [below](#rules) for more details.
 
 **[DEPRECATED]** `use_regex_matching` (default: **false**) is a flag which controls how exclude patterns are interpreted.

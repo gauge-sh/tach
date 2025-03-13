@@ -3,6 +3,7 @@ pub mod domain;
 pub mod edit;
 pub mod error;
 pub mod external;
+pub mod ignore;
 pub mod interfaces;
 pub mod modules;
 pub mod plugins;
