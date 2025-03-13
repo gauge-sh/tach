@@ -139,14 +139,19 @@ pub fn check(
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
-    let gitignore_cache = GitignoreCache::new(&project_root);
-    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions, &gitignore_cache);
+    let gitignore_matcher = if project_config.respect_gitignore {
+        GitignoreMatcher::new(project_root)
+    } else {
+        GitignoreMatcher::disabled()
+    };
+    let source_root_resolver =
+        SourceRootResolver::new(project_root, &exclusions, &gitignore_matcher);
     let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
         &exclusions,
-        &gitignore_cache,
+        &gitignore_matcher,
         project_config.forbid_circular_dependencies,
         project_config.root_module,
     );
@@ -189,8 +194,7 @@ pub fn check(
     .with_dependency_checker(dependency_checker)
     .with_interface_checker(interface_checker);
 
-    let gitignore_matcher = GitignoreMatcher::new(&project_root, !project_config.respect_gitignore);
-    let diagnostics = source_roots.par_iter().flat_map(|source_root| {
+    diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(
             &source_root.display().to_string(),
             &exclusions,

@@ -13,7 +13,7 @@ use super::domain::LocatedDomainConfig;
 use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::error::ConfigError;
 use super::external::ExternalDependencyConfig;
-use super::ignore::GitignoreCache;
+use super::ignore::GitignoreMatcher;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
 use super::plugins::PluginsConfig;
@@ -171,9 +171,13 @@ impl ProjectConfig {
             .ok_or(ConfigError::ConfigDoesNotExist)?;
         let exclusions =
             PathExclusions::new(&project_root, &self.exclude, self.use_regex_matching)?;
-        let gitignore_cache = GitignoreCache::new(&project_root);
+        let gitignore_matcher = if self.respect_gitignore {
+            GitignoreMatcher::new(&project_root)
+        } else {
+            GitignoreMatcher::disabled()
+        };
         let source_root_resolver =
-            SourceRootResolver::new(&project_root, &exclusions, &gitignore_cache);
+            SourceRootResolver::new(&project_root, &exclusions, &gitignore_matcher);
         Ok(source_root_resolver.resolve(&self.source_roots)?)
     }
 

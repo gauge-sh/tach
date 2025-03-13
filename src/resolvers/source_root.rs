@@ -3,7 +3,7 @@ use std::{collections::HashSet, path::PathBuf};
 use globset;
 use thiserror::Error;
 
-use crate::{config::ignore::GitignoreCache, exclusion::PathExclusions};
+use crate::{config::ignore::GitignoreMatcher, exclusion::PathExclusions};
 
 use super::glob;
 
@@ -18,19 +18,19 @@ pub enum SourceRootResolverError {
 pub struct SourceRootResolver<'a> {
     project_root: &'a PathBuf,
     path_exclusions: &'a PathExclusions,
-    gitignore_cache: &'a GitignoreCache,
+    gitignore_matcher: &'a GitignoreMatcher,
 }
 
 impl<'a> SourceRootResolver<'a> {
     pub fn new(
         project_root: &'a PathBuf,
         path_exclusions: &'a PathExclusions,
-        gitignore_cache: &'a GitignoreCache,
+        gitignore_matcher: &'a GitignoreMatcher,
     ) -> Self {
         Self {
             project_root,
             path_exclusions,
-            gitignore_cache,
+            gitignore_matcher,
         }
     }
 
@@ -52,7 +52,7 @@ impl<'a> SourceRootResolver<'a> {
                                     self.project_root,
                                     s,
                                     self.path_exclusions,
-                                    self.gitignore_cache,
+                                    self.gitignore_matcher,
                                 )
                                 .map_err(SourceRootResolverError::GlobError)
                             } else {
@@ -98,8 +98,8 @@ mod tests {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
         let path_exclusions = PathExclusions::empty(&project_root);
-        let gitignore_cache = GitignoreCache::new(&project_root);
-        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_cache);
+        let gitignore_matcher = GitignoreMatcher::new(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_matcher);
 
         let source_roots = vec![PathBuf::from("src")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -113,8 +113,8 @@ mod tests {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
         let path_exclusions = PathExclusions::empty(&project_root);
-        let gitignore_cache = GitignoreCache::new(&project_root);
-        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_cache);
+        let gitignore_matcher = GitignoreMatcher::new(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_matcher);
 
         let source_roots = vec![PathBuf::from(".")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -128,8 +128,8 @@ mod tests {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
         let path_exclusions = PathExclusions::empty(&project_root);
-        let gitignore_cache = GitignoreCache::new(&project_root);
-        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_cache);
+        let gitignore_matcher = GitignoreMatcher::new(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_matcher);
 
         let source_roots = vec![PathBuf::from("examples/*")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -144,8 +144,8 @@ mod tests {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
         let path_exclusions = PathExclusions::empty(&project_root);
-        let gitignore_cache = GitignoreCache::new(&project_root);
-        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_cache);
+        let gitignore_matcher = GitignoreMatcher::new(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_matcher);
 
         let source_roots = vec![PathBuf::from("src/*"), PathBuf::from("tests")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -161,8 +161,8 @@ mod tests {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
         let path_exclusions = PathExclusions::empty(&project_root);
-        let gitignore_cache = GitignoreCache::new(&project_root);
-        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_cache);
+        let gitignore_matcher = GitignoreMatcher::new(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &path_exclusions, &gitignore_matcher);
 
         let source_roots = vec![
             PathBuf::from("src"),

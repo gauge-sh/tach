@@ -1,6 +1,6 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
-use crate::config::ignore::GitignoreMatcher;
-use crate::config::ProjectConfig;
+use crate::commands::check;
+use crate::config::{self, ignore::GitignoreMatcher, ProjectConfig};
 use crate::dependencies::import::with_distribution_names;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
@@ -196,9 +196,13 @@ fn check_with_modules(
         &project_config.exclude,
         project_config.use_regex_matching,
     )?;
-    let gitignore_matcher = GitignoreMatcher::new(&project_root, !project_config.respect_gitignore);
-
-    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions, &gitignore_matcher);
+    let gitignore_matcher = if project_config.respect_gitignore {
+        GitignoreMatcher::new(&project_root)
+    } else {
+        GitignoreMatcher::disabled()
+    };
+    let source_root_resolver =
+        SourceRootResolver::new(project_root, &exclusions, &gitignore_matcher);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
     let module_tree_builder = ModuleTreeBuilder::new(
@@ -233,23 +237,20 @@ fn check_with_modules(
         &package_resolver,
     );
 
-        let mut project_diagnostics: Vec<Diagnostic> = project_info
-            .source_paths
-            .par_iter()
-            .flat_map(|source_root| {
-                walk_pyfiles(
-                    &source_root.display().to_string(),
-                    &exclusions,
-                    &gitignore_matcher,
-                )
-                .par_bridge()
-                .flat_map(|file_path| {
-                    if check_interrupt().is_err() {
-                        // Since files are being processed in parallel,
-                        // this will essentially short-circuit all remaining files.
-                        // Then, we check for an interrupt right after, and return the Err if it is set
-                        return vec![];
-                    }
+    diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
+        walk_pyfiles(
+            &source_root.display().to_string(),
+            &exclusions,
+            &gitignore_matcher,
+        )
+        .par_bridge()
+        .flat_map(|file_path| {
+            if check_interrupt().is_err() {
+                // Since files are being processed in parallel,
+                // this will essentially short-circuit all remaining files.
+                // Then, we check for an interrupt right after, and return the Err if it is set
+                return vec![];
+            }
 
             let project_file = match ProjectFile::try_new(project_root, source_root, &file_path) {
                 Ok(project_file) => project_file,

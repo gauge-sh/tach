@@ -342,14 +342,14 @@ pub fn walk_pyfiles<'a>(
 pub fn walk_pymodules<'a>(
     root: &str,
     exclusions: &'a PathExclusions,
-    gitignore_cache: &'a GitignoreCache,
+    gitignore_matcher: &'a GitignoreMatcher,
 ) -> impl Iterator<Item = PathBuf> + 'a {
     let prefix_root = root.to_string();
     WalkDir::new(root)
         .into_iter()
         .filter_entry(|e| {
             !is_hidden(e)
-                && !direntry_is_excluded(e, exclusions, gitignore_cache)
+                && !direntry_is_excluded(e, exclusions, gitignore_matcher)
                 && is_pyfile_or_dir(e)
         })
         .filter_map(|entry| {
@@ -405,13 +405,13 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
 pub fn walk_domain_config_files<'a>(
     root: &str,
     exclusions: &'a PathExclusions,
-    gitignore_cache: &'a GitignoreCache,
+    gitignore_matcher: &'a GitignoreMatcher,
 ) -> impl Iterator<Item = PathBuf> + 'a {
     WalkDir::new(root)
         .into_iter()
         .filter_entry(|e| {
             !is_hidden(e)
-                && !direntry_is_excluded(e, exclusions, gitignore_cache)
+                && !direntry_is_excluded(e, exclusions, gitignore_matcher)
                 && is_pyfile_or_dir(e)
         })
         .filter_map(|entry| entry.ok())

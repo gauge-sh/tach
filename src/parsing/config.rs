@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use crate::{
     colors::BColors,
     config::{
-        ignore::GitignoreCache, project::PyProjectWrapper, root_module::ROOT_MODULE_SENTINEL_TAG,
+        ignore::GitignoreMatcher, project::PyProjectWrapper, root_module::ROOT_MODULE_SENTINEL_TAG,
         ConfigLocation, DomainConfig, InterfaceConfig, InterfaceDataTypes, LocatedDomainConfig,
         ProjectConfig,
     },
@@ -158,13 +158,17 @@ pub fn parse_domain_config<P: AsRef<Path>>(
 pub fn add_domain_configs<P: AsRef<Path>>(config: &mut ProjectConfig, root_dir: P) -> Result<()> {
     let root_dir = root_dir.as_ref().to_path_buf();
     let exclusions = PathExclusions::new(&root_dir, &config.exclude, config.use_regex_matching)?;
-    let gitignore_cache = GitignoreCache::new(&root_dir);
-    let source_root_resolver = SourceRootResolver::new(&root_dir, &exclusions, &gitignore_cache);
+    let gitignore_matcher = if config.respect_gitignore {
+        GitignoreMatcher::new(&root_dir)
+    } else {
+        GitignoreMatcher::disabled()
+    };
+    let source_root_resolver = SourceRootResolver::new(&root_dir, &exclusions, &gitignore_matcher);
     let source_roots = source_root_resolver.resolve(&config.source_roots)?;
     let mut domain_configs = walk_domain_config_files(
         root_dir.as_os_str().to_str().unwrap(),
         &exclusions,
-        &gitignore_cache,
+        &gitignore_matcher,
     )
     .par_bridge()
     .map(|filepath| parse_domain_config(&source_roots, filepath))

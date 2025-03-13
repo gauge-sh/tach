@@ -25,14 +25,7 @@ impl GitignoreMatcher {
     /// A new GitignoreMatcher instance configured based on the provided arguments.
     /// If never_ignore is true, returns a matcher with no patterns that will never
     /// match any paths.
-    pub fn new<P: AsRef<Path>>(root: P, never_ignore: bool) -> Self {
-        if never_ignore {
-            return Self {
-                local: None,
-                global: None,
-            };
-        }
-
+    pub fn new<P: AsRef<Path>>(root: P) -> Self {
         let mut local_builder = GitignoreBuilder::new(root);
         local_builder.add(".gitignore");
 
@@ -44,6 +37,13 @@ impl GitignoreMatcher {
         Self {
             local: Some(local_gitignore),
             global: Some(global_gitignore),
+        }
+    }
+
+    pub fn disabled() -> Self {
+        Self {
+            local: None,
+            global: None,
         }
     }
 
@@ -96,7 +96,7 @@ mod tests {
 
     #[rstest]
     fn test_empty_matcher(temp_dir: TempDir) {
-        let matcher = GitignoreMatcher::new(temp_dir.path(), false);
+        let matcher = GitignoreMatcher::new(temp_dir.path());
         assert!(!matcher.is_ignored("some/path", false));
         assert!(!matcher.is_ignored("file.txt", false));
     }
@@ -115,7 +115,7 @@ mod tests {
         temp_dir: TempDir,
     ) {
         create_gitignore(&temp_dir, pattern);
-        let matcher = GitignoreMatcher::new(temp_dir.path(), false);
+        let matcher = GitignoreMatcher::new(temp_dir.path());
         assert_eq!(
             matcher.is_ignored(path, false),
             should_ignore,
@@ -123,7 +123,7 @@ mod tests {
             if should_ignore { "not" } else { "" }
         );
 
-        let never_ignore_matcher = GitignoreMatcher::new(temp_dir.path(), true);
+        let never_ignore_matcher = GitignoreMatcher::disabled();
         assert!(
             !never_ignore_matcher.is_ignored(path, false),
             "Path should never be ignored when never_ignore is true"
@@ -134,7 +134,7 @@ mod tests {
     fn test_directory_vs_file_matching(temp_dir: TempDir) {
         // Ignore everything in build/ except build/keep.txt.
         create_gitignore(&temp_dir, "build/\n!build/keep.txt");
-        let matcher = GitignoreMatcher::new(temp_dir.path(), false);
+        let matcher = GitignoreMatcher::new(temp_dir.path());
 
         assert!(
             matcher.is_ignored("build", true),

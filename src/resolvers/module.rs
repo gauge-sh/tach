@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use super::glob;
 use crate::{
-    config::{ignore::GitignoreCache, root_module::ROOT_MODULE_SENTINEL_TAG},
+    config::{ignore::GitignoreMatcher, root_module::ROOT_MODULE_SENTINEL_TAG},
     exclusion::PathExclusions,
     filesystem,
 };
@@ -55,19 +55,19 @@ pub enum ModuleResolverError {
 pub struct ModuleResolver<'a> {
     source_roots: &'a [PathBuf],
     exclusions: &'a PathExclusions,
-    gitignore_cache: &'a GitignoreCache,
+    gitignore_matcher: &'a GitignoreMatcher,
 }
 
 impl<'a> ModuleResolver<'a> {
     pub fn new(
         source_roots: &'a [PathBuf],
         exclusions: &'a PathExclusions,
-        gitignore_cache: &'a GitignoreCache,
+        gitignore_matcher: &'a GitignoreMatcher,
     ) -> Self {
         Self {
             source_roots,
             exclusions,
-            gitignore_cache,
+            gitignore_matcher,
         }
     }
 
@@ -102,7 +102,7 @@ impl<'a> ModuleResolver<'a> {
                 filesystem::walk_pymodules(
                     root.as_os_str().to_str().unwrap(),
                     self.exclusions,
-                    self.gitignore_cache,
+                    self.gitignore_matcher,
                 )
                 .par_bridge()
                 .filter(|m| matcher.is_match(m))

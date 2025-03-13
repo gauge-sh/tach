@@ -139,7 +139,11 @@ pub fn create_computation_cache_key(
 ) -> String {
     // Exclusions are not applied when building cache keys
     let exclusions = PathExclusions::new(project_root, &[], false).unwrap();
-    let gitignore_matcher = GitignoreMatcher::new(project_root, !respect_gitignore);
+    let gitignore_matcher = if respect_gitignore {
+        GitignoreMatcher::new(project_root)
+    } else {
+        GitignoreMatcher::disabled()
+    };
     let source_pyfiles = source_roots.iter().flat_map(|root| {
         walk_pyfiles(root.to_str().unwrap(), &exclusions, &gitignore_matcher)
             .flat_map(move |path| fs::read(root.join(path)).unwrap())
