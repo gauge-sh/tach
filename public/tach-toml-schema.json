@@ -347,6 +347,11 @@
       "default": false,
       "description": "Disallow listed dependencies that are not used in the project"
     },
+    "respect_gitignore": {
+      "type": "boolean",
+      "default": true,
+      "description": "Exclude files and directories matched by '.gitignore'"
+    },
     "root_module": {
       "type": "string",
       "description": "How to treat code outside of explicitly listed modules"
