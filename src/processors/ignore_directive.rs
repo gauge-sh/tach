@@ -41,6 +41,11 @@ impl IgnoreDirective {
             return false;
         }
 
+        // If the diagnostic is related to an ignore directive, it should never be matched
+        if diagnostic.is_ignore_directive_related() {
+            return false;
+        }
+
         // If the directive is a blanket ignore, it matches any diagnostic
         if self.modules.is_empty() {
             return true;
