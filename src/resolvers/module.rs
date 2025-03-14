@@ -1,10 +1,11 @@
 use globset::{Error as GlobError, GlobMatcher};
 use itertools::Itertools;
 use rayon::prelude::*;
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use super::glob;
-use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
+use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
+use crate::filesystem;
 
 #[derive(Debug)]
 pub struct ModuleGlob {
@@ -50,20 +51,14 @@ pub enum ModuleResolverError {
 #[derive(Debug)]
 pub struct ModuleResolver<'a> {
     source_roots: &'a [PathBuf],
-    exclusions: Arc<PathExclusions>,
-    respect_gitignore: bool,
+    file_walker: &'a filesystem::FSWalker,
 }
 
 impl<'a> ModuleResolver<'a> {
-    pub fn new(
-        source_roots: &'a [PathBuf],
-        exclusions: Arc<PathExclusions>,
-        respect_gitignore: bool,
-    ) -> Self {
+    pub fn new(source_roots: &'a [PathBuf], file_walker: &'a filesystem::FSWalker) -> Self {
         Self {
             source_roots,
-            exclusions,
-            respect_gitignore,
+            file_walker,
         }
     }
 
@@ -95,19 +90,16 @@ impl<'a> ModuleResolver<'a> {
             .source_roots
             .par_iter()
             .flat_map(|root| {
-                filesystem::walk_pymodules(
-                    root.as_os_str().to_str().unwrap(),
-                    self.exclusions.clone(),
-                    self.respect_gitignore,
-                )
-                .par_bridge()
-                .filter(|m| matcher.is_match(m))
-                .map(|m| {
-                    m.with_extension("")
-                        .display()
-                        .to_string()
-                        .replace(std::path::MAIN_SEPARATOR, ".")
-                })
+                self.file_walker
+                    .walk_pymodules(root.as_os_str().to_str().unwrap())
+                    .par_bridge()
+                    .filter(|m| matcher.is_match(m))
+                    .map(|m| {
+                        m.with_extension("")
+                            .display()
+                            .to_string()
+                            .replace(std::path::MAIN_SEPARATOR, ".")
+                    })
             })
             .collect())
     }

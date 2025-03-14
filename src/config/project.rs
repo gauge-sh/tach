@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::exclusion::PathExclusions;
-use crate::filesystem::module_path_is_included_in_paths;
+use crate::filesystem::{self, module_path_is_included_in_paths};
 use crate::resolvers::SourceRootResolver;
 
 use super::cache::CacheConfig;
@@ -172,13 +172,13 @@ impl ProjectConfig {
             .as_ref()
             .map(|path| path.parent().unwrap().to_path_buf())
             .ok_or(ConfigError::ConfigDoesNotExist)?;
-        let exclusions = Arc::new(PathExclusions::new(
+        let file_walker = filesystem::FSWalker::new(
             &project_root,
             &self.exclude,
             self.use_regex_matching,
-        )?);
-        let source_root_resolver =
-            SourceRootResolver::new(&project_root, exclusions.clone(), self.respect_gitignore);
+            self.respect_gitignore,
+        );
+        let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         Ok(source_root_resolver.resolve(&self.source_roots)?)
     }
 

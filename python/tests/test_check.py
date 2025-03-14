@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from unittest.mock import NonCallableMagicMock
 
 import pytest
@@ -497,3 +498,144 @@ def test_visibility_error_example_dir(example_dir, capfd):
     assert "'module2' cannot depend on 'module3'" in captured.err
     assert "module3" in captured.err
     assert "['module1']" in captured.err
+
+
+def test_many_features_example_dir_with_gitignore(example_dir, capfd, tmp_path):
+    project_root = tmp_path / "many_features"
+    shutil.copytree(example_dir / "many_features", project_root)
+
+    (project_root / ".gitignore").write_text("""
+# Ignore module3 entirely
+real_src/module3/
+# Ignore specific files
+real_src/module1/controller.py
+other_src_root/module4/service.py
+""")
+
+    (project_root / "real_src" / ".gitignore").write_text("""
+# Ignore all python files in globbed directory
+globbed/**/*.py
+""")
+
+    project_config = parse_project_config(root=project_root)
+    assert project_config is not None
+
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check(
+            project_root=project_root,
+            project_config=project_config,
+        )
+    assert exc_info.value.code == 1
+
+    captured = capfd.readouterr()
+    general_header = captured.err.index("General\n")
+    interfaces_header = captured.err.index("Interfaces\n")
+    dependencies_header = captured.err.index("Internal Dependencies\n")
+    unused_header = captured.err.index("Unused Dependencies")
+
+    general_section = captured.err[general_header:interfaces_header]
+    interfaces_section = captured.err[interfaces_header:dependencies_header]
+    dependencies_section = captured.err[dependencies_header:unused_header]
+    unused_section = captured.err[unused_header:]
+
+    # Files that are gitignored should not appear in the diagnostics
+    assert "real_src/module3/" not in captured.err
+    assert "real_src/module1/controller.py" not in captured.err
+    assert "other_src_root/module4/service.py" not in captured.err
+    assert "real_src/globbed/" not in captured.err
+
+    expected_general = [
+        (
+            "[WARN]",
+            "other_src_root/module1/api.py",
+            "ignore directive",
+            "missing a reason",
+        ),
+        ("[WARN]", "real_src/main.py", "ignore directive", "missing a reason"),
+        ("[FAIL]", "other_src_root/module1/api.py", "ignore directive", "unused"),
+        ("[FAIL]", "real_src/main.py", "ignore directive", "unused"),
+    ]
+
+    expected_interfaces = [
+        (
+            "[FAIL]",
+            "other_src_root/module5/__init__.py",
+            "module1.api.something",
+            "public interface",
+        ),
+    ]
+
+    expected_dependencies = [
+        ("[FAIL]", "real_src/module2/service.py", "outer_module", "module2"),
+    ]
+
+    expected_unused = [
+        ("module1", "module5"),
+    ]
+
+    _check_expected_messages_unordered(general_section, expected_general)
+    _check_expected_messages_unordered(interfaces_section, expected_interfaces)
+    _check_expected_messages_unordered(dependencies_section, expected_dependencies)
+    _check_expected_messages_unordered(unused_section, expected_unused)
+
+
+def test_many_features_example_dir_with_gitignore__external(example_dir, capfd, tmp_path):
+    project_root = tmp_path / "many_features"
+    shutil.copytree(example_dir / "many_features", project_root)
+
+    (project_root / ".gitignore").write_text("""
+# Ignore module3 entirely
+real_src/module3/
+# Ignore specific files
+real_src/module1/controller.py
+other_src_root/module4/service.py
+""")
+
+    (project_root / "real_src" / ".gitignore").write_text("""
+# Ignore all python files in globbed directory
+globbed/**/*.py
+""")
+
+    project_config = parse_project_config(root=project_root)
+    assert project_config is not None
+
+    with pytest.raises(SystemExit) as exc_info:
+        tach_check_external(
+            project_root=project_root,
+            project_config=project_config,
+        )
+    assert exc_info.value.code == 1
+
+    captured = capfd.readouterr()
+    general_header = captured.err.index("General\n")
+    external_header = captured.err.index("External Dependencies\n")
+
+    general_section = captured.err[general_header:external_header]
+    external_section = captured.err[external_header:]
+
+    # Files that are gitignored should not appear in the diagnostics
+    assert "real_src/module3/" not in captured.err
+    assert "real_src/module1/controller.py" not in captured.err
+    assert "other_src_root/module4/service.py" not in captured.err
+    assert "real_src/globbed/" not in captured.err
+
+    expected_general = [
+        ("[WARN]", "real_src/main.py", "ignore directive", "missing a reason"),
+        ("[WARN]", "real_src/module1/__init__.py", "ignore directive", "missing a reason"),
+        ("[FAIL]", "real_src/module1/__init__.py", "ignore directive", "unused"),
+    ]
+
+    expected_external = [
+        ("[FAIL]", "prompt_toolkit", "not used"),
+        ("[FAIL]", "importlib_metadata", "not used"),
+        ("[FAIL]", "tomli_w", "not used"),
+        ("[FAIL]", "pydot", "not used"),
+        ("[FAIL]", "rich", "not used"),
+        ("[FAIL]", "stdlib_list", "not used"),
+        ("[FAIL]", "other_src_root/module5/__init__.py", "module5", "networkx"),
+        ("[FAIL]", "real_src/module1/__init__.py", "module1", "tomli"),
+        ("[FAIL]", "real_src/django_settings.py", "django", "not declared"),
+    ]
+
+    _check_expected_messages_unordered(general_section, expected_general)
+    _check_expected_messages_unordered(external_section, expected_external)

@@ -1,8 +1,8 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use crate::{
     config::{ModuleConfig, RootModuleTreatment},
-    exclusion::PathExclusions,
+    filesystem,
     resolvers::{glob, ModuleResolver},
 };
 
@@ -23,13 +23,12 @@ pub struct ModuleTreeBuilder<'a> {
 impl<'a> ModuleTreeBuilder<'a> {
     pub fn new(
         source_roots: &'a [PathBuf],
-        exclusions: Arc<PathExclusions>,
-        respect_gitignore: bool,
+        file_walker: &'a filesystem::FSWalker,
         forbid_circular_dependencies: bool,
         root_module_treatment: RootModuleTreatment,
     ) -> Self {
         Self {
-            resolver: ModuleResolver::new(source_roots, exclusions.clone(), respect_gitignore),
+            resolver: ModuleResolver::new(source_roots, file_walker),
             forbid_circular_dependencies,
             root_module_treatment,
         }

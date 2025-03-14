@@ -1,9 +1,9 @@
-use std::{collections::HashSet, path::PathBuf, sync::Arc};
+use std::{collections::HashSet, path::PathBuf};
 
 use globset;
 use thiserror::Error;
 
-use crate::exclusion::PathExclusions;
+use crate::filesystem;
 
 use super::glob;
 
@@ -17,20 +17,14 @@ pub enum SourceRootResolverError {
 
 pub struct SourceRootResolver<'a> {
     project_root: &'a PathBuf,
-    path_exclusions: Arc<PathExclusions>,
-    respect_gitignore: bool,
+    file_walker: &'a filesystem::FSWalker,
 }
 
 impl<'a> SourceRootResolver<'a> {
-    pub fn new(
-        project_root: &'a PathBuf,
-        path_exclusions: Arc<PathExclusions>,
-        respect_gitignore: bool,
-    ) -> Self {
+    pub fn new(project_root: &'a PathBuf, file_walker: &'a filesystem::FSWalker) -> Self {
         Self {
             project_root,
-            path_exclusions,
-            respect_gitignore,
+            file_walker,
         }
     }
 
@@ -51,8 +45,7 @@ impl<'a> SourceRootResolver<'a> {
                                 glob::find_matching_directories(
                                     self.project_root,
                                     s,
-                                    self.path_exclusions.clone(),
-                                    self.respect_gitignore,
+                                    self.file_walker,
                                 )
                                 .map_err(SourceRootResolverError::GlobError)
                             } else {
@@ -97,8 +90,8 @@ mod tests {
     fn test_resolve_single_directory() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let path_exclusions = Arc::new(PathExclusions::empty(&project_root));
-        let resolver = SourceRootResolver::new(&project_root, path_exclusions.clone(), false);
+        let file_walker = filesystem::FSWalker::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &file_walker);
 
         let source_roots = vec![PathBuf::from("src")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -111,8 +104,8 @@ mod tests {
     fn test_resolve_current_directory() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let path_exclusions = Arc::new(PathExclusions::empty(&project_root));
-        let resolver = SourceRootResolver::new(&project_root, path_exclusions.clone(), false);
+        let file_walker = filesystem::FSWalker::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &file_walker);
 
         let source_roots = vec![PathBuf::from(".")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -125,8 +118,8 @@ mod tests {
     fn test_resolve_glob_pattern() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let path_exclusions = Arc::new(PathExclusions::empty(&project_root));
-        let resolver = SourceRootResolver::new(&project_root, path_exclusions.clone(), false);
+        let file_walker = filesystem::FSWalker::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &file_walker);
 
         let source_roots = vec![PathBuf::from("examples/*")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -140,8 +133,8 @@ mod tests {
     fn test_resolve_multiple_patterns() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let path_exclusions = Arc::new(PathExclusions::empty(&project_root));
-        let resolver = SourceRootResolver::new(&project_root, path_exclusions.clone(), false);
+        let file_walker = filesystem::FSWalker::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &file_walker);
 
         let source_roots = vec![PathBuf::from("src/*"), PathBuf::from("tests")];
         let resolved = resolver.resolve(&source_roots).unwrap();
@@ -156,8 +149,8 @@ mod tests {
     fn test_resolve_deduplicates_paths() {
         let temp_dir = setup_test_directory();
         let project_root = PathBuf::from(temp_dir.path());
-        let path_exclusions = Arc::new(PathExclusions::empty(&project_root));
-        let resolver = SourceRootResolver::new(&project_root, path_exclusions.clone(), false);
+        let file_walker = filesystem::FSWalker::empty(&project_root);
+        let resolver = SourceRootResolver::new(&project_root, &file_walker);
 
         let source_roots = vec![
             PathBuf::from("src"),

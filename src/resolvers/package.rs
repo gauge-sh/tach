@@ -2,15 +2,14 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-use crate::exclusion::PathExclusions;
 use crate::external::error::ParsingError;
 use crate::external::parsing;
-use crate::filesystem::{module_to_file_path, FileSystemError};
+use crate::filesystem;
 
 #[derive(Error, Debug)]
 pub enum PackageResolutionError {
     #[error("File system error during package resolution: {0}")]
-    FileSystem(#[from] FileSystemError),
+    FileSystem(#[from] filesystem::FileSystemError),
     #[error("Error parsing package root dependencies: {0}")]
     Parsing(#[from] ParsingError),
     #[error("Source root '{0}' does not appear to be within project root.")]
@@ -162,7 +161,7 @@ pub enum PackageResolution<'a> {
 #[derive(Debug)]
 pub struct PackageResolver<'a> {
     source_roots: &'a [PathBuf],
-    path_exclusions: &'a PathExclusions,
+    file_walker: &'a filesystem::FSWalker,
     package_for_source_root: HashMap<PathBuf, Package>,
 }
 
@@ -170,7 +169,7 @@ impl<'a> PackageResolver<'a> {
     pub fn try_new(
         project_root: &'a PathBuf,
         source_roots: &'a [PathBuf],
-        path_exclusions: &'a PathExclusions,
+        file_walker: &'a filesystem::FSWalker,
     ) -> Result<Self> {
         let package_for_source_root = source_roots
             .iter()
@@ -183,7 +182,7 @@ impl<'a> PackageResolver<'a> {
             .collect::<Result<HashMap<PathBuf, Package>>>()?;
         Ok(Self {
             source_roots,
-            path_exclusions,
+            file_walker,
             package_for_source_root,
         })
     }
@@ -203,7 +202,7 @@ impl<'a> PackageResolver<'a> {
 
     pub fn resolve_file_path<P: AsRef<Path>>(&self, file_path: P) -> PackageResolution {
         // this is not safe if the file path is not within the project root
-        if self.path_exclusions.is_path_excluded(file_path.as_ref()) {
+        if self.file_walker.is_path_excluded(file_path.as_ref()) {
             return PackageResolution::Excluded;
         }
 
@@ -225,9 +224,11 @@ impl<'a> PackageResolver<'a> {
     }
 
     pub fn resolve_module_path(&self, module_path: &str) -> PackageResolution {
-        if let Some(resolved_module) = module_to_file_path(self.source_roots, module_path, true) {
+        if let Some(resolved_module) =
+            filesystem::module_to_file_path(self.source_roots, module_path, true)
+        {
             if self
-                .path_exclusions
+                .file_walker
                 .is_path_excluded(&resolved_module.file_path)
             {
                 return PackageResolution::Excluded;

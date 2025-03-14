@@ -54,26 +54,19 @@ impl TachPytestPluginHandler {
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
         // TODO: Remove unwraps
-        let exclusions = Arc::new(
-            PathExclusions::new(
-                &project_root,
-                &project_config.exclude,
-                project_config.use_regex_matching,
-            )
-            .unwrap(),
-        );
-        let source_root_resolver = SourceRootResolver::new(
+        let file_walker = fs::FSWalker::new(
             &project_root,
-            exclusions.clone(),
+            &project_config.exclude,
+            project_config.use_regex_matching,
             project_config.respect_gitignore,
         );
+        let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         let source_roots = source_root_resolver
             .resolve(&project_config.source_roots)
             .unwrap();
         let module_tree_builder = ModuleTreeBuilder::new(
             &source_roots,
-            exclusions.clone(),
-            project_config.respect_gitignore,
+            &file_walker,
             project_config.forbid_circular_dependencies,
             project_config.root_module,
         );
@@ -153,19 +146,13 @@ fn get_changed_module_paths(
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
 ) -> Result<Vec<String>> {
-    let exclusions = Arc::new(
-        PathExclusions::new(
-            project_root,
-            &project_config.exclude,
-            project_config.use_regex_matching,
-        )
-        .unwrap(),
-    );
-    let source_root_resolver = SourceRootResolver::new(
+    let file_walker = fs::FSWalker::new(
         project_root,
-        exclusions.clone(),
+        &project_config.exclude,
+        project_config.use_regex_matching,
         project_config.respect_gitignore,
     );
+    let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
 
     let changed_module_paths = changed_files

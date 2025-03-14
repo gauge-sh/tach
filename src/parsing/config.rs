@@ -1,7 +1,6 @@
 use std::{
     cmp::Ordering,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 
 use rayon::prelude::*;
@@ -12,8 +11,7 @@ use crate::{
         project::PyProjectWrapper, root_module::ROOT_MODULE_SENTINEL_TAG, ConfigLocation,
         DomainConfig, InterfaceConfig, InterfaceDataTypes, LocatedDomainConfig, ProjectConfig,
     },
-    exclusion::PathExclusions,
-    filesystem::{read_file_content, walk_domain_config_files},
+    filesystem::{self, read_file_content},
     python::parsing::parse_interface_members,
     resolvers::SourceRootResolver,
 };
@@ -157,22 +155,19 @@ pub fn parse_domain_config<P: AsRef<Path>>(
 
 pub fn add_domain_configs<P: AsRef<Path>>(config: &mut ProjectConfig, root_dir: P) -> Result<()> {
     let root_dir = root_dir.as_ref().to_path_buf();
-    let exclusions = Arc::new(PathExclusions::new(
+    let file_walker = filesystem::FSWalker::new(
         &root_dir,
         &config.exclude,
         config.use_regex_matching,
-    )?);
-    let source_root_resolver =
-        SourceRootResolver::new(&root_dir, exclusions.clone(), config.respect_gitignore);
-    let source_roots = source_root_resolver.resolve(&config.source_roots)?;
-    let mut domain_configs = walk_domain_config_files(
-        root_dir.as_os_str().to_str().unwrap(),
-        exclusions.clone(),
         config.respect_gitignore,
-    )
-    .par_bridge()
-    .map(|filepath| parse_domain_config(&source_roots, filepath))
-    .collect::<Result<Vec<_>>>()?;
+    );
+    let source_root_resolver = SourceRootResolver::new(&root_dir, &file_walker);
+    let source_roots = source_root_resolver.resolve(&config.source_roots)?;
+    let mut domain_configs = file_walker
+        .walk_domain_config_files(root_dir.as_os_str().to_str().unwrap())
+        .par_bridge()
+        .map(|filepath| parse_domain_config(&source_roots, filepath))
+        .collect::<Result<Vec<_>>>()?;
     domain_configs.drain(..).for_each(|domain| {
         config.add_domain(domain);
     });

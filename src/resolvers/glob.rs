@@ -1,8 +1,6 @@
 use globset::{Error, GlobBuilder, GlobMatcher};
 use std::path::{Path, PathBuf, MAIN_SEPARATOR};
-use std::sync::Arc;
 
-use crate::exclusion::PathExclusions;
 use crate::filesystem;
 
 pub fn has_glob_syntax(pattern: &str) -> bool {
@@ -30,8 +28,7 @@ pub fn build_matcher(pattern: &str) -> Result<GlobMatcher, Error> {
 pub fn find_matching_directories<P: AsRef<Path>>(
     root_path: P,
     pattern: &str,
-    path_exclusions: Arc<PathExclusions>,
-    respect_gitignore: bool,
+    file_walker: &filesystem::FSWalker,
 ) -> Result<Vec<PathBuf>, Error> {
     let matcher = build_matcher(&format!(
         "{}{}{}",
@@ -40,13 +37,10 @@ pub fn find_matching_directories<P: AsRef<Path>>(
         pattern
     ))?;
 
-    let matching_dirs = filesystem::walk_dirs(
-        root_path.as_ref().to_str().unwrap(),
-        path_exclusions.clone(),
-        respect_gitignore,
-    )
-    .filter(|entry| matcher.is_match(entry.as_os_str().to_str().unwrap()))
-    .collect();
+    let matching_dirs = file_walker
+        .walk_dirs(root_path.as_ref().to_str().unwrap())
+        .filter(|entry| matcher.is_match(entry.as_os_str().to_str().unwrap()))
+        .collect();
 
     Ok(matching_dirs)
 }

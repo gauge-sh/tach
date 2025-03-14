@@ -3,13 +3,11 @@ use cached::{DiskCache, DiskCacheError, IOCached};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::{env, fs};
 use thiserror::Error;
 use toml::Value;
 
-use crate::exclusion::PathExclusions;
-use crate::filesystem::{self, walk_pyfiles};
+use crate::filesystem;
 
 #[derive(Error, Debug)]
 pub enum CacheError {
@@ -115,8 +113,10 @@ fn parse_project_dependencies<P: AsRef<Path>>(project_root: P) -> impl Iterator<
 fn read_file_dependencies(
     project_root: &str,
     file_dependencies: Vec<String>,
+    walker: &filesystem::FSWalker,
 ) -> impl Iterator<Item = u8> {
-    filesystem::walk_globbed_files(project_root, file_dependencies)
+    walker
+        .walk_globbed_files(project_root, file_dependencies)
         .flat_map(|path| fs::read(path).unwrap())
 }
 
@@ -137,28 +137,26 @@ pub fn create_computation_cache_key(
     _backend: String,
     respect_gitignore: bool,
 ) -> String {
-    // Exclusions are not applied when building cache keys
-    let exclusions = Arc::new(PathExclusions::new(project_root, &[], false).unwrap());
+    // Exclusions are not applied when building cache keys (paths are empty here)
+    let walker = filesystem::FSWalker::new(project_root, &[], false, respect_gitignore);
+    let file_dependencies =
+        read_file_dependencies(project_root.to_str().unwrap(), file_dependencies, &walker);
     let source_pyfiles = source_roots.iter().flat_map(|root| {
-        walk_pyfiles(
-            root.to_str().unwrap(),
-            exclusions.clone(),
-            respect_gitignore,
-        )
-        .flat_map(move |path| fs::read(root.join(path)).unwrap())
+        walker
+            .walk_pyfiles(root.to_str().unwrap())
+            .flat_map(move |path| fs::read(root.join(path)).unwrap())
     });
     let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());
     let project_dependencies =
         parse_project_dependencies(&project_root).flat_map(|d| d.into_bytes());
-    let file_dependencies =
-        read_file_dependencies(project_root.to_str().unwrap(), file_dependencies);
     CacheKey::from_iter(
         source_pyfiles
             .chain(env_dependencies)
             .chain(project_dependencies)
             .chain(file_dependencies)
             .chain(action.into_bytes())
-            .chain(py_interpreter_version.into_bytes()),
+            .chain(py_interpreter_version.into_bytes())
+            .chain(respect_gitignore.to_string().into_bytes()),
     )
     .hash
 }
