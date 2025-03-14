@@ -133,12 +133,12 @@ pub fn check(
 
     let mut diagnostics = Vec::new();
     let found_imports = AtomicBool::new(false);
-    let file_walker = fs::FSWalker::new(
+    let file_walker = fs::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
         project_config.respect_gitignore,
-    );
+    )?;
     let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &file_walker)?;

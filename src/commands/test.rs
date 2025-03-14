@@ -53,12 +53,13 @@ impl TachPytestPluginHandler {
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
         // TODO: Remove unwraps
-        let file_walker = fs::FSWalker::new(
+        let file_walker = fs::FSWalker::try_new(
             &project_root,
             &project_config.exclude,
             project_config.use_regex_matching,
             project_config.respect_gitignore,
-        );
+        )
+        .unwrap();
         let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         let source_roots = source_root_resolver
             .resolve(&project_config.source_roots)
@@ -145,12 +146,12 @@ fn get_changed_module_paths(
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
 ) -> Result<Vec<String>> {
-    let file_walker = fs::FSWalker::new(
+    let file_walker = fs::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
         project_config.respect_gitignore,
-    );
+    )?;
     let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
 

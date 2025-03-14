@@ -188,12 +188,12 @@ fn check_with_modules(
     let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
-    let file_walker = filesystem::FSWalker::new(
+    let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
         project_config.respect_gitignore,
-    );
+    )?;
     let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &file_walker)?;

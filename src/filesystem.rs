@@ -14,7 +14,7 @@ use thiserror::Error;
 
 use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
 use crate::config::ModuleConfig;
-use crate::exclusion::PathExclusions;
+use crate::exclusion::{PathExclusionError, PathExclusions};
 
 #[derive(Error, Debug)]
 pub enum FileSystemError {
@@ -22,6 +22,8 @@ pub enum FileSystemError {
     Io(#[from] io::Error),
     #[error("Path does not appear to be within project root.\n{0}")]
     StripPrefix(#[from] StripPrefixError),
+    #[error("Exclusion error: {0}")]
+    Exclusion(#[from] PathExclusionError),
     #[error("{0}")]
     Other(String),
 }
@@ -318,12 +320,12 @@ pub struct FSWalker {
 }
 
 impl FSWalker {
-    pub fn new<P: AsRef<Path>>(
+    pub fn try_new<P: AsRef<Path>>(
         project_root: P,
         exclude_paths: &[String],
         use_regex_matching: bool,
         respect_gitignore: bool,
-    ) -> Self {
+    ) -> Result<Self> {
         let mut walk_builder = ignore::WalkBuilder::new(project_root.as_ref());
         walk_builder.require_git(false);
         if !respect_gitignore {
@@ -335,17 +337,19 @@ impl FSWalker {
 
         // TODO: Can take over PathExclusions' responsibility via 'overrides' in ignore::WalkBuilder
         //   but need to fully remove regex matching
-        Self {
+        Ok(Self {
             _project_root: project_root.as_ref().to_path_buf(),
-            exclusions: Arc::new(
-                PathExclusions::new(project_root, exclude_paths, use_regex_matching).unwrap(),
-            ),
+            exclusions: Arc::new(PathExclusions::new(
+                project_root,
+                exclude_paths,
+                use_regex_matching,
+            )?),
             walk_builder,
-        }
+        })
     }
 
     pub fn empty<P: AsRef<Path>>(project_root: P) -> Self {
-        Self::new(project_root, &[], false, false)
+        Self::try_new(project_root, &[], false, false).unwrap()
     }
 
     pub fn is_path_excluded<P: AsRef<Path>>(&self, path: P) -> bool {

@@ -25,6 +25,8 @@ pub enum SyncError {
     RootModuleViolation(String),
     #[error("Failed to apply edits to project configuration.\n{0}")]
     EditError(#[from] EditError),
+    #[error("Failed to create file walker.\n{0}")]
+    FileWalker(#[from] filesystem::FileSystemError),
     #[error("Failed to handle excluded paths.\n{0}")]
     PathExclusion(#[from] PathExclusionError),
     #[error("Failed to resolve source roots.\n{0}")]
@@ -217,12 +219,12 @@ fn sync_dependency_constraints(
     }
 
     if prune {
-        let file_walker = filesystem::FSWalker::new(
+        let file_walker = filesystem::FSWalker::try_new(
             &project_root,
             &project_config.exclude,
             project_config.use_regex_matching,
             project_config.respect_gitignore,
-        );
+        )?;
         let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
         project_config

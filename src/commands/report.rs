@@ -235,12 +235,12 @@ pub fn create_dependency_report(
         return Err(ReportCreationError::NothingToReport);
     }
 
-    let file_walker = filesystem::FSWalker::new(
+    let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
         project_config.respect_gitignore,
-    );
+    )?;
     let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
     let module_tree_builder = ModuleTreeBuilder::new(

@@ -46,12 +46,12 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
         project_config.include_string_imports,
     )?;
     let ignore_directives = get_ignore_directives(&file_contents);
-    let file_walker = filesystem::FSWalker::new(
+    let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
         project_config.respect_gitignore,
-    );
+    )?;
     let package_resolver = PackageResolver::try_new(project_root, source_roots, &file_walker)?;
     let package = match package_resolver.resolve_file_path(file_path.as_ref()) {
         PackageResolution::Found { package, .. } => package,
@@ -108,12 +108,12 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
         false,
     )?;
     let ignore_directives = get_ignore_directives(&file_contents);
-    let file_walker = filesystem::FSWalker::new(
+    let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
         project_config.respect_gitignore,
-    );
+    )?;
     let package_resolver = PackageResolver::try_new(project_root, source_roots, &file_walker)?;
     let package = match package_resolver.resolve_file_path(file_path.as_ref()) {
         PackageResolution::Found { package, .. } => package,

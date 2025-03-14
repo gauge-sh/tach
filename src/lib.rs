@@ -121,6 +121,7 @@ impl From<sync::SyncError> for PyErr {
             sync::SyncError::EditError(err) => PyValueError::new_err(err.to_string()),
             sync::SyncError::SourceRootResolution(err) => PyValueError::new_err(err.to_string()),
             sync::SyncError::PathExclusion(err) => err.into(),
+            sync::SyncError::FileWalker(err) => PyOSError::new_err(err.to_string()),
         }
     }
 }
