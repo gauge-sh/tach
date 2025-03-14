@@ -168,6 +168,7 @@ class ProjectConfig:
     include_string_imports: bool
     forbid_circular_dependencies: bool
     respect_gitignore: bool
+    # [DEPRECATED] Just reading this to print a warning
     use_regex_matching: bool
     rules: RulesConfig
     root_module: RootModuleTreatment

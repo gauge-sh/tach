@@ -22,7 +22,6 @@ def project_config():
         Path("src/pack-g/src"),
     ]
     p.ignore_type_checking_imports = True
-    p.use_regex_matching = False
     p.include_string_imports = False
     return p
 

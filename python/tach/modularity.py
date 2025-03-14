@@ -22,7 +22,6 @@ from tach.extension import (
     UsageError as ExtUsageError,
 )
 from tach.filesystem.git_ops import get_current_branch_info
-from tach.parsing import combine_exclude_paths
 
 if TYPE_CHECKING:
     try:
@@ -268,7 +267,6 @@ def build_usages(
             source_root,
             project_root=project_root,
             exclude_paths=project_config.exclude,
-            use_regex_matching=project_config.use_regex_matching,
         ):
             pyfile_mod_path = fs.file_to_module_path(
                 tuple(source_roots), source_root / pyfile
@@ -307,9 +305,6 @@ def build_diagnostics(
     project_root: Path,
     project_config: ProjectConfig,
 ) -> list[UsageError]:
-    project_config.exclude = combine_exclude_paths(
-        None, project_config.exclude, project_config.use_regex_matching
-    )
     check_diagnostics = check(
         project_root=project_root,
         project_config=project_config,

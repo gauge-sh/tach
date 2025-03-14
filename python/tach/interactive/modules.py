@@ -125,7 +125,6 @@ class FileTree:
         path: Path,
         depth: int | None = 1,
         exclude_paths: list[str] | None = None,
-        use_regex_matching: bool | None = None,
     ) -> FileTree:
         root = FileNode.build_from_path(path)
         root.is_module = False
@@ -136,7 +135,6 @@ class FileTree:
             root,
             depth=depth if depth is not None else 1,
             exclude_paths=exclude_paths,
-            use_regex_matching=use_regex_matching,
         )
         return tree
 
@@ -145,7 +143,6 @@ class FileTree:
         root: FileNode,
         depth: int = 1,
         exclude_paths: list[str] | None = None,
-        use_regex_matching: bool | None = None,
     ):
         if root.is_dir:
             try:
@@ -163,15 +160,9 @@ class FileTree:
                         continue
 
                     # Exclude patterns are relative to project root, and may include a trailing slash
-                    if exclude_paths is not None and use_regex_matching is None:
-                        raise errors.TachError(
-                            "Must specify whether to use regex matching when providing exclude paths."
-                        )
 
                     if exclude_paths and is_path_excluded(
-                        exclude_paths,
-                        entry.relative_to(self.root.full_path),
-                        use_regex_matching=bool(use_regex_matching),
+                        exclude_paths, entry.relative_to(self.root.full_path)
                     ):
                         # This path is ignored
                         continue
@@ -186,7 +177,6 @@ class FileTree:
                             child_node,
                             depth=max(depth - 1, 0),
                             exclude_paths=exclude_paths,
-                            use_regex_matching=use_regex_matching,
                         )
             except PermissionError:
                 # This is expected to occur during iterdir when the directory cannot be accessed
@@ -273,10 +263,7 @@ class InteractiveModuleTree:
         # By default, don't save if we exit for any reason
         self.exit_code: ExitCode = ExitCode.QUIT_NOSAVE
         self.file_tree = FileTree.build_from_path(
-            path=path,
-            depth=depth,
-            exclude_paths=exclude_paths,
-            use_regex_matching=project_config.use_regex_matching,
+            path=path, depth=depth, exclude_paths=exclude_paths
         )
 
         source_roots = [

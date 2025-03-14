@@ -1131,7 +1131,9 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         )
 
     # Exclude paths on the CLI extend those from the project config
-    project_config.exclude = combine_exclude_paths(exclude_paths, project_config.exclude)
+    project_config.exclude = combine_exclude_paths(
+        exclude_paths, project_config.exclude
+    )
 
     if args.command == "sync":
         tach_sync(

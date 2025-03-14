@@ -6,4 +6,8 @@ from tach.parsing.config import (
     parse_project_config,
 )
 
-__all__ = ["parse_project_config", "dump_project_config_to_toml", "combine_exclude_paths"]
+__all__ = [
+    "parse_project_config",
+    "dump_project_config_to_toml",
+    "combine_exclude_paths",
+]
