@@ -1,6 +1,6 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
 use crate::commands::check;
-use crate::config::{self, ignore::GitignoreMatcher, ProjectConfig};
+use crate::config::ProjectConfig;
 use crate::dependencies::import::with_distribution_names;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
@@ -16,6 +16,7 @@ use crate::resolvers::{PackageResolver, SourceRootResolver};
 use pyo3::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use dashmap::{DashMap, DashSet};
 use rayon::prelude::*;
@@ -131,9 +132,7 @@ struct CheckExternalMetadata {
 }
 
 /// Get metadata for checking external dependencies.
-fn get_check_external_metadata(
-    project_config: &config::ProjectConfig,
-) -> Result<CheckExternalMetadata> {
+fn get_check_external_metadata(project_config: &ProjectConfig) -> Result<CheckExternalMetadata> {
     Python::with_gil(|py| {
         let external_utils = PyModule::import_bound(py, "tach.utils.external")
             .expect("Failed to import tach.utils.external");
@@ -191,24 +190,22 @@ fn check_with_modules(
     let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
-    let exclusions = PathExclusions::new(
+    let exclusions = Arc::new(PathExclusions::new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
-    )?;
-    let gitignore_matcher = if project_config.respect_gitignore {
-        GitignoreMatcher::new(&project_root)
-    } else {
-        GitignoreMatcher::disabled()
-    };
-    let source_root_resolver =
-        SourceRootResolver::new(project_root, &exclusions, &gitignore_matcher);
+    )?);
+    let source_root_resolver = SourceRootResolver::new(
+        project_root,
+        exclusions.clone(),
+        project_config.respect_gitignore,
+    );
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
-        &exclusions,
-        &gitignore_matcher,
+        exclusions.clone(),
+        project_config.respect_gitignore,
         project_config.forbid_circular_dependencies,
         project_config.root_module,
     );
@@ -240,11 +237,12 @@ fn check_with_modules(
     diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
         walk_pyfiles(
             &source_root.display().to_string(),
-            &exclusions,
-            &gitignore_matcher,
+            exclusions.clone(),
+            project_config.respect_gitignore,
         )
         .par_bridge()
         .flat_map(|file_path| {
+            eprintln!("Checking file: {:?}", file_path);
             if check_interrupt().is_err() {
                 // Since files are being processed in parallel,
                 // this will essentially short-circuit all remaining files.

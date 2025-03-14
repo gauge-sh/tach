@@ -3,11 +3,11 @@ use cached::{DiskCache, DiskCacheError, IOCached};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::{env, fs};
 use thiserror::Error;
 use toml::Value;
 
-use crate::config::ignore::GitignoreMatcher;
 use crate::exclusion::PathExclusions;
 use crate::filesystem::{self, walk_pyfiles};
 
@@ -138,15 +138,14 @@ pub fn create_computation_cache_key(
     respect_gitignore: bool,
 ) -> String {
     // Exclusions are not applied when building cache keys
-    let exclusions = PathExclusions::new(project_root, &[], false).unwrap();
-    let gitignore_matcher = if respect_gitignore {
-        GitignoreMatcher::new(project_root)
-    } else {
-        GitignoreMatcher::disabled()
-    };
+    let exclusions = Arc::new(PathExclusions::new(project_root, &[], false).unwrap());
     let source_pyfiles = source_roots.iter().flat_map(|root| {
-        walk_pyfiles(root.to_str().unwrap(), &exclusions, &gitignore_matcher)
-            .flat_map(move |path| fs::read(root.join(path)).unwrap())
+        walk_pyfiles(
+            root.to_str().unwrap(),
+            exclusions.clone(),
+            respect_gitignore,
+        )
+        .flat_map(move |path| fs::read(root.join(path)).unwrap())
     });
     let env_dependencies = read_env_dependencies(env_dependencies).flat_map(|d| d.into_bytes());
     let project_dependencies =

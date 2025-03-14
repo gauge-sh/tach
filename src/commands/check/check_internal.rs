@@ -1,6 +1,9 @@
 use std::{
     path::PathBuf,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 use rayon::prelude::*;
@@ -8,7 +11,7 @@ use rayon::prelude::*;
 use super::error::CheckError;
 use crate::{
     checks::{IgnoreDirectivePostProcessor, InterfaceChecker, InternalDependencyChecker},
-    config::{ignore::GitignoreMatcher, ProjectConfig},
+    config::ProjectConfig,
     diagnostics::{
         ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
         DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
@@ -134,24 +137,22 @@ pub fn check(
 
     let mut diagnostics = Vec::new();
     let found_imports = AtomicBool::new(false);
-    let exclusions = PathExclusions::new(
+    let exclusions = Arc::new(PathExclusions::new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
-    )?;
-    let gitignore_matcher = if project_config.respect_gitignore {
-        GitignoreMatcher::new(project_root)
-    } else {
-        GitignoreMatcher::disabled()
-    };
-    let source_root_resolver =
-        SourceRootResolver::new(project_root, &exclusions, &gitignore_matcher);
+    )?);
+    let source_root_resolver = SourceRootResolver::new(
+        project_root,
+        exclusions.clone(),
+        project_config.respect_gitignore,
+    );
     let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
     let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
-        &exclusions,
-        &gitignore_matcher,
+        exclusions.clone(),
+        project_config.respect_gitignore,
         project_config.forbid_circular_dependencies,
         project_config.root_module,
     );
@@ -197,8 +198,8 @@ pub fn check(
     diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
         fs::walk_pyfiles(
             &source_root.display().to_string(),
-            &exclusions,
-            &gitignore_matcher,
+            exclusions.clone(),
+            project_config.respect_gitignore,
         )
         .par_bridge()
         .flat_map(|file_path| {

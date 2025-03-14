@@ -4,7 +4,6 @@ use pyo3::prelude::*;
 
 use crate::commands::check::{check_internal, CheckError};
 use crate::config::edit::{ConfigEditor, EditError};
-use crate::config::ignore::GitignoreMatcher;
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
 use crate::diagnostics::Diagnostic;
@@ -13,6 +12,7 @@ use crate::filesystem::validate_module_path;
 use crate::resolvers::{glob, SourceRootResolver, SourceRootResolverError};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(Error, Debug)]
 pub enum SyncError {
@@ -218,18 +218,16 @@ fn sync_dependency_constraints(
     }
 
     if prune {
-        let exclusions = PathExclusions::new(
+        let exclusions = Arc::new(PathExclusions::new(
             &project_root,
             &project_config.exclude,
             project_config.use_regex_matching,
-        )?;
-        let gitignore_matcher = if project_config.respect_gitignore {
-            GitignoreMatcher::new(&project_root)
-        } else {
-            GitignoreMatcher::disabled()
-        };
-        let source_root_resolver =
-            SourceRootResolver::new(&project_root, &exclusions, &gitignore_matcher);
+        )?);
+        let source_root_resolver = SourceRootResolver::new(
+            &project_root,
+            exclusions.clone(),
+            project_config.respect_gitignore,
+        );
         let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
         project_config
             .module_paths()

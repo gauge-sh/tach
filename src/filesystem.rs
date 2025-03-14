@@ -1,17 +1,18 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::io;
 use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
+use std::sync::Arc;
 
 use cached::proc_macro::cached;
 use globset::Glob;
 use globset::GlobSetBuilder;
+use ignore;
 use itertools::Itertools;
 use thiserror::Error;
-use walkdir::{DirEntry, WalkDir};
 
-use crate::config::ignore::GitignoreMatcher;
 use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
 use crate::config::ModuleConfig;
 use crate::exclusion::PathExclusions;
@@ -242,7 +243,7 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-pub fn is_hidden(entry: &DirEntry) -> bool {
+pub fn is_hidden(entry: &ignore::DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
@@ -250,17 +251,12 @@ pub fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-pub fn direntry_is_excluded(
-    entry: &DirEntry,
-    exclusions: &PathExclusions,
-    gitignore_matcher: &GitignoreMatcher,
-) -> bool {
-    exclusions.is_path_excluded(entry.path())
-        || gitignore_matcher.is_ignored(entry.path(), entry.file_type().is_dir())
+pub fn is_excluded(path: &Path, exclusions: &PathExclusions) -> bool {
+    exclusions.is_path_excluded(path)
 }
 
-fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
-    if entry.file_type().is_dir() {
+fn is_pyfile_or_dir(entry: &ignore::DirEntry) -> bool {
+    if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
         return true;
     }
     match entry.path().extension() {
@@ -269,9 +265,9 @@ fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
     }
 }
 
-fn is_pymodule(entry: &DirEntry) -> bool {
+fn is_pymodule(entry: &ignore::DirEntry) -> bool {
     let path = entry.path();
-    if entry.file_type().is_dir() {
+    if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
         path.join("__init__.py").exists() || path.join("__init__.pyi").exists()
     } else {
         // Check if the file is a .py or .pyi file and is not __init__.py (we will process the directory instead)
@@ -315,69 +311,78 @@ impl AsRef<Path> for ProjectFile<'_> {
     }
 }
 
-pub fn walk_pyfiles<'a>(
-    root: &str,
-    exclusions: &'a PathExclusions,
-    gitignore_matcher: &'a GitignoreMatcher,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    let prefix_root = root.to_string();
-    WalkDir::new(root)
-        .into_iter()
-        .filter_entry(|e| {
-            !is_hidden(e)
-                && !direntry_is_excluded(e, exclusions, gitignore_matcher)
-                && is_pyfile_or_dir(e)
-        })
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
-        .map(move |entry| {
-            entry
-                .path()
-                .strip_prefix(prefix_root.as_str())
-                .unwrap()
-                .to_path_buf()
-        })
+fn walk_builder(root: &str, respect_gitignore: bool) -> ignore::WalkBuilder {
+    let mut builder = ignore::WalkBuilder::new(root);
+    if !respect_gitignore {
+        // Disable all ignore filters
+        builder.ignore(false);
+        builder.git_ignore(false);
+        builder.git_global(false);
+    }
+
+    builder
 }
 
-pub fn walk_pymodules<'a>(
+pub fn walk_dirs(
     root: &str,
-    exclusions: &'a PathExclusions,
-    gitignore_matcher: &'a GitignoreMatcher,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    let prefix_root = root.to_string();
-    WalkDir::new(root)
+    exclusions: Arc<PathExclusions>,
+    respect_gitignore: bool,
+) -> impl Iterator<Item = PathBuf> {
+    walk_builder(root, respect_gitignore)
+        .filter_entry(move |e| !is_hidden(e) && !is_excluded(e.path(), &exclusions))
+        .build()
         .into_iter()
-        .filter_entry(|e| {
-            !is_hidden(e)
-                && !direntry_is_excluded(e, exclusions, gitignore_matcher)
-                && is_pyfile_or_dir(e)
-        })
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().map(|t| t.is_dir()).unwrap_or(false))
+        .map(|entry| entry.into_path())
+}
+
+pub fn walk_pyfiles(
+    root: &str,
+    exclusions: Arc<PathExclusions>,
+    respect_gitignore: bool,
+) -> impl Iterator<Item = PathBuf> {
+    let prefix = root.to_string();
+    walk_builder(root, respect_gitignore)
+        .filter_entry(move |e| !is_excluded(e.path(), &exclusions) && is_pyfile_or_dir(e))
+        .build()
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_type().map(|t| t.is_file()).unwrap_or(false))
+        .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
+}
+
+pub fn walk_pymodules(
+    root: &str,
+    exclusions: Arc<PathExclusions>,
+    respect_gitignore: bool,
+) -> impl Iterator<Item = PathBuf> {
+    let prefix = root.to_string();
+    walk_builder(root, respect_gitignore)
+        .filter_entry(move |e| !is_hidden(e) && !is_excluded(e.path(), &exclusions))
+        .build()
+        .into_iter()
         .filter_map(|entry| {
             entry
                 .ok()
                 .and_then(|e| if is_pymodule(&e) { Some(e) } else { None })
         })
-        .map(move |entry| {
-            entry
-                .path()
-                .strip_prefix(prefix_root.as_str())
-                .unwrap()
-                .to_path_buf()
-        })
+        .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
 }
 
-pub fn walk_pyprojects<'a>(
+pub fn walk_pyprojects(
     root: &str,
-    exclusions: &'a PathExclusions,
-    gitignore_matcher: &'a GitignoreMatcher,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    WalkDir::new(root)
+    exclusions: Arc<PathExclusions>,
+    respect_gitignore: bool,
+) -> impl Iterator<Item = PathBuf> {
+    let prefix = root.to_string();
+    walk_builder(root, respect_gitignore)
+        .filter_entry(move |e| !is_hidden(e) && !is_excluded(e.path(), &exclusions))
+        .build()
         .into_iter()
-        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions, gitignore_matcher))
         .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_type().is_file())
         .filter(|entry| entry.file_name() == "pyproject.toml")
-        .map(|entry| entry.into_path())
+        .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
 }
 
 pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<Item = PathBuf> {
@@ -388,32 +393,27 @@ pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<It
     }
 
     let glob_set = glob_builder.build().unwrap();
+    let prefix = root.to_string();
 
-    let walker = WalkDir::new(root).into_iter();
-    let owned_root = root.to_string();
-    walker
+    walk_builder(root, false)
         .filter_entry(|e| !is_hidden(e))
+        .build()
+        .into_iter()
         .map(|res| res.unwrap().into_path())
         .filter(move |path| {
-            path.is_file()
-                && glob_set.is_match(
-                    relative_to(path, PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
-                )
+            path.is_file() && glob_set.is_match(relative_to(path, PathBuf::from(&prefix)).unwrap())
         })
 }
 
-pub fn walk_domain_config_files<'a>(
+pub fn walk_domain_config_files(
     root: &str,
-    exclusions: &'a PathExclusions,
-    gitignore_matcher: &'a GitignoreMatcher,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    WalkDir::new(root)
+    exclusions: Arc<PathExclusions>,
+    respect_gitignore: bool,
+) -> impl Iterator<Item = PathBuf> {
+    walk_builder(root, respect_gitignore)
+        .filter_entry(move |e| !is_hidden(e) && !is_excluded(e.path(), &exclusions))
+        .build()
         .into_iter()
-        .filter_entry(|e| {
-            !is_hidden(e)
-                && !direntry_is_excluded(e, exclusions, gitignore_matcher)
-                && is_pyfile_or_dir(e)
-        })
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_name() == "tach.domain.toml")
         .map(|entry| entry.into_path())

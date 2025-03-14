@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::io;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use rayon::prelude::*;
 
@@ -10,7 +11,6 @@ use thiserror::Error;
 use crate::cli;
 use crate::cli::create_clickable_link;
 use crate::colors::*;
-use crate::config::ignore::GitignoreMatcher;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
 use crate::dependencies::LocatedImport;
@@ -236,23 +236,21 @@ pub fn create_dependency_report(
         return Err(ReportCreationError::NothingToReport);
     }
 
-    let exclusions = PathExclusions::new(
+    let exclusions = Arc::new(PathExclusions::new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
-    )?;
-    let gitignore_matcher = if project_config.respect_gitignore {
-        GitignoreMatcher::new(project_root)
-    } else {
-        GitignoreMatcher::disabled()
-    };
-    let source_root_resolver =
-        SourceRootResolver::new(project_root, &exclusions, &gitignore_matcher);
+    )?);
+    let source_root_resolver = SourceRootResolver::new(
+        project_root,
+        exclusions.clone(),
+        project_config.respect_gitignore,
+    );
     let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
-        &exclusions,
-        &gitignore_matcher,
+        exclusions.clone(),
+        project_config.respect_gitignore,
         false,                      // skip circular dependency check in report
         RootModuleTreatment::Allow, // skip root module check in report
     );
@@ -270,24 +268,13 @@ pub fn create_dependency_report(
 
     let mut report = DependencyReport::new(path.display().to_string());
 
-    let exclusions = PathExclusions::new(
-        project_root,
-        &project_config.exclude,
-        project_config.use_regex_matching,
-    )?;
-    let gitignore_matcher = if project_config.respect_gitignore {
-        GitignoreMatcher::new(&project_root)
-    } else {
-        GitignoreMatcher::disabled()
-    };
-
     for source_root in &source_roots {
         check_interrupt().map_err(|_| ReportCreationError::Interrupted)?;
 
         let source_root_results: Vec<_> = walk_pyfiles(
             &source_root.display().to_string(),
-            &exclusions,
-            &gitignore_matcher,
+            exclusions.clone(),
+            project_config.respect_gitignore,
         )
         .par_bridge()
         .filter_map(|pyfile| {

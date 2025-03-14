@@ -1,14 +1,10 @@
 use globset::{Error as GlobError, GlobMatcher};
 use itertools::Itertools;
 use rayon::prelude::*;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use super::glob;
-use crate::{
-    config::{ignore::GitignoreMatcher, root_module::ROOT_MODULE_SENTINEL_TAG},
-    exclusion::PathExclusions,
-    filesystem,
-};
+use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
 
 #[derive(Debug)]
 pub struct ModuleGlob {
@@ -54,20 +50,20 @@ pub enum ModuleResolverError {
 #[derive(Debug)]
 pub struct ModuleResolver<'a> {
     source_roots: &'a [PathBuf],
-    exclusions: &'a PathExclusions,
-    gitignore_matcher: &'a GitignoreMatcher,
+    exclusions: Arc<PathExclusions>,
+    respect_gitignore: bool,
 }
 
 impl<'a> ModuleResolver<'a> {
     pub fn new(
         source_roots: &'a [PathBuf],
-        exclusions: &'a PathExclusions,
-        gitignore_matcher: &'a GitignoreMatcher,
+        exclusions: Arc<PathExclusions>,
+        respect_gitignore: bool,
     ) -> Self {
         Self {
             source_roots,
             exclusions,
-            gitignore_matcher,
+            respect_gitignore,
         }
     }
 
@@ -101,8 +97,8 @@ impl<'a> ModuleResolver<'a> {
             .flat_map(|root| {
                 filesystem::walk_pymodules(
                     root.as_os_str().to_str().unwrap(),
-                    self.exclusions,
-                    self.gitignore_matcher,
+                    self.exclusions.clone(),
+                    self.respect_gitignore,
                 )
                 .par_bridge()
                 .filter(|m| matcher.is_match(m))

@@ -26,8 +26,8 @@ impl GitignoreMatcher {
     /// If never_ignore is true, returns a matcher with no patterns that will never
     /// match any paths.
     pub fn new<P: AsRef<Path>>(root: P) -> Self {
-        let mut local_builder = GitignoreBuilder::new(root);
-        local_builder.add(".gitignore");
+        let mut local_builder = GitignoreBuilder::new(root.as_ref());
+        local_builder.add(root.as_ref().join(".gitignore"));
 
         let local_gitignore = local_builder
             .build()
@@ -77,6 +77,37 @@ impl GitignoreMatcher {
     pub fn is_ignored<P: AsRef<Path>>(&self, path: P, is_dir: bool) -> bool {
         matches!(self.matched(path, is_dir), Match::Ignore(_))
     }
+
+    /// Check if a path or any of its parent directories matches any gitignore pattern.
+    ///
+    /// Returns:
+    ///   - `Match::None` if neither the path nor its parents are ignored
+    ///   - `Match::Ignore("local"|"global")` if the path or a parent matches an ignore pattern
+    ///   - `Match::Whitelist("local"|"global")` if the path or a parent matches a whitelist pattern
+    fn matched_with_parents<P: AsRef<Path>>(&self, path: P, is_dir: bool) -> Match<&'static str> {
+        if let Some(local) = &self.local {
+            match local.matched_path_or_any_parents(path.as_ref(), is_dir) {
+                Match::None => (),
+                match_result => return match_result.map(|_| "local"),
+            }
+        }
+
+        if let Some(global) = &self.global {
+            match global.matched_path_or_any_parents(path.as_ref(), is_dir) {
+                Match::None => (),
+                match_result => return match_result.map(|_| "global"),
+            }
+        }
+
+        Match::None
+    }
+
+    /// Check if a path or any of its parent directories is ignored by any gitignore pattern.
+    ///
+    /// Returns `true` if the path or any parent matches an ignore pattern, `false` otherwise.
+    pub fn is_ignored_with_parents<P: AsRef<Path>>(&self, path: P, is_dir: bool) -> bool {
+        matches!(self.matched_with_parents(path, is_dir), Match::Ignore(_))
+    }
 }
 
 #[cfg(test)]
@@ -102,51 +133,88 @@ mod tests {
     }
 
     #[rstest]
-    #[case("*.txt", "file.txt", true)]
-    // #[case("*.txt", "path/to/doc.txt", true)]
-    // #[case("build/", "build/output.txt", true)]
-    // #[case("build/", "src/build/file.txt", true)]
-    // #[case("!important.txt", "important.txt", false)]
-    // #[case("/node_modules/", "node_modules/package/file.js", true)]
+    #[case("*.txt", "file.txt", true, true, false)]
+    #[case("*.txt", "path/to/doc.txt", true, true, false)]
+    #[case("build/", "build/output.txt", false, true, false)]
+    #[case("build/", "src/build/file.txt", false, true, false)]
+    #[case("!important.txt", "important.txt", false, false, false)]
+    #[case("/node_modules/", "node_modules/package/file.js", false, true, false)]
+    #[case("foo/", "foo/bar/baz.txt", false, true, false)]
     fn test_gitignore_patterns(
         #[case] pattern: &str,
         #[case] path: &str,
         #[case] should_ignore: bool,
+        #[case] should_ignore_with_parents: bool,
+        #[case] is_dir: bool,
         temp_dir: TempDir,
     ) {
         create_gitignore(&temp_dir, pattern);
         let matcher = GitignoreMatcher::new(temp_dir.path());
+
         assert_eq!(
-            matcher.is_ignored(path, false),
+            matcher.is_ignored(path, is_dir),
             should_ignore,
             "Path should {} be ignored",
-            if should_ignore { "not" } else { "" }
+            if should_ignore { "" } else { "not" }
+        );
+
+        assert_eq!(
+            matcher.is_ignored_with_parents(path, is_dir),
+            should_ignore_with_parents,
+            "Path should {} be ignored with parents",
+            if should_ignore_with_parents {
+                ""
+            } else {
+                "not"
+            }
         );
 
         let never_ignore_matcher = GitignoreMatcher::disabled();
         assert!(
-            !never_ignore_matcher.is_ignored(path, false),
-            "Path should never be ignored when never_ignore is true"
+            !never_ignore_matcher.is_ignored(path, is_dir),
+            "Path should never be ignored when matcher is disabled"
+        );
+        assert!(
+            !never_ignore_matcher.is_ignored_with_parents(path, is_dir),
+            "Path should never be ignored with parents when matcher is disabled"
         );
     }
 
     #[rstest]
     fn test_directory_vs_file_matching(temp_dir: TempDir) {
-        // Ignore everything in build/ except build/keep.txt.
         create_gitignore(&temp_dir, "build/\n!build/keep.txt");
         let matcher = GitignoreMatcher::new(temp_dir.path());
 
+        // Test regular matching
         assert!(
             matcher.is_ignored("build", true),
             "Expected build to be ignored"
         );
         assert!(
-            matcher.is_ignored("build/output.txt", true),
-            "Expected build/output.txt to be ignored"
+            !matcher.is_ignored("build/output.txt", false),
+            "Expected build/output.txt to not be ignored"
         );
         assert!(
             !matcher.is_ignored("build/keep.txt", false),
             "Expected build/keep.txt to not be ignored"
+        );
+
+        // Test matching with parents
+        assert!(
+            matcher.is_ignored_with_parents("build", true),
+            "Expected build to be ignored (with parents)"
+        );
+        assert!(
+            matcher.is_ignored_with_parents("build/output.txt", false),
+            "Expected build/output.txt to be ignored (with parents)"
+        );
+        assert!(
+            !matcher.is_ignored_with_parents("build/keep.txt", false),
+            "Expected build/keep.txt to not be ignored (with parents)"
+        );
+        assert!(
+            matcher.is_ignored_with_parents("build/subdir/file.txt", false),
+            "Expected build/subdir/file.txt to be ignored due to parent"
         );
     }
 }

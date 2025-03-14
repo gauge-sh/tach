@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::iter;
 use std::ops::Not;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use crate::exclusion::PathExclusions;
 use crate::filesystem::module_path_is_included_in_paths;
@@ -13,7 +14,6 @@ use super::domain::LocatedDomainConfig;
 use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::error::ConfigError;
 use super::external::ExternalDependencyConfig;
-use super::ignore::GitignoreMatcher;
 use super::interfaces::InterfaceConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
 use super::plugins::PluginsConfig;
@@ -84,7 +84,10 @@ pub struct ProjectConfig {
     #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get)]
     pub forbid_circular_dependencies: bool,
-    #[serde(default, skip_serializing_if = "Not::not")]
+    #[serde(
+        default = "utils::default_true",
+        skip_serializing_if = "utils::is_true"
+    )]
     #[pyo3(get, set)]
     pub respect_gitignore: bool,
     #[serde(default, skip_serializing_if = "Not::not")]
@@ -169,15 +172,13 @@ impl ProjectConfig {
             .as_ref()
             .map(|path| path.parent().unwrap().to_path_buf())
             .ok_or(ConfigError::ConfigDoesNotExist)?;
-        let exclusions =
-            PathExclusions::new(&project_root, &self.exclude, self.use_regex_matching)?;
-        let gitignore_matcher = if self.respect_gitignore {
-            GitignoreMatcher::new(&project_root)
-        } else {
-            GitignoreMatcher::disabled()
-        };
+        let exclusions = Arc::new(PathExclusions::new(
+            &project_root,
+            &self.exclude,
+            self.use_regex_matching,
+        )?);
         let source_root_resolver =
-            SourceRootResolver::new(&project_root, &exclusions, &gitignore_matcher);
+            SourceRootResolver::new(&project_root, exclusions.clone(), self.respect_gitignore);
         Ok(source_root_resolver.resolve(&self.source_roots)?)
     }
 
