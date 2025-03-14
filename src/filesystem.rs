@@ -1,4 +1,3 @@
-use std::ffi::OsStr;
 use std::fs;
 use std::io;
 use std::io::Read;
@@ -370,7 +369,6 @@ impl FSWalker {
                 }
             })
             .build()
-            .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.file_type().map(|t| t.is_dir()).unwrap_or(false))
             .map(|entry| entry.into_path())
@@ -394,7 +392,6 @@ impl FSWalker {
                 }
             })
             .build()
-            .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.file_type().map(|t| t.is_file()).unwrap_or(false))
             .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
@@ -418,7 +415,6 @@ impl FSWalker {
                 }
             })
             .build()
-            .into_iter()
             .filter_map(|entry| {
                 entry
                     .ok()
@@ -445,7 +441,6 @@ impl FSWalker {
                 }
             })
             .build()
-            .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.file_name() == "pyproject.toml")
             .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
@@ -481,7 +476,6 @@ impl FSWalker {
                 }
             })
             .build()
-            .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(move |entry| {
                 entry.file_type().map(|t| t.is_file()).unwrap_or(false)
@@ -507,7 +501,6 @@ impl FSWalker {
                 }
             })
             .build()
-            .into_iter()
             .filter_map(|entry| entry.ok())
             .filter(|entry| entry.file_name() == "tach.domain.toml")
             .map(|entry| entry.into_path())

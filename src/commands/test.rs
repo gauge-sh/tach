@@ -1,12 +1,11 @@
 use std::collections::HashSet;
-use std::sync::Arc;
 use std::{collections::HashMap, path::PathBuf};
 
 use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::config::{ModuleConfig, ProjectConfig};
-use crate::exclusion::{PathExclusionError, PathExclusions};
+use crate::exclusion::PathExclusionError;
 use crate::filesystem::{self as fs};
 use crate::modules::{ModuleTree, ModuleTreeBuilder};
 use crate::resolvers::{SourceRootResolver, SourceRootResolverError};

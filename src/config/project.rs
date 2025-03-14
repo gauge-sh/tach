@@ -3,9 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::iter;
 use std::ops::Not;
 use std::path::PathBuf;
-use std::sync::Arc;
 
-use crate::exclusion::PathExclusions;
 use crate::filesystem::{self, module_path_is_included_in_paths};
 use crate::resolvers::SourceRootResolver;
 

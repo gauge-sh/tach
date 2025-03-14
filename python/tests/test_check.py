@@ -579,7 +579,9 @@ globbed/**/*.py
     _check_expected_messages_unordered(unused_section, expected_unused)
 
 
-def test_many_features_example_dir_with_gitignore__external(example_dir, capfd, tmp_path):
+def test_many_features_example_dir_with_gitignore__external(
+    example_dir, capfd, tmp_path
+):
     project_root = tmp_path / "many_features"
     shutil.copytree(example_dir / "many_features", project_root)
 
@@ -621,7 +623,12 @@ globbed/**/*.py
 
     expected_general = [
         ("[WARN]", "real_src/main.py", "ignore directive", "missing a reason"),
-        ("[WARN]", "real_src/module1/__init__.py", "ignore directive", "missing a reason"),
+        (
+            "[WARN]",
+            "real_src/module1/__init__.py",
+            "ignore directive",
+            "missing a reason",
+        ),
         ("[FAIL]", "real_src/module1/__init__.py", "ignore directive", "unused"),
     ]
 

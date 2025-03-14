@@ -6,7 +6,6 @@ use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
     DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
 };
-use crate::exclusion::PathExclusions;
 use crate::filesystem::{self, ProjectFile};
 use crate::interrupt::check_interrupt;
 use crate::modules::{ModuleTree, ModuleTreeBuilder};
@@ -16,7 +15,6 @@ use crate::resolvers::{PackageResolver, SourceRootResolver};
 use pyo3::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use dashmap::{DashMap, DashSet};
 use rayon::prelude::*;
