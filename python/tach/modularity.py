@@ -22,7 +22,7 @@ from tach.extension import (
     UsageError as ExtUsageError,
 )
 from tach.filesystem.git_ops import get_current_branch_info
-from tach.parsing import extend_and_validate
+from tach.parsing import combine_exclude_paths
 
 if TYPE_CHECKING:
     try:
@@ -307,7 +307,7 @@ def build_diagnostics(
     project_root: Path,
     project_config: ProjectConfig,
 ) -> list[UsageError]:
-    project_config.exclude = extend_and_validate(
+    project_config.exclude = combine_exclude_paths(
         None, project_config.exclude, project_config.use_regex_matching
     )
     check_diagnostics = check(
