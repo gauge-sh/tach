@@ -152,6 +152,14 @@ pub enum CodeDiagnostic {
 }
 
 impl CodeDiagnostic {
+    pub fn is_ignore_directive_related(&self) -> bool {
+        matches!(
+            self,
+            CodeDiagnostic::UnusedIgnoreDirective()
+                | CodeDiagnostic::MissingIgnoreDirectiveReason()
+        )
+    }
+
     pub fn dependency(&self) -> Option<&str> {
         match self {
             CodeDiagnostic::PrivateDependency { dependency, .. }
@@ -367,6 +375,13 @@ impl Diagnostic {
                 original_line_number,
                 ..
             } => *original_line_number,
+        }
+    }
+
+    pub fn is_ignore_directive_related(&self) -> bool {
+        match self.details() {
+            DiagnosticDetails::Code(details) => details.is_ignore_directive_related(),
+            _ => false,
         }
     }
 
