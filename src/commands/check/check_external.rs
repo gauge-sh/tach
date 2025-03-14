@@ -242,7 +242,6 @@ fn check_with_modules(
         )
         .par_bridge()
         .flat_map(|file_path| {
-            eprintln!("Checking file: {:?}", file_path);
             if check_interrupt().is_err() {
                 // Since files are being processed in parallel,
                 // this will essentially short-circuit all remaining files.

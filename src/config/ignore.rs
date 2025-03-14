@@ -17,14 +17,10 @@ impl GitignoreMatcher {
     /// # Arguments
     ///
     /// * `root` - The root directory path to search for .gitignore files.
-    /// * `never_ignore` - If true, the matcher will never consider any paths ignored,
-    ///                   effectively disabling gitignore functionality.
     ///
     /// # Returns
     ///
     /// A new GitignoreMatcher instance configured based on the provided arguments.
-    /// If never_ignore is true, returns a matcher with no patterns that will never
-    /// match any paths.
     pub fn new<P: AsRef<Path>>(root: P) -> Self {
         let mut local_builder = GitignoreBuilder::new(root.as_ref());
         local_builder.add(root.as_ref().join(".gitignore"));
@@ -40,6 +36,11 @@ impl GitignoreMatcher {
         }
     }
 
+    /// Create a new GitignoreMatcher that does not check any paths.
+    ///
+    /// # Returns
+    ///
+    /// A new GitignoreMatcher instance that does not check any paths.
     pub fn disabled() -> Self {
         Self {
             local: None,
