@@ -3,17 +3,18 @@ use std::io;
 use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
+use std::sync::Arc;
 
 use cached::proc_macro::cached;
 use globset::Glob;
 use globset::GlobSetBuilder;
+use ignore;
 use itertools::Itertools;
 use thiserror::Error;
-use walkdir::{DirEntry, WalkDir};
 
 use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
 use crate::config::ModuleConfig;
-use crate::exclusion::PathExclusions;
+use crate::exclusion::{PathExclusionError, PathExclusions};
 
 #[derive(Error, Debug)]
 pub enum FileSystemError {
@@ -21,6 +22,8 @@ pub enum FileSystemError {
     Io(#[from] io::Error),
     #[error("Path does not appear to be within project root.\n{0}")]
     StripPrefix(#[from] StripPrefixError),
+    #[error("Exclusion error: {0}")]
+    Exclusion(#[from] PathExclusionError),
     #[error("{0}")]
     Other(String),
 }
@@ -241,7 +244,7 @@ pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(content)
 }
 
-pub fn is_hidden(entry: &DirEntry) -> bool {
+pub fn is_hidden(entry: &ignore::DirEntry) -> bool {
     entry
         .file_name()
         .to_str()
@@ -249,12 +252,12 @@ pub fn is_hidden(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
-pub fn direntry_is_excluded(entry: &DirEntry, exclusions: &PathExclusions) -> bool {
-    exclusions.is_path_excluded(entry.path())
+pub fn is_excluded(path: &Path, exclusions: &PathExclusions) -> bool {
+    exclusions.is_path_excluded(path)
 }
 
-fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
-    if entry.file_type().is_dir() {
+fn is_pyfile_or_dir(entry: &ignore::DirEntry) -> bool {
+    if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
         return true;
     }
     match entry.path().extension() {
@@ -263,9 +266,9 @@ fn is_pyfile_or_dir(entry: &DirEntry) -> bool {
     }
 }
 
-fn is_pymodule(entry: &DirEntry) -> bool {
+fn is_pymodule(entry: &ignore::DirEntry) -> bool {
     let path = entry.path();
-    if entry.file_type().is_dir() {
+    if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
         path.join("__init__.py").exists() || path.join("__init__.pyi").exists()
     } else {
         // Check if the file is a .py or .pyi file and is not __init__.py (we will process the directory instead)
@@ -309,94 +312,203 @@ impl AsRef<Path> for ProjectFile<'_> {
     }
 }
 
-pub fn walk_pyfiles<'a>(
-    root: &str,
-    exclusions: &'a PathExclusions,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    let prefix_root = root.to_string();
-    WalkDir::new(root)
-        .into_iter()
-        .filter_entry(|e| {
-            !is_hidden(e) && !direntry_is_excluded(e, exclusions) && is_pyfile_or_dir(e)
-        })
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_type().is_file()) // filter_entry would skip dirs if they were excluded earlier
-        .map(move |entry| {
-            entry
-                .path()
-                .strip_prefix(prefix_root.as_str())
-                .unwrap()
-                .to_path_buf()
-        })
+#[derive(Debug, Clone)]
+pub struct FSWalker {
+    _project_root: PathBuf,
+    exclusions: Arc<PathExclusions>,
+    walk_builder: ignore::WalkBuilder,
 }
 
-pub fn walk_pymodules<'a>(
-    root: &str,
-    exclusions: &'a PathExclusions,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    let prefix_root = root.to_string();
-    WalkDir::new(root)
-        .into_iter()
-        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions))
-        .filter_map(|entry| {
-            entry
-                .ok()
-                .and_then(|e| if is_pymodule(&e) { Some(e) } else { None })
+impl FSWalker {
+    pub fn try_new<P: AsRef<Path>>(
+        project_root: P,
+        exclude_paths: &[String],
+        use_regex_matching: bool,
+        respect_gitignore: bool,
+    ) -> Result<Self> {
+        let mut walk_builder = ignore::WalkBuilder::new(project_root.as_ref());
+        walk_builder.require_git(false);
+        if !respect_gitignore {
+            // Disable all ignore filters
+            walk_builder.ignore(false);
+            walk_builder.git_ignore(false);
+            walk_builder.git_global(false);
+        }
+
+        // TODO: Can take over PathExclusions' responsibility via 'overrides' in ignore::WalkBuilder
+        //   but need to fully remove regex matching
+        Ok(Self {
+            _project_root: project_root.as_ref().to_path_buf(),
+            exclusions: Arc::new(PathExclusions::new(
+                project_root,
+                exclude_paths,
+                use_regex_matching,
+            )?),
+            walk_builder,
         })
-        .map(move |entry| {
-            entry
-                .path()
-                .strip_prefix(prefix_root.as_str())
-                .unwrap()
-                .to_path_buf()
-        })
-}
-
-pub fn walk_pyprojects<'a>(
-    root: &str,
-    exclusions: &'a PathExclusions,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    WalkDir::new(root)
-        .into_iter()
-        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions))
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_type().is_file())
-        .filter(|entry| entry.file_name() == "pyproject.toml")
-        .map(|entry| entry.into_path())
-}
-
-pub fn walk_globbed_files(root: &str, patterns: Vec<String>) -> impl Iterator<Item = PathBuf> {
-    let mut glob_builder = GlobSetBuilder::new();
-
-    for pattern in patterns {
-        glob_builder.add(Glob::new(&pattern).unwrap());
     }
 
-    let glob_set = glob_builder.build().unwrap();
+    pub fn empty<P: AsRef<Path>>(project_root: P) -> Self {
+        Self::try_new(project_root, &[], false, false).unwrap()
+    }
 
-    let walker = WalkDir::new(root).into_iter();
-    let owned_root = root.to_string();
-    walker
-        .filter_entry(|e| !is_hidden(e))
-        .map(|res| res.unwrap().into_path())
-        .filter(move |path| {
-            path.is_file()
-                && glob_set.is_match(
-                    relative_to(path, PathBuf::from(&owned_root)).unwrap_or(path.to_path_buf()),
-                )
-        })
-}
+    pub fn is_path_excluded<P: AsRef<Path>>(&self, path: P) -> bool {
+        self.exclusions.is_path_excluded(path)
+    }
 
-pub fn walk_domain_config_files<'a>(
-    root: &str,
-    exclusions: &'a PathExclusions,
-) -> impl Iterator<Item = PathBuf> + 'a {
-    WalkDir::new(root)
-        .into_iter()
-        .filter_entry(|e| !is_hidden(e) && !direntry_is_excluded(e, exclusions))
-        .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.file_name() == "tach.domain.toml")
-        .map(|entry| entry.into_path())
+    pub fn walk_dirs(&self, root: &str) -> impl Iterator<Item = PathBuf> {
+        let mut builder = self.walk_builder.clone();
+        let owned_root = root.to_string();
+        let exclusions = self.exclusions.clone();
+        builder
+            .filter_entry(move |e| {
+                let path = e.path();
+                if path.strip_prefix(&owned_root).is_ok() {
+                    // We're at or below our target root - apply normal filters
+                    !is_excluded(path, &exclusions)
+                } else {
+                    // We're still traversing to reach our target - only check if this could be
+                    // a parent directory of our target by seeing if our target starts with this path
+                    owned_root.starts_with(path.to_str().unwrap_or(""))
+                }
+            })
+            .build()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().map(|t| t.is_dir()).unwrap_or(false))
+            .map(|entry| entry.into_path())
+    }
+
+    pub fn walk_pyfiles(&self, root: &str) -> impl Iterator<Item = PathBuf> {
+        let mut builder = self.walk_builder.clone();
+        let prefix = root.to_string();
+        let owned_root = root.to_string();
+        let exclusions = self.exclusions.clone();
+        builder
+            .filter_entry(move |e| {
+                let path = e.path();
+                if path.strip_prefix(&owned_root).is_ok() {
+                    // We're at or below our target root - apply normal filters
+                    !is_excluded(path, &exclusions) && is_pyfile_or_dir(e)
+                } else {
+                    // We're still traversing to reach our target - only check if this could be
+                    // a parent directory of our target by seeing if our target starts with this path
+                    owned_root.starts_with(path.to_str().unwrap_or(""))
+                }
+            })
+            .build()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().map(|t| t.is_file()).unwrap_or(false))
+            .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
+    }
+
+    pub fn walk_pymodules(&self, root: &str) -> impl Iterator<Item = PathBuf> {
+        let mut builder = self.walk_builder.clone();
+        let prefix = root.to_string();
+        let owned_root = root.to_string();
+        let exclusions = self.exclusions.clone();
+        builder
+            .filter_entry(move |e| {
+                let path = e.path();
+                if path.strip_prefix(&owned_root).is_ok() {
+                    // We're at or below our target root - apply normal filters
+                    !is_excluded(path, &exclusions)
+                } else {
+                    // We're still traversing to reach our target - only check if this could be
+                    // a parent directory of our target by seeing if our target starts with this path
+                    owned_root.starts_with(path.to_str().unwrap_or(""))
+                }
+            })
+            .build()
+            .filter_map(|entry| {
+                entry
+                    .ok()
+                    .and_then(|e| if is_pymodule(&e) { Some(e) } else { None })
+            })
+            .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
+    }
+
+    pub fn walk_pyprojects(&self, root: &str) -> impl Iterator<Item = PathBuf> {
+        let mut builder = self.walk_builder.clone();
+        let prefix = root.to_string();
+        let owned_root = root.to_string();
+        let exclusions = self.exclusions.clone();
+        builder
+            .filter_entry(move |e| {
+                let path = e.path();
+                if path.strip_prefix(&owned_root).is_ok() {
+                    // We're at or below our target root - apply normal filters
+                    !is_excluded(path, &exclusions)
+                } else {
+                    // We're still traversing to reach our target - only check if this could be
+                    // a parent directory of our target by seeing if our target starts with this path
+                    owned_root.starts_with(path.to_str().unwrap_or(""))
+                }
+            })
+            .build()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_name() == "pyproject.toml")
+            .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
+    }
+
+    pub fn walk_globbed_files(
+        &self,
+        root: &str,
+        patterns: Vec<String>,
+    ) -> impl Iterator<Item = PathBuf> {
+        let mut glob_builder = GlobSetBuilder::new();
+
+        for pattern in patterns {
+            glob_builder.add(Glob::new(&pattern).unwrap());
+        }
+
+        let glob_set = glob_builder.build().unwrap();
+        let prefix = root.to_string();
+        let owned_root = root.to_string();
+        let exclusions = self.exclusions.clone();
+
+        let mut builder = self.walk_builder.clone();
+        builder
+            .filter_entry(move |e| {
+                let path = e.path();
+                if path.strip_prefix(&owned_root).is_ok() {
+                    // We're at or below our target root - apply normal filters
+                    !is_excluded(path, &exclusions)
+                } else {
+                    // We're still traversing to reach our target - only check if this could be
+                    // a parent directory of our target by seeing if our target starts with this path
+                    owned_root.starts_with(path.to_str().unwrap_or(""))
+                }
+            })
+            .build()
+            .filter_map(|entry| entry.ok())
+            .filter(move |entry| {
+                entry.file_type().map(|t| t.is_file()).unwrap_or(false)
+                    && glob_set.is_match(relative_to(entry.path(), &prefix).unwrap())
+            })
+            .map(|entry| entry.into_path())
+    }
+
+    pub fn walk_domain_config_files(&self, root: &str) -> impl Iterator<Item = PathBuf> {
+        let mut builder = self.walk_builder.clone();
+        let owned_root = root.to_string();
+        let exclusions = self.exclusions.clone();
+        builder
+            .filter_entry(move |e| {
+                let path = e.path();
+                if path.strip_prefix(&owned_root).is_ok() {
+                    // We're at or below our target root - apply normal filters
+                    !is_excluded(path, &exclusions)
+                } else {
+                    // We're still traversing to reach our target - only check if this could be
+                    // a parent directory of our target by seeing if our target starts with this path
+                    owned_root.starts_with(path.to_str().unwrap_or(""))
+                }
+            })
+            .build()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_name() == "tach.domain.toml")
+            .map(|entry| entry.into_path())
+    }
 }
 
 pub fn validate_module_path(source_roots: &[PathBuf], module_path: &str) -> bool {

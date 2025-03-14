@@ -4,7 +4,8 @@ use rayon::prelude::*;
 use std::path::PathBuf;
 
 use super::glob;
-use crate::{config::root_module::ROOT_MODULE_SENTINEL_TAG, exclusion::PathExclusions, filesystem};
+use crate::config::root_module::ROOT_MODULE_SENTINEL_TAG;
+use crate::filesystem;
 
 #[derive(Debug)]
 pub struct ModuleGlob {
@@ -50,14 +51,14 @@ pub enum ModuleResolverError {
 #[derive(Debug)]
 pub struct ModuleResolver<'a> {
     source_roots: &'a [PathBuf],
-    exclusions: &'a PathExclusions,
+    file_walker: &'a filesystem::FSWalker,
 }
 
 impl<'a> ModuleResolver<'a> {
-    pub fn new(source_roots: &'a [PathBuf], exclusions: &'a PathExclusions) -> Self {
+    pub fn new(source_roots: &'a [PathBuf], file_walker: &'a filesystem::FSWalker) -> Self {
         Self {
             source_roots,
-            exclusions,
+            file_walker,
         }
     }
 
@@ -89,7 +90,8 @@ impl<'a> ModuleResolver<'a> {
             .source_roots
             .par_iter()
             .flat_map(|root| {
-                filesystem::walk_pymodules(root.as_os_str().to_str().unwrap(), self.exclusions)
+                self.file_walker
+                    .walk_pymodules(root.as_os_str().to_str().unwrap())
                     .par_bridge()
                     .filter(|m| matcher.is_match(m))
                     .map(|m| {

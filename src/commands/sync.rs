@@ -7,8 +7,8 @@ use crate::config::edit::{ConfigEditor, EditError};
 use crate::config::root_module::{RootModuleTreatment, ROOT_MODULE_SENTINEL_TAG};
 use crate::config::{DependencyConfig, ProjectConfig};
 use crate::diagnostics::Diagnostic;
-use crate::exclusion::{PathExclusionError, PathExclusions};
-use crate::filesystem::validate_module_path;
+use crate::exclusion::PathExclusionError;
+use crate::filesystem::{self, validate_module_path};
 use crate::resolvers::{glob, SourceRootResolver, SourceRootResolverError};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -25,6 +25,8 @@ pub enum SyncError {
     RootModuleViolation(String),
     #[error("Failed to apply edits to project configuration.\n{0}")]
     EditError(#[from] EditError),
+    #[error("Failed to create file walker.\n{0}")]
+    FileWalker(#[from] filesystem::FileSystemError),
     #[error("Failed to handle excluded paths.\n{0}")]
     PathExclusion(#[from] PathExclusionError),
     #[error("Failed to resolve source roots.\n{0}")]
@@ -217,12 +219,13 @@ fn sync_dependency_constraints(
     }
 
     if prune {
-        let exclusions = PathExclusions::new(
+        let file_walker = filesystem::FSWalker::try_new(
             &project_root,
             &project_config.exclude,
             project_config.use_regex_matching,
+            project_config.respect_gitignore,
         )?;
-        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
         project_config
             .module_paths()

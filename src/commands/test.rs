@@ -5,7 +5,7 @@ use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::config::{ModuleConfig, ProjectConfig};
-use crate::exclusion::{PathExclusionError, PathExclusions};
+use crate::exclusion::PathExclusionError;
 use crate::filesystem::{self as fs};
 use crate::modules::{ModuleTree, ModuleTreeBuilder};
 use crate::resolvers::{SourceRootResolver, SourceRootResolverError};
@@ -53,19 +53,20 @@ impl TachPytestPluginHandler {
         all_affected_modules: HashSet<PathBuf>,
     ) -> Self {
         // TODO: Remove unwraps
-        let exclusions = PathExclusions::new(
+        let file_walker = fs::FSWalker::try_new(
             &project_root,
             &project_config.exclude,
             project_config.use_regex_matching,
+            project_config.respect_gitignore,
         )
         .unwrap();
-        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         let source_roots = source_root_resolver
             .resolve(&project_config.source_roots)
             .unwrap();
         let module_tree_builder = ModuleTreeBuilder::new(
             &source_roots,
-            &exclusions,
+            &file_walker,
             project_config.forbid_circular_dependencies,
             project_config.root_module,
         );
@@ -145,12 +146,13 @@ fn get_changed_module_paths(
     project_config: &ProjectConfig,
     changed_files: Vec<PathBuf>,
 ) -> Result<Vec<String>> {
-    let exclusions = PathExclusions::new(
+    let file_walker = fs::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
+        project_config.respect_gitignore,
     )?;
-    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
+    let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
 
     let changed_module_paths = changed_files

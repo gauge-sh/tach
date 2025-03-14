@@ -1,13 +1,12 @@
 use crate::checks::{ExternalDependencyChecker, IgnoreDirectivePostProcessor};
 use crate::commands::check;
-use crate::config::{self, ProjectConfig};
+use crate::config::ProjectConfig;
 use crate::dependencies::import::with_distribution_names;
 use crate::diagnostics::{
     CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
     DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
 };
-use crate::exclusion::PathExclusions;
-use crate::filesystem::{walk_pyfiles, ProjectFile};
+use crate::filesystem::{self, ProjectFile};
 use crate::interrupt::check_interrupt;
 use crate::modules::{ModuleTree, ModuleTreeBuilder};
 use crate::processors::file_module::FileModule;
@@ -131,9 +130,7 @@ struct CheckExternalMetadata {
 }
 
 /// Get metadata for checking external dependencies.
-fn get_check_external_metadata(
-    project_config: &config::ProjectConfig,
-) -> Result<CheckExternalMetadata> {
+fn get_check_external_metadata(project_config: &ProjectConfig) -> Result<CheckExternalMetadata> {
     Python::with_gil(|py| {
         let external_utils = PyModule::import_bound(py, "tach.utils.external")
             .expect("Failed to import tach.utils.external");
@@ -191,17 +188,18 @@ fn check_with_modules(
     let stdlib_modules: HashSet<String> = stdlib_modules.iter().cloned().collect();
     let excluded_external_modules: HashSet<String> =
         project_config.external.exclude.iter().cloned().collect();
-    let exclusions = PathExclusions::new(
+    let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
+        project_config.respect_gitignore,
     )?;
-    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
+    let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots: Vec<PathBuf> = source_root_resolver.resolve(&project_config.source_roots)?;
-    let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
+    let package_resolver = PackageResolver::try_new(project_root, &source_roots, &file_walker)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
-        &exclusions,
+        &file_walker,
         project_config.forbid_circular_dependencies,
         project_config.root_module,
     );
@@ -231,7 +229,8 @@ fn check_with_modules(
     );
 
     diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
-        walk_pyfiles(&source_root.display().to_string(), &exclusions)
+        file_walker
+            .walk_pyfiles(&source_root.display().to_string())
             .par_bridge()
             .flat_map(|file_path| {
                 if check_interrupt().is_err() {

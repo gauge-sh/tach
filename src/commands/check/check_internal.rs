@@ -13,7 +13,6 @@ use crate::{
         ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, DiagnosticError,
         DiagnosticPipeline, FileChecker, FileProcessor, Result as DiagnosticResult,
     },
-    exclusion::PathExclusions,
     filesystem::{self as fs, ProjectFile},
     interrupt::check_interrupt,
     modules::{ModuleTree, ModuleTreeBuilder},
@@ -134,17 +133,18 @@ pub fn check(
 
     let mut diagnostics = Vec::new();
     let found_imports = AtomicBool::new(false);
-    let exclusions = PathExclusions::new(
+    let file_walker = fs::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
+        project_config.respect_gitignore,
     )?;
-    let source_root_resolver = SourceRootResolver::new(project_root, &exclusions);
+    let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
     let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
-    let package_resolver = PackageResolver::try_new(project_root, &source_roots, &exclusions)?;
+    let package_resolver = PackageResolver::try_new(project_root, &source_roots, &file_walker)?;
     let module_tree_builder = ModuleTreeBuilder::new(
         &source_roots,
-        &exclusions,
+        &file_walker,
         project_config.forbid_circular_dependencies,
         project_config.root_module,
     );
@@ -188,9 +188,10 @@ pub fn check(
     .with_interface_checker(interface_checker);
 
     diagnostics.par_extend(source_roots.par_iter().flat_map(|source_root| {
-        fs::walk_pyfiles(&source_root.display().to_string(), &exclusions)
+        file_walker
+            .walk_pyfiles(&source_root.display().to_string())
             .par_bridge()
-            .flat_map(|file_path| {
+            .flat_map(|file_path: PathBuf| {
                 if check_interrupt().is_err() {
                     // Since files are being processed in parallel,
                     // this will essentially short-circuit all remaining files.

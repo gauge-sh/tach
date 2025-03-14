@@ -5,7 +5,6 @@ use ruff_linter::Locator;
 
 use crate::config::ProjectConfig;
 use crate::dependencies::import::LocatedImport;
-use crate::exclusion::PathExclusions;
 use crate::filesystem;
 use crate::processors::ignore_directive::get_ignore_directives;
 use crate::processors::import::{get_normalized_imports, Result};
@@ -47,12 +46,13 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
         project_config.include_string_imports,
     )?;
     let ignore_directives = get_ignore_directives(&file_contents);
-    let exclusions = PathExclusions::new(
+    let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
+        project_config.respect_gitignore,
     )?;
-    let package_resolver = PackageResolver::try_new(project_root, source_roots, &exclusions)?;
+    let package_resolver = PackageResolver::try_new(project_root, source_roots, &file_walker)?;
     let package = match package_resolver.resolve_file_path(file_path.as_ref()) {
         PackageResolution::Found { package, .. } => package,
         PackageResolution::NotFound | PackageResolution::Excluded => {
@@ -108,12 +108,13 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
         false,
     )?;
     let ignore_directives = get_ignore_directives(&file_contents);
-    let exclusions = PathExclusions::new(
+    let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
         project_config.use_regex_matching,
+        project_config.respect_gitignore,
     )?;
-    let package_resolver = PackageResolver::try_new(project_root, source_roots, &exclusions)?;
+    let package_resolver = PackageResolver::try_new(project_root, source_roots, &file_walker)?;
     let package = match package_resolver.resolve_file_path(file_path.as_ref()) {
         PackageResolution::Found { package, .. } => package,
         PackageResolution::NotFound | PackageResolution::Excluded => {

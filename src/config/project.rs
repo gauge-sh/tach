@@ -4,8 +4,7 @@ use std::iter;
 use std::ops::Not;
 use std::path::PathBuf;
 
-use crate::exclusion::PathExclusions;
-use crate::filesystem::module_path_is_included_in_paths;
+use crate::filesystem::{self, module_path_is_included_in_paths};
 use crate::resolvers::SourceRootResolver;
 
 use super::cache::CacheConfig;
@@ -83,6 +82,12 @@ pub struct ProjectConfig {
     #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get)]
     pub forbid_circular_dependencies: bool,
+    #[serde(
+        default = "utils::default_true",
+        skip_serializing_if = "utils::is_true"
+    )]
+    #[pyo3(get, set)]
+    pub respect_gitignore: bool,
     #[serde(default, skip_serializing_if = "Not::not")]
     #[pyo3(get, set)]
     pub use_regex_matching: bool,
@@ -140,6 +145,7 @@ impl Default for ProjectConfig {
             disable_logging: Default::default(),
             include_string_imports: Default::default(),
             forbid_circular_dependencies: Default::default(),
+            respect_gitignore: true,
             use_regex_matching: Default::default(),
             root_module: Default::default(),
             rules: Default::default(),
@@ -164,9 +170,13 @@ impl ProjectConfig {
             .as_ref()
             .map(|path| path.parent().unwrap().to_path_buf())
             .ok_or(ConfigError::ConfigDoesNotExist)?;
-        let exclusions =
-            PathExclusions::new(&project_root, &self.exclude, self.use_regex_matching)?;
-        let source_root_resolver = SourceRootResolver::new(&project_root, &exclusions);
+        let file_walker = filesystem::FSWalker::try_new(
+            &project_root,
+            &self.exclude,
+            self.use_regex_matching,
+            self.respect_gitignore,
+        )?;
+        let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         Ok(source_root_resolver.resolve(&self.source_roots)?)
     }
 

@@ -35,6 +35,7 @@ def create_computation_cache_key(
     file_dependencies: list[str],
     env_dependencies: list[str],
     backend: str,
+    respect_gitignore: bool,
 ) -> str: ...
 def check_computation_cache(
     project_root: Path, cache_key: str
@@ -166,6 +167,7 @@ class ProjectConfig:
     ignore_type_checking_imports: bool
     include_string_imports: bool
     forbid_circular_dependencies: bool
+    respect_gitignore: bool
     use_regex_matching: bool
     rules: RulesConfig
     root_module: RootModuleTreatment
