@@ -69,7 +69,7 @@ def upload_show_report(
     json_data = json.dumps(asdict(show_report))
     json_bytes = json_data.encode("utf-8")
     req = request.Request(
-        f"{GAUGE_API_BASE_URL}/api/show/graph/1.4",
+        f"{GAUGE_API_BASE_URL}/api/show/graph/1.5",
         data=json_bytes,
         headers={"Content-Type": "application/json"},
     )
