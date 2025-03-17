@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING
 from urllib import error, request
@@ -10,10 +10,9 @@ from tach.constants import GAUGE_API_BASE_URL
 from tach.modularity import (
     Module,
     Usage,
-    UsageError,
-    build_diagnostics,
     build_modules,
     build_usages,
+    serialize_diagnostics,
 )
 
 if TYPE_CHECKING:
@@ -25,10 +24,16 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class ShowReportMetadata:
+    version: str = "1.5"
+
+
+@dataclass
 class ShowReport:
     modules: list[Module]
     usages: list[Usage]
-    diagnostics: list[UsageError]
+    diagnostics: str
+    metadata: ShowReportMetadata = field(default_factory=ShowReportMetadata)
 
 
 def generate_show_report(
@@ -44,7 +49,7 @@ def generate_show_report(
         project_config=project_config,
         included_paths=included_paths,
     )
-    diagnostics = build_diagnostics(
+    diagnostics = serialize_diagnostics(
         project_root=project_root,
         project_config=project_config,
     )
