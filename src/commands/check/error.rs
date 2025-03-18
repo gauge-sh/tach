@@ -1,7 +1,6 @@
 use thiserror::Error;
 
 use crate::diagnostics::DiagnosticError;
-use crate::exclusion;
 use crate::filesystem as fs;
 use crate::interfaces::error::InterfaceError;
 use crate::modules;
@@ -17,8 +16,6 @@ pub enum CheckError {
     Filesystem(#[from] fs::FileSystemError),
     #[error("Module tree error: {0}")]
     ModuleTree(#[from] modules::error::ModuleTreeError),
-    #[error("Exclusion error: {0}")]
-    Exclusion(#[from] exclusion::PathExclusionError),
     #[error("Interface error: {0}")]
     Interface(#[from] InterfaceError),
     #[error("Operation cancelled by user")]

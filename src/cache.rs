@@ -138,8 +138,7 @@ pub fn create_computation_cache_key(
     respect_gitignore: bool,
 ) -> String {
     // Exclusions are not applied when building cache keys (paths are empty here)
-    let walker =
-        filesystem::FSWalker::try_new(project_root, &[], false, respect_gitignore).unwrap();
+    let walker = filesystem::FSWalker::try_new(project_root, &[], respect_gitignore).unwrap();
     let file_dependencies =
         read_file_dependencies(project_root.to_str().unwrap(), file_dependencies, &walker);
     let source_pyfiles = source_roots.iter().flat_map(|root| {

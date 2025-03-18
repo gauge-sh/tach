@@ -91,10 +91,6 @@ const EXPECTED_EXCLUDE_PATHS: [&str; 5] = [
 ];
 
 fn migrate_deprecated_regex_exclude(config: &mut ProjectConfig) -> bool {
-    if config.use_regex_matching {
-        return false;
-    }
-
     let mut did_migrate = false;
     config.exclude.iter_mut().for_each(|exclude_path| {
         if let Some(index) = DEPRECATED_REGEX_EXCLUDE_PATHS
@@ -155,12 +151,8 @@ pub fn parse_domain_config<P: AsRef<Path>>(
 
 pub fn add_domain_configs<P: AsRef<Path>>(config: &mut ProjectConfig, root_dir: P) -> Result<()> {
     let root_dir = root_dir.as_ref().to_path_buf();
-    let file_walker = filesystem::FSWalker::try_new(
-        &root_dir,
-        &config.exclude,
-        config.use_regex_matching,
-        config.respect_gitignore,
-    )?;
+    let file_walker =
+        filesystem::FSWalker::try_new(&root_dir, &config.exclude, config.respect_gitignore)?;
     let source_root_resolver = SourceRootResolver::new(&root_dir, &file_walker);
     let source_roots = source_root_resolver.resolve(&config.source_roots)?;
     let mut domain_configs = file_walker

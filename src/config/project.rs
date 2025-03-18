@@ -88,8 +88,8 @@ pub struct ProjectConfig {
     )]
     #[pyo3(get, set)]
     pub respect_gitignore: bool,
-    #[serde(default, skip_serializing_if = "Not::not")]
-    #[pyo3(get, set)]
+    #[serde(skip)]
+    #[pyo3(get)]
     pub use_regex_matching: bool,
     #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
@@ -170,12 +170,8 @@ impl ProjectConfig {
             .as_ref()
             .map(|path| path.parent().unwrap().to_path_buf())
             .ok_or(ConfigError::ConfigDoesNotExist)?;
-        let file_walker = filesystem::FSWalker::try_new(
-            &project_root,
-            &self.exclude,
-            self.use_regex_matching,
-            self.respect_gitignore,
-        )?;
+        let file_walker =
+            filesystem::FSWalker::try_new(&project_root, &self.exclude, self.respect_gitignore)?;
         let source_root_resolver = SourceRootResolver::new(&project_root, &file_walker);
         Ok(source_root_resolver.resolve(&self.source_roots)?)
     }

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, Any
 
 import tomli
@@ -9,7 +8,6 @@ import tomli_w
 from tach import extension
 from tach import filesystem as fs
 from tach.constants import CONFIG_FILE_NAME
-from tach.errors import TachConfigError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -109,24 +107,11 @@ def parse_project_config(
         return migrate_deprecated_yaml_config(file_path)
 
 
-def extend_and_validate(
+def combine_exclude_paths(
     exclude_paths: list[str] | None,
     project_excludes: list[str],
-    use_regex_matching: bool,
 ) -> list[str]:
     if exclude_paths is not None:
-        exclude_paths.extend(project_excludes)
+        return list(set(exclude_paths + project_excludes))
     else:
-        exclude_paths = project_excludes
-
-    if not use_regex_matching:
-        return exclude_paths
-
-    for exclude_path in exclude_paths:
-        try:
-            re.compile(exclude_path)
-        except re.error:
-            raise TachConfigError(
-                f"Invalid regex pattern: '{exclude_path}'. To use glob matching, remove the 'use_regex_matching' setting from your {CONFIG_FILE_NAME}.toml file."
-            )
-    return exclude_paths
+        return project_excludes

@@ -165,11 +165,7 @@ def external_dependency_report(
     if not path.exists():
         raise errors.TachError(f"The path '{path}' does not exist.")
 
-    if project_config.exclude and is_path_excluded(
-        project_config.exclude,
-        path,
-        use_regex_matching=project_config.use_regex_matching,
-    ):
+    if project_config.exclude and is_path_excluded(project_config.exclude, path):
         raise errors.TachError(f"The path '{path}' is excluded.")
 
     source_roots = [
@@ -188,10 +184,7 @@ def external_dependency_report(
 
     all_external_dependencies: list[ExternalDependency] = []
     for pyfile in walk_pyfiles(
-        path,
-        project_root=project_root,
-        exclude_paths=project_config.exclude,
-        use_regex_matching=project_config.use_regex_matching,
+        path, project_root=project_root, exclude_paths=project_config.exclude
     ):
         all_external_dependencies.extend(
             get_external_dependencies(

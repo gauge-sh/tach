@@ -49,7 +49,6 @@ pub fn get_located_project_imports<P: AsRef<Path>>(
     let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
-        project_config.use_regex_matching,
         project_config.respect_gitignore,
     )?;
     let package_resolver = PackageResolver::try_new(project_root, source_roots, &file_walker)?;
@@ -111,7 +110,6 @@ pub fn get_located_external_imports<P: AsRef<Path>>(
     let file_walker = filesystem::FSWalker::try_new(
         project_root,
         &project_config.exclude,
-        project_config.use_regex_matching,
         project_config.respect_gitignore,
     )?;
     let package_resolver = PackageResolver::try_new(project_root, source_roots, &file_walker)?;

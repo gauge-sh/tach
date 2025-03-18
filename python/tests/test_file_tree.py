@@ -59,19 +59,15 @@ def test_siblings_method(project_root):
 
 
 def test_exclude_single_file(project_root):
-    exclude_paths = [r"dir1/file1\.py"]
-    tree = FileTree.build_from_path(
-        project_root, exclude_paths=exclude_paths, use_regex_matching=True
-    )
+    exclude_paths = ["dir1/file1.py"]
+    tree = FileTree.build_from_path(project_root, exclude_paths=exclude_paths)
     assert str(project_root / "dir1" / "file1.py") not in tree.nodes
     assert str(project_root / "dir1") in tree.nodes
 
 
 def test_exclude_entire_directory(project_root):
-    exclude_paths = [r"dir2/"]
-    tree = FileTree.build_from_path(
-        project_root, exclude_paths=exclude_paths, use_regex_matching=True
-    )
+    exclude_paths = ["dir2/", "dir2/**"]
+    tree = FileTree.build_from_path(project_root, exclude_paths=exclude_paths)
     assert str(project_root / "dir2") not in tree.nodes
     assert str(project_root / "dir1") in tree.nodes
     assert str(project_root / "dir2" / "file2.py") not in tree.nodes
@@ -79,20 +75,16 @@ def test_exclude_entire_directory(project_root):
 
 
 def test_exclude_nested_directory(project_root):
-    exclude_paths = [r"dir2/nested_dir/"]
-    tree = FileTree.build_from_path(
-        project_root, exclude_paths=exclude_paths, use_regex_matching=True
-    )
+    exclude_paths = ["dir2/nested_dir/"]
+    tree = FileTree.build_from_path(project_root, exclude_paths=exclude_paths)
     assert str(project_root / "dir2") in tree.nodes
     assert str(project_root / "dir2" / "nested_dir") not in tree.nodes
     assert str(project_root / "dir2" / "nested_dir" / "file4.py") not in tree.nodes
 
 
 def test_exclude_multiple_patterns(project_root):
-    exclude_paths = [r"dir1/.*", r"dir2/nested_dir/"]
-    tree = FileTree.build_from_path(
-        project_root, exclude_paths=exclude_paths, use_regex_matching=True
-    )
+    exclude_paths = ["dir1/", "dir1/**", "dir2/nested_dir/"]
+    tree = FileTree.build_from_path(project_root, exclude_paths=exclude_paths)
     assert str(project_root / "dir1") not in tree.nodes
     assert str(project_root / "dir2") in tree.nodes
     assert str(project_root / "dir2" / "nested_dir") not in tree.nodes

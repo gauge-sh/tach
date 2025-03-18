@@ -370,11 +370,6 @@
       "type": "boolean",
       "default": false,
       "description": "Cause `tach check` to fail if any circular dependencies are detected"
-    },
-    "use_regex_matching": {
-      "type": "boolean",
-      "default": false,
-      "description": "DEPRECATED: Switches the interpretation of 'exclude' from glob to regex"
     }
   },
   "additionalProperties": false

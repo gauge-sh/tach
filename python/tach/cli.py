@@ -16,7 +16,6 @@ from tach.constants import CONFIG_FILE_NAME, TOOL_NAME
 from tach.errors import (
     TachCircularDependencyError,
     TachClosedBetaError,
-    TachConfigError,
     TachError,
     TachSetupError,
     TachVisibilityError,
@@ -26,7 +25,7 @@ from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.logging import CallInfo, init_logging, logger
 from tach.modularity import export_report, upload_report_to_gauge
-from tach.parsing import extend_and_validate, parse_project_config
+from tach.parsing import combine_exclude_paths, parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import (
     generate_module_graph_dot_file,
@@ -632,9 +631,7 @@ def tach_mod(
 
     try:
         project_config = parse_project_config(root=project_root) or ProjectConfig()
-        exclude_paths = extend_and_validate(
-            exclude_paths, project_config.exclude, project_config.use_regex_matching
-        )
+        exclude_paths = combine_exclude_paths(exclude_paths, project_config.exclude)
         saved_changes, warnings = mod_edit_interactive(
             project_root=project_root,
             project_config=project_config,
@@ -1115,7 +1112,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
     # Deprecation warnings
     if project_config.use_regex_matching:
         console_err.print(
-            "WARNING: regex matching for exclude paths is deprecated. "
+            "WARNING: regex matching for exclude paths is deprecated. Exclude paths are always interpreted as glob patterns."
             + f"Update your exclude paths in {CONFIG_FILE_NAME}.toml to use glob patterns instead, and remove the 'use_regex_matching' setting."
             + "\n",
             style="yellow",
@@ -1134,13 +1131,9 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         )
 
     # Exclude paths on the CLI extend those from the project config
-    try:
-        project_config.exclude = extend_and_validate(
-            exclude_paths, project_config.exclude, project_config.use_regex_matching
-        )
-    except TachConfigError as e:
-        console_err.print(f"[red]Failed to validate exclude paths: {e}[/]")
-        sys.exit(1)
+    project_config.exclude = combine_exclude_paths(
+        exclude_paths, project_config.exclude
+    )
 
     if args.command == "sync":
         tach_sync(

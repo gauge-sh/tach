@@ -26,7 +26,6 @@ def create_temp_file(directory, filename, content):
 def mock_project_config():
     config = ProjectConfig()
     config.exclude = []
-    config.use_regex_matching = False
     config.ignore_type_checking_imports = True
     config.include_string_imports = False
     return config

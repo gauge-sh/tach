@@ -202,7 +202,7 @@ impl<'a> PackageResolver<'a> {
 
     pub fn resolve_file_path<P: AsRef<Path>>(&self, file_path: P) -> PackageResolution {
         // this is not safe if the file path is not within the project root
-        if self.file_walker.is_path_excluded(file_path.as_ref()) {
+        if self.file_walker.is_path_excluded(file_path.as_ref(), false) {
             return PackageResolution::Excluded;
         }
 
@@ -229,7 +229,7 @@ impl<'a> PackageResolver<'a> {
         {
             if self
                 .file_walker
-                .is_path_excluded(&resolved_module.file_path)
+                .is_path_excluded(&resolved_module.file_path, false)
             {
                 return PackageResolution::Excluded;
             }

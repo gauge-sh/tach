@@ -5,7 +5,6 @@ use pyo3::{pyclass, pymethods};
 use thiserror::Error;
 
 use crate::config::{ModuleConfig, ProjectConfig};
-use crate::exclusion::PathExclusionError;
 use crate::filesystem::{self as fs};
 use crate::modules::{ModuleTree, ModuleTreeBuilder};
 use crate::resolvers::{SourceRootResolver, SourceRootResolverError};
@@ -18,8 +17,6 @@ pub enum TestError {
     Filesystem(#[from] fs::FileSystemError),
     #[error("Could not find module containing path: {0}")]
     ModuleNotFound(String),
-    #[error("Path exclusion error: {0}")]
-    PathExclusion(#[from] PathExclusionError),
     #[error("Source root resolution error: {0}")]
     SourceRootResolution(#[from] SourceRootResolverError),
 }
@@ -56,7 +53,6 @@ impl TachPytestPluginHandler {
         let file_walker = fs::FSWalker::try_new(
             &project_root,
             &project_config.exclude,
-            project_config.use_regex_matching,
             project_config.respect_gitignore,
         )
         .unwrap();
@@ -149,7 +145,6 @@ fn get_changed_module_paths(
     let file_walker = fs::FSWalker::try_new(
         project_root,
         &project_config.exclude,
-        project_config.use_regex_matching,
         project_config.respect_gitignore,
     )?;
     let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
