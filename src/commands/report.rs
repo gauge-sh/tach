@@ -13,7 +13,6 @@ use crate::colors::*;
 use crate::config::root_module::RootModuleTreatment;
 use crate::config::ProjectConfig;
 use crate::dependencies::LocatedImport;
-use crate::exclusion;
 use crate::filesystem;
 use crate::interrupt::check_interrupt;
 use crate::modules::{ModuleTreeBuilder, ModuleTreeError};
@@ -44,8 +43,6 @@ pub enum ReportCreationError {
     ModuleTree(#[from] ModuleTreeError),
     #[error("Operation interrupted")]
     Interrupted,
-    #[error("Failed to build exclusion patterns: {0}")]
-    PathExclusion(#[from] exclusion::PathExclusionError),
     #[error("Failed to resolve source roots: {0}")]
     SourceRootResolver(#[from] SourceRootResolverError),
 }

@@ -7,9 +7,9 @@ use ruff_python_ast::{Expr, Mod, Stmt, StmtIf, StmtImport, StmtImportFrom};
 use thiserror::Error;
 
 use crate::dependencies::import::NormalizedImport;
+use crate::filesystem;
 use crate::python::{error::ParsingError, parsing::parse_python_source};
 use crate::resolvers::PackageResolutionError;
-use crate::{exclusion, filesystem};
 
 #[derive(Error, Debug)]
 pub enum ImportParseError {
@@ -21,8 +21,6 @@ pub enum ImportParseError {
     },
     #[error("Failed to parse project imports.\n{0}")]
     Filesystem(#[from] filesystem::FileSystemError),
-    #[error("Failed to build exclude patterns.\n{0}")]
-    ExclusionPatterns(#[from] exclusion::PathExclusionError),
     #[error("Package resolution error.\n{0}")]
     PackageResolution(#[from] PackageResolutionError),
 }

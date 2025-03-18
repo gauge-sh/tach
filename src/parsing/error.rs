@@ -1,7 +1,6 @@
 use std::io;
 use thiserror::Error;
 
-use crate::exclusion::PathExclusionError;
 use crate::filesystem::FileSystemError;
 use crate::resolvers::SourceRootResolverError;
 #[derive(Error, Debug)]
@@ -16,8 +15,6 @@ pub enum ParsingError {
     MissingField(String),
     #[error("Module path error: {0}")]
     ModulePath(String),
-    #[error("Path exclusion error: {0}")]
-    PathExclusion(#[from] PathExclusionError),
     #[error("Source root resolution error: {0}")]
     SourceRootResolution(#[from] SourceRootResolverError),
 }

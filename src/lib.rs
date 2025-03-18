@@ -6,7 +6,6 @@ pub mod commands;
 pub mod config;
 pub mod dependencies;
 pub mod diagnostics;
-pub mod exclusion;
 pub mod external;
 pub mod filesystem;
 pub mod interfaces;
@@ -41,15 +40,6 @@ impl From<processors::import::ImportParseError> for PyErr {
                 PySyntaxError::new_err(err.to_string())
             }
             _ => PyOSError::new_err(err.to_string()),
-        }
-    }
-}
-
-impl From<exclusion::PathExclusionError> for PyErr {
-    fn from(err: exclusion::PathExclusionError) -> Self {
-        match err {
-            exclusion::PathExclusionError::ConcurrencyError => PyOSError::new_err(err.to_string()),
-            _ => PyValueError::new_err(err.to_string()),
         }
     }
 }
@@ -106,7 +96,6 @@ impl From<parsing::error::ParsingError> for PyErr {
             parsing::error::ParsingError::SourceRootResolution(err) => {
                 PyValueError::new_err(err.to_string())
             }
-            parsing::error::ParsingError::PathExclusion(err) => err.into(),
         }
     }
 }
@@ -119,7 +108,6 @@ impl From<sync::SyncError> for PyErr {
             sync::SyncError::RootModuleViolation(err) => PyValueError::new_err(err.to_string()),
             sync::SyncError::EditError(err) => PyValueError::new_err(err.to_string()),
             sync::SyncError::SourceRootResolution(err) => PyValueError::new_err(err.to_string()),
-            sync::SyncError::PathExclusion(err) => err.into(),
             sync::SyncError::FileWalker(err) => PyOSError::new_err(err.to_string()),
         }
     }
