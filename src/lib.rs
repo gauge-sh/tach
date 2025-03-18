@@ -15,7 +15,6 @@ pub mod lsp;
 pub mod modularity;
 pub mod modules;
 pub mod parsing;
-pub mod pattern;
 pub mod processors;
 pub mod python;
 pub mod resolvers;

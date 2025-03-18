@@ -2,8 +2,6 @@ use itertools::Itertools;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-use crate::pattern::PatternMatcher;
-
 #[derive(Error, Debug)]
 pub enum PathExclusionError {
     #[error("A concurrency error occurred when setting excluded paths.")]
@@ -14,12 +12,6 @@ pub enum PathExclusionError {
         #[source]
         source: glob::PatternError,
     },
-    #[error("Failed to build regex pattern for excluded path:\n{exclude}\n{source}")]
-    RegexPatternError {
-        exclude: String,
-        #[source]
-        source: regex::Error,
-    },
 }
 
 pub type Result<T> = std::result::Result<T, PathExclusionError>;
@@ -27,7 +19,7 @@ pub type Result<T> = std::result::Result<T, PathExclusionError>;
 #[derive(Debug)]
 pub struct PathExclusions {
     project_root: PathBuf,
-    patterns: Vec<PatternMatcher>,
+    patterns: Vec<glob::Pattern>,
 }
 
 impl PathExclusions {
@@ -38,19 +30,16 @@ impl PathExclusions {
         }
     }
 
-    pub fn new<P: AsRef<Path>>(
-        project_root: P,
-        exclude_paths: &[String],
-        use_regex_matching: bool,
-    ) -> Result<Self> {
-        let mut patterns: Vec<PatternMatcher> = vec![];
-        for pattern in exclude_paths.iter() {
-            patterns.push(if use_regex_matching {
-                PatternMatcher::from_regex(pattern)?
-            } else {
-                PatternMatcher::from_glob(pattern)?
-            });
-        }
+    pub fn try_new<P: AsRef<Path>>(project_root: P, exclude_paths: &[String]) -> Result<Self> {
+        let patterns = exclude_paths
+            .iter()
+            .map(|pattern| {
+                glob::Pattern::new(pattern).map_err(|e| PathExclusionError::GlobPatternError {
+                    exclude: pattern.to_string(),
+                    source: e,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
         Ok(Self {
             project_root: project_root.as_ref().to_path_buf(),
             patterns,

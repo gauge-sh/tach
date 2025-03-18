@@ -323,7 +323,6 @@ impl FSWalker {
     pub fn try_new<P: AsRef<Path>>(
         project_root: P,
         exclude_paths: &[String],
-        use_regex_matching: bool,
         respect_gitignore: bool,
     ) -> Result<Self> {
         let mut walk_builder = ignore::WalkBuilder::new(project_root.as_ref());
@@ -339,17 +338,13 @@ impl FSWalker {
         //   but need to fully remove regex matching
         Ok(Self {
             _project_root: project_root.as_ref().to_path_buf(),
-            exclusions: Arc::new(PathExclusions::new(
-                project_root,
-                exclude_paths,
-                use_regex_matching,
-            )?),
+            exclusions: Arc::new(PathExclusions::try_new(project_root, exclude_paths)?),
             walk_builder,
         })
     }
 
     pub fn empty<P: AsRef<Path>>(project_root: P) -> Self {
-        Self::try_new(project_root, &[], false, false).unwrap()
+        Self::try_new(project_root, &[], false).unwrap()
     }
 
     pub fn is_path_excluded<P: AsRef<Path>>(&self, path: P) -> bool {

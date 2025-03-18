@@ -56,7 +56,6 @@ impl TachPytestPluginHandler {
         let file_walker = fs::FSWalker::try_new(
             &project_root,
             &project_config.exclude,
-            project_config.use_regex_matching,
             project_config.respect_gitignore,
         )
         .unwrap();
@@ -149,7 +148,6 @@ fn get_changed_module_paths(
     let file_walker = fs::FSWalker::try_new(
         project_root,
         &project_config.exclude,
-        project_config.use_regex_matching,
         project_config.respect_gitignore,
     )?;
     let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
