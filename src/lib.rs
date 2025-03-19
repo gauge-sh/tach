@@ -11,7 +11,6 @@ pub mod filesystem;
 pub mod interfaces;
 pub mod interrupt;
 pub mod lsp;
-pub mod modularity;
 pub mod modules;
 pub mod parsing;
 pub mod processors;
@@ -20,7 +19,6 @@ pub mod resolvers;
 pub mod tests;
 use commands::{check, report, server, sync, test};
 use diagnostics::serialize_diagnostics_json;
-use modularity::into_usage_errors;
 use pyo3::prelude::*;
 use std::path::PathBuf;
 
@@ -336,7 +334,6 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::DependencyConfig>()?;
     m.add_class::<diagnostics::Diagnostic>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
-    m.add_class::<modularity::UsageError>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(
         parse_project_config_from_pyproject,
@@ -357,6 +354,5 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction_bound!(run_server, m)?)?;
     m.add_function(wrap_pyfunction_bound!(serialize_modules_json, m)?)?;
     m.add_function(wrap_pyfunction_bound!(serialize_diagnostics_json, m)?)?;
-    m.add_function(wrap_pyfunction_bound!(into_usage_errors, m)?)?;
     Ok(())
 }

@@ -8,6 +8,7 @@ from http.client import HTTPConnection, HTTPSConnection
 from typing import TYPE_CHECKING, Any
 from urllib import parse
 
+from tach import extension
 from tach import filesystem as fs
 from tach.console import console
 from tach.constants import GAUGE_API_BASE_URL
@@ -16,19 +17,10 @@ from tach.extension import (
     ProjectConfig,
     check,
     get_project_imports,
-    into_usage_errors,
-)
-from tach.extension import (
-    UsageError as ExtUsageError,
 )
 from tach.filesystem.git_ops import get_current_branch_info
 
 if TYPE_CHECKING:
-    try:
-        # dataclass reads the annotation but doesn't need to evaluate it (just checking for ClassVar etc.)
-        from typing import Literal  # noqa: TC004
-    except ImportError:
-        pass
     from pathlib import Path
 
 
@@ -59,7 +51,7 @@ def upload_report_to_gauge(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.4"
+GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.5"
 
 
 def post_json_to_gauge_api(
@@ -139,41 +131,13 @@ class Module:
     layer: str | None = None
 
 
-REPORT_VERSION = "1.4"
+REPORT_VERSION = "1.5"
 
 
 @dataclass
 class ReportMetadata:
     version: str = REPORT_VERSION
     configuration_format: str = "json"
-
-
-# This is unfortunately necessary because we use 'asdict' on the report
-# This will be removed once we move report generation to Rust
-@dataclass
-class UsageError:
-    file: str
-    line_number: int
-    member: str
-    usage_module: str
-    definition_module: str
-    error_type: Literal["DEPENDENCY", "INTERFACE"]
-    # Optional fields
-    usage_layer: str | None = None
-    definition_layer: str | None = None
-
-    @classmethod
-    def from_extension(cls, ext_usage_error: ExtUsageError) -> UsageError:
-        return cls(
-            file=ext_usage_error.file,
-            line_number=ext_usage_error.line_number,
-            member=ext_usage_error.member,
-            usage_module=ext_usage_error.usage_module,
-            definition_module=ext_usage_error.definition_module,
-            error_type=ext_usage_error.error_type,
-            usage_layer=ext_usage_error.usage_layer,
-            definition_layer=ext_usage_error.definition_layer,
-        )
 
 
 @dataclass
@@ -188,8 +152,8 @@ class Report:
     full_configuration: str
     modules: list[Module] = field(default_factory=list)
     usages: list[Usage] = field(default_factory=list)
-    # [1.4] Diagnostics
-    diagnostics: list[UsageError] = field(default_factory=list)
+    # [1.5] Diagnostics (changed from list[UsageError] to str)
+    diagnostics: str = "[]"
     metadata: ReportMetadata = field(default_factory=ReportMetadata)
 
 
@@ -301,22 +265,17 @@ def build_usages(
     return usages
 
 
-def build_diagnostics(
+def serialize_diagnostics(
     project_root: Path,
     project_config: ProjectConfig,
-) -> list[UsageError]:
+) -> str:
     check_diagnostics = check(
         project_root=project_root,
         project_config=project_config,
         dependencies=True,
         interfaces=True,
     )
-    return list(
-        map(
-            lambda ext_usage_error: UsageError.from_extension(ext_usage_error),
-            into_usage_errors(check_diagnostics),
-        )
-    )
+    return extension.serialize_diagnostics_json(check_diagnostics, pretty_print=False)
 
 
 def generate_modularity_report(
@@ -336,7 +295,7 @@ def generate_modularity_report(
 
     report.modules = build_modules(project_config)
     report.usages = build_usages(project_root, project_config)
-    report.diagnostics = build_diagnostics(
+    report.diagnostics = serialize_diagnostics(
         project_root=project_root,
         project_config=project_config,
     )

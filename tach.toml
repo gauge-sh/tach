@@ -145,8 +145,8 @@ expose = [
     "upload_report_to_gauge",
     "Module",
     "Usage",
-    "UsageError",
     "build_.*",
+    "serialize_.*",
 ]
 from = [
     "tach.modularity",
