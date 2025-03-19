@@ -15,6 +15,7 @@ pub struct NormalizedImport {
     pub import_offset: TextSize,    // Source location of the import statement
     pub alias_offset: TextSize,     // Source location of the alias
     pub is_absolute: bool,          // Whether the import is absolute
+    pub is_global_scope: bool,      // Whether the import is at the global scope
 }
 
 impl NormalizedImport {
@@ -67,10 +68,6 @@ impl LocatedImport {
     }
 }
 
-pub struct AllImports;
-pub struct ProjectImports;
-pub struct ExternalImports;
-
 #[derive(Debug)]
 pub struct ExternalImportWithDistributionNames<'a> {
     pub distribution_names: Vec<String>,
@@ -88,6 +85,10 @@ impl ExternalImportWithDistributionNames<'_> {
 
     pub fn import_offset(&self) -> TextSize {
         self.import.import_offset
+    }
+
+    pub fn is_global_scope(&self) -> bool {
+        self.import.is_global_scope
     }
 
     pub fn distribution_names(&self) -> &Vec<String> {

@@ -55,10 +55,11 @@ impl<'a> CheckExternalPipeline<'a> {
                 package_resolver,
             ),
             dependency_checker: ExternalDependencyChecker::new(
-                package_resolver,
+                project_config,
                 module_mappings,
                 stdlib_modules,
                 excluded_external_modules,
+                package_resolver,
             ),
             ignore_directive_post_processor: IgnoreDirectivePostProcessor::new(project_config),
         }

@@ -32,6 +32,7 @@ pub struct ImportVisitor {
     is_package: bool,
     ignore_type_checking_imports: bool,
     pub normalized_imports: Vec<NormalizedImport>,
+    depth: usize,
 }
 
 impl ImportVisitor {
@@ -45,6 +46,7 @@ impl ImportVisitor {
             is_package,
             ignore_type_checking_imports,
             normalized_imports: Default::default(),
+            depth: 0,
         }
     }
 
@@ -61,6 +63,7 @@ impl ImportVisitor {
                 alias_offset: alias.range.start(),
                 import_offset: import_statement.range.start(),
                 is_absolute: true,
+                is_global_scope: self.depth == 0,
             };
             normalized_imports.push(import);
         }
@@ -131,6 +134,7 @@ impl ImportVisitor {
                 alias_offset: name.range.start(),
                 import_offset: import_statement.range.start(),
                 is_absolute: false,
+                is_global_scope: self.depth == 0,
             };
 
             normalized_imports.push(import);
@@ -167,9 +171,21 @@ impl StatementVisitor<'_> for ImportVisitor {
             Stmt::Import(statement) => self.visit_stmt_import(statement),
             Stmt::ImportFrom(statement) => self.visit_stmt_import_from(statement),
             Stmt::If(statement) => {
+                self.depth += 1;
                 if !self.should_ignore_if_statement(statement) {
                     walk_stmt(self, stmt)
                 }
+                self.depth -= 1;
+            }
+            Stmt::FunctionDef(_)
+            | Stmt::ClassDef(_)
+            | Stmt::With(_)
+            | Stmt::For(_)
+            | Stmt::While(_)
+            | Stmt::Try(_) => {
+                self.depth += 1;
+                walk_stmt(self, stmt);
+                self.depth -= 1;
             }
             _ => walk_stmt(self, stmt),
         }
@@ -206,6 +222,7 @@ impl Visitor<'_> for StringImportVisitor<'_> {
                 alias_offset: string_literal.range.start(),
                 import_offset: string_literal.range.start(),
                 is_absolute: true,
+                is_global_scope: true, // Treating string imports as global scope unconditionally
             });
         }
     }
@@ -270,4 +287,338 @@ pub fn get_normalized_imports<P: AsRef<Path>>(
         ignore_type_checking_imports,
         include_string_imports,
     )
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::fs;
+
+    use rstest::{fixture, rstest};
+    use tempfile::TempDir;
+
+    use crate::processors::import::get_normalized_imports;
+
+    #[fixture]
+    fn temp_project() -> TempDir {
+        TempDir::new().unwrap()
+    }
+
+    fn create_file(root: &Path, path: &str, content: &str) {
+        if let Some(parent) = Path::new(path).parent() {
+            fs::create_dir_all(root.join(parent)).unwrap();
+        }
+        fs::write(root.join(path), content).unwrap();
+    }
+
+    #[rstest]
+    fn test_basic_imports(temp_project: TempDir) {
+        let root = temp_project.path();
+        let content = r#"
+import os
+from local.module import function
+from another.module import Class as AliasedClass
+"#;
+        create_file(root, "test_file.py", content);
+
+        let source_roots = vec![root.to_path_buf()];
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("test_file.py"),
+            content,
+            true,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 3);
+        assert!(result.iter().any(|import| import.module_path == "os"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "local.module.function"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "another.module.Class"));
+    }
+
+    #[rstest]
+    fn test_type_checking_imports(temp_project: TempDir) {
+        let root = temp_project.path();
+        let content = r#"
+from typing import List
+if TYPE_CHECKING:
+    from local.module import TypeClass
+    from another.module import Interface
+
+from actual.module import RealClass
+"#;
+        create_file(root, "test_file.py", content);
+
+        // Test with type checking imports ignored
+        let source_roots = vec![root.to_path_buf()];
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("test_file.py"),
+            content,
+            true,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "typing.List"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "actual.module.RealClass"));
+
+        // Test with type checking imports included
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("test_file.py"),
+            content,
+            false,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 4);
+
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "typing.List"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "local.module.TypeClass"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "another.module.Interface"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "actual.module.RealClass"));
+    }
+
+    #[rstest]
+    fn test_relative_imports(temp_project: TempDir) {
+        let root = temp_project.path();
+
+        // Create package structure
+        create_file(root, "package/__init__.py", "");
+        create_file(root, "package/submodule/__init__.py", "");
+
+        let content = r#"
+from . import sibling
+from .. import parent
+from .other import child
+"#;
+        create_file(root, "package/submodule/module.py", content);
+
+        let source_roots = vec![root.to_path_buf()];
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("package/submodule/module.py"),
+            content,
+            true,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 3);
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package.submodule.sibling"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package.parent"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package.submodule.other.child"));
+    }
+
+    #[rstest]
+    fn test_string_imports(temp_project: TempDir) {
+        let root = temp_project.path();
+        let content = r#"
+MODULES = [
+    "package.module.submodule",
+    "another.module.function",
+]
+"#;
+        create_file(root, "package/module/submodule.py", "");
+        create_file(root, "another/module/function.py", "");
+        create_file(root, "test_file.py", content);
+
+        // Test without string imports
+        let source_roots = vec![root.to_path_buf()];
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("test_file.py"),
+            content,
+            true,
+            false,
+        )
+        .unwrap();
+        assert_eq!(result.len(), 0);
+
+        // Test with string imports
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("test_file.py"),
+            content,
+            true,
+            true,
+        )
+        .unwrap();
+        assert_eq!(result.len(), 2);
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package.module.submodule"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "another.module.function"));
+    }
+
+    #[rstest]
+    fn test_multiple_source_roots(temp_project: TempDir) {
+        let root = temp_project.path();
+
+        // Create two source roots with their own packages
+        create_file(root, "src1/package1/__init__.py", "");
+        create_file(root, "src2/package2/__init__.py", "");
+
+        let content = r#"
+from package1 import module1
+from package2 import module2
+"#;
+        create_file(root, "src1/main.py", content);
+
+        let source_roots = vec![root.join("src1"), root.join("src2")];
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("src1/main.py"),
+            content,
+            true,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package1.module1"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package2.module2"));
+    }
+
+    #[rstest]
+    fn test_init_file_imports(temp_project: TempDir) {
+        let root = temp_project.path();
+
+        create_file(
+            root,
+            "package/__init__.py",
+            r#"
+from .module1 import func1
+from .module2 import func2
+"#,
+        );
+        create_file(root, "package/module1.py", "");
+        create_file(root, "package/module2.py", "");
+
+        let content = fs::read_to_string(root.join("package/__init__.py")).unwrap();
+        let source_roots = vec![root.to_path_buf()];
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("package/__init__.py"),
+            &content,
+            true,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package.module1.func1"));
+        assert!(result
+            .iter()
+            .any(|import| import.module_path == "package.module2.func2"));
+    }
+
+    #[rstest]
+    fn test_import_scopes(temp_project: TempDir) {
+        let root = temp_project.path();
+        let content = r#"
+import os
+from sys import path
+
+def function():
+    import datetime
+    if False:
+        from json import loads
+
+class MyClass:
+    import re
+    from math import sqrt
+
+    def another_function():
+        import random
+        from itertools import chain
+
+if True:
+    import random
+    from itertools import chain
+"#;
+        create_file(root, "test_file.py", content);
+
+        let source_roots = vec![root.to_path_buf()];
+        let result = get_normalized_imports(
+            &source_roots,
+            root.join("test_file.py"),
+            content,
+            true,
+            false,
+        )
+        .unwrap();
+
+        // Check global scope imports
+        let global_imports: Vec<_> = result
+            .iter()
+            .filter(|import| import.is_global_scope)
+            .collect();
+        assert_eq!(global_imports.len(), 2);
+        assert!(global_imports
+            .iter()
+            .any(|import| import.module_path == "os"));
+        assert!(global_imports
+            .iter()
+            .any(|import| import.module_path == "sys.path"));
+
+        // Check non-global scope imports
+        let non_global_imports: Vec<_> = result
+            .iter()
+            .filter(|import| !import.is_global_scope)
+            .collect();
+        assert_eq!(non_global_imports.len(), 8);
+        assert!(non_global_imports
+            .iter()
+            .any(|import| import.module_path == "datetime"));
+        assert!(non_global_imports
+            .iter()
+            .any(|import| import.module_path == "json.loads"));
+        assert!(non_global_imports
+            .iter()
+            .any(|import| import.module_path == "re"));
+        assert!(non_global_imports
+            .iter()
+            .any(|import| import.module_path == "math.sqrt"));
+        assert!(non_global_imports
+            .iter()
+            .any(|import| import.module_path == "random"));
+        assert!(non_global_imports
+            .iter()
+            .any(|import| import.module_path == "itertools.chain"));
+    }
 }

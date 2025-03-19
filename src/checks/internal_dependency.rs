@@ -8,15 +8,21 @@ use crate::{
     modules::ModuleTree,
     processors::FileModule,
 };
-use std::path::Path;
 
 #[derive(Debug)]
 enum LayerCheckResult {
     Ok,
     SameLayer,
     LayerNotSpecified,
-    LayerViolation(Diagnostic),
-    UnknownLayer(Diagnostic),
+    LayerViolation {
+        source_layer: String,
+        source_module: String,
+        target_layer: String,
+        target_module: String,
+    },
+    UnknownLayer {
+        unknown_layer: String,
+    },
 }
 
 pub struct InternalDependencyChecker<'a> {
@@ -34,12 +40,9 @@ impl<'a> InternalDependencyChecker<'a> {
 
     fn check_layers(
         &self,
-        file_module: &FileModule,
-        dependency: &Dependency,
         layers: &[String],
         source_module_config: &ModuleConfig,
         target_module_config: &ModuleConfig,
-        relative_file_path: &Path,
     ) -> LayerCheckResult {
         match (&source_module_config.layer, &target_module_config.layer) {
             (Some(source_layer), Some(target_layer)) => {
@@ -53,42 +56,21 @@ impl<'a> InternalDependencyChecker<'a> {
                         } else if source_index < target_index {
                             LayerCheckResult::Ok
                         } else {
-                            LayerCheckResult::LayerViolation(Diagnostic::new_located_error(
-                                relative_file_path.to_path_buf(),
-                                file_module.line_number(dependency.offset()),
-                                dependency
-                                    .original_line_offset()
-                                    .map(|offset| file_module.line_number(offset)),
-                                DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
-                                    dependency: dependency.module_path().to_string(),
-                                    usage_module: source_module_config.path.clone(),
-                                    usage_layer: source_layer.clone(),
-                                    definition_module: target_module_config.path.clone(),
-                                    definition_layer: target_layer.clone(),
-                                }),
-                            ))
+                            LayerCheckResult::LayerViolation {
+                                source_layer: source_layer.clone(),
+                                source_module: source_module_config.path.clone(),
+                                target_layer: target_layer.clone(),
+                                target_module: target_module_config.path.clone(),
+                            }
                         }
                     }
                     // If either index is not found, the layer is unknown
-                    (Some(_), None) => LayerCheckResult::UnknownLayer(
-                        Diagnostic::new_global_error(DiagnosticDetails::Configuration(
-                            ConfigurationDiagnostic::UnknownLayer {
-                                layer: target_layer.clone(),
-                            },
-                        )),
-                    ),
-                    (None, Some(_)) => LayerCheckResult::UnknownLayer(
-                        Diagnostic::new_global_error(DiagnosticDetails::Configuration(
-                            ConfigurationDiagnostic::UnknownLayer {
-                                layer: source_layer.clone(),
-                            },
-                        )),
-                    ),
-                    _ => LayerCheckResult::UnknownLayer(Diagnostic::new_global_error(
-                        DiagnosticDetails::Configuration(ConfigurationDiagnostic::UnknownLayer {
-                            layer: source_layer.clone(),
-                        }),
-                    )),
+                    (Some(_), None) => LayerCheckResult::UnknownLayer {
+                        unknown_layer: target_layer.clone(),
+                    },
+                    (None, Some(_)) | (None, None) => LayerCheckResult::UnknownLayer {
+                        unknown_layer: source_layer.clone(),
+                    },
                 }
             }
             _ => LayerCheckResult::LayerNotSpecified, // At least one module does not have a layer
@@ -109,17 +91,66 @@ impl<'a> InternalDependencyChecker<'a> {
 
         let relative_file_path = file_module.relative_file_path();
         // Layer check should take precedence over other depends_on checks
-        match self.check_layers(
-            file_module,
-            dependency,
-            layers,
-            file_module_config,
-            dependency_module_config,
-            relative_file_path,
-        ) {
+        match self.check_layers(layers, file_module_config, dependency_module_config) {
             LayerCheckResult::Ok => return Ok(vec![]), // Higher layers can unconditionally import lower layers
-            LayerCheckResult::LayerViolation(e) | LayerCheckResult::UnknownLayer(e) => {
-                return Ok(vec![e]);
+            LayerCheckResult::LayerViolation {
+                source_layer,
+                source_module,
+                target_layer,
+                target_module,
+            } => {
+                let details = DiagnosticDetails::Code(CodeDiagnostic::LayerViolation {
+                    dependency: dependency.module_path().to_string(),
+                    usage_module: source_module,
+                    usage_layer: source_layer,
+                    definition_module: target_module,
+                    definition_layer: target_layer,
+                });
+
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_located(
+                                severity,
+                                details,
+                                relative_file_path.to_path_buf(),
+                                file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
+                            )]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
+
+                return Ok(vec![Diagnostic::new_located_error(
+                    relative_file_path.to_path_buf(),
+                    file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
+                    details,
+                )]);
+            }
+            LayerCheckResult::UnknownLayer { unknown_layer } => {
+                let details =
+                    DiagnosticDetails::Configuration(ConfigurationDiagnostic::UnknownLayer {
+                        layer: unknown_layer,
+                    });
+
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_global(severity, details)]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
+
+                return Ok(vec![Diagnostic::new_global_error(details)]);
             }
             LayerCheckResult::SameLayer | LayerCheckResult::LayerNotSpecified => (), // We need to do further processing to determine if the dependency is allowed
         };
@@ -131,17 +162,36 @@ impl<'a> InternalDependencyChecker<'a> {
             .forbidden_dependencies_iter()
             .find(|dep| dep.matches(dependency_nearest_module_path))
         {
+            let diagnostic = DiagnosticDetails::Code(CodeDiagnostic::ForbiddenDependency {
+                dependency: dependency.module_path().to_string(),
+                usage_module: file_nearest_module_path.to_string(),
+                definition_module: dependency_nearest_module_path.to_string(),
+            });
+
+            if let Dependency::Import(import) = dependency {
+                if !import.is_global_scope {
+                    if let Ok(severity) = (&self.project_config.rules.local_imports).try_into() {
+                        return Ok(vec![Diagnostic::new_located(
+                            severity,
+                            diagnostic,
+                            relative_file_path.to_path_buf(),
+                            file_module.line_number(dependency.offset()),
+                            dependency
+                                .original_line_offset()
+                                .map(|offset| file_module.line_number(offset)),
+                        )]);
+                    }
+                    return Ok(vec![]);
+                }
+            }
+
             return Ok(vec![Diagnostic::new_located_error(
                 relative_file_path.to_path_buf(),
                 file_module.line_number(dependency.offset()),
                 dependency
                     .original_line_offset()
                     .map(|offset| file_module.line_number(offset)),
-                DiagnosticDetails::Code(CodeDiagnostic::ForbiddenDependency {
-                    dependency: dependency.module_path().to_string(),
-                    usage_module: file_nearest_module_path.to_string(),
-                    definition_module: dependency_nearest_module_path.to_string(),
-                }),
+                diagnostic,
             )]);
         }
 
@@ -159,31 +209,75 @@ impl<'a> InternalDependencyChecker<'a> {
         {
             Some(DependencyConfig {
                 deprecated: true, ..
-            }) => Ok(vec![Diagnostic::new_located_warning(
-                relative_file_path.to_path_buf(),
-                file_module.line_number(dependency.offset()),
-                dependency
-                    .original_line_offset()
-                    .map(|offset| file_module.line_number(offset)),
-                DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency {
+            }) => {
+                let diagnostic = DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency {
                     dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
                     definition_module: dependency_nearest_module_path.to_string(),
-                }),
-            )]),
+                });
+
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_located(
+                                severity,
+                                diagnostic,
+                                relative_file_path.to_path_buf(),
+                                file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
+                            )]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
+
+                Ok(vec![Diagnostic::new_located_warning(
+                    relative_file_path.to_path_buf(),
+                    file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
+                    diagnostic,
+                )])
+            }
             Some(_) => Ok(vec![]),
-            None => Ok(vec![Diagnostic::new_located_error(
-                relative_file_path.to_path_buf(),
-                file_module.line_number(dependency.offset()),
-                dependency
-                    .original_line_offset()
-                    .map(|offset| file_module.line_number(offset)),
-                DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency {
+            None => {
+                let diagnostic = DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency {
                     dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
                     definition_module: dependency_nearest_module_path.to_string(),
-                }),
-            )]),
+                });
+
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_located(
+                                severity,
+                                diagnostic,
+                                relative_file_path.to_path_buf(),
+                                file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
+                            )]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
+
+                Ok(vec![Diagnostic::new_located_error(
+                    relative_file_path.to_path_buf(),
+                    file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
+                    diagnostic,
+                )])
+            }
         }
     }
 

@@ -282,13 +282,14 @@ impl Diagnostic {
         details: DiagnosticDetails,
         file_path: PathBuf,
         line_number: usize,
+        original_line_number: Option<usize>,
     ) -> Self {
         Self::Located {
             severity,
             details,
             file_path,
             line_number,
-            original_line_number: None,
+            original_line_number,
         }
     }
 

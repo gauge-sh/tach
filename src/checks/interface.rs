@@ -121,33 +121,80 @@ impl<'a> InterfaceChecker<'a> {
                 &file_module.module_config().path,
             );
             match check_result {
-                InterfaceCheckResult::NotExposed => Ok(vec![Diagnostic::new_located_error(
-                    file_module.relative_file_path().to_path_buf(),
-                    file_module.line_number(dependency.offset()),
-                    dependency
-                        .original_line_offset()
-                        .map(|offset| file_module.line_number(offset)),
-                    DiagnosticDetails::Code(CodeDiagnostic::PrivateDependency {
+                InterfaceCheckResult::NotExposed => {
+                    let diagnostic = DiagnosticDetails::Code(CodeDiagnostic::PrivateDependency {
                         dependency: dependency.module_path().to_string(),
                         usage_module: file_module.module_config().path.to_string(),
                         definition_module: dependency_module_config.path.to_string(),
-                    }),
-                )]),
+                    });
+
+                    if let Dependency::Import(import) = dependency {
+                        if !import.is_global_scope {
+                            if let Ok(severity) =
+                                (&self.project_config.rules.local_imports).try_into()
+                            {
+                                return Ok(vec![Diagnostic::new_located(
+                                    severity,
+                                    diagnostic,
+                                    file_module.relative_file_path().to_path_buf(),
+                                    file_module.line_number(dependency.offset()),
+                                    dependency
+                                        .original_line_offset()
+                                        .map(|offset| file_module.line_number(offset)),
+                                )]);
+                            }
+                            return Ok(vec![]);
+                        }
+                    }
+
+                    Ok(vec![Diagnostic::new_located_error(
+                        file_module.relative_file_path().to_path_buf(),
+                        file_module.line_number(dependency.offset()),
+                        dependency
+                            .original_line_offset()
+                            .map(|offset| file_module.line_number(offset)),
+                        diagnostic,
+                    )])
+                }
                 InterfaceCheckResult::Exposed {
                     type_check_result: TypeCheckResult::DidNotMatchInterface { expected },
-                } => Ok(vec![Diagnostic::new_located_error(
-                    file_module.relative_file_path().to_path_buf(),
-                    file_module.line_number(dependency.offset()),
-                    dependency
-                        .original_line_offset()
-                        .map(|offset| file_module.line_number(offset)),
-                    DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport {
-                        dependency: dependency.module_path().to_string(),
-                        usage_module: file_module.module_config().path.to_string(),
-                        definition_module: dependency_module_config.path.to_string(),
-                        expected_data_type: expected.to_string(),
-                    }),
-                )]),
+                } => {
+                    let diagnostic =
+                        DiagnosticDetails::Code(CodeDiagnostic::InvalidDataTypeExport {
+                            dependency: dependency.module_path().to_string(),
+                            usage_module: file_module.module_config().path.to_string(),
+                            definition_module: dependency_module_config.path.to_string(),
+                            expected_data_type: expected.to_string(),
+                        });
+
+                    if let Dependency::Import(import) = dependency {
+                        if !import.is_global_scope {
+                            if let Ok(severity) =
+                                (&self.project_config.rules.local_imports).try_into()
+                            {
+                                return Ok(vec![Diagnostic::new_located(
+                                    severity,
+                                    diagnostic,
+                                    file_module.relative_file_path().to_path_buf(),
+                                    file_module.line_number(dependency.offset()),
+                                    dependency
+                                        .original_line_offset()
+                                        .map(|offset| file_module.line_number(offset)),
+                                )]);
+                            }
+                            return Ok(vec![]);
+                        }
+                    }
+
+                    Ok(vec![Diagnostic::new_located_error(
+                        file_module.relative_file_path().to_path_buf(),
+                        file_module.line_number(dependency.offset()),
+                        dependency
+                            .original_line_offset()
+                            .map(|offset| file_module.line_number(offset)),
+                        diagnostic,
+                    )])
+                }
                 InterfaceCheckResult::Exposed {
                     type_check_result: TypeCheckResult::MatchedInterface { .. },
                 }
