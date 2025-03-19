@@ -128,6 +128,9 @@ impl<'a> InternalDependencyChecker<'a> {
                                 e.details().clone(),
                                 relative_file_path.to_path_buf(),
                                 file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
                             )]);
                         }
                         return Ok(vec![]);
@@ -159,6 +162,9 @@ impl<'a> InternalDependencyChecker<'a> {
                             diagnostic,
                             relative_file_path.to_path_buf(),
                             file_module.line_number(dependency.offset()),
+                            dependency
+                                .original_line_offset()
+                                .map(|offset| file_module.line_number(offset)),
                         )]);
                     }
                     return Ok(vec![]);
@@ -205,6 +211,9 @@ impl<'a> InternalDependencyChecker<'a> {
                                 diagnostic,
                                 relative_file_path.to_path_buf(),
                                 file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
                             )]);
                         }
                         return Ok(vec![]);
@@ -237,6 +246,9 @@ impl<'a> InternalDependencyChecker<'a> {
                                 diagnostic,
                                 relative_file_path.to_path_buf(),
                                 file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
                             )]);
                         }
                         return Ok(vec![]);

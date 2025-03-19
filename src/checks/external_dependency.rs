@@ -60,6 +60,7 @@ impl<'a> ExternalDependencyChecker<'a> {
                         diagnostic,
                         processed_file.relative_file_path().to_path_buf(),
                         processed_file.line_number(import.alias_offset()),
+                        Some(processed_file.line_number(import.import_offset())),
                     ));
                 }
                 return None;
@@ -93,6 +94,7 @@ impl<'a> ExternalDependencyChecker<'a> {
                         diagnostic,
                         processed_file.relative_file_path().to_path_buf(),
                         processed_file.line_number(import.alias_offset()),
+                        Some(processed_file.line_number(import.import_offset())),
                     ));
                 }
                 return None;
@@ -150,6 +152,7 @@ impl<'a> ExternalDependencyChecker<'a> {
                         diagnostic,
                         processed_file.relative_file_path().to_path_buf(),
                         processed_file.line_number(import.alias_offset()),
+                        Some(processed_file.line_number(import.import_offset())),
                     ));
                 }
                 return None;

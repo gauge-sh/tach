@@ -25,6 +25,7 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
             DiagnosticDetails::Code(CodeDiagnostic::UnusedIgnoreDirective()),
             relative_file_path.to_path_buf(),
             ignore_directive.line_no,
+            None,
         )
     }
 
@@ -79,6 +80,7 @@ impl<'a> IgnoreDirectivePostProcessor<'a> {
                 DiagnosticDetails::Code(CodeDiagnostic::MissingIgnoreDirectiveReason()),
                 relative_file_path.to_path_buf(),
                 ignore_directive.line_no,
+                None,
             ))
         } else {
             None
