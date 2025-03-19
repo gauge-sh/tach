@@ -119,6 +119,20 @@ impl<'a> InternalDependencyChecker<'a> {
         ) {
             LayerCheckResult::Ok => return Ok(vec![]), // Higher layers can unconditionally import lower layers
             LayerCheckResult::LayerViolation(e) | LayerCheckResult::UnknownLayer(e) => {
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_located(
+                                severity,
+                                e.details().clone(),
+                                relative_file_path.to_path_buf(),
+                                file_module.line_number(dependency.offset()),
+                            )]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
                 return Ok(vec![e]);
             }
             LayerCheckResult::SameLayer | LayerCheckResult::LayerNotSpecified => (), // We need to do further processing to determine if the dependency is allowed
@@ -131,17 +145,33 @@ impl<'a> InternalDependencyChecker<'a> {
             .forbidden_dependencies_iter()
             .find(|dep| dep.matches(dependency_nearest_module_path))
         {
+            let diagnostic = DiagnosticDetails::Code(CodeDiagnostic::ForbiddenDependency {
+                dependency: dependency.module_path().to_string(),
+                usage_module: file_nearest_module_path.to_string(),
+                definition_module: dependency_nearest_module_path.to_string(),
+            });
+
+            if let Dependency::Import(import) = dependency {
+                if !import.is_global_scope {
+                    if let Ok(severity) = (&self.project_config.rules.local_imports).try_into() {
+                        return Ok(vec![Diagnostic::new_located(
+                            severity,
+                            diagnostic,
+                            relative_file_path.to_path_buf(),
+                            file_module.line_number(dependency.offset()),
+                        )]);
+                    }
+                    return Ok(vec![]);
+                }
+            }
+
             return Ok(vec![Diagnostic::new_located_error(
                 relative_file_path.to_path_buf(),
                 file_module.line_number(dependency.offset()),
                 dependency
                     .original_line_offset()
                     .map(|offset| file_module.line_number(offset)),
-                DiagnosticDetails::Code(CodeDiagnostic::ForbiddenDependency {
-                    dependency: dependency.module_path().to_string(),
-                    usage_module: file_nearest_module_path.to_string(),
-                    definition_module: dependency_nearest_module_path.to_string(),
-                }),
+                diagnostic,
             )]);
         }
 
@@ -159,31 +189,69 @@ impl<'a> InternalDependencyChecker<'a> {
         {
             Some(DependencyConfig {
                 deprecated: true, ..
-            }) => Ok(vec![Diagnostic::new_located_warning(
-                relative_file_path.to_path_buf(),
-                file_module.line_number(dependency.offset()),
-                dependency
-                    .original_line_offset()
-                    .map(|offset| file_module.line_number(offset)),
-                DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency {
+            }) => {
+                let diagnostic = DiagnosticDetails::Code(CodeDiagnostic::DeprecatedDependency {
                     dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
                     definition_module: dependency_nearest_module_path.to_string(),
-                }),
-            )]),
+                });
+
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_located(
+                                severity,
+                                diagnostic,
+                                relative_file_path.to_path_buf(),
+                                file_module.line_number(dependency.offset()),
+                            )]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
+
+                Ok(vec![Diagnostic::new_located_warning(
+                    relative_file_path.to_path_buf(),
+                    file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
+                    diagnostic,
+                )])
+            }
             Some(_) => Ok(vec![]),
-            None => Ok(vec![Diagnostic::new_located_error(
-                relative_file_path.to_path_buf(),
-                file_module.line_number(dependency.offset()),
-                dependency
-                    .original_line_offset()
-                    .map(|offset| file_module.line_number(offset)),
-                DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency {
+            None => {
+                let diagnostic = DiagnosticDetails::Code(CodeDiagnostic::UndeclaredDependency {
                     dependency: dependency.module_path().to_string(),
                     usage_module: file_nearest_module_path.to_string(),
                     definition_module: dependency_nearest_module_path.to_string(),
-                }),
-            )]),
+                });
+
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_located(
+                                severity,
+                                diagnostic,
+                                relative_file_path.to_path_buf(),
+                                file_module.line_number(dependency.offset()),
+                            )]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
+
+                Ok(vec![Diagnostic::new_located_error(
+                    relative_file_path.to_path_buf(),
+                    file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
+                    diagnostic,
+                )])
+            }
         }
     }
 

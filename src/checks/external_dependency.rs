@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::config::ProjectConfig;
 use crate::dependencies::import::{with_distribution_names, ExternalImportWithDistributionNames};
 use crate::diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails};
 use crate::diagnostics::{FileChecker, Result as DiagnosticResult};
@@ -11,20 +12,23 @@ pub struct ExternalDependencyChecker<'a> {
     module_mappings: &'a HashMap<String, Vec<String>>,
     stdlib_modules: &'a HashSet<String>,
     excluded_external_modules: &'a HashSet<String>,
+    project_config: &'a ProjectConfig,
 }
 
 impl<'a> ExternalDependencyChecker<'a> {
     pub fn new(
-        package_resolver: &'a PackageResolver,
+        project_config: &'a ProjectConfig,
         module_mappings: &'a HashMap<String, Vec<String>>,
         stdlib_modules: &'a HashSet<String>,
         excluded_external_modules: &'a HashSet<String>,
+        package_resolver: &'a PackageResolver<'a>,
     ) -> Self {
         Self {
             package_resolver,
             module_mappings,
             stdlib_modules,
             excluded_external_modules,
+            project_config,
         }
     }
 
@@ -43,14 +47,29 @@ impl<'a> ExternalDependencyChecker<'a> {
                     .any(|dependency| import.top_level_module_name() == dependency)
             })
         {
+            let diagnostic =
+                DiagnosticDetails::Code(CodeDiagnostic::ModuleForbiddenExternalDependency {
+                    dependency: import.top_level_module_name().to_string(),
+                    usage_module: module_config.path.clone(),
+                });
+
+            if !import.is_global_scope() {
+                if let Ok(severity) = (&self.project_config.rules.local_imports).try_into() {
+                    return Some(Diagnostic::new_located(
+                        severity,
+                        diagnostic,
+                        processed_file.relative_file_path().to_path_buf(),
+                        processed_file.line_number(import.alias_offset()),
+                    ));
+                }
+                return None;
+            }
+
             Some(Diagnostic::new_located_error(
                 processed_file.relative_file_path().to_path_buf(),
                 processed_file.line_number(import.alias_offset()),
                 Some(processed_file.line_number(import.import_offset())),
-                DiagnosticDetails::Code(CodeDiagnostic::ModuleForbiddenExternalDependency {
-                    dependency: import.top_level_module_name().to_string(),
-                    usage_module: module_config.path.clone(),
-                }),
+                diagnostic,
             ))
         } else if module_config
             .depends_on_external
@@ -61,14 +80,29 @@ impl<'a> ExternalDependencyChecker<'a> {
                     .any(|dependency| import.top_level_module_name() == dependency)
             })
         {
+            let diagnostic =
+                DiagnosticDetails::Code(CodeDiagnostic::ModuleUndeclaredExternalDependency {
+                    dependency: import.top_level_module_name().to_string(),
+                    usage_module: module_config.path.clone(),
+                });
+
+            if !import.is_global_scope() {
+                if let Ok(severity) = (&self.project_config.rules.local_imports).try_into() {
+                    return Some(Diagnostic::new_located(
+                        severity,
+                        diagnostic,
+                        processed_file.relative_file_path().to_path_buf(),
+                        processed_file.line_number(import.alias_offset()),
+                    ));
+                }
+                return None;
+            }
+
             Some(Diagnostic::new_located_error(
                 processed_file.relative_file_path().to_path_buf(),
                 processed_file.line_number(import.alias_offset()),
                 Some(processed_file.line_number(import.import_offset())),
-                DiagnosticDetails::Code(CodeDiagnostic::ModuleUndeclaredExternalDependency {
-                    dependency: import.top_level_module_name().to_string(),
-                    usage_module: module_config.path.clone(),
-                }),
+                diagnostic,
             ))
         } else {
             None
@@ -97,10 +131,7 @@ impl<'a> ExternalDependencyChecker<'a> {
             .any(|dist_name| processed_file.declared_dependencies().contains(dist_name));
 
         if !is_declared {
-            Some(Diagnostic::new_located_error(
-                processed_file.relative_file_path().to_path_buf(),
-                processed_file.line_number(import.alias_offset()),
-                Some(processed_file.line_number(import.import_offset())),
+            let diagnostic =
                 DiagnosticDetails::Code(CodeDiagnostic::UndeclaredExternalDependency {
                     dependency: import.top_level_module_name().to_string(),
                     package_name: processed_file
@@ -110,7 +141,25 @@ impl<'a> ExternalDependencyChecker<'a> {
                         .map_or(processed_file.package.root.display().to_string(), |name| {
                             name.to_string()
                         }),
-                }),
+                });
+
+            if !import.is_global_scope() {
+                if let Ok(severity) = (&self.project_config.rules.local_imports).try_into() {
+                    return Some(Diagnostic::new_located(
+                        severity,
+                        diagnostic,
+                        processed_file.relative_file_path().to_path_buf(),
+                        processed_file.line_number(import.alias_offset()),
+                    ));
+                }
+                return None;
+            }
+
+            Some(Diagnostic::new_located_error(
+                processed_file.relative_file_path().to_path_buf(),
+                processed_file.line_number(import.alias_offset()),
+                Some(processed_file.line_number(import.import_offset())),
+                diagnostic,
             ))
         } else {
             self.check_module_external_dependencies(processed_file, &import)

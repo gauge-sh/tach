@@ -87,6 +87,10 @@ impl ExternalImportWithDistributionNames<'_> {
         self.import.import_offset
     }
 
+    pub fn is_global_scope(&self) -> bool {
+        self.import.is_global_scope
+    }
+
     pub fn distribution_names(&self) -> &Vec<String> {
         &self.distribution_names
     }
