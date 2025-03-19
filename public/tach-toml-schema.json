@@ -324,6 +324,12 @@
           "enum": ["error", "warn", "off"],
           "default": "error",
           "description": "How to handle unused external dependencies"
+        },
+        "local_imports": {
+          "type": "string",
+          "enum": ["error", "warn", "off"],
+          "default": "error",
+          "description": "How to handle imports that are not at the global scope (e.g. within a function, class, or control structure)"
         }
       },
       "additionalProperties": false
