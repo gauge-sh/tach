@@ -64,6 +64,11 @@ pub struct RulesConfig {
         skip_serializing_if = "RuleSetting::is_error"
     )]
     pub unused_external_dependencies: RuleSetting,
+    #[serde(
+        default = "RuleSetting::error",
+        skip_serializing_if = "RuleSetting::is_error"
+    )]
+    pub local_imports: RuleSetting,
 }
 
 impl Default for RulesConfig {
@@ -72,6 +77,7 @@ impl Default for RulesConfig {
             unused_ignore_directives: RuleSetting::warn(),
             require_ignore_directive_reasons: RuleSetting::off(),
             unused_external_dependencies: RuleSetting::error(),
+            local_imports: RuleSetting::error(),
         }
     }
 }

@@ -15,6 +15,7 @@ pub struct NormalizedImport {
     pub import_offset: TextSize,    // Source location of the import statement
     pub alias_offset: TextSize,     // Source location of the alias
     pub is_absolute: bool,          // Whether the import is absolute
+    pub is_global_scope: bool,      // Whether the import is at the global scope
 }
 
 impl NormalizedImport {
@@ -66,10 +67,6 @@ impl LocatedImport {
         self.import.is_absolute
     }
 }
-
-pub struct AllImports;
-pub struct ProjectImports;
-pub struct ExternalImports;
 
 #[derive(Debug)]
 pub struct ExternalImportWithDistributionNames<'a> {

@@ -180,3 +180,6 @@ profile.json
 
 # Rust
 .cargo/
+
+# Cursor
+.cursorrules
