@@ -463,6 +463,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="dependencies",
         help="Direction of the map (default: 'dependencies')",
     )
+    map_parser.add_argument(
+        "--closure",
+        type=str,
+        help="Get the closure for a specific file path",
+    )
 
     return parser
 
@@ -1050,13 +1055,18 @@ def tach_map(
     project_root: Path,
     output_path: str,
     direction: str,
+    closure_path: str | None = None,
 ):
     logger.info(
         "tach map called",
         extra={
             "data": CallInfo(
                 function="tach_map",
-                parameters={"is_stdout": output_path == "-", "direction": direction},
+                parameters={
+                    "is_stdout": output_path == "-",
+                    "direction": direction,
+                    "closure_path": closure_path,
+                },
             ),
         },
     )
@@ -1068,6 +1078,23 @@ def tach_map(
             if direction == "dependencies"
             else Direction.Dependents,
         )
+
+        if closure_path:
+            closure_file_path = Path(closure_path).resolve().relative_to(project_root)
+            closure = dependent_map.get_closure([closure_file_path])
+            output_json = json.dumps(
+                {str(closure_file_path): sorted(list(closure))}, indent=2
+            )
+            if output_path == "-":
+                print(output_json)
+            else:
+                with open(output_path, "w") as f:
+                    f.write(output_json)
+                console_err.print(
+                    f"{icons.SUCCESS} Closure written to '{output_path}'",
+                    style="green",
+                )
+            sys.exit(0)
 
         if output_path == "-":
             dependent_map.write_to_stdout()
@@ -1282,6 +1309,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
             project_root=project_root,
             output_path=args.output,
             direction=args.direction,
+            closure_path=args.closure,
         )
     else:
         print("Unrecognized command")
