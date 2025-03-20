@@ -44,4 +44,10 @@ impl PyDependentMap {
             .write_to_file(&path)
             .map_err(|e| PyErr::new::<PyValueError, _>(e.to_string()))
     }
+
+    fn write_to_stdout(&self) -> PyResult<()> {
+        self.inner
+            .write_to_stdout()
+            .map_err(|e| PyErr::new::<PyValueError, _>(e.to_string()))
+    }
 }

@@ -1,6 +1,7 @@
 use dashmap::DashMap;
 use rayon::prelude::*;
 use std::collections::HashSet;
+use std::io::Write;
 use std::path::PathBuf;
 
 use super::error::{DependentMapError, Result};
@@ -83,7 +84,6 @@ impl DependentMap {
                 .par_bridge()
                 .for_each(|path| {
                     let abs_path = source_root.join(&path);
-                    println!("Processing file: {}", abs_path.display());
                     if let Ok(dependencies) =
                         process_file(&abs_path, &source_roots, ignore_type_checking_imports)
                     {
@@ -166,6 +166,14 @@ impl DependentMap {
         let file = std::fs::File::create(path)?;
         serde_json::to_writer_pretty(file, &self.map)
             .map_err(|e| DependentMapError::Io(e.into()))?;
+        Ok(())
+    }
+
+    pub fn write_to_stdout(&self) -> Result<()> {
+        serde_json::to_writer_pretty(std::io::stdout(), &self.map)
+            .map_err(|e| DependentMapError::Io(e.into()))?;
+        println!();
+        std::io::stdout().flush()?;
         Ok(())
     }
 }
