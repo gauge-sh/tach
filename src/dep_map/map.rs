@@ -265,10 +265,14 @@ impl DependentMap {
                 extra_deps,
             ) {
                 for dep in dependencies {
-                    self.map
-                        .entry(dep.clone())
-                        .or_default()
-                        .push(rel_path.clone());
+                    match self.direction {
+                        Direction::Dependents => {
+                            self.map.entry(dep).or_default().push(rel_path.clone());
+                        }
+                        Direction::Dependencies => {
+                            self.map.entry(rel_path.clone()).or_default().push(dep);
+                        }
+                    }
                 }
             }
         });
