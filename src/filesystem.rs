@@ -1,6 +1,5 @@
 use std::fs;
 use std::io;
-use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 
@@ -96,6 +95,12 @@ pub struct ResolvedModule {
     pub source_root: PathBuf,
     pub file_path: PathBuf,
     pub member_name: Option<String>,
+}
+
+impl ResolvedModule {
+    pub fn relative_file_path(&self) -> PathBuf {
+        relative_to(&self.file_path, &self.source_root).unwrap_or_else(|_| self.file_path.clone())
+    }
 }
 
 fn is_potential_python_module_path(s: &str) -> bool {
@@ -227,10 +232,7 @@ pub fn module_path_is_included_in_paths(
 }
 
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
-    let mut file = fs::File::open(path.as_ref())?;
-    let mut content = String::new();
-    file.read_to_string(&mut content)?;
-    Ok(content)
+    fs::read_to_string(path).map_err(FileSystemError::Io)
 }
 
 pub fn is_hidden(entry: &ignore::DirEntry) -> bool {

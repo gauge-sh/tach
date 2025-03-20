@@ -4,6 +4,7 @@ pub mod cli;
 pub mod colors;
 pub mod commands;
 pub mod config;
+pub mod dep_map;
 pub mod dependencies;
 pub mod diagnostics;
 pub mod external;
@@ -333,6 +334,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::RulesConfig>()?;
     m.add_class::<config::DependencyConfig>()?;
     m.add_class::<diagnostics::Diagnostic>()?;
+    m.add_class::<dep_map::PyDependentMap>()?;
     m.add_class::<test::TachPytestPluginHandler>()?;
     m.add_function(wrap_pyfunction_bound!(parse_project_config, m)?)?;
     m.add_function(wrap_pyfunction_bound!(
