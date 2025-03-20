@@ -1,7 +1,8 @@
 use dashmap::DashMap;
 use rayon::prelude::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
+use std::iter;
 use std::path::PathBuf;
 
 use super::error::{DependentMapError, Result};
@@ -11,13 +12,64 @@ use crate::{
     python::parsing::parse_python_source, resolvers::SourceRootResolver,
 };
 
+/// A struct that efficiently handles matching files against extra dependency patterns
+#[derive(Debug)]
+struct ExtraDependencyMatcher {
+    /// Maps source file paths to their extra dependencies (all paths relative to project root)
+    source_to_deps: HashMap<String, Vec<String>>,
+}
+
+impl ExtraDependencyMatcher {
+    fn new(
+        project_root: &PathBuf,
+        file_walker: &filesystem::FSWalker,
+        extra_dependencies: &HashMap<String, Vec<String>>,
+    ) -> Result<Self> {
+        let mut source_to_deps = HashMap::new();
+
+        for (pattern, dep_patterns) in extra_dependencies {
+            let matching_files =
+                file_walker.walk_globbed_files(project_root.to_str().unwrap(), iter::once(pattern));
+
+            for source_file in matching_files {
+                let source_path = filesystem::relative_to(&source_file, project_root)?
+                    .to_string_lossy()
+                    .to_string();
+
+                let mut deps = Vec::new();
+                for dep_pattern in dep_patterns {
+                    let dep_files = file_walker.walk_globbed_files(
+                        project_root.to_str().unwrap(),
+                        iter::once(dep_pattern),
+                    );
+                    for dep_file in dep_files {
+                        if let Ok(rel_path) = filesystem::relative_to(&dep_file, project_root) {
+                            deps.push(rel_path.to_string_lossy().to_string());
+                        }
+                    }
+                }
+
+                source_to_deps
+                    .entry(source_path)
+                    .or_insert_with(Vec::new)
+                    .extend(deps);
+            }
+        }
+
+        Ok(Self { source_to_deps })
+    }
+
+    fn get_extra_dependencies(&self, file_path: &str) -> Option<&Vec<String>> {
+        self.source_to_deps.get(file_path)
+    }
+}
+
 fn process_file(
     project_root: &PathBuf,
-    file_walker: &filesystem::FSWalker,
     path: &PathBuf,
     source_roots: &[PathBuf],
     ignore_type_checking_imports: bool,
-    extra_dependencies: &[(String, Vec<String>)],
+    extra_deps: Option<&Vec<String>>,
 ) -> Result<HashSet<String>> {
     let mut result = HashSet::new();
 
@@ -43,24 +95,8 @@ fn process_file(
         }
     });
 
-    for (pattern, dep_patterns) in extra_dependencies {
-        if file_walker
-            .walk_globbed_files(project_root.to_str().unwrap(), vec![pattern.clone()])
-            .any(|f| &f == path)
-        {
-            for dep_pattern in dep_patterns {
-                let dep_files = file_walker
-                    .walk_globbed_files(project_root.to_str().unwrap(), vec![dep_pattern.clone()]);
-                for dep_file in dep_files {
-                    result.insert(
-                        filesystem::relative_to(&dep_file, project_root)
-                            .unwrap()
-                            .to_string_lossy()
-                            .to_string(),
-                    );
-                }
-            }
-        }
+    if let Some(deps) = extra_deps {
+        result.extend(deps.iter().cloned());
     }
 
     Ok(result)
@@ -75,9 +111,12 @@ pub enum Direction {
 #[derive(Debug)]
 pub struct DependentMap {
     project_root: PathBuf,
+    source_roots: Vec<PathBuf>,
     project_config: ProjectConfig,
     map: DashMap<String, Vec<String>>,
     direction: Direction,
+    file_walker: filesystem::FSWalker,
+    extra_deps: ExtraDependencyMatcher,
 }
 
 impl DependentMap {
@@ -86,20 +125,6 @@ impl DependentMap {
         project_config: &ProjectConfig,
         direction: Direction,
     ) -> Result<Self> {
-        let map = Self::build(project_root, project_config, direction)?;
-        Ok(Self {
-            project_root: project_root.clone(),
-            project_config: project_config.clone(),
-            map,
-            direction,
-        })
-    }
-
-    pub fn build(
-        project_root: &PathBuf,
-        project_config: &ProjectConfig,
-        direction: Direction,
-    ) -> Result<DashMap<String, Vec<String>>> {
         let file_walker = filesystem::FSWalker::try_new(
             project_root,
             &project_config.exclude,
@@ -107,17 +132,41 @@ impl DependentMap {
         )?;
         let source_root_resolver = SourceRootResolver::new(project_root, &file_walker);
         let source_roots = source_root_resolver.resolve(&project_config.source_roots)?;
+        let extra_deps = ExtraDependencyMatcher::new(
+            project_root,
+            &file_walker,
+            &project_config.map.extra_dependencies,
+        )?;
+        let map = Self::build_map(
+            project_root,
+            &source_roots,
+            project_config,
+            direction,
+            &file_walker,
+            &extra_deps,
+        )?;
 
+        Ok(Self {
+            project_root: project_root.clone(),
+            source_roots,
+            project_config: project_config.clone(),
+            map,
+            direction,
+            file_walker,
+            extra_deps,
+        })
+    }
+
+    fn build_map(
+        project_root: &PathBuf,
+        source_roots: &[PathBuf],
+        project_config: &ProjectConfig,
+        direction: Direction,
+        file_walker: &filesystem::FSWalker,
+        extra_deps: &ExtraDependencyMatcher,
+    ) -> Result<DashMap<String, Vec<String>>> {
         let dependent_map: DashMap<String, Vec<String>> = DashMap::new();
         let ignore_type_checking_imports = project_config.ignore_type_checking_imports;
-
-        // Convert extra_dependencies to Vec for easier iteration
-        let extra_deps: Vec<_> = project_config
-            .map
-            .extra_dependencies
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
 
         source_roots.iter().for_each(|source_root| {
             file_walker
@@ -125,19 +174,20 @@ impl DependentMap {
                 .par_bridge()
                 .for_each(|path| {
                     let abs_path = source_root.join(&path);
+                    let rel_path = filesystem::relative_to(&abs_path, project_root)
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string();
+
+                    let extra_deps = extra_deps.get_extra_dependencies(&rel_path);
+
                     if let Ok(dependencies) = process_file(
                         project_root,
-                        &file_walker,
                         &abs_path,
-                        &source_roots,
+                        source_roots,
                         ignore_type_checking_imports,
-                        &extra_deps,
+                        extra_deps,
                     ) {
-                        let rel_path = filesystem::relative_to(&abs_path, project_root)
-                            .unwrap()
-                            .to_string_lossy()
-                            .to_string();
-
                         for dep in dependencies {
                             match direction {
                                 Direction::Dependents => {
@@ -156,8 +206,14 @@ impl DependentMap {
     }
 
     pub fn rebuild(&mut self) -> Result<()> {
-        let map = Self::build(&self.project_root, &self.project_config, self.direction)?;
-        self.map = map;
+        self.map = Self::build_map(
+            &self.project_root,
+            &self.source_roots,
+            &self.project_config,
+            self.direction,
+            &self.file_walker,
+            &self.extra_deps,
+        )?;
         Ok(())
     }
 
@@ -193,35 +249,26 @@ impl DependentMap {
                     .any(|path| path.to_str().unwrap() == dep)
             });
         });
-        let source_roots = self
-            .project_config
-            .source_roots
-            .iter()
-            .map(|root| self.project_root.join(root))
-            .collect::<Vec<PathBuf>>();
         let ignore_type_checking_imports = self.project_config.ignore_type_checking_imports;
-
-        let file_walker = filesystem::FSWalker::try_new(
-            &self.project_root,
-            &self.project_config.exclude,
-            self.project_config.respect_gitignore,
-        )?;
 
         changed_files.par_iter().for_each(|path| {
             let abs_path = self.project_root.join(path);
+            let rel_path = path.to_string_lossy().to_string();
+
+            let extra_deps = self.extra_deps.get_extra_dependencies(&rel_path);
+
             if let Ok(dependencies) = process_file(
                 &self.project_root,
-                &file_walker,
                 &abs_path,
-                &source_roots,
+                &self.source_roots,
                 ignore_type_checking_imports,
-                &[],
+                extra_deps,
             ) {
                 for dep in dependencies {
                     self.map
                         .entry(dep.clone())
                         .or_default()
-                        .push(path.display().to_string());
+                        .push(rel_path.clone());
                 }
             }
         });

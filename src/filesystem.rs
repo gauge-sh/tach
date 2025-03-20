@@ -390,16 +390,15 @@ impl FSWalker {
             .filter(|entry| entry.file_name() == "pyproject.toml")
             .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
     }
-
-    pub fn walk_globbed_files(
-        &self,
-        root: &str,
-        patterns: Vec<String>,
-    ) -> impl Iterator<Item = PathBuf> {
+    pub fn walk_globbed_files<P, S>(&self, root: &str, patterns: P) -> impl Iterator<Item = PathBuf>
+    where
+        P: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
         let mut glob_builder = GlobSetBuilder::new();
 
         for pattern in patterns {
-            glob_builder.add(Glob::new(&pattern).unwrap());
+            glob_builder.add(Glob::new(pattern.as_ref()).unwrap());
         }
 
         let glob_set = glob_builder.build().unwrap();
