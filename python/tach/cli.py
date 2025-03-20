@@ -460,8 +460,8 @@ def build_parser() -> argparse.ArgumentParser:
     map_parser.add_argument(
         "--direction",
         choices=["dependencies", "dependents"],
-        default="dependents",
-        help="Direction of the map (default: 'dependents')",
+        default="dependencies",
+        help="Direction of the map (default: 'dependencies')",
     )
 
     return parser
