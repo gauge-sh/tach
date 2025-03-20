@@ -13,6 +13,7 @@ use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::error::ConfigError;
 use super::external::ExternalDependencyConfig;
 use super::interfaces::InterfaceConfig;
+use super::map::MapConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
 use super::plugins::PluginsConfig;
 use super::root_module::RootModuleTreatment;
@@ -58,6 +59,9 @@ pub struct ProjectConfig {
     #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
     pub external: ExternalDependencyConfig,
+    #[serde(default, skip_serializing_if = "utils::is_default")]
+    #[pyo3(get)]
+    pub map: MapConfig,
     #[serde(default)]
     #[pyo3(get, set)]
     pub exclude: Vec<String>,
@@ -153,6 +157,7 @@ impl Default for ProjectConfig {
             domains: Default::default(),
             pending_edits: Default::default(),
             location: Default::default(),
+            map: Default::default(),
         }
     }
 }

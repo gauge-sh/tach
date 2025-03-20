@@ -333,6 +333,7 @@ fn extension(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<config::InterfaceConfig>()?;
     m.add_class::<config::RulesConfig>()?;
     m.add_class::<config::DependencyConfig>()?;
+    m.add_class::<config::MapConfig>()?;
     m.add_class::<diagnostics::Diagnostic>()?;
     m.add_class::<dep_map::PyDependentMap>()?;
     m.add_class::<dep_map::PyDirection>()?;
