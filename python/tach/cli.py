@@ -20,7 +20,7 @@ from tach.errors import (
     TachSetupError,
     TachVisibilityError,
 )
-from tach.extension import ProjectConfig
+from tach.extension import Direction, ProjectConfig
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.logging import CallInfo, init_logging, logger
@@ -456,6 +456,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         default="-",
         help="Output file path. Use '-' for stdout (default: '-')",
+    )
+    map_parser.add_argument(
+        "--direction",
+        choices=["dependencies", "dependents"],
+        default="dependents",
+        help="Direction of the map (default: 'dependents')",
     )
 
     return parser
@@ -1043,18 +1049,25 @@ def tach_map(
     project_config: ProjectConfig,
     project_root: Path,
     output_path: str,
+    direction: str,
 ):
     logger.info(
         "tach map called",
         extra={
             "data": CallInfo(
                 function="tach_map",
-                parameters={"is_stdout": output_path == "-"},
+                parameters={"is_stdout": output_path == "-", "direction": direction},
             ),
         },
     )
     try:
-        dependent_map = extension.DependentMap(project_root, project_config)
+        dependent_map = extension.DependentMap(
+            project_root,
+            project_config,
+            Direction.Dependencies
+            if direction == "dependencies"
+            else Direction.Dependents,
+        )
 
         if output_path == "-":
             dependent_map.write_to_stdout()
@@ -1268,6 +1281,7 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
             project_config=project_config,
             project_root=project_root,
             output_path=args.output,
+            direction=args.direction,
         )
     else:
         print("Unrecognized command")

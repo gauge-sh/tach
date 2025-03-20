@@ -46,26 +46,39 @@ fn process_file(
     Ok(result)
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
+    Dependencies,
+    Dependents,
+}
+
 #[derive(Debug)]
 pub struct DependentMap {
     project_root: PathBuf,
     project_config: ProjectConfig,
     map: DashMap<String, Vec<String>>,
+    direction: Direction,
 }
 
 impl DependentMap {
-    pub fn new(project_root: &PathBuf, project_config: &ProjectConfig) -> Result<Self> {
-        let map = Self::build(project_root, project_config)?;
+    pub fn new(
+        project_root: &PathBuf,
+        project_config: &ProjectConfig,
+        direction: Direction,
+    ) -> Result<Self> {
+        let map = Self::build(project_root, project_config, direction)?;
         Ok(Self {
             project_root: project_root.clone(),
             project_config: project_config.clone(),
             map,
+            direction,
         })
     }
 
     pub fn build(
         project_root: &PathBuf,
         project_config: &ProjectConfig,
+        direction: Direction,
     ) -> Result<DashMap<String, Vec<String>>> {
         let file_walker = filesystem::FSWalker::try_new(
             project_root,
@@ -88,10 +101,20 @@ impl DependentMap {
                         process_file(&abs_path, &source_roots, ignore_type_checking_imports)
                     {
                         for dep in dependencies {
-                            dependent_map
-                                .entry(dep)
-                                .or_default()
-                                .push(path.display().to_string());
+                            match direction {
+                                Direction::Dependents => {
+                                    dependent_map
+                                        .entry(dep)
+                                        .or_default()
+                                        .push(path.display().to_string());
+                                }
+                                Direction::Dependencies => {
+                                    dependent_map
+                                        .entry(path.display().to_string())
+                                        .or_default()
+                                        .push(dep);
+                                }
+                            }
                         }
                     }
                 });
@@ -101,7 +124,7 @@ impl DependentMap {
     }
 
     pub fn rebuild(&mut self) -> Result<()> {
-        let map = Self::build(&self.project_root, &self.project_config)?;
+        let map = Self::build(&self.project_root, &self.project_config, self.direction)?;
         self.map = map;
         Ok(())
     }

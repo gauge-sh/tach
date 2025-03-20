@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 from typing import Literal
 
@@ -193,9 +194,16 @@ class TachPytestPluginHandler:
     def remove_test_path(self, path: Path) -> None: ...
     def should_remove_items(self, file_path: Path) -> bool: ...
 
+class Direction(Enum):
+    Dependencies = 0
+    Dependents = 1
+
 class DependentMap:
     def __new__(
-        cls, project_root: Path, project_config: ProjectConfig
+        cls,
+        project_root: Path,
+        project_config: ProjectConfig,
+        direction: Direction | None = None,
     ) -> DependentMap: ...
     def rebuild(self) -> None: ...
     def get_closure(self, paths: list[Path]) -> set[str]: ...
