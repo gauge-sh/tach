@@ -125,11 +125,16 @@ def generate_module_graph_mermaid(
     modules = project_config.filtered_modules(included_paths)
     edges: list[str] = []
     isolated: list[str] = []
+    LINE_ARROW = "-->"
+    DOTTED_ARROW = "-.->"
     for module in modules:
         for dependency in module.depends_on or []:
-            edges.append(
-                f"    {module.path.strip('<>')} --> {dependency.path.strip('<>')}"
-            )
+            module_name = module.path.strip('<>')
+            dependency_name = dependency.path.strip('<>')
+            if dependency.deprecated:
+                edges.append(f"    {module_name} {DOTTED_ARROW} {dependency_name}")
+            else:
+                edges.append(f"    {module_name} {LINE_ARROW} {dependency_name}")
         if not module.depends_on:
             isolated.append(f"    {module.path.strip('<>')}")
 
