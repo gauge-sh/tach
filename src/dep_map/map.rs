@@ -295,3 +295,140 @@ impl DependentMap {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{HashMap, HashSet};
+    use std::fs;
+    use std::path::PathBuf;
+    use tempfile::TempDir;
+
+    use super::*;
+
+    fn setup_test_files(temp_dir: &TempDir) -> (PathBuf, Vec<PathBuf>) {
+        let project_root = temp_dir.path().to_path_buf();
+        let source_root = project_root.join("src");
+        fs::create_dir_all(&source_root).unwrap();
+
+        let files = vec![
+            ("src/a.py", "from b import func\nfrom c import helper"),
+            ("src/b.py", "from c import util\ndef func(): pass"),
+            ("src/c.py", "def util(): pass\ndef helper(): pass"),
+            ("src/d.py", "from a import something\nfrom b import func"),
+        ];
+
+        for (path, content) in files {
+            let file_path = project_root.join(path);
+            fs::write(file_path, content).unwrap();
+        }
+
+        let source_roots = vec![source_root];
+        (project_root, source_roots)
+    }
+
+    fn create_basic_config(source_roots: &[PathBuf]) -> ProjectConfig {
+        let mut config = ProjectConfig::default();
+        config.source_roots = source_roots.to_vec();
+        config.ignore_type_checking_imports = true;
+        config.map.extra_dependencies = HashMap::new();
+        config
+    }
+
+    #[test]
+    fn test_dependent_map_dependencies() {
+        let temp_dir = TempDir::new().unwrap();
+        let (project_root, source_roots) = setup_test_files(&temp_dir);
+
+        let config = create_basic_config(&source_roots);
+        let map = DependentMap::new(&project_root, &config, Direction::Dependencies).unwrap();
+
+        // Test dependencies for a.py
+        let a_deps = map.map.get("src/a.py").unwrap();
+        let expected_a_deps: HashSet<_> = vec!["src/b.py", "src/c.py"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let actual_a_deps: HashSet<_> = a_deps.iter().cloned().collect();
+        assert_eq!(actual_a_deps, expected_a_deps);
+
+        // Test dependencies for b.py
+        let b_deps = map.map.get("src/b.py").unwrap();
+        let expected_b_deps: HashSet<_> = vec!["src/c.py"].into_iter().map(String::from).collect();
+        let actual_b_deps: HashSet<_> = b_deps.iter().cloned().collect();
+        assert_eq!(actual_b_deps, expected_b_deps);
+
+        // Test dependencies for c.py (should have none)
+        let c_deps = map.map.get("src/c.py");
+        assert!(c_deps.is_none());
+    }
+
+    #[test]
+    fn test_dependent_map_dependents() {
+        let temp_dir = TempDir::new().unwrap();
+        let (project_root, source_roots) = setup_test_files(&temp_dir);
+
+        let config = create_basic_config(&source_roots);
+        let map = DependentMap::new(&project_root, &config, Direction::Dependents).unwrap();
+
+        // Test dependents of c.py
+        let c_deps = map.map.get("src/c.py").unwrap();
+        let expected_c_deps: HashSet<_> = vec!["src/a.py", "src/b.py"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let actual_c_deps: HashSet<_> = c_deps.iter().cloned().collect();
+        assert_eq!(actual_c_deps, expected_c_deps);
+
+        // Test dependents of b.py
+        let b_deps = map.map.get("src/b.py").unwrap();
+        let expected_b_deps: HashSet<_> = vec!["src/a.py", "src/d.py"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        let actual_b_deps: HashSet<_> = b_deps.iter().cloned().collect();
+        assert_eq!(actual_b_deps, expected_b_deps);
+    }
+
+    #[test]
+    fn test_get_closure() {
+        let temp_dir = TempDir::new().unwrap();
+        let (project_root, source_roots) = setup_test_files(&temp_dir);
+
+        let config = create_basic_config(&source_roots);
+        let map = DependentMap::new(&project_root, &config, Direction::Dependencies).unwrap();
+
+        // Test closure starting from a.py
+        let closure = map.get_closure(&[PathBuf::from("src/a.py")]).unwrap();
+        let expected_closure: HashSet<_> = vec!["src/a.py", "src/b.py", "src/c.py"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        assert_eq!(closure, expected_closure);
+
+        // Test closure starting from multiple files
+        let closure = map
+            .get_closure(&[PathBuf::from("src/a.py"), PathBuf::from("src/d.py")])
+            .unwrap();
+        let expected_closure: HashSet<_> = vec!["src/a.py", "src/b.py", "src/c.py", "src/d.py"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        assert_eq!(closure, expected_closure);
+    }
+
+    #[test]
+    fn test_get_closure_error_nonexistent_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let (project_root, source_roots) = setup_test_files(&temp_dir);
+
+        let config = create_basic_config(&source_roots);
+        let map = DependentMap::new(&project_root, &config, Direction::Dependencies).unwrap();
+
+        let result = map.get_closure(&[PathBuf::from("src/nonexistent.py")]);
+        assert!(result.is_err());
+        match result {
+            Err(DependentMapError::FileNotFound(_)) => (),
+            _ => panic!("Expected FileNotFound error"),
+        }
+    }
+}
