@@ -95,13 +95,15 @@ def generate_module_graph_dot_file(
 
     graph = nx.DiGraph()  # type: ignore
 
-    def upsert_edge(graph: nx.DiGraph, module: str, dependency: str, dashed: bool=False) -> None:  # type: ignore
+    def upsert_edge(
+        graph: nx.DiGraph, module: str, dependency: str, dashed: bool = False
+    ) -> None:  # type: ignore
         if module not in graph:
             graph.add_node(module)  # type: ignore
         if dependency not in graph:
             graph.add_node(dependency)  # type: ignore
         if dashed:
-            graph.add_edge(module, dependency, style='dashed') # type: ignore
+            graph.add_edge(module, dependency, style="dashed")  # type: ignore
         else:
             graph.add_edge(module, dependency)  # type: ignore
 
@@ -129,8 +131,8 @@ def generate_module_graph_mermaid(
     DOTTED_ARROW = "-.->"
     for module in modules:
         for dependency in module.depends_on or []:
-            module_name = module.path.strip('<>')
-            dependency_name = dependency.path.strip('<>')
+            module_name = module.path.strip("<>")
+            dependency_name = dependency.path.strip("<>")
             if dependency.deprecated:
                 edges.append(f"    {module_name} {DOTTED_ARROW} {dependency_name}")
             else:
