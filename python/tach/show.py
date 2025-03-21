@@ -95,18 +95,21 @@ def generate_module_graph_dot_file(
 
     graph = nx.DiGraph()  # type: ignore
 
-    def upsert_edge(graph: nx.DiGraph, module: str, dependency: str) -> None:  # type: ignore
+    def upsert_edge(graph: nx.DiGraph, module: str, dependency: str, dashed: bool=False) -> None:  # type: ignore
         if module not in graph:
             graph.add_node(module)  # type: ignore
         if dependency not in graph:
             graph.add_node(dependency)  # type: ignore
-        graph.add_edge(module, dependency)  # type: ignore
+        if dashed:
+            graph.add_edge(module, dependency, style='dashed') # type: ignore
+        else:
+            graph.add_edge(module, dependency)  # type: ignore
 
     modules = project_config.filtered_modules(included_paths)
 
     for module in modules:
         for dependency in module.depends_on or []:
-            upsert_edge(graph, module.path, dependency.path)  # type: ignore
+            upsert_edge(graph, module.path, dependency.path, dependency.deprecated)  # type: ignore
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
     dot_data: str = pydot_graph.to_string()  # type: ignore
