@@ -9,7 +9,7 @@ while walking through `tach mod`, `tach sync` and `tach show`.
 
 New users should start with this command.
 
-```bash
+```
 usage: tach init [-h] [--force]
 
 Initialize a new project
@@ -23,7 +23,7 @@ options:
 
 Tach provides an interactive editor for configuring your module boundaries - `tach mod`.
 
-```bash
+```
 usage: tach mod [-h] [-d [DEPTH]] [-e file_or_path,...]
 
 Configure module boundaries interactively
@@ -55,7 +55,7 @@ to automatically configure dependency rules.
 
 Tach can automatically sync your project configuration (`tach.toml`) with your project's actual dependencies.
 
-```bash
+```
 usage: tach sync [-h] [--add] [-e file_or_path,...]
 
 Sync constraints with actual dependencies in your project.
@@ -81,7 +81,7 @@ When run without the `--add` flag, `tach sync` will remove modules from the `tac
 
 Tach will flag any unwanted imports between modules. We recommend you run `tach check` like a linter or test runner, e.g. in pre-commit hooks, on-save hooks, and in CI pipelines.
 
-```bash
+```
 usage: tach check [-h] [--exact] [--dependencies] [--interfaces] [-e file_or_path,...]
 
 Check existing boundaries against your dependencies and module interfaces
@@ -137,7 +137,7 @@ NOTE: If your terminal supports hyperlinks, you can click on the failing file pa
 
 Tach can validate that the external imports in your Python packages match your declared package dependencies in `pyproject.toml` or `requirements.txt`.
 
-```bash
+```
 usage: tach check-external [-h] [-e file_or_path,...]
 
 Perform checks related to third-party dependencies
@@ -173,7 +173,7 @@ In case you would like to explicitly allow a certain external module, this can b
 
 Tach can generate a report showing all the dependencies and usages of a given module.
 
-```bash
+```
 usage: tach report [-h] [--dependencies] [--usages] [--external] [-d module_path,...] [-u module_path,...] [--raw] [-e file_or_path,...] path
 
 Create a report of dependencies and usages.
@@ -221,7 +221,7 @@ Supplying the `--raw` flag will group the results by module name and eliminate f
 
 Tach will generate a visual representation of your dependency graph!
 
-```bash
+```
 usage: tach show [-h] [--web] [--mermaid] [-o [OUT]] [included_paths ...]
 
 Visualize the dependency graph of your project.
@@ -240,6 +240,76 @@ options:
 
 These are the results of `tach show --web` on the Tach codebase itself:
 ![tach show](assets/tach_show.png)
+
+## tach map
+
+Tach can generate a JSON dependency map showing the relationships between files in your project.
+```
+usage: tach map [-h] [-o OUTPUT] [--direction {dependencies,dependents}] [--closure CLOSURE]
+
+Build a dependency map and write it to a file or stdout
+
+options:
+  -h, --help            show this help message and exit
+  -o OUTPUT, --output OUTPUT
+                        Output file path. Use '-' for stdout (default: '-')
+  --direction {dependencies,dependents}
+                        Direction of the map (default: 'dependencies')
+  --closure CLOSURE     Get the closure for a specific file path
+```
+
+By default, `tach map` outputs to stdout and shows dependencies. The output is a JSON object where each key is a file path and its value is an array of file paths it depends on.
+
+Example output:
+```json
+{
+  "src/core.py": ["src/utils.py", "src/config.py"],
+  "src/utils.py": [],
+  "src/config.py": ["src/utils.py"]
+}
+```
+
+This map is particularly useful for build tools, test runners, and development servers that need to understand file dependencies.
+
+For example, it can help with test selection by identifying affected files, or support hot-reloading by finding all files that need to be reloaded when a dependency changes.
+
+### With jq
+You can use [`jq`](https://jqlang.org/download/) to query this output. Here are some useful examples:
+
+```bash
+# Get dependencies for a specific file
+tach map | jq '."src/core.py"'
+
+# Find all files that depend on utils.py (using dependents direction)
+tach map --direction dependents | jq '."src/utils.py"'
+
+# Count dependencies for each file
+tach map | jq 'map_values(length)'
+
+# Find files with no dependencies
+tach map | jq 'to_entries | map(select(.value | length == 0)) | map(.key)'
+```
+
+### Closures
+The `--closure` flag can be used to find all transitive dependencies for a specific file path. For example:
+
+```bash
+# Get all direct and indirect dependencies of core.py
+tach map --closure src/core.py
+```
+
+Example output with closure:
+```json
+[
+  "src/core.py",
+  "src/utils.py",
+  "src/config.py",
+  "src/constants.py"
+]
+```
+
+The output includes the target file itself and all files that are either directly or indirectly required by it. In this example, if `src/core.py` imports `config.py` which in turn imports `constants.py`, all of these files will appear in the closure.
+
 
 ## tach test
 

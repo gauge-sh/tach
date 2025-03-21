@@ -138,7 +138,7 @@ Tach also supports:
 - [Deprecating individual dependencies](https://docs.gauge.sh/usage/deprecate)
 - [Layered architecture](https://docs.gauge.sh/usage/layers)
 - [Incremental adoption](https://docs.gauge.sh/usage/unchecked-modules)
-- [Manual file configuration](https://docs.gauge.sh/usage/configuration)
+- [Generating JSON dependency maps](https://docs.gauge.sh/usage/commands#tach-map)
 - [Monorepos and namespace packages](https://docs.gauge.sh/usage/configuration#source-roots)
 - [Domain ownership](https://docs.gauge.sh/usage/configuration#tach-domain-toml)
 - [Inline 'ignore' comments](https://docs.gauge.sh/usage/tach-ignore)
