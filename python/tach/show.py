@@ -95,18 +95,26 @@ def generate_module_graph_dot_file(
 
     graph = nx.DiGraph()  # type: ignore
 
-    def upsert_edge(graph: nx.DiGraph, module: str, dependency: str) -> None:  # type: ignore
+    def upsert_edge(
+        graph: nx.DiGraph,  # type: ignore
+        module: str,
+        dependency: str,
+        dashed: bool = False,
+    ) -> None:
         if module not in graph:
             graph.add_node(module)  # type: ignore
         if dependency not in graph:
             graph.add_node(dependency)  # type: ignore
-        graph.add_edge(module, dependency)  # type: ignore
+        if dashed:
+            graph.add_edge(module, dependency, style="dashed")  # type: ignore
+        else:
+            graph.add_edge(module, dependency)  # type: ignore
 
     modules = project_config.filtered_modules(included_paths)
 
     for module in modules:
         for dependency in module.depends_on or []:
-            upsert_edge(graph, module.path, dependency.path)  # type: ignore
+            upsert_edge(graph, module.path, dependency.path, dependency.deprecated)  # type: ignore
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
     dot_data: str = pydot_graph.to_string()  # type: ignore
@@ -122,11 +130,16 @@ def generate_module_graph_mermaid(
     modules = project_config.filtered_modules(included_paths)
     edges: list[str] = []
     isolated: list[str] = []
+    LINE_ARROW = "-->"
+    DOTTED_ARROW = "-.->"
     for module in modules:
         for dependency in module.depends_on or []:
-            edges.append(
-                f"    {module.path.strip('<>')} --> {dependency.path.strip('<>')}"
-            )
+            module_name = module.path.strip("<>")
+            dependency_name = dependency.path.strip("<>")
+            if dependency.deprecated:
+                edges.append(f"    {module_name} {DOTTED_ARROW} {dependency_name}")
+            else:
+                edges.append(f"    {module_name} {LINE_ARROW} {dependency_name}")
         if not module.depends_on:
             isolated.append(f"    {module.path.strip('<>')}")
 

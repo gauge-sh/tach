@@ -1,6 +1,5 @@
 use std::fs;
 use std::io;
-use std::io::Read;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 
@@ -96,6 +95,12 @@ pub struct ResolvedModule {
     pub source_root: PathBuf,
     pub file_path: PathBuf,
     pub member_name: Option<String>,
+}
+
+impl ResolvedModule {
+    pub fn relative_file_path(&self) -> PathBuf {
+        relative_to(&self.file_path, &self.source_root).unwrap_or_else(|_| self.file_path.clone())
+    }
 }
 
 fn is_potential_python_module_path(s: &str) -> bool {
@@ -227,10 +232,7 @@ pub fn module_path_is_included_in_paths(
 }
 
 pub fn read_file_content<P: AsRef<Path>>(path: P) -> Result<String> {
-    let mut file = fs::File::open(path.as_ref())?;
-    let mut content = String::new();
-    file.read_to_string(&mut content)?;
-    Ok(content)
+    fs::read_to_string(path).map_err(FileSystemError::Io)
 }
 
 pub fn is_hidden(entry: &ignore::DirEntry) -> bool {
@@ -388,16 +390,15 @@ impl FSWalker {
             .filter(|entry| entry.file_name() == "pyproject.toml")
             .map(move |entry| relative_to(entry.path(), &prefix).unwrap())
     }
-
-    pub fn walk_globbed_files(
-        &self,
-        root: &str,
-        patterns: Vec<String>,
-    ) -> impl Iterator<Item = PathBuf> {
+    pub fn walk_globbed_files<P, S>(&self, root: &str, patterns: P) -> impl Iterator<Item = PathBuf>
+    where
+        P: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
         let mut glob_builder = GlobSetBuilder::new();
 
         for pattern in patterns {
-            glob_builder.add(Glob::new(&pattern).unwrap());
+            glob_builder.add(Glob::new(pattern.as_ref()).unwrap());
         }
 
         let glob_set = glob_builder.build().unwrap();

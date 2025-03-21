@@ -183,3 +183,6 @@ profile.json
 
 # Cursor
 .cursorrules
+
+# Scratchpad
+.scratch/

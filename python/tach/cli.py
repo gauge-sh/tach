@@ -20,7 +20,7 @@ from tach.errors import (
     TachSetupError,
     TachVisibilityError,
 )
-from tach.extension import ProjectConfig
+from tach.extension import Direction, ProjectConfig
 from tach.filesystem import install_pre_commit
 from tach.init import init_project
 from tach.logging import CallInfo, init_logging, logger
@@ -441,6 +441,32 @@ def build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         help="Force re-initialization if project is already configured.",
+    )
+
+    ## tach map
+    map_parser = subparsers.add_parser(
+        "map",
+        prog=f"{TOOL_NAME} map",
+        help="Build a dependency map and write it to a file or stdout",
+        description="Build a dependency map and write it to a file or stdout",
+    )
+    map_parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="-",
+        help="Output file path. Use '-' for stdout (default: '-')",
+    )
+    map_parser.add_argument(
+        "--direction",
+        choices=["dependencies", "dependents"],
+        default="dependencies",
+        help="Direction of the map (default: 'dependencies')",
+    )
+    map_parser.add_argument(
+        "--closure",
+        type=str,
+        help="Get the closure for a specific file path",
     )
 
     return parser
@@ -1024,6 +1050,66 @@ def tach_server(
         sys.exit(1)
 
 
+def tach_map(
+    project_config: ProjectConfig,
+    project_root: Path,
+    output_path: str,
+    direction: str,
+    closure_path: str | None = None,
+):
+    logger.info(
+        "tach map called",
+        extra={
+            "data": CallInfo(
+                function="tach_map",
+                parameters={
+                    "is_stdout": output_path == "-",
+                    "direction": direction,
+                    "closure_path": closure_path,
+                },
+            ),
+        },
+    )
+    try:
+        dependent_map = extension.DependentMap(
+            project_root,
+            project_config,
+            Direction.Dependencies
+            if direction == "dependencies"
+            else Direction.Dependents,
+        )
+
+        if closure_path:
+            closure_file_path = Path(closure_path).resolve().relative_to(project_root)
+            closure = dependent_map.get_closure([closure_file_path])
+            output_json = json.dumps(
+                {str(closure_file_path): sorted(list(closure))}, indent=2
+            )
+            if output_path == "-":
+                print(output_json)
+            else:
+                with open(output_path, "w") as f:
+                    f.write(output_json)
+                console_err.print(
+                    f"{icons.SUCCESS} Closure written to '{output_path}'",
+                    style="green",
+                )
+            sys.exit(0)
+
+        if output_path == "-":
+            dependent_map.write_to_stdout()
+        else:
+            dependent_map.write_to_file(Path(output_path))
+            console_err.print(
+                f"{icons.SUCCESS} Dependency map written to '{output_path}'",
+                style="green",
+            )
+        sys.exit(0)
+    except Exception as e:
+        print(f"Failed to build dependency map: {e}")
+        sys.exit(1)
+
+
 def tach_init(project_root: Path, force: bool = False):
     logger.info(
         "tach init called",
@@ -1216,6 +1302,14 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         tach_server(
             project_config=project_config,
             project_root=project_root,
+        )
+    elif args.command == "map":
+        tach_map(
+            project_config=project_config,
+            project_root=project_root,
+            output_path=args.output,
+            direction=args.direction,
+            closure_path=args.closure,
         )
     else:
         print("Unrecognized command")

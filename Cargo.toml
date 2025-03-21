@@ -36,7 +36,7 @@ itertools = "0.14.0"
 toml_edit = "0.22.24"
 console = "0.15.11"
 ignore = "0.4.23"
-dashmap = { version = "6.1.0", features = ["inline"] }
+dashmap = { version = "6.1.0", features = ["serde", "rayon", "inline"] }
 
 [features]
 extension-module = ["pyo3/extension-module"]
