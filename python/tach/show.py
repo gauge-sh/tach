@@ -96,8 +96,11 @@ def generate_module_graph_dot_file(
     graph = nx.DiGraph()  # type: ignore
 
     def upsert_edge(
-        graph: nx.DiGraph, module: str, dependency: str, dashed: bool = False
-    ) -> None:  # type: ignore
+        graph: nx.DiGraph,  # type: ignore
+        module: str,
+        dependency: str,
+        dashed: bool = False,
+    ) -> None:
         if module not in graph:
             graph.add_node(module)  # type: ignore
         if dependency not in graph:
