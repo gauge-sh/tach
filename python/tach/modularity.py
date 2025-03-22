@@ -131,7 +131,7 @@ class Module:
     layer: str | None = None
 
 
-REPORT_VERSION = "1.5"
+REPORT_VERSION = "1.6"
 
 
 @dataclass
