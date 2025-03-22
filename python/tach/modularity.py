@@ -131,7 +131,7 @@ class Module:
     layer: str | None = None
 
 
-REPORT_VERSION = "1.5"
+REPORT_VERSION = "1.6"
 
 
 @dataclass
@@ -256,7 +256,7 @@ def build_usages(
                     Usage(
                         module_path=import_containing_module,
                         full_path=project_import.module_path,
-                        filepath=str(pyfile),
+                        filepath=str((source_root / pyfile).relative_to(project_root)),
                         line=project_import.line_number,
                         containing_module_path=pyfile_containing_module,
                     )
