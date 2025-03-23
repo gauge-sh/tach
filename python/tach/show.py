@@ -85,11 +85,10 @@ def upload_show_report(
         return None
 
 
-def generate_module_graph_dot_file(
+def generate_module_graph_dot_string(
     project_config: ProjectConfig,
-    output_filepath: Path,
     included_paths: list[Path],
-) -> None:
+) -> str:
     # Local import because networkx takes about ~100ms to load
     import networkx as nx
 
@@ -117,16 +116,13 @@ def generate_module_graph_dot_file(
             upsert_edge(graph, module.path, dependency.path, dependency.deprecated)  # type: ignore
 
     pydot_graph: pydot.Dot = nx.nx_pydot.to_pydot(graph)  # type: ignore
-    dot_data: str = pydot_graph.to_string()  # type: ignore
-
-    output_filepath.write_text(dot_data)  # type: ignore
+    return str(pydot_graph.to_string())  # type: ignore
 
 
-def generate_module_graph_mermaid(
+def generate_module_graph_mermaid_string(
     project_config: ProjectConfig,
-    output_filepath: Path,
     included_paths: list[Path],
-) -> None:
+) -> str:
     modules = project_config.filtered_modules(included_paths)
     edges: list[str] = []
     isolated: list[str] = []
@@ -143,8 +139,24 @@ def generate_module_graph_mermaid(
         if not module.depends_on:
             isolated.append(f"    {module.path.strip('<>')}")
 
-    mermaid_graph = "graph TD\n" + "\n".join(edges) + "\n" + "\n".join(isolated)
+    return "graph TD\n" + "\n".join(edges) + "\n" + "\n".join(isolated)
 
+
+def generate_module_graph_dot_file(
+    project_config: ProjectConfig,
+    output_filepath: Path,
+    included_paths: list[Path],
+) -> None:
+    dot_data = generate_module_graph_dot_string(project_config, included_paths)
+    output_filepath.write_text(dot_data)
+
+
+def generate_module_graph_mermaid(
+    project_config: ProjectConfig,
+    output_filepath: Path,
+    included_paths: list[Path],
+) -> None:
+    mermaid_graph = generate_module_graph_mermaid_string(project_config, included_paths)
     output_filepath.write_text(mermaid_graph)
 
 
@@ -152,4 +164,6 @@ __all__ = [
     "upload_show_report",
     "generate_module_graph_dot_file",
     "generate_module_graph_mermaid",
+    "generate_module_graph_dot_string",
+    "generate_module_graph_mermaid_string",
 ]

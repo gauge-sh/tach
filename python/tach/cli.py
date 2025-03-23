@@ -29,7 +29,9 @@ from tach.parsing import combine_exclude_paths, parse_project_config
 from tach.report import external_dependency_report, report
 from tach.show import (
     generate_module_graph_dot_file,
+    generate_module_graph_dot_string,
     generate_module_graph_mermaid,
+    generate_module_graph_mermaid_string,
     upload_show_report,
 )
 from tach.test import run_affected_tests
@@ -328,10 +330,10 @@ def build_parser() -> argparse.ArgumentParser:
     show_parser.add_argument(
         "-o",
         "--out",
-        type=Path,
+        type=str,
         nargs="?",
         default=None,
-        help="Specify an output path for a locally generated module graph file.",
+        help=f"Output file path. Use '-' for stdout (default: '{TOOL_NAME}_module_graph{{.mmd|.dot}}')",
     )
 
     ## tach install
@@ -816,7 +818,7 @@ def tach_show(
     included_paths: list[Path] | None = None,
     is_web: bool = False,
     is_mermaid: bool = False,
-    output_filepath: Path | None = None,
+    output_filepath: str | None = None,
 ):
     logger.info(
         "tach show called",
@@ -860,27 +862,42 @@ def tach_show(
         else:
             print_show_web_suggestion(is_mermaid=is_mermaid)
             if is_mermaid:
-                output_filepath = output_filepath or Path(
-                    f"{TOOL_NAME}_module_graph.mmd"
-                )
-                generate_module_graph_mermaid(
-                    project_config,
-                    included_paths=included_paths,
-                    output_filepath=output_filepath,
-                )
-                print_generated_module_graph_file(output_filepath, is_mermaid=True)
-                sys.exit(0)
+                if output_filepath == "-":
+                    print(
+                        generate_module_graph_mermaid_string(
+                            project_config, included_paths
+                        )
+                    )
+                else:
+                    output_path = (
+                        Path(output_filepath)
+                        if output_filepath
+                        else Path(f"{TOOL_NAME}_module_graph.mmd")
+                    )
+                    generate_module_graph_mermaid(
+                        project_config,
+                        included_paths=included_paths,
+                        output_filepath=output_path,
+                    )
+                    print_generated_module_graph_file(output_path, is_mermaid=True)
             else:
-                output_filepath = output_filepath or Path(
-                    f"{TOOL_NAME}_module_graph.dot"
-                )
-                generate_module_graph_dot_file(
-                    project_config,
-                    included_paths=included_paths,
-                    output_filepath=output_filepath,
-                )
-                print_generated_module_graph_file(output_filepath)
-                sys.exit(0)
+                if output_filepath == "-":
+                    print(
+                        generate_module_graph_dot_string(project_config, included_paths)
+                    )
+                else:
+                    output_path = (
+                        Path(output_filepath)
+                        if output_filepath
+                        else Path(f"{TOOL_NAME}_module_graph.dot")
+                    )
+                    generate_module_graph_dot_file(
+                        project_config,
+                        included_paths=included_paths,
+                        output_filepath=output_path,
+                    )
+                    print_generated_module_graph_file(output_path)
+            sys.exit(0)
     except TachError as e:
         print(f"Failed to show module graph: {e}")
         sys.exit(1)
