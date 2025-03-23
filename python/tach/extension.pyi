@@ -57,10 +57,7 @@ def check_external_dependencies(
     project_root: Path,
     project_config: ProjectConfig,
 ) -> list[Diagnostic]: ...
-def format_diagnostics(
-    project_root: Path,
-    diagnostics: list[Diagnostic],
-) -> str: ...
+def format_diagnostics(diagnostics: list[Diagnostic]) -> str: ...
 def detect_unused_dependencies(
     project_root: Path,
     project_config: ProjectConfig,

@@ -287,11 +287,8 @@ fn check_internal(
 }
 
 #[pyfunction]
-pub fn format_diagnostics(
-    project_root: PathBuf,
-    diagnostics: Vec<diagnostics::Diagnostic>,
-) -> String {
-    check::format::DiagnosticFormatter::new(project_root).format_diagnostics(&diagnostics)
+pub fn format_diagnostics(diagnostics: Vec<diagnostics::Diagnostic>) -> String {
+    check::format::format_diagnostics(&diagnostics)
 }
 
 #[pyfunction]

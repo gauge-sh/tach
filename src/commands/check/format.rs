@@ -2,7 +2,7 @@ use crate::{
     cli::{create_clickable_link, fail, warning},
     diagnostics::{CodeDiagnostic, Diagnostic, DiagnosticDetails, Severity},
 };
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
 use console::style;
 use itertools::Itertools;
@@ -111,86 +111,69 @@ impl<'a> DiagnosticGroup<'a> {
     }
 }
 
-pub struct DiagnosticFormatter {
-    project_root: PathBuf,
+fn format_diagnostic(diagnostic: &Diagnostic) -> String {
+    let local_error_path = diagnostic.file_path();
+
+    let error_location = match local_error_path {
+        Some(path) => create_clickable_link(path, &diagnostic.line_number().unwrap()),
+        None => diagnostic.severity().to_string(),
+    };
+
+    match diagnostic.severity() {
+        Severity::Error => format!(
+            "{} {}{} {}",
+            fail(),
+            style(error_location).red().bold(),
+            style(":").yellow().bold(),
+            style(diagnostic.message()).yellow(),
+        ),
+        Severity::Warning => format!(
+            "{} {}{} {}",
+            warning(),
+            style(error_location).yellow().bold(),
+            style(":").yellow().bold(),
+            style(diagnostic.message()).yellow(),
+        ),
+    }
 }
 
-impl DiagnosticFormatter {
-    pub fn new(project_root: PathBuf) -> Self {
-        Self { project_root }
+fn format_diagnostic_group(group: &mut DiagnosticGroup) -> String {
+    group.sort_diagnostics();
+    let header = match group.severity {
+        Severity::Error => style(&group.header).red().bold(),
+        Severity::Warning => style(&group.header).yellow().bold(),
+    };
+    let diagnostics = group
+        .diagnostics
+        .iter()
+        .map(|d| format_diagnostic(d))
+        .collect::<Vec<String>>()
+        .join("\n");
+
+    match &group.footer {
+        Some(footer) => format!("{}\n{}\n\n{}", header, diagnostics, footer),
+        None => format!("{}\n{}", header, diagnostics),
+    }
+}
+
+pub fn format_diagnostics(diagnostics: &[Diagnostic]) -> String {
+    let mut groups: HashMap<DiagnosticGroupKind, DiagnosticGroup> = HashMap::new();
+
+    for diagnostic in diagnostics {
+        let group_kind = DiagnosticGroupKind::from(diagnostic.details());
+        let group = groups
+            .entry(group_kind.clone())
+            .or_insert_with(|| DiagnosticGroup::new(diagnostic.severity(), group_kind));
+        group.add_diagnostic(diagnostic);
     }
 
-    fn format_diagnostic(&self, diagnostic: &Diagnostic) -> String {
-        let local_error_path = diagnostic.file_path();
-
-        let error_location = match local_error_path {
-            Some(path) => {
-                let absolute_error_path = self.project_root.join(path);
-                create_clickable_link(
-                    path,
-                    &absolute_error_path,
-                    &diagnostic.line_number().unwrap(),
-                )
-            }
-            None => diagnostic.severity().to_string(),
-        };
-
-        match diagnostic.severity() {
-            Severity::Error => format!(
-                "{} {}{} {}",
-                fail(),
-                style(error_location).red().bold(),
-                style(":").yellow().bold(),
-                style(diagnostic.message()).yellow(),
-            ),
-            Severity::Warning => format!(
-                "{} {}{} {}",
-                warning(),
-                style(error_location).yellow().bold(),
-                style(":").yellow().bold(),
-                style(diagnostic.message()).yellow(),
-            ),
-        }
+    let mut formatted_diagnostics = Vec::new();
+    for group in groups
+        .values_mut()
+        .sorted_by_key(|group| group.kind.clone())
+    {
+        formatted_diagnostics.push(format_diagnostic_group(group));
     }
 
-    fn format_diagnostic_group(&self, group: &mut DiagnosticGroup) -> String {
-        group.sort_diagnostics();
-        let header = match group.severity {
-            Severity::Error => style(&group.header).red().bold(),
-            Severity::Warning => style(&group.header).yellow().bold(),
-        };
-        let diagnostics = group
-            .diagnostics
-            .iter()
-            .map(|d| self.format_diagnostic(d))
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        match &group.footer {
-            Some(footer) => format!("{}\n{}\n\n{}", header, diagnostics, footer),
-            None => format!("{}\n{}", header, diagnostics),
-        }
-    }
-
-    pub fn format_diagnostics(&self, diagnostics: &[Diagnostic]) -> String {
-        let mut groups: HashMap<DiagnosticGroupKind, DiagnosticGroup> = HashMap::new();
-
-        for diagnostic in diagnostics {
-            let group_kind = DiagnosticGroupKind::from(diagnostic.details());
-            let group = groups
-                .entry(group_kind.clone())
-                .or_insert_with(|| DiagnosticGroup::new(diagnostic.severity(), group_kind));
-            group.add_diagnostic(diagnostic);
-        }
-
-        let mut formatted_diagnostics = Vec::new();
-        for group in groups
-            .values_mut()
-            .sorted_by_key(|group| group.kind.clone())
-        {
-            formatted_diagnostics.push(self.format_diagnostic_group(group));
-        }
-
-        formatted_diagnostics.join("\n\n")
-    }
+    formatted_diagnostics.join("\n\n")
 }

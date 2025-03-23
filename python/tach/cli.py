@@ -566,9 +566,7 @@ def tach_check(
 
         if diagnostics:
             print(
-                extension.format_diagnostics(
-                    project_root=project_root, diagnostics=diagnostics
-                ),
+                extension.format_diagnostics(diagnostics=diagnostics),
                 file=sys.stderr,
             )
         exit_code = 1 if has_errors else 0
@@ -620,9 +618,7 @@ def tach_check_external(
         )
         if diagnostics:
             print(
-                extension.format_diagnostics(
-                    project_root=project_root, diagnostics=diagnostics
-                ),
+                extension.format_diagnostics(diagnostics=diagnostics),
                 file=sys.stderr,
             )
 
