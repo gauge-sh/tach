@@ -68,11 +68,11 @@ class ExternalDependency:
 
 
 def render_external_dependency(
-    dependency: ExternalDependency, display_path: Path
+    dependency: ExternalDependency,
+    project_root: Path,
 ) -> str:
     clickable_link = create_clickable_link(
-        file_path=dependency.absolute_file_path,
-        display_path=display_path,
+        file_path=dependency.absolute_file_path.relative_to(project_root),
         line=dependency.import_line_number,
     )
     import_info = f"Import '{dependency.import_module_path}' from package '{dependency.package_name}'"
@@ -83,7 +83,10 @@ def render_external_dependency(
 
 
 def render_external_dependency_report(
-    path: Path, dependencies: list[ExternalDependency], raw: bool = False
+    project_root: Path,
+    path: Path,
+    dependencies: list[ExternalDependency],
+    raw: bool = False,
 ) -> str:
     if not dependencies:
         if raw:
@@ -107,10 +110,7 @@ def render_external_dependency_report(
 
     for dependency in dependencies:
         lines.append(
-            render_external_dependency(
-                dependency=dependency,
-                display_path=dependency.absolute_file_path.relative_to(Path.cwd()),
-            )
+            render_external_dependency(dependency=dependency, project_root=project_root)
         )
 
     return "\n".join(lines)
@@ -180,7 +180,12 @@ def external_dependency_report(
             excluded_modules=set(project_config.external.exclude),
             project_config=project_config,
         )
-        return render_external_dependency_report(path, external_dependencies, raw=raw)
+        return render_external_dependency_report(
+            project_root=project_root,
+            path=path,
+            dependencies=external_dependencies,
+            raw=raw,
+        )
 
     all_external_dependencies: list[ExternalDependency] = []
     for pyfile in walk_pyfiles(
@@ -196,7 +201,12 @@ def external_dependency_report(
             )
         )
 
-    return render_external_dependency_report(path, all_external_dependencies, raw=raw)
+    return render_external_dependency_report(
+        project_root=project_root,
+        path=path,
+        dependencies=all_external_dependencies,
+        raw=raw,
+    )
 
 
 __all__ = ["report", "external_dependency_report"]

@@ -23,7 +23,6 @@ use super::helpers::import::get_located_project_imports;
 
 struct Dependency {
     file_path: PathBuf,
-    absolute_path: PathBuf,
     import: LocatedImport,
     source_module: String,
     target_module: String,
@@ -89,7 +88,6 @@ impl DependencyReport {
     fn render_dependency(&self, dependency: &Dependency) -> String {
         let clickable_link = create_clickable_link(
             &dependency.file_path,
-            &dependency.absolute_path,
             &dependency.import.alias_line_number(),
         );
         format!(
@@ -322,7 +320,6 @@ pub fn create_dependency_report(
                                     })
                                     .map(|(import, import_module)| Dependency {
                                         file_path: pyfile.clone(),
-                                        absolute_path: absolute_pyfile.clone(),
                                         import,
                                         source_module: target_module.full_path.clone(),
                                         target_module: import_module.full_path.clone(),
@@ -347,7 +344,6 @@ pub fn create_dependency_report(
                                     })
                                     .map(|import| Dependency {
                                         file_path: pyfile.clone(),
-                                        absolute_path: absolute_pyfile.clone(),
                                         import: import.clone(),
                                         source_module: file_module
                                             .as_ref()

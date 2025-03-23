@@ -281,15 +281,13 @@ def test_many_features_example_dir(example_dir, capfd):
         ("[WARN]", "real_src/main.py", "ignore directive", "missing a reason"),
         (
             "[FAIL]",
-            "other_src_root/module4/service.py",
-            "L6",
+            "other_src_root/module4/service.py:6",
             "ignore directive",
             "unused",
         ),
         (
             "[FAIL]",
-            "other_src_root/module4/service.py",
-            "L12",
+            "other_src_root/module4/service.py:12",
             "ignore directive",
             "unused",
         ),
@@ -350,8 +348,7 @@ def test_many_features_example_dir(example_dir, capfd):
         ),
         (
             "[FAIL]",
-            "real_src/module1/controller.py",
-            "L5",
+            "real_src/module1/controller.py:5",
             "'hightest'",
             "lower than",
             "'low'",
@@ -359,8 +356,7 @@ def test_many_features_example_dir(example_dir, capfd):
         ),
         (
             "[FAIL]",
-            "real_src/module1/controller.py",
-            "L6",
+            "real_src/module1/controller.py:6",
             "'hightest'",
             "lower than",
             "'low'",
