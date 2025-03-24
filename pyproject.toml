@@ -74,7 +74,7 @@ dev = [
     "maturin==1.7.1",
 
     # python version 3.7 pinned dependencies
-    "setuptools==47.1.0; python_version == '3.7'",
+    "setuptools==77.0.3; python_version == '3.7'",
     "twine==4.0.2; python_version == '3.7'",
     "build==1.1.1; python_version == '3.7'",
     "pytest==7.4.4; python_version == '3.7'",
