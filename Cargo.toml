@@ -18,7 +18,7 @@ ruff_linter = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
 ruff_source_file = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
 ruff_text_size = { git = "https://github.com/astral-sh/ruff.git", tag = "0.9.3" }
 cached = { version = "0.54.0", features = ["disk_store"] }
-globset = "0.4.15"
+globset = "0.4.16"
 toml = "0.8.19"
 thiserror = "2.0.7"
 serde = { version = "1.0.216", features = ["derive"] }
