@@ -1202,6 +1202,15 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
             sys.exit(1)
         tach_install(project_root=project_root, target=install_target)
         return
+    elif args.command == "map":
+        tach_map(
+            project_config=project_config
+            or ProjectConfig(),  # Project config is optional for 'map', affects filesystem visibility
+            project_root=project_root,
+            output_path=args.output,
+            direction=args.direction,
+            closure_path=args.closure,
+        )
 
     # All other commands require project config
     if project_config is None:
@@ -1315,14 +1324,6 @@ def main(argv: list[str] = sys.argv[1:]) -> None:
         tach_server(
             project_config=project_config,
             project_root=project_root,
-        )
-    elif args.command == "map":
-        tach_map(
-            project_config=project_config,
-            project_root=project_root,
-            output_path=args.output,
-            direction=args.direction,
-            closure_path=args.closure,
         )
     else:
         print("Unrecognized command")
