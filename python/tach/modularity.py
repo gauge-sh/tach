@@ -23,6 +23,8 @@ from tach.filesystem.git_ops import get_current_branch_info
 if TYPE_CHECKING:
     from pathlib import Path
 
+REPORT_VERSION = "1.6"
+
 
 def export_report(
     project_root: Path,
@@ -51,7 +53,7 @@ def upload_report_to_gauge(
 
 
 GAUGE_API_KEY = os.getenv("GAUGE_API_KEY", "")
-GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/1.6"
+GAUGE_UPLOAD_URL = f"{GAUGE_API_BASE_URL}/api/client/tach-upload/{REPORT_VERSION}"
 
 
 def post_json_to_gauge_api(
@@ -129,9 +131,6 @@ class Module:
     depends_on: list[Dependency] = field(default_factory=list)
     # [1.4] Adds 'layer'
     layer: str | None = None
-
-
-REPORT_VERSION = "1.6"
 
 
 @dataclass
