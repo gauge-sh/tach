@@ -155,10 +155,14 @@ pub fn add_domain_configs<P: AsRef<Path>>(config: &mut ProjectConfig, root_dir: 
         filesystem::FSWalker::try_new(&root_dir, &config.exclude, config.respect_gitignore)?;
     let source_root_resolver = SourceRootResolver::new(&root_dir, &file_walker);
     let source_roots = source_root_resolver.resolve(&config.source_roots)?;
-    let mut domain_configs = file_walker
-        .walk_domain_config_files(root_dir.as_os_str().to_str().unwrap())
-        .par_bridge()
-        .map(|filepath| parse_domain_config(&source_roots, filepath))
+    let mut domain_configs = source_roots
+        .par_iter()
+        .flat_map(|root| {
+            file_walker
+                .walk_domain_config_files(root.as_os_str().to_str().unwrap())
+                .par_bridge()
+                .map(|filepath| parse_domain_config(&source_roots, filepath))
+        })
         .collect::<Result<Vec<_>>>()?;
     domain_configs.drain(..).for_each(|domain| {
         config.add_domain(domain);
