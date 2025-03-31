@@ -13,6 +13,7 @@ use super::edit::{ConfigEdit, ConfigEditor, EditError};
 use super::error::ConfigError;
 use super::external::ExternalDependencyConfig;
 use super::interfaces::InterfaceConfig;
+use super::layers::LayerConfig;
 use super::map::MapConfig;
 use super::modules::{deserialize_modules, serialize_modules, DependencyConfig, ModuleConfig};
 use super::plugins::PluginsConfig;
@@ -52,7 +53,7 @@ pub struct ProjectConfig {
     pub interfaces: Vec<InterfaceConfig>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[pyo3(get)]
-    pub layers: Vec<String>,
+    pub layers: Vec<LayerConfig>,
     #[serde(default, skip_serializing_if = "utils::is_default")]
     #[pyo3(get)]
     pub cache: CacheConfig,
