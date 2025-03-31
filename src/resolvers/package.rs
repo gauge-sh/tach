@@ -35,18 +35,18 @@ fn is_requirements_txt_package_root<P: AsRef<Path>>(directory: P) -> bool {
 }
 
 fn get_package_root<P: AsRef<Path>>(directory: P) -> Option<PackageRoot> {
+    if is_requirements_txt_package_root(directory.as_ref()) {
+        return Some(PackageRoot::RequirementsTxt(
+            directory.as_ref().to_path_buf(),
+        ));
+    }
+
     if is_pyproject_toml_package_root(directory.as_ref()) {
         return Some(PackageRoot::Pyproject(directory.as_ref().to_path_buf()));
     }
 
     if is_setup_py_package_root(directory.as_ref()) {
         return Some(PackageRoot::SetupPy(directory.as_ref().to_path_buf()));
-    }
-
-    if is_requirements_txt_package_root(directory.as_ref()) {
-        return Some(PackageRoot::RequirementsTxt(
-            directory.as_ref().to_path_buf(),
-        ));
     }
 
     None
