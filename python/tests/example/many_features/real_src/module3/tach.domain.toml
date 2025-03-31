@@ -18,6 +18,14 @@ path = "submodule3"
 depends_on = []
 layer = "low"
 
+[[modules]]
+path = "submodule3.closed"
+layer = "closed"
+
+[[modules]]
+path = "submodule3.lowest_open"
+layer = "lowest-open"
+
 [[interfaces]]
 expose = ["content"]
 from = ["<domain_root>"]

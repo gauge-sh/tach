@@ -115,7 +115,7 @@ pub enum CodeDiagnostic {
         definition_layer: String,
     },
 
-    #[error("Cannot use '{dependency}'. Layer '{usage_layer}' ('{usage_module}') cannot import from layer '{definition_layer}' ('{definition_module}') because layer '{closed_layer}' is closed.")]
+    #[error("Cannot use '{dependency}'. Layer '{usage_layer}' ('{usage_module}') cannot import from layer '{definition_layer}' ('{definition_module}') because layer '{closed_layer}' is a closed layer between them.")]
     ClosedLayerViolation {
         dependency: String,
         usage_module: String,
