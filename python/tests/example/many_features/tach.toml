@@ -12,7 +12,9 @@ layers = [
     "mid",
     "low",
     "lowest",
-    "hightest"
+    "hightest",
+    { name = "closed", closed = true },
+    "lowest-open"
 ]
 
 [[modules]]

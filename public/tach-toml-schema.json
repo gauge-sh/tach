@@ -271,8 +271,32 @@
     },
     "layers": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "List of layers in hierarchical order (highest to lowest)"
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "Layer name"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Layer name"
+              },
+              "closed": {
+                "type": "boolean",
+                "default": false,
+                "description": "Whether this layer is closed. Closed layers prevent modules in higher layers from importing modules in lower layers."
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false,
+            "description": "Layer configuration with optional closed property"
+          }
+        ]
+      },
+      "description": "List of layers in hierarchical order (highest to lowest). Each layer can be specified as a string (shorthand) or an object with name and optional closed property."
     },
     "cache": {
       "type": "object",

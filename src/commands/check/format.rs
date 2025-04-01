@@ -24,7 +24,8 @@ impl From<&DiagnosticDetails> for DiagnosticGroupKind {
                 CodeDiagnostic::UndeclaredDependency { .. }
                 | CodeDiagnostic::DeprecatedDependency { .. }
                 | CodeDiagnostic::ForbiddenDependency { .. }
-                | CodeDiagnostic::LayerViolation { .. } => Self::InternalDependency,
+                | CodeDiagnostic::LayerViolation { .. }
+                | CodeDiagnostic::ClosedLayerViolation { .. } => Self::InternalDependency,
 
                 CodeDiagnostic::PrivateDependency { .. }
                 | CodeDiagnostic::InvalidDataTypeExport { .. } => Self::Interface,

@@ -115,6 +115,16 @@ pub enum CodeDiagnostic {
         definition_layer: String,
     },
 
+    #[error("Cannot use '{dependency}'. Layer '{usage_layer}' ('{usage_module}') cannot import from layer '{definition_layer}' ('{definition_module}') because layer '{closed_layer}' is a closed layer between them.")]
+    ClosedLayerViolation {
+        dependency: String,
+        usage_module: String,
+        usage_layer: String,
+        definition_module: String,
+        definition_layer: String,
+        closed_layer: String,
+    },
+
     #[error("Dependency '{dependency}' is unnecessarily ignored by a directive.")]
     UnnecessarilyIgnoredDependency { dependency: String },
 
@@ -168,6 +178,7 @@ impl CodeDiagnostic {
             | CodeDiagnostic::DeprecatedDependency { dependency, .. }
             | CodeDiagnostic::ForbiddenDependency { dependency, .. }
             | CodeDiagnostic::LayerViolation { dependency, .. }
+            | CodeDiagnostic::ClosedLayerViolation { dependency, .. }
             | CodeDiagnostic::UnnecessarilyIgnoredDependency { dependency, .. } => Some(dependency),
             CodeDiagnostic::UnusedIgnoreDirective() => None,
             CodeDiagnostic::MissingIgnoreDirectiveReason() => None,
@@ -191,6 +202,7 @@ impl CodeDiagnostic {
             | CodeDiagnostic::DeprecatedDependency { usage_module, .. }
             | CodeDiagnostic::ForbiddenDependency { usage_module, .. }
             | CodeDiagnostic::LayerViolation { usage_module, .. }
+            | CodeDiagnostic::ClosedLayerViolation { usage_module, .. }
             | CodeDiagnostic::ModuleUndeclaredExternalDependency { usage_module, .. }
             | CodeDiagnostic::ModuleForbiddenExternalDependency { usage_module, .. } => {
                 Some(usage_module)
@@ -218,6 +230,9 @@ impl CodeDiagnostic {
             }
             | CodeDiagnostic::LayerViolation {
                 definition_module, ..
+            }
+            | CodeDiagnostic::ClosedLayerViolation {
+                definition_module, ..
             } => Some(definition_module),
             _ => None,
         }
@@ -225,7 +240,8 @@ impl CodeDiagnostic {
 
     pub fn usage_layer(&self) -> Option<&str> {
         match self {
-            CodeDiagnostic::LayerViolation { usage_layer, .. } => Some(usage_layer),
+            CodeDiagnostic::LayerViolation { usage_layer, .. }
+            | CodeDiagnostic::ClosedLayerViolation { usage_layer, .. } => Some(usage_layer),
             _ => None,
         }
     }
@@ -234,7 +250,17 @@ impl CodeDiagnostic {
         match self {
             CodeDiagnostic::LayerViolation {
                 definition_layer, ..
+            }
+            | CodeDiagnostic::ClosedLayerViolation {
+                definition_layer, ..
             } => Some(definition_layer),
+            _ => None,
+        }
+    }
+
+    pub fn closed_layer(&self) -> Option<&str> {
+        match self {
+            CodeDiagnostic::ClosedLayerViolation { closed_layer, .. } => Some(closed_layer),
             _ => None,
         }
     }
@@ -417,6 +443,13 @@ impl Diagnostic {
     pub fn definition_layer(&self) -> Option<&str> {
         match self.details() {
             DiagnosticDetails::Code(details) => details.definition_layer(),
+            _ => None,
+        }
+    }
+
+    pub fn closed_layer(&self) -> Option<&str> {
+        match self.details() {
+            DiagnosticDetails::Code(details) => details.closed_layer(),
             _ => None,
         }
     }

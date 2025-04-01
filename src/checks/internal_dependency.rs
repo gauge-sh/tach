@@ -1,5 +1,8 @@
 use crate::{
-    config::{root_module::RootModuleTreatment, DependencyConfig, ModuleConfig, ProjectConfig},
+    config::{
+        root_module::RootModuleTreatment, DependencyConfig, LayerConfig, ModuleConfig,
+        ProjectConfig,
+    },
     dependencies::Dependency,
     diagnostics::{
         CodeDiagnostic, ConfigurationDiagnostic, Diagnostic, DiagnosticDetails, FileChecker,
@@ -19,6 +22,13 @@ enum LayerCheckResult {
         source_module: String,
         target_layer: String,
         target_module: String,
+    },
+    ClosedLayerViolation {
+        source_layer: String,
+        source_module: String,
+        target_layer: String,
+        target_module: String,
+        closed_layer: String,
     },
     UnknownLayer {
         unknown_layer: String,
@@ -40,20 +50,36 @@ impl<'a> InternalDependencyChecker<'a> {
 
     fn check_layers(
         &self,
-        layers: &[String],
+        layers: &[LayerConfig],
         source_module_config: &ModuleConfig,
         target_module_config: &ModuleConfig,
     ) -> LayerCheckResult {
         match (&source_module_config.layer, &target_module_config.layer) {
             (Some(source_layer), Some(target_layer)) => {
-                let source_index = layers.iter().position(|layer| layer == source_layer);
-                let target_index = layers.iter().position(|layer| layer == target_layer);
+                let source_index = layers
+                    .iter()
+                    .position(|layer| layer.name.as_str() == source_layer);
+                let target_index = layers
+                    .iter()
+                    .position(|layer| layer.name.as_str() == target_layer);
 
                 match (source_index, target_index) {
                     (Some(source_index), Some(target_index)) => {
                         if source_index == target_index {
                             LayerCheckResult::SameLayer
                         } else if source_index < target_index {
+                            // Check if there are any closed layers between source and target
+                            for layer in &layers[source_index + 1..target_index] {
+                                if layer.closed {
+                                    return LayerCheckResult::ClosedLayerViolation {
+                                        source_layer: source_layer.clone(),
+                                        source_module: source_module_config.path.clone(),
+                                        target_layer: target_layer.clone(),
+                                        target_module: target_module_config.path.clone(),
+                                        closed_layer: layer.name.clone(),
+                                    };
+                                }
+                            }
                             LayerCheckResult::Ok
                         } else {
                             LayerCheckResult::LayerViolation {
@@ -82,7 +108,7 @@ impl<'a> InternalDependencyChecker<'a> {
         file_module: &FileModule,
         dependency: &Dependency,
         dependency_module_config: &ModuleConfig,
-        layers: &[String],
+        layers: &[LayerConfig],
     ) -> DiagnosticResult<Vec<Diagnostic>> {
         let file_module_config = file_module.module_config();
         if dependency_module_config == file_module_config {
@@ -105,6 +131,49 @@ impl<'a> InternalDependencyChecker<'a> {
                     usage_layer: source_layer,
                     definition_module: target_module,
                     definition_layer: target_layer,
+                });
+
+                if let Dependency::Import(import) = dependency {
+                    if !import.is_global_scope {
+                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
+                        {
+                            return Ok(vec![Diagnostic::new_located(
+                                severity,
+                                details,
+                                relative_file_path.to_path_buf(),
+                                file_module.line_number(dependency.offset()),
+                                dependency
+                                    .original_line_offset()
+                                    .map(|offset| file_module.line_number(offset)),
+                            )]);
+                        }
+                        return Ok(vec![]);
+                    }
+                }
+
+                return Ok(vec![Diagnostic::new_located_error(
+                    relative_file_path.to_path_buf(),
+                    file_module.line_number(dependency.offset()),
+                    dependency
+                        .original_line_offset()
+                        .map(|offset| file_module.line_number(offset)),
+                    details,
+                )]);
+            }
+            LayerCheckResult::ClosedLayerViolation {
+                source_layer,
+                source_module,
+                target_layer,
+                target_module,
+                closed_layer,
+            } => {
+                let details = DiagnosticDetails::Code(CodeDiagnostic::ClosedLayerViolation {
+                    dependency: dependency.module_path().to_string(),
+                    usage_module: source_module,
+                    usage_layer: source_layer,
+                    definition_module: target_module,
+                    definition_layer: target_layer,
+                    closed_layer,
                 });
 
                 if let Dependency::Import(import) = dependency {

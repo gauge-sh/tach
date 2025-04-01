@@ -23,6 +23,34 @@ When a module is assigned to a layer, this module:
 - must explicitly declare dependencies in **its own layer**
 - may never depend on modules in **higher layers**, *even if they are declared*
 
+## Closed Layers
+
+By default, modules in higher layers can import from any lower layer. However, you can mark a layer as "closed" to prevent modules in higher layers from importing modules in lower layers.
+
+For example, with layers A, B, and C (high to low), if B is a closed layer, then A cannot import C directly, even though C is lower than A. This is useful for enforcing strict boundaries between architectural tiers.
+
+When a layer is closed, it acts as an intermediary - modules in higher layers must go through the closed layer to access modules in lower layers. This helps enforce architectural boundaries and prevents direct coupling between distant layers.
+
+You can specify a closed layer by using an in-line object in the `layers` array:
+
+```toml
+# Shorthand format (defaults to closed = false)
+layers = ["ui", "commands", "core"]
+
+# Object format with closed property
+layers = [
+    "ui",
+    { name = "commands", closed = true },
+    "core"
+]
+```
+
+In this example, if `commands` is a closed layer:
+- `ui` modules can import from `commands` modules
+- `commands` modules can import from `core` modules
+- `ui` modules CANNOT import directly from `core` modules
+- `ui` modules must go through `commands` modules to access `core` functionality
+
 ## Example
 
 We can use the Tach codebase itself as an example of a 3-tier layered architecture:
