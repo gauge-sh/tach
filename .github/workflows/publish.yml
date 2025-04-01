@@ -8,7 +8,24 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tomli pytest
+      - name: Run version consistency test
+        run: |
+          cd python
+          pytest tests/test_version.py -v
+
   linux:
+    needs: test
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -44,6 +61,7 @@ jobs:
           path: dist
 
   windows:
+    needs: test
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -71,6 +89,7 @@ jobs:
           path: dist
 
   macos:
+    needs: test
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -97,6 +116,7 @@ jobs:
           path: dist
 
   sdist:
+    needs: test
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
