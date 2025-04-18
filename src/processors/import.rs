@@ -94,8 +94,13 @@ impl ImportVisitor {
         };
 
         let base_path_parts: Vec<&str> = mod_path.split('.').collect();
+        if num_paths_to_strip > base_path_parts.len() {
+            // This relative import appears to reach beyond the current source root
+            // so we ignore it
+            return normalized_imports;
+        }
         let base_path_parts = if num_paths_to_strip > 0 {
-            base_path_parts[..base_path_parts.len() - num_paths_to_strip].to_vec()
+            base_path_parts[..base_path_parts.len().saturating_sub(num_paths_to_strip)].to_vec()
         } else {
             base_path_parts
         };
