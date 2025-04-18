@@ -1,7 +1,7 @@
 use crate::{
     config::{
         root_module::RootModuleTreatment, DependencyConfig, LayerConfig, ModuleConfig,
-        ProjectConfig,
+        ProjectConfig, RuleSetting,
     },
     dependencies::Dependency,
     diagnostics::{
@@ -287,19 +287,19 @@ impl<'a> InternalDependencyChecker<'a> {
 
                 if let Dependency::Import(import) = dependency {
                     if !import.is_global_scope {
-                        if let Ok(severity) = (&self.project_config.rules.local_imports).try_into()
-                        {
-                            return Ok(vec![Diagnostic::new_located(
-                                severity,
-                                diagnostic,
-                                relative_file_path.to_path_buf(),
-                                file_module.line_number(dependency.offset()),
-                                dependency
-                                    .original_line_offset()
-                                    .map(|offset| file_module.line_number(offset)),
-                            )]);
+                        match &self.project_config.rules.local_imports {
+                            RuleSetting::Warn | RuleSetting::Error => {
+                                return Ok(vec![Diagnostic::new_located_warning(
+                                    relative_file_path.to_path_buf(),
+                                    file_module.line_number(dependency.offset()),
+                                    dependency
+                                        .original_line_offset()
+                                        .map(|offset| file_module.line_number(offset)),
+                                    diagnostic,
+                                )]);
+                            }
+                            _ => return Ok(vec![]),
                         }
-                        return Ok(vec![]);
                     }
                 }
 
