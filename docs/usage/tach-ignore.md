@@ -1,6 +1,4 @@
----
-title: tach-ignore
----
+# tach-ignore
 
 To ignore a particular import which should be allowed unconditionally, use the `tach-ignore` comment directive.
 

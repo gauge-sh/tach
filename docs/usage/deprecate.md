@@ -1,6 +1,4 @@
----
-title: Deprecate Dependencies
----
+# Deprecate Dependencies
 
 A dependency can be marked as `deprecated` - this means that the intention is to remove it over time, but it is still allowed.
 `tach check` will not error on deprecated dependencies, but it will surface each import that uses the deprecated dependency.

@@ -1,0 +1,85 @@
+site_name: Tach
+site_url: https://gauge-sh.github.io/tach/
+site_description: A Python tool for managing module dependencies and interfaces
+site_author: Gauge
+
+repo_name: gauge-sh/tach
+repo_url: https://github.com/gauge-sh/tach
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  logo: assets/dark_logo.png
+  favicon: favicon.png
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Overview: getting-started/introduction.md
+    - Why Tach: getting-started/why-tach.md
+    - Getting Started: getting-started/getting-started.md
+  - Usage:
+    - Commands: usage/commands.md
+    - Configuration: usage/configuration.md
+    - Interfaces: usage/interfaces.md
+    - Layers: usage/layers.md
+    - Deprecation: usage/deprecate.md
+    - Tach Ignore: usage/tach-ignore.md
+    - Unchecked Modules: usage/unchecked-modules.md
+    - VS Code Integration: usage/vscode.md
+    - Caching: usage/caching.md
+    - FAQ: usage/faq.md
+  - Contributing:
+    - Setting Up Project: contributing/setting-up-project.md
+    - Working with Docs: contributing/working-with-docs.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - social
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/gauge-sh/tach
+    - icon: fontawesome/brands/twitter
+      link: https://x.com/gauge_sh
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/gauge-sh/

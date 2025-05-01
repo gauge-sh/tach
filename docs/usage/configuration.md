@@ -1,6 +1,4 @@
----
-title: Configuration
----
+# Configuration
 
 Aside from running `tach mod` and `tach sync`, you can configure Tach by creating or modifying the configuration file as described below.
 
@@ -16,9 +14,8 @@ This is the project-level configuration file which should be in the root of your
 
 `exclude` accepts a list of directory patterns to exclude from checking. These should be glob paths which match from the beginning of a given file path. For example: `project/*.tests` would match any path beginning with `project/` and ending with `.tests`.
 
-<Note>
-  Tach uses forward slashes to match path separators, even on Windows.
-</Note>
+!!! note
+        Tach uses forward slashes to match path separators, even on Windows.
 
 `ignore_type_checking_imports` (default: **true**) is a flag which silences `tach check` failures caused by imports under a `TYPE_CHECKING` conditional block.
 
@@ -28,7 +25,7 @@ This is the project-level configuration file which should be in the root of your
 
 `respect_gitignore` (default: **true**) is a flag which causes Tach to exclude files and directories matched by `.gitignore`.
 
-`root_module` takes a string enum value, and determines how Tach treats code which lives within the project but is not covered by an explicit module. This is described in detail [below](#the_root_module)
+`root_module` takes a string enum value, and determines how Tach treats code which lives within the project but is not covered by an explicit module. This is described in detail [below](#the-root-module)
 
 `rules` allows precise configuration of the severity of certain types of issues. See [below](#rules) for more details.
 
@@ -110,21 +107,25 @@ unused_ignore_directives = "warn"
 Each module listed under the `modules` key above can accept the following attributes:
 
 - `path` the Python import path to the module (e.g. `a.b` for `<root>/a/b.py`)
-<Note>Glob patterns are allowed. The pattern `"libs.**"` would define the default configuration for any module under the `libs` namespace.<br/><br/>This can be overridden for specific modules by defining them later in the file using a concrete pattern like `"libs.module"`.</Note>
-<Note>A module can also define `paths` as a shorthand for multiple module definitions. This allows specifying allowed dependencies and other attributes as a group.<br></br><br></br>Example: `paths = ["a.b", "a.c"]`</Note>
-- `depends_on` a list of module paths which this module can import from
-<Note>Glob patterns are allowed. The pattern `"libs.**"` would allow dependencies on any module under the `libs` namespace.</Note>
-<Note>Omitting the `depends_on` field means the module will be allowed to import from any other module. However, it will still be subject to those modules' [public interfaces](#interfaces).</Note>
-- `cannot_depend_on` a list of module paths which this module cannot import from
-<Note>This takes precedence over `depends_on`. In other words, if `cannot_depend_on = ["module"]`, then `depends_on = ["module"]` will have no effect.</Note>
-- `layer` (optional) the [**layer**](#layers) which holds this module
-- `visibility` (optional) a list of other modules which can import from this module
-- `utility` (default: `false`) marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency
-- `unchecked` (default: `false`) marks this module as [**unchecked**](../usage/unchecked-modules), meaning Tach will not check its imports
+!!! note
+        Glob patterns are allowed. The pattern `"libs.**"` would define the default configuration for any module under the `libs` namespace.<br/><br/>This can be overridden for specific modules by defining them later in the file using a concrete pattern like `"libs.module"`.
+!!! note
+        A module can also define `paths` as a shorthand for multiple module definitions. This allows specifying allowed dependencies and other attributes as a group.<br></br><br></br>Example: `paths = ["a.b", "a.c"]`
+    - `depends_on` a list of module paths which this module can import from
+!!! note
+        Glob patterns are allowed. The pattern `"libs.**"` would allow dependencies on any module under the `libs` namespace.
+!!! note
+        Omitting the `depends_on` field means the module will be allowed to import from any other module. However, it will still be subject to those modules' [public interfaces](#interfaces).
+    - `cannot_depend_on` a list of module paths which this module cannot import from
+!!! note
+        This takes precedence over `depends_on`. In other words, if `cannot_depend_on = ["module"]`, then `depends_on = ["module"]` will have no effect.
+    - `layer` (optional) the [**layer**](#layers) which holds this module
+    - `visibility` (optional) a list of other modules which can import from this module
+    - `utility` (default: `false`) marks this module as a **Utility**, meaning all other modules may import from it without declaring an explicit dependency
+    - `unchecked` (default: `false`) marks this module as [**unchecked**](unchecked-modules.md), meaning Tach will not check its imports
 
-<Note>
-  Tach also supports [deprecating individual dependencies](../usage/deprecate).
-</Note>
+!!! note
+        Tach also supports [deprecating individual dependencies](deprecate.md).
 
 ## Interfaces
 
@@ -145,15 +146,13 @@ More specifically:
 - `visibility` (optional): a list of modules which can use this interface
 - `exclusive` (default: `false`): when paired with `visibility`, requires that matching modules use _only_ this interface
 
-[More details here.](../usage/interfaces)
+[More details here.](interfaces.md)
 
-<Note>
-If an interface entry does not specify `from`, all modules will adopt the interface.
-</Note>
+!!! note
+        If an interface entry does not specify `from`, all modules will adopt the interface.
 
-<Note>
-A module can match multiple interface entries - if an import matches _any_ of the entries, it will be considered valid.
-</Note>
+!!! note
+        A module can match multiple interface entries - if an import matches _any_ of the entries, it will be considered valid.
 
 ## Layers
 
@@ -179,12 +178,12 @@ layer = "core"
 The configuration above defines three layers, with `ui` being the highest layer, and `core` being the lowest layer.
 It also tags `tach.check` as a module in the `commands` layer, and `tach.cache` in `core`.
 
-[More details here.](../usage/layers)
+[More details here.](layers.md)
 
 
 ## The Root Module
 
-By default, Tach checks all of the source files beneath all of the configured [source roots](#source_roots), and will ignore dependencies which are not contained by [modules](#modules).
+By default, Tach checks all of the source files beneath all of the configured [source roots](#source-roots), and will ignore dependencies which are not contained by [modules](#modules).
 
 However, Tach allows configuration of how to treat code which is within a source root, but not contained by a module.
 
@@ -214,7 +213,7 @@ Tach allows configuring how the root module should be treated through the `root_
 - **(permissive default)** `"ignore"`: Disable all checks related to the `<root>` module. `tach check` will never fail due to code in the `<root>` module, and `tach sync` will never add `<root>` to `tach.toml`
 - **(stricter)** `"allow"`: Treat `<root>` as a catch-all rollup module which must be explicitly declared as a dependency and must declare its own dependencies on other modules.
 - **(stricter)** `"dependenciesonly"`: Forbid any module from listing `<root>` as a dependency, but allow `<root>` to declare its own dependencies.
-- **(strictest)** `"forbid"`: Forbid any reference to the `<root>` module in tach.toml. This means that all code in [source roots](#source_roots) MUST be contained within an explicitly configured [module](#modules).
+- **(strictest)** `"forbid"`: Forbid any reference to the `<root>` module in tach.toml. This means that all code in [source roots](#source-roots) MUST be contained within an explicitly configured [module](#modules).
 
 ## Source Roots
 
@@ -259,7 +258,7 @@ To indicate this structure to Tach, set:
 source_roots = ["backend"]
 ```
 
-in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the `backend` folder as the only source root.
+in your `tach.toml`, or use [`tach mod`](commands.md#tach-mod) and mark the `backend` folder as the only source root.
 
 ### Example: Monorepo - Namespace Packages
 
@@ -324,11 +323,10 @@ source_roots = [
 ]
 ```
 
-in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the same folders as source roots.
+in your `tach.toml`, or use [`tach mod`](commands.md#tach-mod) and mark the same folders as source roots.
 
-<Note>
-In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
-</Note>
+!!! note
+        In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
 
 After configuring your source roots as above, you can use `tach check-external`
 to validate that any dependencies between the packages are declared explicitly in the corresponding `pyproject.toml`.
@@ -418,11 +416,10 @@ source_roots = [
 ]
 ```
 
-in your `tach.toml`, or use [`tach mod`](../usage/commands#tach-mod) and mark the same folders as source roots.
+in your `tach.toml`, or use [`tach mod`](commands.md#tach-mod) and mark the same folders as source roots.
 
-<Note>
-In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
-</Note>
+!!! note
+        In `tach.toml`, each entry in `source_roots` is interpreted as a relative path from the project root.
 
 After configuring your source roots as above, you can use `tach check-external`
 to validate that any dependencies between the packages are declared explicitly in the corresponding `pyproject.toml`.
@@ -546,7 +543,7 @@ This allows a team to own their public interface, without imposing a bottleneck 
 
 ## External
 
-When running [`check-external`](commands#tach-check-external), Tach allows excluding certain modules from validation.
+When running [`check-external`](commands.md#tach-check-external), Tach allows excluding certain modules from validation.
 
 Adding the top level module name to the `exclude` key (underneath the `external` key) will allow all usages of the corresponding module.
 
@@ -571,12 +568,11 @@ rename = [
 
 In most cases you should not need to specify `rename` manually (see the Note below).
 
-<Note>
-  It is recommended to run Tach within a virtual environment containing all of
-  your dependencies across all packages. This is because Tach uses the
-  distribution metadata to map module names like 'git' to their distributions
-  ('GitPython').
-</Note>
+!!! note
+        It is recommended to run Tach within a virtual environment containing all of
+      your dependencies across all packages. This is because Tach uses the
+      distribution metadata to map module names like 'git' to their distributions
+      ('GitPython').
 
 ## Rules
 
@@ -591,8 +587,8 @@ The available rules and their defaults are listed below.
 
 ## Cache
 
-Tach allows configuration of the [computation cache](caching) it uses to speed up tasks like [testing](commands#tach-test).
+Tach allows configuration of the [computation cache](caching.md) it uses to speed up tasks like [testing](commands.md#tach-test).
 
-The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](caching#determining-cache-hits). This should typically include files outside of your [source roots](#source-roots) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
+The `file_dependencies` key accepts a list of glob patterns to indicate additional file contents that should be considered when [checking for cache hits](caching.md#determining-cache-hits). This should typically include files outside of your [source roots](#source-roots) which affect your project's behavior under test, including the tests themselves. Additionally, if you have non-Python files which affect your project's behavior (such as Rust or C extensions), these should be included as well.
 
 The `env_dependencies` key accepts a list of environment variable names whose values affect your project's behavior under test. This may include a `DEBUG` flag, or database connection parameters in the case of tests which use a configurable database.

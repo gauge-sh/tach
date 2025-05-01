@@ -1,6 +1,4 @@
----
-title: Commands
----
+# Commands
 
 ## tach init
 
@@ -41,14 +39,14 @@ Running `tach mod` will open an editor in your terminal where you can mark your 
 You can navigate with the arrow keys, mark individual modules with `Enter`, and mark all siblings
 as modules with `Ctrl + a`.
 
-You can also mark your Python [source roots](configuration#source-roots) by pressing `s`.
+You can also mark your Python [source roots](configuration.md#source-roots) by pressing `s`.
 This allows Tach to understand module paths and correctly identify first-party imports.
 
-You can mark modules as [utilities](configuration#modules) by pressing `u`. This is appropriate for modules like `utils/`, which can be freely used by the rest of the code.
+You can mark modules as [utilities](configuration.md#modules) by pressing `u`. This is appropriate for modules like `utils/`, which can be freely used by the rest of the code.
 
 To save your modules, use `Ctrl + s`. Otherwise, to exit without saving, use `Ctrl + c`.
 
-Any time you make changes with `tach mod`, run [`tach sync`](commands#tach-sync)
+Any time you make changes with `tach mod`, run [`tach sync`](commands.md#tach-sync)
 to automatically configure dependency rules.
 
 ## tach sync
@@ -148,26 +146,25 @@ options:
                         Comma separated path list to exclude. tests/, ci/, etc.
 ```
 
-For all Python files in each [source root](../configuration#source-roots), Tach will determine which package it belongs to,
+For all Python files in each [source root](configuration.md#source-roots), Tach will determine which package it belongs to,
 and compare its dependencies to those declared in `pyproject.toml` or `requirements.txt`.
 Tach will report an error for any external import which is not satisfied by the declared dependencies.
 
 This also means that, for monorepos which contain multiple Python packages, Tach will detect when an import comes from a source root in another package,
-and verify that this dependency is declared. Make sure to configure [`source_roots`](../configuration#source-roots) for every package (globs are coming soon!).
+and verify that this dependency is declared. Make sure to configure [`source_roots`](configuration.md#source-roots) for every package (globs are coming soon!).
 
 This is typically useful if you are developing more than one Python package from a single virtual environment.
 Although your local environment may contain the dependencies for all your packages, when an end-user installs each package they will only install the dependencies listed in the `pyproject.toml`.
 
 This means that, although tests may pass in your shared environment, an invalid import can still cause errors at runtime for your users.
 
-In case you would like to explicitly allow a certain external module, this can be configured in your [`tach.toml`](configuration#external-checks)
+In case you would like to explicitly allow a certain external module, this can be configured in your [`tach.toml`](configuration.md#external)
 
-<Note>
-  It is recommended to run Tach within a virtual environment containing all of
-  your dependencies across all packages. This is because Tach uses the
-  distribution metadata to map module names like 'git' to their distributions
-  ('GitPython').
-</Note>
+!!! note
+        It is recommended to run Tach within a virtual environment containing all of
+      your dependencies across all packages. This is because Tach uses the
+      distribution metadata to map module names like 'git' to their distributions
+      ('GitPython').
 
 ## tach report
 
@@ -197,7 +194,7 @@ options:
 
 By default, this will generate a textual report showing the file and line number of each module dependency, module usage, and external dependency. Each section corresponds to a command line flag.
 
-The given `path` can be a directory or a file path. The [module](../configuration#modules) which contains the given path will be used to determine which imports to include in the report.
+The given `path` can be a directory or a file path. The [module](configuration.md#modules) which contains the given path will be used to determine which imports to include in the report.
 Generally, if an import points to a file which is contained by a different module, it will be included.
 
 The `--dependencies` flag includes module dependencies, meaning any import which targets a different module within your project. For example, if `core.api` and `core.services` are marked as modules,
@@ -208,12 +205,11 @@ then an import of `core.services.member` from within `core.api` would be include
 
 The `--external` flag includes external (3rd party) dependencies, meaning any import which targets a module outside of your project. For example, importing `pydantic` or `tomli` would be included in this report.
 
-<Note>
-  It is recommended to run Tach within a virtual environment containing all of
-  your dependencies across all packages. This is because Tach uses the
-  distribution metadata to map 3rd party module names like 'git' to their distributions
-  ('GitPython').
-</Note>
+!!! note
+        It is recommended to run Tach within a virtual environment containing all of
+      your dependencies across all packages. This is because Tach uses the
+      distribution metadata to map 3rd party module names like 'git' to their distributions
+      ('GitPython').
 
 Supplying the `--raw` flag will group the results by module name and eliminate formatting, making the output more easily machine-readable.
 
@@ -239,7 +235,7 @@ options:
 ```
 
 These are the results of `tach show --web` on the Tach codebase itself:
-![tach show](assets/tach_show.png)
+![tach show](../assets/tach_show.png)
 
 ## tach map
 
@@ -333,7 +329,7 @@ options:
 
 Using `pytest`, running `tach test` will perform [impact analysis](https://martinfowler.com/articles/rise-test-impact-analysis.html) on the changes between your current filesystem and your `main` branch to determine which test files need to be run.
 This can dramatically speed up your test suite in CI, particularly when you make a small change to a large codebase.
-This command also takes advantage of Tach's [computation cache](caching).
+This command also takes advantage of Tach's [computation cache](caching.md).
 
 ## tach install
 

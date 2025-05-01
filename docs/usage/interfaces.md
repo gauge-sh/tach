@@ -1,12 +1,10 @@
----
-title: Interfaces
----
+# Interfaces
 
-A module can adopt a public interface by matching interface rules in [`tach.toml`](./configuration#interfaces).
+A module can adopt a public interface by matching interface rules in [`tach.toml`](configuration.md#interfaces).
 
 ## How does it work?
 
-When Tach is checking imports from a module with a [public interface](./configuration#interfaces), it will verify that the import matches one of the `expose` patterns.
+When Tach is checking imports from a module with a [public interface](configuration.md#interfaces), it will verify that the import matches one of the `expose` patterns.
 This prevents other modules from becoming coupled to implementation details, and makes future changes easier.
 
 ### Example
@@ -60,7 +58,7 @@ get_data()
 
 ## Interface visibility
 
-Interfaces can specify `visibility`, similar to [modules](../usage/configuration#modules).
+Interfaces can specify `visibility`, similar to [modules](configuration.md#modules).
 
 This allows 'splitting' the interface, usually to support a detailed/sensitive interface for some consumers while maintaining a minimal interface by default.
 

@@ -1,6 +1,4 @@
----
-title: Setup Guide
----
+# Setup Guide
 
 ## 1. Automated dependency installation
 Installing all the dependencies
@@ -50,9 +48,8 @@ make deps
 
 To build and rebuild after changes to Rust files.
 
-<Note>
-Make sure you have the Rust compiler installed. This package requires Rust and Cargo to compile extensions.
-</Note>
+!!! note
+    Make sure you have the Rust compiler installed. This package requires Rust and Cargo to compile extensions.
 
 ### Install the crate as module in the current virtualenv
 
@@ -68,12 +65,21 @@ make test
 ```
 
 ## 4. Setting up the docs
-Tach internally uses `mintlify` platform to create and maintain public facing documentation
+Tach uses MkDocs with the Material theme for documentation. To work with the documentation:
 
-Note: contributors would need to install [Node](https://nodejs.org/en/download/prebuilt-installer) and [npm](https://www.npmjs.com/)
-```bash 
-make docs
+1. Install the documentation dependencies:
+```bash
+pip install -r docs/requirements.txt
 ```
+
+2. Start the local development server:
+```bash
+mkdocs serve
+```
+
+3. Open your browser to http://127.0.0.1:8000/ to see the documentation.
+
+For more details, see [Working with Docs](working-with-docs.md).
 
 ## 5. Things to check before committing
 Check and sync your dependencies in the root folder
@@ -101,5 +107,3 @@ Find Beginner Friendly issues here:
 - [Documentation Issues](https://github.com/gauge-sh/tach/issues?q=is%3Aopen+is%3Aissue+label%3Adocumentation)
 - [Issues](https://github.com/gauge-sh/tach/issues)
 - [Documentation](https://github.com/gauge-sh/tach/tree/main/docs)
-
-For any questions, just drop a message in [Discord](https://discord.com/invite/a58vW8dnmw)

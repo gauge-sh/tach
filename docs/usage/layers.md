@@ -1,9 +1,7 @@
----
-title: Layers
----
+# Layers
 
-An ordered list of layers can be configured at the top level of [`tach.toml`](../usage/configuration#layers),
-and [modules](../usage/configuration#modules) can each be assigned to a specific layer.
+An ordered list of layers can be configured at the top level of [`tach.toml`](configuration.md#layers),
+and [modules](configuration.md#modules) can each be assigned to a specific layer.
 
 ## How does it work?
 

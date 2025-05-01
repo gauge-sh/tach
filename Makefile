@@ -79,9 +79,16 @@ type-check: ## Run type checking
 	$(VENV_BIN)/pyright
 
 
-.PHONY: docs
-docs: ## Develop on docs locally
-	cd docs && npx mintlify dev
+.PHONY: docs docs-serve docs-build
+docs: docs-serve ## Alias for docs-serve
+
+docs-serve: ## Serve documentation locally with live reloading
+	pip install -r docs/requirements.txt
+	mkdocs serve
+
+docs-build: ## Build the documentation site
+	pip install -r docs/requirements.txt
+	mkdocs build
 
 
 .PHONY: help

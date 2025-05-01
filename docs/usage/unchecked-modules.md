@@ -1,10 +1,8 @@
----
-title: Unchecked Modules
----
+# Unchecked Modules
 
 ---
 
-A module can be marked 'unchecked' by setting `unchecked: true` in its configuration within [`tach.toml`](configuration#tachtoml).
+A module can be marked 'unchecked' by setting `unchecked: true` in its configuration within [`tach.toml`](configuration.md#tachtoml).
 
 ## How does it work?
 
@@ -12,13 +10,12 @@ An **unchecked** module should be thought of as a 'known' module which does not 
 
 The purpose of configuring an unchecked module is to better support **incremental adoption** of Tach.
 
-<Note>
-Setting `unchecked: true` is different from omitting the `depends_on` field.
+!!! note
+        Setting `unchecked: true` is different from omitting the `depends_on` field.
 
-An unchecked module is allowed to import anything, from any module - even when the module declares a [public interface](configuration#interfaces).
+An unchecked module is allowed to import anything, from any module - even when the module declares a [public interface](configuration.md#interfaces).
 
 In contrast, a module with `depends_on` omitted will still need to respect public interfaces.
-</Note>
 
 ## Example
 
