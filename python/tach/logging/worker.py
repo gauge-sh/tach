@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
+from tach.cache.setup import get_cache_path
+
 LOGGING_URL = "https://vmilasesnyvpalekembc.supabase.co"
 PUBLIC_ANON_CLIENT_KEY = (
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtaWxhc2Vzbnl2cGFsZWtlbWJjIiwicm9"
@@ -29,7 +31,7 @@ def update_latest_version(project_root: Path) -> None:
                 return
     except (error.URLError, KeyError):
         return
-    (project_root / ".tach" / ".latest-version").write_text(latest_version)
+    (get_cache_path(project_root) / ".latest-version").write_text(latest_version)
 
 
 def log_request(url: str, data: dict[str, Any]) -> None:
@@ -140,7 +142,7 @@ def create_managed_subprocess(project_root: Path, timeout: int = 5) -> Path:
     Launches the worker as a completely separate process using subprocess.Popen.
     Returns the path to the temporary file for message passing.
     """
-    tach_dir = project_root / ".tach"
+    tach_dir = get_cache_path(project_root)
     tach_dir.mkdir(parents=True, exist_ok=True)
 
     # Cannot use FIFO because it is not supported on Windows
