@@ -62,7 +62,9 @@ jobs:
       - name: Check tach
         run: tach check
       - name: Check Rust linting
-        run: cargo clippy
+        run: |
+          rustup component add clippy
+          cargo clippy
       - name: Check Rust formatting
         run: cargo fmt --all --check
       - name: Check Rust
