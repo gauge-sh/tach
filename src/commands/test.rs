@@ -9,7 +9,7 @@ use crate::filesystem::{self as fs};
 use crate::modules::{ModuleTree, ModuleTreeBuilder};
 use crate::resolvers::{SourceRootResolver, SourceRootResolverError};
 
-use super::helpers::import::get_located_project_imports;
+use super::helpers::import::get_located_imports;
 
 #[derive(Error, Debug)]
 pub enum TestError {
@@ -102,16 +102,22 @@ impl TachPytestPluginHandler {
     }
 
     pub fn should_remove_items(&self, file_path: PathBuf) -> bool {
-        let project_imports = get_located_project_imports(
+        // Imports are matched against the module tree rather than resolved to
+        // files on disk: a test only needs to know which module an import
+        // belongs to, and the module tree knows where packages actually live
+        // even when they use a src/ layout that source-root joining cannot
+        // reconstruct (see #938). Third-party imports match no module.
+        let imports = get_located_imports(
             &self.project_root,
             &self.source_roots,
             &file_path,
             &self.project_config,
+            self.project_config.include_string_imports,
         )
         .unwrap_or_default();
         let mut should_remove = true;
 
-        for import in project_imports {
+        for import in imports {
             if let Some(nearest_module) = self.module_tree.find_nearest(import.module_path()) {
                 if self.affected_modules.contains(&nearest_module.full_path) {
                     // If the module is affected, break early and don't remove the item
