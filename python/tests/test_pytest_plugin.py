@@ -211,3 +211,41 @@ class TestPytestPluginDurations:
         result2.assert_outcomes(passed=0)
         # Should show estimated duration (format: ~X.Xs saved)
         result2.stdout.fnmatch_lines(["*~*s saved*"])
+
+
+class TestPytestPluginSrcLayout:
+    def test_src_layout_change_runs_module_own_tests(self, pytester: pytest.Pytester):
+        """A changed module's own tests must run under the src/ layout (#938)."""
+        _ = pytester.makefile(".toml", tach='source_roots = ["modules"]')
+        _ = pytester.makefile(
+            ".ini",
+            pytest="[pytest]\npythonpath = modules/alpha/src\n",
+        )
+        pkg_dir = pytester.path / "modules" / "alpha" / "src" / "alpha"
+        pkg_dir.mkdir(parents=True)
+        _ = (pkg_dir / "__init__.py").write_text("", encoding="utf-8")
+        _ = (pkg_dir / "core.py").write_text(
+            "def sub(a, b):\n    return a - b\n", encoding="utf-8"
+        )
+        tests_dir = pytester.path / "modules" / "alpha" / "tests"
+        tests_dir.mkdir(parents=True)
+        _ = (tests_dir / "test_core.py").write_text(
+            "from alpha.core import sub\n\ndef test_sub():\n    assert sub(5, 3) == 2\n",
+            encoding="utf-8",
+        )
+        _ = pytester.run("git", "init")
+        _ = pytester.run("git", "config", "user.email", "test@test.com")
+        _ = pytester.run("git", "config", "user.name", "Test")
+        _ = pytester.run("git", "add", "-A")
+        _ = pytester.run("git", "commit", "-m", "initial")
+
+        # Change the source file; the module's own test must be selected.
+        _ = (pkg_dir / "core.py").write_text(
+            "def sub(a, b):\n    return a - b  # modified\n", encoding="utf-8"
+        )
+        _ = pytester.run("git", "add", "-A")
+        _ = pytester.run("git", "commit", "-m", "modify source")
+
+        result = run_pytest(pytester, "--tach-base", "HEAD~1")
+        result.assert_outcomes(passed=1)
+        assert "Skipped 1 test" not in result.stdout.str()
